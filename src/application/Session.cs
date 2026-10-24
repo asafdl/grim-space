@@ -379,22 +379,23 @@ public partial class Session : Node
 	/// </summary>
 	private void BootstrapRunFromCommandLine()
 	{
-		foreach (var argument in OS.GetCmdlineUserArgs())
+		var arguments = OS.GetCmdlineUserArgs();
+		// The evidence flags are independent of which run source wins, so they
+		// are collected first: an earlier version returned at --new-run and
+		// never saw a later --zoom-probe.
+		foreach (var argument in arguments)
+		{
+			if (argument == "--inject-input")
+				_injectInputProbe = true;
+			else if (argument == "--zoom-probe")
+				_zoomProbe = true;
+		}
+		foreach (var argument in arguments)
 		{
 			if (argument == "--new-run")
 			{
 				StartNewRun();
 				return;
-			}
-			if (argument == "--inject-input")
-			{
-				_injectInputProbe = true;
-				break;
-			}
-			if (argument == "--zoom-probe")
-			{
-				_zoomProbe = true;
-				break;
 			}
 			if (argument == "--load-save")
 			{
@@ -456,17 +457,30 @@ public partial class Session : Node
 	private void RunZoomOutProbe()
 	{
 		_probeFrame++;
-		if (_probeFrame is < 90 or > 240 || _probeFrame % 15 != 0)
+		var phase = _probeFrame % 8;
+		if (_probeFrame is < 90 or > 390)
+			return;
+		var neutral = new Vector2(
+			DisplayServer.ScreenGetSize().X * 0.15f,
+			DisplayServer.ScreenGetSize().Y * 0.62f);
+		// The director swallows wheel events while a control is hovered or the
+		// camera is tweening, so the pairs arrive often enough that at least
+		// one lands in every settle window between band transitions.
+		if (phase == 0)
+		{
+			Input.ParseInputEvent(new InputEventMouseMotion { Position = neutral, GlobalPosition = neutral });
+			return;
+		}
+		if (phase != 5 || _probeFrame > 380)
 			return;
 		Input.ParseInputEvent(new InputEventMouseButton
 		{
 			ButtonIndex = MouseButton.WheelDown,
 			Pressed = true,
-			Position = new Vector2(
-				DisplayServer.ScreenGetSize().X / 2f,
-				DisplayServer.ScreenGetSize().Y / 2f),
+			Position = neutral,
+			GlobalPosition = neutral,
 		});
-		if (_probeFrame % 30 == 0)
+		if ((_probeFrame / 40) % 2 == 0)
 			GD.Print($"[Session] zoom-probe wheel-down at frame {_probeFrame}");
 	}
 

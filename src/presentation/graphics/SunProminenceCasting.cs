@@ -38,15 +38,35 @@ public static class SunProminenceCasting
 	public static readonly float[] HolderGains = [1.00f, 1.42f, 0.72f, 0.58f];
 
 	/// <summary>The dissolve in and out of a life, as a fraction of the life.</summary>
-	private const float DissolveFraction = 0.14f;
+	public const float DissolveFraction = 0.14f;
 
 	/// <summary>
-	/// The holder live at <paramref name="time"/> seconds on a schedule
-	/// loaded from the timeline, and its gain.  In an all-quiet gap — or past
-	/// the schedule's end, before the timeline loop wraps — the gain is 0.
+	/// How long (in player-seconds at 1x) the live prominence's GROWTH phase
+	/// is designed to take — the rise from nothing to the held arc.  Five
+	/// minutes, mid of the user-ordered 3–6 minute band ("the prominence
+	/// animation is very fast, it should take minutes to grow!", 2026-10-24).
+	/// The whole life (grow, plateau, dissolve back to exactly 0) scales from
+	/// the timeline's design curve with this as the anchor; the one-live-at-
+	/// a-time roll, the all-quiet gaps and death-at-0 are all unchanged.
 	/// </summary>
-	public static (int Holder, float Gain) Resolve(ReadOnlySpan<ProminenceTurn> schedule, float time)
+	public const float GrowthSecondsAt1x = 300f;
+
+
+	/// <summary>
+	/// The holder live at <paramref name="time"/> seconds on the casting
+	/// clock, and its gain.  <paramref name="time"/> runs on the casting
+	/// clock; <paramref name="castingSecondsPerTimelineSecond"/> is how many
+	/// casting seconds one timeline design second lasts (1 = design speed;
+	/// the strategic map plays minutes scale — see
+	/// <see cref="GrowthSecondsAt1x"/>).  In an all-quiet gap — or past the
+	/// schedule's end, before the timeline loop wraps — the gain is 0.
+	/// </summary>
+	public static (int Holder, float Gain) Resolve(
+		ReadOnlySpan<ProminenceTurn> schedule,
+		float time,
+		float castingSecondsPerTimelineSecond = 1f)
 	{
+		time /= Mathf.Max(castingSecondsPerTimelineSecond, 0.0001f);
 		foreach (var turn in schedule)
 		{
 			if (time < turn.Start)

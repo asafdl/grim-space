@@ -48,27 +48,30 @@ public static class MapCelestialVisuals
 
 	/// <summary>
 	/// The strategic map star's palette, the owner of the map's tuning of the
-	/// shared sun shader.  The disc ENERGY is the measured/ratified sun_test
-	/// value — the old in-map overburn (0.5 + 0.25*SunGlow ≈ 0.70, over twice
-	/// the ratified 0.26) made the disc read as an odd blown-out ball.  At map
-	/// viewing distances the granulation is kept coarse enough not to alias,
-	/// and the corona's radial strands are dialled down so their spike
-	/// structure does not read as a fan of fake "light rays".  The prominence
-	/// role is cast by SunProminenceCasting (one loop at a time); the palette
+	/// shared sun shader.  Distance-rated against the map's own poses (the
+	/// ~550 px boot disc and the wheel-zoomed mid pose), not the sun_test
+	/// closeup: the closeup-ratified disc energy stays quoted at 0.26, but
+	/// what the map can actually display is raised — the corona halo that
+	/// fills the "moat" between disc and space, the granulation and plage
+	/// contrast the limb shows at those subtenses, and a prominence that
+	/// reads at map scale (higher, thicker, wider).  The prominence role is
+	/// still cast by SunProminenceCasting (one loop at a time); the palette
 	/// no longer counts sites.
 	/// </summary>
 	internal static SunPalette BuildStarPalette(int seed, MapAtmosphereSettings settings) =>
 		new()
 		{
 			GranulationCells = 34f,
-			GranulationStrength = 0.65f,
+			GranulationStrength = 0.85f,
 			PlageCells = 6f,
-			PlageStrength = 0.45f,
-			ProminenceHeight = 0.20f,
-			ProminenceStrength = 1.10f,
-			CoronaStrength = 0.12f,
+			PlageStrength = 0.75f,
+			ProminenceHeight = 0.38f,
+			ProminenceStrength = 1.9f,
+			ProminenceLoopSpan = 0.42f,
+			ProminenceFilamentWidth = 0.030f,
+			CoronaStrength = 0.40f,
 			CoronaStreamerStrength = 0.34f,
-			CoronaHaloReach = 0.5f,
+			CoronaHaloReach = 1.0f,
 			EmissionStrength = 0.26f + settings.SunGlowEnergy * 0.06f,
 			Seed = StableSeedMixer.From(seed).Add("map-star").Value % 997f,
 		};

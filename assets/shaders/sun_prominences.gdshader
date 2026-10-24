@@ -51,6 +51,11 @@ uniform vec4 cme_data = vec4(0.0, 0.0, 0.0, 0.35);
 
 varying vec2 v_quad;
 varying float v_limb;
+// Which way the quad's +y axis points ON SCREEN (+1 up, -1 down), measured
+// by projecting two vertices.  The site band is pinned with this instead of
+// assuming a UV convention, so the arc always rises from the screen-lower
+// limb wherever the strategic camera sits.
+varying float v_quad_y_screen_sign;
 
 const float SUN_PI = 3.141592653589793;
 const float SUN_TAU = 6.283185307179586;
@@ -107,6 +112,16 @@ void vertex() {
 		vec4(right * scale, 0.0), vec4(up * scale, 0.0),
 		vec4(facing * scale, 0.0), vec4(center, 1.0));
 
+	// Screen direction of the billboard's +y axis, measured from the clip
+	// coordinates themselves.  +1 means +y is "up" on screen, -1 means it is
+	// "down"; the fragment stage pins the prominence site to the lower rim
+	// with this, so no UV-convention assumption enters the look.
+	vec4 clip_center = PROJECTION_MATRIX * VIEW_MATRIX * vec4(center, 1.0);
+	vec4 clip_up = PROJECTION_MATRIX * VIEW_MATRIX * vec4(center + up * scale * 0.05, 1.0);
+	vec2 ndc_center = clip_center.xy / clip_center.w;
+	vec2 ndc_up = clip_up.xy / clip_up.w;
+	v_quad_y_screen_sign = sign(ndc_up.y - ndc_center.y);
+
 	// A sphere of radius R seen from distance D covers an apparent radius of
 	// R*D/sqrt(D^2-R^2) on the quad plane.  Dividing by this keeps the
 	// prominences rooted exactly on the silhouette at any camera distance.
@@ -146,7 +161,16 @@ void fragment() {
 	float h2 = hash11(fi * 31.71 + seed + 5.3);
 	float h3 = hash11(fi * 47.33 + seed + 11.9);
 
-	float base_angle = h1 * SUN_TAU;
+	// The site angle is seeded per holder and pinned to the screen-LOWER half
+	// of the billboard rim (v_quad_y_screen_sign is measured per frame), so
+	// the arc apex is in frame wherever a strategic camera sees the disc's
+	// lower limb — including the opening pose, which crops the top limb
+	// off-screen.  Randomness, one-roll law and per-holder identity are
+	// unchanged; only the site's angular band is pinned.
+	float lower_y_sign = -v_quad_y_screen_sign;
+	float base_angle = lower_y_sign > 0.0
+		? mix(-0.35, SUN_PI + 0.35, h1)
+		: mix(SUN_PI + 0.35, SUN_TAU - 0.35, h1);
 	float phase = h2;
 	float height_scale = 0.45 + 0.85 * h3;
 	float span_scale = 0.55 + 0.80 * fract(h1 * 13.37 + h2);

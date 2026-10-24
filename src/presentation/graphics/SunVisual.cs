@@ -32,6 +32,17 @@ public static class SunVisual
 	private static ShaderMaterial? _prominenceMaterial;
 
 	private static SunProminenceCasting.ProminenceTurn[]? _prominenceSchedule;
+	private static float _prominenceCastingScale = 1f;
+
+	/// <summary>
+	/// Sets how long one timeline design second lasts on the casting clock
+	/// (1 = design speed, as filmed by the pipeline's own scripts).  The
+	/// strategic map plays its arcs at minutes scale (see
+	/// <see cref="SunProminenceCasting.GrowthSecondsAt1x"/>); the sun test
+	/// harness keeps design speed.
+	/// </summary>
+	public static void SetProminenceCastingScale(float castingSecondsPerTimelineSecond) =>
+		_prominenceCastingScale = Mathf.Max(castingSecondsPerTimelineSecond, 0.0001f);
 
 	/// <summary>
 	/// Installs the timeline's prominence casting schedule
@@ -64,7 +75,10 @@ public static class SunVisual
 		}
 		if (_prominenceMaterial is not null && _prominenceSchedule is not null)
 		{
-			var (holder, gain) = SunProminenceCasting.Resolve(_prominenceSchedule, promotionTime);
+			var (holder, gain) = SunProminenceCasting.Resolve(
+				_prominenceSchedule,
+				promotionTime,
+				_prominenceCastingScale);
 			_prominenceMaterial.SetShaderParameter("role_site", (float)holder);
 			_prominenceMaterial.SetShaderParameter("role_gain", gain);
 		}
@@ -172,6 +186,8 @@ public static class SunVisual
 		material.SetShaderParameter("sun_radius", radius);
 		material.SetShaderParameter("quad_half_width", radius * palette.ProminenceQuadWidth * 0.5f);
 		material.SetShaderParameter("debug_term", palette.ProminenceDebug);
+		material.SetShaderParameter("filament_width", palette.ProminenceFilamentWidth);
+		material.SetShaderParameter("loop_span", palette.ProminenceLoopSpan);
 		material.SetShaderParameter("limb_ring_strength", palette.LimbRingStrength);
 		material.SetShaderParameter("spicule_haze", palette.SpiculeHaze);
 		// Role defaults: negative = self-drive.  The shader then runs the same

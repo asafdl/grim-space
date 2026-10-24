@@ -46,6 +46,11 @@ public partial class MapController : Node3D
 	private SunPhenomena _sunPhenomena = new();
 	private AudioStreamPlayer? _sunAudio;
 	private float _sunClock;
+	private float _castingClock;
+	// Evidence rig: --casting-fast <factor> compresses the casting clock's
+	// real time by <factor> (a 14 s movie then spans the minutes-scale
+	// curve's full growth).  Game code always runs at 1.
+	private int _castingFast = 1;
 	private NavigationLandmarksView _landmarks = null!;
 	private WreckageView _wreckage = null!;
 	private RoutesView _routes = null!;
@@ -204,6 +209,15 @@ public partial class MapController : Node3D
 		var halfZ = world.Height * MapMapping.WorldUnitsPerPoint * 0.5f;
 		var atmosphere = MapAtmosphereSettings.Default;
 
+		// Evidence rig: --casting-fast <factor> as two separate args, the same
+		// pattern as --no-sky.
+		var userArgs = OS.GetCmdlineUserArgs();
+		for (var index = 0; index < userArgs.Length; index++)
+			if (userArgs[index] == "--casting-fast"
+				&& index + 1 < userArgs.Length
+				&& int.TryParse(userArgs[index + 1], out var fast))
+				_castingFast = Godot.Mathf.Max(1, fast);
+
 		var backdrop = new MapBackdrop();
 		backdrop.Build(atmosphere, noSky: OS.GetCmdlineUserArgs().Any(argument => argument == "--no-sky"));
 		AddChild(backdrop);
@@ -267,7 +281,22 @@ public partial class MapController : Node3D
 		_sunEvents = SunPhenomena.LoadEvents(SunEventsPath);
 		_sunSpots = SunPhenomena.LoadSpots(SunEventsPath);
 		_sunDuration = SunPhenomena.ReadTimelineDuration(SunEventsPath);
-		SunVisual.SetProminenceSchedule(SunPhenomena.LoadRoles(SunEventsPath));
+		var roles = SunPhenomena.LoadRoles(SunEventsPath);
+		SunVisual.SetProminenceSchedule(roles);
+		// The one tuning knob the player feels: arcs grow over minutes, not
+		// seconds (user-ordered 3–6 minutes at 1x).  The design curve's own
+		// growth is the dissolve-in span of the schedule's first life, so the
+		// casting scale is that span stretched to GrowthSecondsAt1x.
+		if (roles.Count > 0)
+		{
+			var turn0 = roles[0];
+			var designGrowth = SunProminenceCasting.DissolveFraction * (turn0.Death - turn0.Start);
+			var castingScale = SunProminenceCasting.GrowthSecondsAt1x / designGrowth;
+			SunVisual.SetProminenceCastingScale(castingScale);
+			GD.Print($"[ProminenceCasting] growth at 1x = {SunProminenceCasting.GrowthSecondsAt1x}s (user band 180..360s); " +
+				$"turn 0 = {turn0.Start:F2}..{turn0.Death:F2} design s, growth {designGrowth:F2} design s x scale {castingScale:F1} = " +
+				$"life {(turn0.Death - turn0.Start) * castingScale:F0} player s (growth {SunProminenceCasting.GrowthSecondsAt1x:F0} s).");
+		}
 
 		var fadeOverlay = GetNode<ColorRect>("UI/FadeOverlay");
 		var presentationContext = new MapPresentationContext
@@ -400,7 +429,10 @@ public partial class MapController : Node3D
 		// The sun's phenomena ride the audio clock when the rumble is playing
 		// (the timeline and the soundtrack share the period, so they stay
 		// event-synced with no drift); without the rumble, the frame clock
-		// keeps the timeline alive.
+		// keeps the timeline alive.  The PROMINENCES are the one exception:
+		// their casting clock runs free (no array wrap) so their minutes-scale
+		// lives never restart with the rumble loop — see
+		// SunProminenceCasting.GrowthSecondsAt1x.
 		float timelineTime;
 		if (_sunAudio is not null)
 		{
@@ -411,8 +443,9 @@ public partial class MapController : Node3D
 			_sunClock += (float)delta;
 			timelineTime = _sunClock % Mathf.Max(_sunDuration, 0.01f);
 		}
+		_castingClock += (float)delta * SpeedOptions[_speedIndex] * _castingFast;
 		SunPhenomena.Evaluate(_sunEvents, _sunSpots, timelineTime, _sunPhenomena);
-		SunVisual.UpdatePhenomena(_sunPhenomena, timelineTime);
+		SunVisual.UpdatePhenomena(_sunPhenomena, _castingClock);
 
 		if (_orchestrator.CanAdvance && !_director.IsTransitioning)
 			AdvanceSimulation(delta);

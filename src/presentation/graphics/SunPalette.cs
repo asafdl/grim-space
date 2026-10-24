@@ -146,6 +146,19 @@ public sealed class SunPalette
 	/// <summary>Width of the prominence billboard, in star radii.</summary>
 	public float ProminenceQuadWidth { get; init; } = 10f;
 
+	/// <summary>
+	/// How thick one prominence thread bundle is, in stellar radii (the
+	/// shader's own closeup balance is 0.014; distant stars raise this so
+	/// the arc still reads at map subtenses).
+	/// </summary>
+	public float ProminenceFilamentWidth { get; init; } = 0.014f;
+
+	/// <summary>
+	/// How wide the arc spans along the limb, in radians at the base (the
+	/// shader's own balance is 0.30).
+	/// </summary>
+	public float ProminenceLoopSpan { get; init; } = 0.30f;
+
 	/// <summary>Deterministic seed for the surface pattern and the prominence sites.</summary>
 	public float Seed { get; init; }
 

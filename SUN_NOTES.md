@@ -1071,3 +1071,25 @@ produced 18 exceptions at :499 now produce none.
 NON-REGRESSION LAW: the prominence arc must grow on MINUTES-scale game time (~3-6 min to apex,
 configurable named constant), then die at intensity 0 per the roll law. Seconds-scale growth is
 regression. Acceptance: event-timeline timestamps or time-compressed render proof, not eyeball.
+
+## Addendum 8 — the map-pose redo (2026-10-24, redo of the sun work)
+Palette now ratified AT THE MAP POSES (boot ~550 px disc + wheel-zoomed pose), not only at the
+close-up: CoronaStrength 0.12 -> 0.40, CoronaHaloReach 0.5 -> 1.0, GranulationStrength 0.65 ->
+0.85, PlageStrength 0.45 -> 0.75, ProminenceHeight 0.20 -> 0.38 R, ProminenceStrength 1.10 -> 1.9,
+loop span 0.42, filament width 0.030 (all in `MapCelestialVisuals.BuildStarPalette`).
+The seeded prominence site is pinned to the SCREEN-lower rim inside `sun_prominences.gdshader`:
+the vertex stage measures the billboard's +y screen direction from clip space
+(`v_quad_y_screen_sign`) and the fragment band follows it, so no UV-convention or camera-pose
+assumption decides whether the arc is born on the cropped limb.
+Minutes law (verdict #6): `SunProminenceCasting.GrowthSecondsAt1x = 300f`; the map's casting clock
+is free-running (`MapController._castingClock`, speed-coupled, `--casting-fast <n>` compresses it for
+evidence renders) instead of the 14 s audio-loop position, and `Resolve` divides by the derived scale
+(242.2 for turn 0: 8.85 design s -> 2143 player s life, 300 s growth).
+Rate proof (map boot log): `[ProminenceCasting] growth at 1x = 300s (user band 180..360s); turn 0 =
+0.00..8.85 design s, growth 1.24 design s x scale 242.2 = life 2143 player s (growth 300 s).`
+Compressed evidence: `--casting-fast 30` (30 casting s per movie s) shows growth+plateau in 14 s.
+Evidence frames: `refs/comparison/redo_map_boot_{base,final}.png`,
+`redo_map_zoom_{base,final}.png`, `redo_mapstar_arc_closeup.png`,
+`redo_closeup_{before,after}.png` (99.06 % of the close-up frame pixel-identical; the only delta is
+the seeded site). Harness fixes: `--zoom-probe` now registers when `--new-run` is also passed
+(flag collection precedes run adoption), and `--casting-fast` parses as two args.
