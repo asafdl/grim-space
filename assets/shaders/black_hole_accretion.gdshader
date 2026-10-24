@@ -14,6 +14,9 @@ uniform vec3 outer_color : source_color = vec3(0.45, 0.12, 0.04);
 uniform float doppler_amount : hint_range(0.0, 1.5) = 0.55;
 uniform float doppler_sign : hint_range(-1.0, 1.0) = 1.0;
 uniform float swirl_speed : hint_range(0.0, 2.0) = 0.30;
+// Rim thickness knob: how fast the hot inner edge falls off across the annulus
+// (higher = thinner, sharper-cut rim; lower = fatter blur).
+uniform float rim_power : hint_range(1.0, 40.0) = 14.0;
 uniform float grain_energy : hint_range(0.0, 2.0) = 0.9;
 // Alive read: the disk energy breathes on its own clock (no baked still frame).
 uniform float flicker_amount : hint_range(0.0, 1.0) = 0.65;
@@ -49,7 +52,9 @@ void fragment() {
 
 	float annulus = smoothstep(inner_ratio - 0.05, inner_ratio + 0.10, r)
 		* (1.0 - smoothstep(0.82, 1.0, r));
-	float hot_edge = exp(-t * 5.5);
+	// Hot rim: exponential falloff across the annulus, rim_power controls how
+	// quickly it dies out (thin, knife-edge rim instead of a fat blur).
+	float hot_edge = exp(-t * rim_power);
 
 	vec3 col = mix(warm_color, outer_color, clamp(t * 1.4, 0.0, 1.0));
 	col += hot_color * hot_edge * 1.5;

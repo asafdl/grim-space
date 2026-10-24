@@ -40,6 +40,13 @@ comparison would be apples-to-oranges), frame 180 = 6.0 s settled.
    rotation fitting — both hit the noise pattern's too-few-repetitions aliasing
    at these cell sizes, so the visual strip is the accepted evidence.)
 
+3. **The rim is a knife edge, not a fat blur.** The hot-edge falloff across
+   the annulus is now a tunable `rim_power` (set 14, was an implicit 5.5), so
+   the pale glow band wrapped around the hole is much thinner and sharper and
+   the warm annulus behind it shows through. Evidence:
+   `evidence/kit1/item3_thinner-rim.png` (left: fat rim; right: thinner rim,
+   same rig pose and t=6s on both sides).
+
 ## What was actually wrong (found by rendering, not guessing)
 
 The "black hole" was **not an object at all**. It was a photo collage:
