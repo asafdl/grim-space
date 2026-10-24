@@ -1,12 +1,14 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Presentation.Menu;
 
 public partial class KeyBindingsTab : Control
 {
 	private readonly record struct BindingSubsection(string Title, string[] ActionIds);
+	private static readonly HudPalette SettingsPalette = HudPalettes.PurpleRed;
 
 	private static readonly BindingSubsection[] BattleSubsections =
 	[
@@ -63,8 +65,8 @@ public partial class KeyBindingsTab : Control
 
 	private const float ActionColumnMinWidth = 200f;
 	private const float KeyColumnWidth = 112f;
-	private const int ContextTitleFontSize = 44;
-	private const int SubsectionTitleFontSize = 36;
+	private const int ContextTitleFontSize = 22;
+	private const int SubsectionTitleFontSize = 16;
 
 	private VBoxContainer _rowList = null!;
 	private Label _statusLabel = null!;
@@ -123,14 +125,22 @@ public partial class KeyBindingsTab : Control
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
+		ApplyScrollBarPalette(scroll);
 		root.AddChild(scroll);
+
+		var scrollContentMargin = new MarginContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		scrollContentMargin.AddThemeConstantOverride("margin_right", 12);
+		scroll.AddChild(scrollContentMargin);
 
 		_rowList = new VBoxContainer
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_rowList.AddThemeConstantOverride("separation", 10);
-		scroll.AddChild(_rowList);
+		scrollContentMargin.AddChild(_rowList);
 
 		_statusLabel = new Label
 		{
@@ -147,6 +157,42 @@ public partial class KeyBindingsTab : Control
 		_capture.BindingCaptured += OnBindingCaptured;
 		_capture.CaptureCancelled += OnCaptureCancelled;
 		root.AddChild(_capture);
+	}
+
+	private static void ApplyScrollBarPalette(ScrollContainer scroll)
+	{
+		var palette = SettingsPalette;
+		var bar = scroll.GetVScrollBar();
+		bar.CustomMinimumSize = new Vector2(12f, 0f);
+		bar.AddThemeStyleboxOverride("scroll", CreateScrollTrackStyle(palette));
+		bar.AddThemeStyleboxOverride("grabber", CreateScrollThumbStyle(palette.Secondary));
+		bar.AddThemeStyleboxOverride("grabber_highlight", CreateScrollThumbStyle(palette.Highlight));
+		bar.AddThemeStyleboxOverride("grabber_pressed", CreateScrollThumbStyle(palette.Primary));
+	}
+
+	private static StyleBoxFlat CreateScrollTrackStyle(HudPalette palette)
+	{
+		var style = new StyleBoxFlat
+		{
+			BgColor = HudPalettes.WithAlpha(palette.DeepSurface, 0.72f),
+			BorderColor = HudPalettes.WithAlpha(palette.Secondary, 0.32f),
+		};
+		style.SetBorderWidthAll(1);
+		return style;
+	}
+
+	private static StyleBoxFlat CreateScrollThumbStyle(Color color)
+	{
+		var style = new StyleBoxFlat
+		{
+			BgColor = color,
+			CornerRadiusTopLeft = 3,
+			CornerRadiusTopRight = 3,
+			CornerRadiusBottomLeft = 3,
+			CornerRadiusBottomRight = 3,
+		};
+		style.SetBorderWidthAll(0);
+		return style;
 	}
 
 	private void RebuildRows()
@@ -197,7 +243,6 @@ public partial class KeyBindingsTab : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		label.AddThemeFontSizeOverride("normal_font_size", SubsectionTitleFontSize);
-		label.AddThemeColorOverride("default_color", new Color(0.55f, 0.62f, 0.7f));
 		return label;
 	}
 
@@ -279,12 +324,10 @@ public partial class KeyBindingsTab : Control
 	private Button CreateBindingButton(StringName action, bool secondary, KeyBinding binding)
 	{
 		var text = binding.IsEmpty ? "—" : GameInputBindings.LabelForBinding(binding);
-		var button = new Button
+		var button = new UiKeycap(text, SettingsPalette)
 		{
-			Text = text,
 			ClipText = true,
-			CustomMinimumSize = new Vector2(KeyColumnWidth, 32),
-			ThemeTypeVariation = HudStyles.MenuNavButtonType,
+			CustomMinimumSize = new Vector2(KeyColumnWidth, 36),
 		};
 		button.Pressed += () => BeginCapture(action, secondary, button);
 		return button;

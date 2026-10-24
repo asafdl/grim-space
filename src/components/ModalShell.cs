@@ -22,11 +22,13 @@ public sealed partial class ModalShell : Control
 	private bool _dismissVisible;
 	private bool _requiresDecision;
 	private bool _dismissOnBackdropClick = true;
+	private bool _escapeHandlingEnabled = true;
 	private IReadOnlyList<HudAction> _footerActions = [];
 	private Control _headerRow = null!;
 	private MarginContainer _bodyMargin = null!;
 	private readonly HudThemeFamily? _themeFamily;
 	private readonly UiContainerVisual _containerVisual;
+	private readonly HudPalette _palette;
 	private UiButtonVisual _footerButtonVisual = UiButtonVisual.Action;
 	private Vector2? _panelMinimumSizeOverride;
 
@@ -39,10 +41,12 @@ public sealed partial class ModalShell : Control
 
 	public ModalShell(
 		UiContainerVisual containerVisual,
-		HudThemeFamily? themeFamily = null)
+		HudThemeFamily? themeFamily = null,
+		HudPalette? palette = null)
 	{
 		_containerVisual = containerVisual;
 		_themeFamily = themeFamily;
+		_palette = palette ?? HudPalettes.BlueCyan;
 		AnchorsPreset = (int)LayoutPreset.FullRect;
 		AnchorRight = 1f;
 		AnchorBottom = 1f;
@@ -131,6 +135,12 @@ public sealed partial class ModalShell : Control
 
 	public void SetCloseHandler(Action? handler) => _closeHandler = handler;
 
+	public void SetDismissOnBackdropClick(bool dismiss) =>
+		_dismissOnBackdropClick = dismiss;
+
+	public void SetEscapeHandlingEnabled(bool enabled) =>
+		_escapeHandlingEnabled = enabled;
+
 	public void SetHeaderVisible(bool visible)
 	{
 		_headerRow.Visible = visible;
@@ -144,6 +154,13 @@ public sealed partial class ModalShell : Control
 
 		content.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		_bodyHost.AddChild(content);
+	}
+
+	public void SetBodyScrollingEnabled(bool enabled)
+	{
+		_bodyScroll.VerticalScrollMode = enabled
+			? ScrollContainer.ScrollMode.Auto
+			: ScrollContainer.ScrollMode.Disabled;
 	}
 
 	public void SetFooter(IReadOnlyList<HudAction> actions)
@@ -191,6 +208,7 @@ public sealed partial class ModalShell : Control
 	public bool TryHandleInput(InputEvent @event)
 	{
 		if (!Visible
+			|| !_escapeHandlingEnabled
 			|| _requiresDecision
 			|| @event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 			return false;
@@ -243,7 +261,7 @@ public sealed partial class ModalShell : Control
 		};
 		AddChild(center);
 
-		_container = new UiContainer
+		_container = new UiContainer(_palette)
 		{
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
@@ -280,6 +298,7 @@ public sealed partial class ModalShell : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
 		};
+		ApplyScrollBarPalette(_bodyScroll);
 		_bodyMargin = new MarginContainer
 		{
 			SizeFlagsVertical = SizeFlags.ExpandFill,
@@ -304,6 +323,41 @@ public sealed partial class ModalShell : Control
 		Resized += OnResized;
 	}
 
+	private void ApplyScrollBarPalette(ScrollContainer scroll)
+	{
+		var bar = scroll.GetVScrollBar();
+		bar.CustomMinimumSize = new Vector2(12f, 0f);
+		bar.AddThemeStyleboxOverride("scroll", CreateScrollTrackStyle());
+		bar.AddThemeStyleboxOverride("grabber", CreateScrollThumbStyle(_palette.Secondary));
+		bar.AddThemeStyleboxOverride("grabber_highlight", CreateScrollThumbStyle(_palette.Highlight));
+		bar.AddThemeStyleboxOverride("grabber_pressed", CreateScrollThumbStyle(_palette.Primary));
+	}
+
+	private StyleBoxFlat CreateScrollTrackStyle()
+	{
+		var style = new StyleBoxFlat
+		{
+			BgColor = HudPalettes.WithAlpha(_palette.DeepSurface, 0.72f),
+			BorderColor = HudPalettes.WithAlpha(_palette.Secondary, 0.32f),
+		};
+		style.SetBorderWidthAll(1);
+		return style;
+	}
+
+	private static StyleBoxFlat CreateScrollThumbStyle(Color color)
+	{
+		var style = new StyleBoxFlat
+		{
+			BgColor = color,
+			CornerRadiusTopLeft = 3,
+			CornerRadiusTopRight = 3,
+			CornerRadiusBottomLeft = 3,
+			CornerRadiusBottomRight = 3,
+		};
+		style.SetBorderWidthAll(0);
+		return style;
+	}
+
 	private Control BuildHeader()
 	{
 		var row = new HBoxContainer
@@ -312,7 +366,7 @@ public sealed partial class ModalShell : Control
 		};
 		row.AddThemeConstantOverride("separation", 12);
 
-		_headerButton = new UiButton("×", HudActionKind.Secondary, HudPalettes.BlueCyan)
+		_headerButton = new UiButton("×", HudActionKind.Secondary, _palette)
 		{
 			FocusMode = FocusModeEnum.All,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
@@ -378,7 +432,7 @@ public sealed partial class ModalShell : Control
 		row.AddChild(trailingControls);
 
 		var dismissOffsets = _container.DismissButtonOffsets;
-		_dismissButton = new UiButton("X", HudActionKind.Secondary, HudPalettes.BlueCyan)
+		_dismissButton = new UiButton("X", HudActionKind.Secondary, _palette)
 		{
 			Visible = false,
 			AnchorLeft = 1f,
@@ -433,7 +487,7 @@ public sealed partial class ModalShell : Control
 
 	private UiButton CreateFooterButton(HudAction action)
 	{
-		var button = new UiButton(action.Label, action.Kind, HudPalettes.BlueCyan)
+		var button = new UiButton(action.Label, action.Kind, _palette)
 		{
 			Disabled = !action.Enabled,
 		};

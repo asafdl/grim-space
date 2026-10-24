@@ -1,5 +1,7 @@
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Components;
+using GrimSpace.Ui.Components;
 
 namespace GrimSpace.Presentation.Menu;
 
@@ -9,18 +11,22 @@ public partial class GameSettingsMenu : Control
 
 	public GameSettingsApplicator.Host Host { get; set; } = GameSettingsApplicator.Host.InRun;
 
-	private OptionButton _displayMode = null!;
-	private OptionButton _resolution = null!;
-	private OptionButton _uiScale = null!;
-	private HSlider _masterVolume = null!;
-	private HSlider _musicVolume = null!;
-	private HSlider _sfxVolume = null!;
-	private CheckBox _showTutorials = null!;
-	private CheckBox _mouseCameraPan = null!;
-	private CheckBox _showActionLog = null!;
+	private UiSelect _displayMode = null!;
+	private UiSelect _resolution = null!;
+	private UiSelect _uiScale = null!;
+	private UiSlider _masterVolume = null!;
+	private UiSlider _musicVolume = null!;
+	private UiSlider _sfxVolume = null!;
+	private UiToggle _showTutorials = null!;
+	private UiToggle _mouseCameraPan = null!;
+	private UiToggle _showActionLog = null!;
 	private KeyBindingsTab _keyBindingsTab = null!;
+	private ModalShell _shell = null!;
+	private ModalShell _unsavedChangesShell = null!;
+	private Label _unsavedChangesStatus = null!;
 	private TabContainer _settingsTabs = null!;
-	private PanelContainer _settingsPanelFrame = null!;
+	private GameSettingsSessionSnapshot _baselineSnapshot;
+	private bool _hasBaselineSnapshot;
 
 	private enum SettingsTab
 	{
@@ -32,43 +38,26 @@ public partial class GameSettingsMenu : Control
 
 	public override void _Ready()
 	{
-		MenuUi.ApplyTheme(this);
-		_displayMode = GetNode<OptionButton>("%DisplayMode");
-		_resolution = GetNode<OptionButton>("%Resolution");
-		_uiScale = GetNode<OptionButton>("%UiScale");
-		_masterVolume = GetNode<HSlider>("%MasterVolume");
-		_musicVolume = GetNode<HSlider>("%MusicVolume");
-		_sfxVolume = GetNode<HSlider>("%SfxVolume");
-		_showTutorials = GetNode<CheckBox>("%ShowTutorials");
-		_mouseCameraPan = GetNode<CheckBox>("%MouseCameraPan");
-		_showActionLog = GetNode<CheckBox>("%ShowActionLog");
-		_keyBindingsTab = GetNode<KeyBindingsTab>("%Keys");
-		_settingsTabs = GetNode<TabContainer>("%SettingsTabs");
-		_settingsPanelFrame = GetNode<PanelContainer>("%Panel");
-		_settingsTabs.SetTabTitle((int)SettingsTab.KeyBindings, "Key Bindings");
+		HudThemes.Apply(this, HudThemeFamily.Tutorial);
+		_shell = new ModalShell(
+			UiContainerVisual.Modal,
+			HudThemeFamily.Tutorial,
+			HudPalettes.PurpleRed);
+		_shell.SetHeader(HudHeaderMode.TitleOnly);
+		_shell.SetDismissVisible(true);
+		_shell.SetFooter(
+		[
+			new HudAction("Reset", HudActionKind.Secondary, OnResetActiveTab),
+			new HudAction("Apply", HudActionKind.Primary, OnApply),
+		]);
+		AddChild(_shell);
 
+		BuildSettingsContent();
+		BuildUnsavedChangesDialog();
 		PopulateResolutions();
 		PopulateUiScales();
 		GetViewport().SizeChanged += OnViewportSizeChanged;
-
-		GetNode<Button>("%Apply").Pressed += OnApply;
-		GetNode<Button>("%Back").Pressed += () => CloseRequested?.Invoke();
-		GetNode<Button>("%Reset").Pressed += OnResetActiveTab;
-		_displayMode.ItemSelected += _ => UpdateResolutionAvailability();
-
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
-	}
-
-	public override void _UnhandledInput(InputEvent @event)
-	{
-		if (!Visible)
-			return;
-
-		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
-			return;
-
-		CloseRequested?.Invoke();
-		GetViewport().SetInputAsHandled();
 	}
 
 	public void Open()
@@ -76,7 +65,188 @@ public partial class GameSettingsMenu : Control
 		FitSettingsPanelToViewport();
 		LoadSettingsToUi();
 		_keyBindingsTab.LoadDraft(GameSettings.ReadKeyBindings());
+		_baselineSnapshot = CaptureUiSnapshot();
+		_hasBaselineSnapshot = true;
+		_shell.SetEscapeHandlingEnabled(true);
+		_shell.SetBackHandler(OnExitRequested);
+		_shell.SetCloseHandler(OnExitRequested);
+		_shell.SetDismissOnBackdropClick(false);
+		_shell.Open("SETTINGS");
 		Show();
+	}
+
+	public bool TryHandleEscape(InputEvent @event)
+	{
+		if (!Visible
+			|| @event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+			return false;
+
+		if (_unsavedChangesShell.IsOpen)
+			return _unsavedChangesShell.TryHandleInput(@event);
+
+		return _shell.TryHandleInput(@event);
+	}
+
+	private void BuildUnsavedChangesDialog()
+	{
+		_unsavedChangesShell = new ModalShell(
+			UiContainerVisual.Modal,
+			HudThemeFamily.Tutorial,
+			HudPalettes.PurpleRed);
+		_unsavedChangesShell.SetHeader(HudHeaderMode.TitleOnly);
+		_unsavedChangesShell.SetDismissVisible(false);
+		_unsavedChangesShell.SetDismissOnBackdropClick(false);
+		_unsavedChangesShell.SetBackHandler(DiscardAndExit);
+		_unsavedChangesShell.SetCloseHandler(DiscardAndExit);
+		_unsavedChangesShell.SetPanelMinimumSize(new Vector2(600f, 340f));
+		_unsavedChangesShell.SetBody(CreateUnsavedChangesContent());
+		_unsavedChangesShell.SetFooter(
+		[
+			new HudAction("Cancel", HudActionKind.Destructive, DiscardAndExit),
+			new HudAction("Apply", HudActionKind.Primary, ApplyAndExit),
+		]);
+		AddChild(_unsavedChangesShell);
+	}
+
+	private Control CreateUnsavedChangesContent()
+	{
+		var content = new CenterContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+		};
+		_unsavedChangesStatus = new Label
+		{
+			Text = "Apply your settings changes before exiting?",
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		content.AddChild(_unsavedChangesStatus);
+		return content;
+	}
+
+	private void BuildSettingsContent()
+	{
+		var content = new VBoxContainer();
+		content.AddThemeConstantOverride("separation", 16);
+
+		var tabBar = new HBoxContainer();
+		tabBar.AddThemeConstantOverride("separation", 12);
+		var group = new ButtonGroup();
+		foreach (var (title, index) in new[]
+		{
+			("Video", (int)SettingsTab.Video),
+			("Audio", (int)SettingsTab.Audio),
+			("Gameplay", (int)SettingsTab.Gameplay),
+			("Key Bindings", (int)SettingsTab.KeyBindings),
+		})
+		{
+			var tab = new UiTabButton(title, HudPalettes.PurpleRed) { ButtonGroup = group };
+			tab.SetSelected(index == (int)SettingsTab.Video);
+			tab.Pressed += () => _settingsTabs.CurrentTab = index;
+			tabBar.AddChild(tab);
+		}
+		content.AddChild(tabBar);
+
+		_settingsTabs = new TabContainer
+		{
+			TabsVisible = false,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(0f, 330f),
+		};
+		_settingsTabs.TabChanged += OnSettingsTabChanged;
+		_settingsTabs.AddChild(BuildVideoTab());
+		_settingsTabs.AddChild(BuildAudioTab());
+		_settingsTabs.AddChild(BuildGameplayTab());
+		_keyBindingsTab = new KeyBindingsTab
+		{
+			Name = "KeyBindings",
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+		};
+		_settingsTabs.AddChild(_keyBindingsTab);
+		_shell.SetBodyScrollingEnabled(false);
+		content.AddChild(_settingsTabs);
+		_shell.SetBody(content);
+	}
+
+	private Control BuildVideoTab()
+	{
+		var page = CreateSettingsPage();
+		_displayMode = CreateSelect();
+		_displayMode.AddItem("Borderless Fullscreen");
+		_displayMode.AddItem("Windowed");
+		_displayMode.ItemSelected += _ => UpdateResolutionAvailability();
+		page.AddChild(CreateSettingRow("Display mode", _displayMode));
+
+		_resolution = CreateSelect();
+		page.AddChild(CreateSettingRow("Resolution", _resolution));
+
+		_uiScale = CreateSelect();
+		page.AddChild(CreateSettingRow("UI scale", _uiScale));
+		return page;
+	}
+
+	private Control BuildAudioTab()
+	{
+		var page = CreateSettingsPage();
+		_masterVolume = CreateVolumeSlider();
+		page.AddChild(CreateSettingRow("Master volume", _masterVolume));
+		_musicVolume = CreateVolumeSlider();
+		page.AddChild(CreateSettingRow("Music volume", _musicVolume));
+		_sfxVolume = CreateVolumeSlider();
+		page.AddChild(CreateSettingRow("SFX volume", _sfxVolume));
+		return page;
+	}
+
+	private Control BuildGameplayTab()
+	{
+		var page = CreateSettingsPage();
+		_showTutorials = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Show tutorials", _showTutorials));
+		_mouseCameraPan = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Pan camera with mouse", _mouseCameraPan));
+		_showActionLog = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Show action log", _showActionLog));
+		return page;
+	}
+
+	private static VBoxContainer CreateSettingsPage()
+	{
+		var page = new VBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+		};
+		page.AddThemeConstantOverride("separation", 18);
+		return page;
+	}
+
+	private static UiSelect CreateSelect() =>
+		new(HudPalettes.PurpleRed) { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+
+	private static UiSlider CreateVolumeSlider()
+		=> new(HudPalettes.PurpleRed) { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+
+	private static Control CreateSettingRow(string labelText, Control control)
+	{
+		var row = new HBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(0f, 44f),
+		};
+		row.AddThemeConstantOverride("separation", 20);
+		row.AddChild(new Label
+		{
+			Text = labelText,
+			CustomMinimumSize = new Vector2(260f, 0f),
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			VerticalAlignment = VerticalAlignment.Center,
+		});
+		row.AddChild(control);
+		return row;
 	}
 
 	private void OnApply()
@@ -89,13 +259,84 @@ public partial class GameSettingsMenu : Control
 		}
 
 		_keyBindingsTab.ShowStatus(string.Empty);
+		_baselineSnapshot = snapshot;
+		_hasBaselineSnapshot = true;
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
+	}
+
+	private void OnSettingsTabChanged(long tab) =>
+		_shell.SetBodyScrollingEnabled(tab != (int)SettingsTab.KeyBindings);
+
+	private void OnExitRequested()
+	{
+		if (_unsavedChangesShell.IsOpen)
+			return;
+
+		if (!IsDirty())
+		{
+			CloseRequested?.Invoke();
+			return;
+		}
+
+		_unsavedChangesStatus.Text = "Apply your settings changes before exiting?";
+		_shell.SetEscapeHandlingEnabled(false);
+		_unsavedChangesShell.Open("UNSAVED CHANGES");
+	}
+
+	private void ApplyAndExit()
+	{
+		var snapshot = CaptureUiSnapshot();
+		if (!GameSettingsApplicator.TryCommit(snapshot, Host, out var error))
+		{
+			_unsavedChangesShell.Hide();
+			_shell.SetEscapeHandlingEnabled(true);
+			_settingsTabs.CurrentTab = (int)SettingsTab.KeyBindings;
+			_keyBindingsTab.ShowStatus(error ?? "Could not apply settings.");
+			return;
+		}
+
+		_baselineSnapshot = snapshot;
+		_hasBaselineSnapshot = true;
+		_unsavedChangesShell.Hide();
+		_shell.SetEscapeHandlingEnabled(true);
+		CloseRequested?.Invoke();
+	}
+
+	private void DiscardAndExit()
+	{
+		_unsavedChangesShell.Hide();
+		_shell.SetEscapeHandlingEnabled(true);
+		CloseRequested?.Invoke();
+	}
+
+	private bool IsDirty()
+	{
+		if (!_hasBaselineSnapshot)
+			return false;
+
+		var current = CaptureUiSnapshot();
+		if (current.Video != _baselineSnapshot.Video
+			|| current.Audio != _baselineSnapshot.Audio
+			|| current.ShowTutorials != _baselineSnapshot.ShowTutorials
+			|| current.MouseCameraPan != _baselineSnapshot.MouseCameraPan
+			|| current.ShowActionLog != _baselineSnapshot.ShowActionLog
+			|| current.KeyBindings.Count != _baselineSnapshot.KeyBindings.Count)
+			return true;
+
+		foreach (var (action, binding) in current.KeyBindings)
+		{
+			if (!_baselineSnapshot.KeyBindings.TryGetValue(action, out var baselineBinding)
+				|| binding != baselineBinding)
+				return true;
+		}
+
+		return false;
 	}
 
 	private void LoadSettingsToUi()
 	{
 		var video = GameSettings.ReadVideoConfig();
-		_displayMode.Selected = video.Mode == GameSettings.DisplayMode.Windowed ? 1 : 0;
+		_displayMode.Select(video.Mode == GameSettings.DisplayMode.Windowed ? 1 : 0);
 		SelectResolution(video.Resolution);
 		SelectUiScale(video.UiScale);
 		UpdateResolutionAvailability();
@@ -103,18 +344,18 @@ public partial class GameSettingsMenu : Control
 		_masterVolume.Value = audio.MasterVolume * 100f;
 		_musicVolume.Value = audio.MusicVolume * 100f;
 		_sfxVolume.Value = audio.SfxVolume * 100f;
-		_showTutorials.ButtonPressed = GameSettings.ReadShowTutorials();
-		_mouseCameraPan.ButtonPressed = GameSettings.ReadMouseCameraPan();
-		_showActionLog.ButtonPressed = GameSettings.ReadShowActionLog();
+		_showTutorials.Value = GameSettings.ReadShowTutorials();
+		_mouseCameraPan.Value = GameSettings.ReadMouseCameraPan();
+		_showActionLog.Value = GameSettings.ReadShowActionLog();
 	}
 
 	private GameSettingsSessionSnapshot CaptureUiSnapshot() =>
 		new(
 			SelectedVideoConfig(),
 			SelectedAudioConfig(),
-			_showTutorials.ButtonPressed,
-			_mouseCameraPan.ButtonPressed,
-			_showActionLog.ButtonPressed,
+			_showTutorials.Value,
+			_mouseCameraPan.Value,
+			_showActionLog.Value,
 			_keyBindingsTab.CurrentDraft);
 
 	private void PopulateResolutions()
@@ -133,12 +374,12 @@ public partial class GameSettingsMenu : Control
 
 	private void SelectResolution(Vector2I resolution)
 	{
-		_resolution.Selected = GameSettings.TryFindResolutionIndex(
+		_resolution.Select(GameSettings.TryFindResolutionIndex(
 			resolution.X,
 			resolution.Y,
 			out var index)
 			? index
-			: 0;
+			: 0);
 	}
 
 	private void SelectUiScale(float scale)
@@ -148,12 +389,12 @@ public partial class GameSettingsMenu : Control
 		{
 			if (Mathf.IsEqualApprox(GameSettings.SupportedUiScales[i], normalized))
 			{
-				_uiScale.Selected = i;
+				_uiScale.Select(i);
 				return;
 			}
 		}
 
-		_uiScale.Selected = 0;
+		_uiScale.Select(0);
 	}
 
 	private GameSettings.VideoConfig SelectedVideoConfig() =>
@@ -190,9 +431,9 @@ public partial class GameSettingsMenu : Control
 				_sfxVolume.Value = audioDefaults.SfxVolume * 100f;
 				break;
 			case SettingsTab.Gameplay:
-				_showTutorials.ButtonPressed = true;
-				_mouseCameraPan.ButtonPressed = true;
-				_showActionLog.ButtonPressed = true;
+				_showTutorials.Value = true;
+				_mouseCameraPan.Value = true;
+				_showActionLog.Value = true;
 				break;
 			case SettingsTab.KeyBindings:
 				_keyBindingsTab.ResetToDefaults();
@@ -202,7 +443,7 @@ public partial class GameSettingsMenu : Control
 
 	private void ResetVideoUiToDefaults()
 	{
-		_displayMode.Selected = 0;
+		_displayMode.Select(0);
 		SelectResolution(GameSettings.FitResolutionToScreen(
 			DisplayServer.ScreenGetSize(),
 			DisplayServer.ScreenGetScale()));
@@ -215,13 +456,10 @@ public partial class GameSettingsMenu : Control
 
 	private void FitSettingsPanelToViewport()
 	{
-		const float maxWidth = 880f;
-		const float maxHeight = 600f;
-		const float margin = 40f;
 		var viewport = GetViewport().GetVisibleRect().Size;
-		_settingsPanelFrame.CustomMinimumSize = new Vector2I(
-			(int)Mathf.Min(maxWidth, viewport.X - margin),
-			(int)Mathf.Min(maxHeight, viewport.Y - margin));
+		_shell.SetPanelMinimumSize(new Vector2(
+			Mathf.Max(64f, Mathf.Min(880f, viewport.X - 40f)),
+			Mathf.Max(64f, Mathf.Min(760f, viewport.Y - 40f))));
 	}
 
 	private void OnViewportSizeChanged() => FitSettingsPanelToViewport();

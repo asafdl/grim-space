@@ -8,13 +8,18 @@ The UI kit provides reusable, asset-backed Godot controls for the game's sci-fi 
 |-----------|---------|----------|
 | [`UiContainer`](../src/ui/components/UiContainer.cs) | Modal and large-surface borders | `Modal`, `Framed`, `Technical`, `SidebarLandscape` |
 | [`UiButton`](../src/ui/components/UiButton.cs) | Actions, navigation, and integrated container controls | `Action`, `Compact`, `Back`, `Technical`, `Framed`, `WideBeveled` |
+| [`UiToggle`](../src/ui/components/UiToggle.cs) | Binary settings and preferences | On/off |
+| [`UiSlider`](../src/ui/components/UiSlider.cs) | Continuous settings values | Horizontal |
+| [`UiSelect`](../src/ui/components/UiSelect.cs) | Choosing one value from an option list | Option button |
+| [`UiTabButton`](../src/ui/components/UiTabButton.cs) | Selecting one view from a tab group | Underline selection |
+| [`UiKeycap`](../src/ui/components/UiKeycap.cs) | Displaying and activating a key binding | Normal, hover, pressed, disabled |
 | [`UiListItem`](../src/ui/components/UiListItem.cs) | Short, wide selectable rows for shops and other collections | `Tag`, `Bracket`, `Technical` |
 | [`UiCard`](../src/ui/components/UiCard.cs) | Rich content requiring title, subtitle, description, trailing value, and optional image | `Angled`, `Framed`, `Technical` |
 | [`UiReticle`](../src/ui/components/UiReticle.cs) | Decorative status/target reticle | `Blue`, `Cyan`, `Teal`, `White` |
 
 Each component type has its own file. Artwork variants share their component's behavior and are selected through `UiButtonVisual`, `UiContainerVisual`, `UiListItemVisual`, and `UiCardVisual`. These C# Godot controls do not require `.tscn` wrappers.
 
-The development gallery is [`ui_components_preview.tscn`](../scenes/dev/ui_components_preview.tscn); run it with F6 to inspect every approved variant and palette.
+The development gallery is [`ui_components_preview.tscn`](../scenes/dev/ui_components_preview.tscn); run it with F6 to inspect every approved variant and palette, including the setting controls.
 
 ### HUD screen previews
 
@@ -48,6 +53,9 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 `BlueCyan` is the default for production kit components.
 
 Call `SetPalette` on every kit component when the containing HUD changes palette. Components remap their runtime textures through [`palette_remap.gdshader`](../assets/ui/components/runtime/palette_remap.gdshader) or [`button_palette.gdshader`](../assets/ui/components/runtime/button_palette.gdshader); do not tint source textures directly.
+`UiToggle` uses blue-cyan source artwork and applies the active palette's primary color for non-default palettes; subtle hue differences may remain until matching source variants are added.
+
+Setting controls own their visual states and palette styling. Compose them into screens rather than adding per-screen theme overrides. `UiToggle.Value`, `UiSlider.Value`, `UiSelect` selection, `UiTabButton.SetSelected`, and `UiKeycap.Text` expose presentation-facing state; screens remain responsible for supplying authoritative values and handling user intent.
 
 ## Interaction states
 
@@ -55,7 +63,7 @@ Interactive components derive hover, focus, and pressed presentation from `BaseB
 
 - `SetSelected(bool)`: emphasizes the currently selected list item or card.
 - `SetAffordable(bool)`: uses danger coloring when an offer cannot be afforded.
-- `SetEnabled(bool)`: disables interaction and reduces visual emphasis.
+- `SetEnabled(bool)`: disables interaction and reduces visual emphasis on controls that support it.
 - `HudActionKind`: distinguishes secondary, primary, and destructive buttons.
 
 Disabled or hidden UI is explanatory presentation only. Domain actions and execution agents remain authoritative for legality.

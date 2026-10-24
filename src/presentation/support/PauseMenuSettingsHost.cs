@@ -30,13 +30,6 @@ public sealed class PauseMenuSettingsHost
 
 	public bool TryCloseOnEscape(InputEvent @event)
 	{
-		if (!_menu.Visible)
-			return false;
-
-		if (@event is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
-			return false;
-
-		_menu.Hide();
-		return true;
+		return _menu.TryHandleEscape(@event);
 	}
 }

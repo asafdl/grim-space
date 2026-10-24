@@ -11,6 +11,11 @@ public sealed partial class UiComponentsPreview : Control
 	private readonly List<UiListItem> _listItems = [];
 	private readonly List<UiContainer> _containers = [];
 	private readonly List<UiCard> _cards = [];
+	private readonly List<UiToggle> _toggles = [];
+	private readonly List<UiSlider> _sliders = [];
+	private readonly List<UiSelect> _selects = [];
+	private readonly List<UiTabButton> _tabs = [];
+	private readonly List<UiKeycap> _keycaps = [];
 
 	public override void _Ready()
 	{
@@ -64,6 +69,8 @@ public sealed partial class UiComponentsPreview : Control
 			HudPalettes.WithAlpha(Colors.White, 0.56f));
 		gallery.AddChild(description);
 		gallery.AddChild(CreatePaletteToolbar());
+		gallery.AddChild(CreateHeading("SETTING CONTROLS", 20));
+		gallery.AddChild(CreateInputControlsPreview());
 		gallery.AddChild(CreateHeading("RETICLES", 20));
 		gallery.AddChild(CreateReticlePreview());
 		gallery.AddChild(CreateHeading("BUTTONS IN MODAL CONTAINER", 18));
@@ -143,6 +150,135 @@ public sealed partial class UiComponentsPreview : Control
 		var row = CreateCenteredRow();
 		foreach (var visual in Enum.GetValues<UiReticleVisual>())
 			row.AddChild(new UiReticle(visual));
+		return row;
+	}
+
+	private Control CreateInputControlsPreview()
+	{
+		var controls = new VBoxContainer();
+		controls.AddThemeConstantOverride("separation", 18);
+		controls.AddChild(CreateInputControlRow(
+			"TOGGLES",
+			CreateTogglePreview(true),
+			CreateTogglePreview(false)));
+		controls.AddChild(CreateInputControlRow(
+			"SLIDERS",
+			CreateSliderPreview(76d),
+			CreateSliderPreview(34d, disabled: true)));
+		controls.AddChild(CreateInputControlRow(
+			"SELECT",
+			CreateSelectPreview()));
+		controls.AddChild(CreateInputControlRow(
+			"TABS",
+			CreateTabPreview()));
+		controls.AddChild(CreateInputControlRow(
+			"KEYCAPS",
+			CreateKeycapPreview()));
+		return controls;
+	}
+
+	private static Control CreateInputControlRow(string heading, params Control[] examples)
+	{
+		var row = new HBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		row.AddThemeConstantOverride("separation", 18);
+		var label = CreateHeading(heading, 13);
+		label.CustomMinimumSize = new Vector2(180f, 0f);
+		label.HorizontalAlignment = HorizontalAlignment.Left;
+		row.AddChild(label);
+
+		foreach (var example in examples)
+			row.AddChild(example);
+
+		return row;
+	}
+
+	private UiToggle CreateTogglePreview(bool value)
+	{
+		var toggle = new UiToggle(value);
+		_toggles.Add(toggle);
+		return toggle;
+	}
+
+	private Control CreateSliderPreview(double value, bool disabled = false)
+	{
+		var row = new HBoxContainer
+		{
+			CustomMinimumSize = new Vector2(340f, 36f),
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Alignment = BoxContainer.AlignmentMode.Center,
+		};
+		row.AddThemeConstantOverride("separation", 10);
+
+		var slider = new UiSlider
+		{
+			Value = value,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		slider.SetEnabled(!disabled);
+		var valueLabel = CreateHeading($"{value:0}", 13);
+		valueLabel.CustomMinimumSize = new Vector2(40f, 0f);
+		row.AddChild(slider);
+		row.AddChild(valueLabel);
+		slider.ValueChanged += current => valueLabel.Text = $"{current:0}";
+		_sliders.Add(slider);
+		return row;
+	}
+
+	private UiSelect CreateSelectPreview()
+	{
+		var select = new UiSelect
+		{
+			CustomMinimumSize = new Vector2(300f, 38f),
+		};
+		select.AddItem("Borderless Fullscreen");
+		select.AddItem("Windowed");
+		select.AddItem("Fullscreen");
+		select.Select(0);
+		_selects.Add(select);
+		return select;
+	}
+
+	private Control CreateTabPreview()
+	{
+		var row = new HBoxContainer();
+		row.AddThemeConstantOverride("separation", 8);
+		var group = new ButtonGroup();
+		foreach (var (text, index) in new[]
+		{
+			("Video", 0),
+			("Audio", 1),
+			("Gameplay", 2),
+			("Key Bindings", 3),
+		})
+		{
+			var tab = new UiTabButton(text)
+			{
+				ButtonGroup = group,
+			};
+			tab.SetSelected(index == 0);
+			_tabs.Add(tab);
+			row.AddChild(tab);
+		}
+
+		return row;
+	}
+
+	private Control CreateKeycapPreview()
+	{
+		var row = new HBoxContainer();
+		row.AddThemeConstantOverride("separation", 8);
+		foreach (var key in new[] { "W", "Space", "Shift", "UNBOUND" })
+		{
+			var keycap = new UiKeycap(key);
+			if (key == "UNBOUND")
+				keycap.Disabled = true;
+			_keycaps.Add(keycap);
+			row.AddChild(keycap);
+		}
+
 		return row;
 	}
 
@@ -352,6 +488,16 @@ public sealed partial class UiComponentsPreview : Control
 			container.SetPalette(palette);
 		foreach (var card in _cards)
 			card.SetPalette(palette);
+		foreach (var toggle in _toggles)
+			toggle.SetPalette(palette);
+		foreach (var slider in _sliders)
+			slider.SetPalette(palette);
+		foreach (var select in _selects)
+			select.SetPalette(palette);
+		foreach (var tab in _tabs)
+			tab.SetPalette(palette);
+		foreach (var keycap in _keycaps)
+			keycap.SetPalette(palette);
 	}
 
 	private static Label CreateHeading(string text, int fontSize)
