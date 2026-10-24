@@ -1,0 +1,21 @@
+BEAT TABLE - regenerated from teaser.mp4 through scripts/verify_teaser.py (trust clause)
+file duration 34.62s; refractory map 23 boundaries, raw map 90 picture changes
+| beat | plan mark | shipped picture change | delta | verdict |
+| FIGHT OPENS (fade) |  0.00 |  0.00 | +0.00 | ON MARK |
+| CLAIM (map) |  1.90 |  1.88 | -0.02 | ON MARK |
+| LOOP (commit) |  3.90 |  3.90 | +0.00 | ON MARK |
+| COST (loss) |  7.40 |  7.40 | +0.00 | ON MARK |
+| WRECK/PLAN |  9.40 |  9.68 | +0.28 | near mark |
+| GOOP | 11.20 | 10.90 | -0.30 | near mark |
+| GOOP FIELD | 13.20 | 13.32 | +0.12 | near mark |
+| PROGRESS (map) | 14.60 | 14.63 | +0.03 | ON MARK |
+| THE MAP | 17.00 | 17.00 | +0.00 | ON MARK |
+| ESCALATION | 20.50 | 20.50 | +0.00 | ON MARK |
+| ODD NUMBERS | 23.50 | 23.52 | +0.02 | ON MARK |
+| REACH (map, sun placeholder) | 26.00 | 25.98 | -0.02 | ON MARK |
+| DOCKYARD | 27.40 | 27.40 | +0.00 | ON MARK |
+| THREAT | 30.70 | 30.70 | +0.00 | ON MARK |
+| CARD | 34.60 |     - |     - | hold (no cut here) |
+
+world seams (craft note R-2/AC-T3): 1.90 claim / 3.90 commit / 14.60 progress / 17.00 carrier / 23.50 reach / 26.00 dock / 30.70 card
+J-cut bridge leads measured on this file: [0.18, 0.20, 0.25, 0.20, 0.24, 0.23, 0.23]

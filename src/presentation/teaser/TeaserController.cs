@@ -18,6 +18,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Camera;
 using GrimSpace.Math.Grid;
+using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Units;
@@ -149,6 +150,68 @@ public partial class TeaserController : Node
 	private const int AnchorSeed = 9110;
 	private const int GoopSeed = 4470;
 	private const int CarrierSeed = 7730;
+
+	// ---- transition drift ---------------------------------------------------
+	private bool _driftActive;
+	private double _driftStart;
+	private float _driftYawSpeed;
+	private float _driftPitchSpeed;
+	private float _driftYawAmplitude;
+	private float _driftPitchAmplitude;
+
+	private void StartCameraDrift(float yawSpeed = 0.08f, float pitchSpeed = 0.04f, float yawAmplitude = 0.1f, float pitchAmplitude = 0.05f)
+	{
+		_driftActive = true;
+		_driftStart = _elapsed;
+		_driftYawSpeed = yawSpeed;
+		_driftPitchSpeed = pitchSpeed;
+		_driftYawAmplitude = yawAmplitude;
+		_driftPitchAmplitude = pitchAmplitude;
+	}
+
+	private void StopCameraDrift()
+	{
+		_driftActive = false;
+	}
+
+	private void ApplyCameraDrift()
+	{
+		if (!_driftActive || _battle == null) return;
+		try
+		{
+			var controller = _battle.GetNodeOrNull<Controller>("Camera3D");
+			if (controller != null)
+			{
+				float t = (float)(_elapsed - _driftStart);
+				float yaw = controller.Yaw + Mathf.Sin(t * _driftYawSpeed) * _driftYawAmplitude;
+				float pitch = controller.Pitch + Mathf.Sin(t * _driftPitchSpeed * 0.7f) * _driftPitchAmplitude;
+				controller.SetOrbit(controller.Distance, yaw, pitch);
+			}
+		}
+		catch {}
+	}
+
+	private void StartMapCameraDrift(Node mapInstance, float yawSpeed = 0.03f, float pitchSpeed = 0.02f, float yawAmplitude = 0.05f, float pitchAmplitude = 0.03f)
+	{
+		if (mapInstance.GetNodeOrNull<MapCamera>("CameraPivot/SpringArm3D/Camera3D") is not { } camera)
+			return;
+		var pose = camera.CurrentPose;
+		var tween = GetTree().CreateTween();
+		tween.SetLoops();
+		tween.TweenCallback(Callable.From(() =>
+		{
+			float t = (float)_elapsed;
+			float yaw = pose.Yaw + Mathf.Sin(t * yawSpeed) * yawAmplitude;
+			float pitch = pose.Pitch + Mathf.Sin(t * pitchSpeed * 0.7f) * pitchAmplitude;
+			camera.TweenToPose(new OrbitPose
+			{
+				Pivot = pose.Pivot,
+				Yaw = yaw,
+				Pitch = pitch,
+				Distance = pose.Distance,
+			}, 0.1f);
+		}));
+	}
 
 	public override void _Ready()
 	{
@@ -408,6 +471,7 @@ public partial class TeaserController : Node
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
 		PushInOnMap(mapInstance);
+		StartMapCameraDrift(mapInstance);
 
 		await HoldUntil(MapEnd);
 	}
@@ -433,6 +497,7 @@ public partial class TeaserController : Node
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
 		PushInOnMap(mapInstance, 1.2f);
+		StartMapCameraDrift(mapInstance);
 
 		await HoldUntil(ReachEnd);
 	}
@@ -514,6 +579,7 @@ public partial class TeaserController : Node
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
 		PushInOnMap(mapInstance, 0.8f);
+		StartMapCameraDrift(mapInstance);
 
 		// The contract became live inside the claim beat's first frames, so the
 		// objectives panel never saw it. The panel is the game's own: it is
@@ -581,6 +647,9 @@ public partial class TeaserController : Node
 		HideWorldLabels();
 
 		await CutToBattle();
+
+		// Add subtle drift to the battle camera behind the card
+		StartCameraDrift(0.02f, 0.01f, 0.03f, 0.02f);
 
 		LayoutTitleCard();
 		_titleText.Visible = true;
@@ -1813,6 +1882,7 @@ public partial class TeaserController : Node
 		_elapsed += delta;
 		TrackField();
 		HideMarkerScrawl();
+		ApplyCameraDrift();
 	}
 
 	/// <summary>
