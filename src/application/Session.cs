@@ -41,6 +41,12 @@ public partial class Session : Node
 
 	public State Run { get; private set; } = null!;
 
+	/// <summary>Star-map simulation speed tier index; survives map scene reloads within a run.</summary>
+	public int StarMapSpeedIndex { get; private set; }
+
+	internal void SetStarMapSpeedIndex(int index) =>
+		StarMapSpeedIndex = index;
+
 	public Session()
 		: this(new SaveGameStore(), PersistenceRegistry.CreateDefault())
 	{
@@ -348,6 +354,7 @@ public partial class Session : Node
 		}
 
 		Run = next;
+		StarMapSpeedIndex = 0;
 		Run.BattleReady += OnBattleReady;
 	}
 

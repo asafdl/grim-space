@@ -159,5 +159,5 @@ public partial class MapTimeControls : MarginContainer
 		$"{(paused ? "Resume" : "Pause")} ({GameInputBindings.Label("map_pause")})";
 
 	private static string SpeedTooltip() =>
-		$"Cycle speed ({GameInputBindings.Label("map_speed_up")})";
+		$"Cycle speed ({GameInputBindings.Label("map_cycle_speed")})";
 }

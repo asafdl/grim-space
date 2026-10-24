@@ -74,7 +74,7 @@ public readonly record struct BindingPair(
 
 public static class GameInputBindings
 {
-	private const int BindingsVersion = 2;
+	private const int BindingsVersion = 3;
 	private static readonly Key[] AbilitySlotKeys =
 	[
 		Key.Key1,
@@ -455,8 +455,7 @@ public static class GameInputBindings
 		Map("map_pan_left", "Pan left", Phy(Key.A), Phy(Key.Left)),
 		Map("map_pan_right", "Pan right", Phy(Key.D), Phy(Key.Right)),
 		Map("map_pause", "Pause / resume", Log(Key.Space)),
-		Map("map_speed_up", "Speed up", Log(Key.Bracketright)),
-		Map("map_speed_down", "Speed down", Log(Key.Bracketleft)),
+		Map("map_cycle_speed", "Cycle speed", Phy(Key.Shift)),
 		Map("map_fleet_management", "Fleet management", Log(Key.Tab)),
 		MapAny(
 			"map_zoom_in",

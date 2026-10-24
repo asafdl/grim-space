@@ -63,7 +63,6 @@ public partial class MapController : Node3D
 	private WorldMapDirector _director = null!;
 	private FacadePresentationMode _facadeMode = null!;
 	private float _tickAccumulator;
-	private int _speedIndex;
 	private float _unreachableFlashTimer;
 	private bool _staleWaitingForPlayerInputReported;
 	private string? _syncedDockedPoiId;
@@ -508,16 +507,9 @@ public partial class MapController : Node3D
 			return;
 		}
 
-		if (@event.IsActionPressed("map_speed_up", false, true))
+		if (@event.IsActionPressed("map_cycle_speed", false, true))
 		{
-			AdjustSpeed(1);
-			GetViewport().SetInputAsHandled();
-			return;
-		}
-
-		if (@event.IsActionPressed("map_speed_down", false, true))
-		{
-			AdjustSpeed(-1);
+			CycleSpeed();
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -604,7 +596,7 @@ public partial class MapController : Node3D
 
 	private void AdvanceSimulation(double delta)
 	{
-		_tickAccumulator += (float)delta * SpeedOptions[_speedIndex];
+		_tickAccumulator += (float)delta * SpeedOptions[Session.Instance.StarMapSpeedIndex];
 		while (_tickAccumulator >= SecondsPerTick && _orchestrator.CanAdvance)
 		{
 			_tickAccumulator -= SecondsPerTick;
@@ -799,7 +791,7 @@ public partial class MapController : Node3D
 	}
 
 	private void SyncTimeControls() =>
-		_timeControls.Sync(_orchestrator.IsStepped, SpeedOptions[_speedIndex]);
+		_timeControls.Sync(_orchestrator.IsStepped, SpeedOptions[Session.Instance.StarMapSpeedIndex]);
 
 	private void OnFleetPursuitChanged(Record<FleetPursuitChanged> record)
 	{
@@ -868,10 +860,8 @@ public partial class MapController : Node3D
 	}
 
 	private void CycleSpeed() =>
-		_speedIndex = (_speedIndex + 1) % SpeedOptions.Length;
-
-	private void AdjustSpeed(int delta) =>
-		_speedIndex = Mathf.Clamp(_speedIndex + delta, 0, SpeedOptions.Length - 1);
+		Session.Instance.SetStarMapSpeedIndex(
+			(Session.Instance.StarMapSpeedIndex + 1) % SpeedOptions.Length);
 
 	private Coord ResolveMoveDestination(Coord picked)
 	{
