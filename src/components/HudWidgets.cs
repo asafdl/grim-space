@@ -32,7 +32,7 @@ public static class HudWidgets
 		var column = new VBoxContainer
 		{
 			Alignment = BoxContainer.AlignmentMode.Center,
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
 		column.AddThemeConstantOverride("separation", 10);
@@ -47,31 +47,11 @@ public static class HudWidgets
 	{
 		var button = new UiButton(text, HudActionKind.Secondary, palette ?? HudPalettes.BlueCyan)
 		{
-			CustomMinimumSize = new Vector2(280f, 44f),
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
 			Disabled = !enabled,
 		};
 		button.SetVisual(UiButtonVisual.WideBeveled);
 		button.Pressed += onPressed;
 		return button;
-	}
-
-	public static void FitModalMenuPanel(ModalShell shell, int buttonCount)
-	{
-		const float rowHeight = 44f;
-		const float rowSeparation = 10f;
-		const float chromeHeight = 260f;
-		var viewport = shell.GetViewportRect().Size;
-		if (viewport.X < 64f || viewport.Y < 64f)
-			viewport = new Vector2(1280f, 720f);
-
-		var bodyHeight = buttonCount * rowHeight
-			+ Mathf.Max(0, buttonCount - 1) * rowSeparation;
-		var height = Mathf.Min(viewport.Y - 80f, chromeHeight + bodyHeight);
-		height = Mathf.Max(320f, height);
-		var width = Mathf.Min(480f, viewport.X - 80f);
-		width = Mathf.Max(360f, width);
-		shell.SetPanelMinimumSize(new Vector2(width, height));
 	}
 
 	public static Control CreateCard(

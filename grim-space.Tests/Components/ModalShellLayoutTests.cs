@@ -6,6 +6,36 @@ namespace GrimSpace.Tests.Components;
 public sealed class ModalShellLayoutTests
 {
 	[Fact]
+	public void FitPanelSize_caps_explicit_sizes_to_viewport_with_inset()
+	{
+		Assert.Equal(
+			new LayoutSize(1000f, 680f),
+			ModalShellLayout.FitPanelSize(new LayoutSize(1000f, 820f), new LayoutSize(1280f, 720f)));
+	}
+
+	[Fact]
+	public void FitPanelSize_preserves_sizes_that_already_fit()
+	{
+		var panel = new LayoutSize(640f, 660f);
+
+		Assert.Equal(panel, ModalShellLayout.FitPanelSize(panel, new LayoutSize(1280f, 720f)));
+	}
+
+	[Theory]
+	[InlineData(1280f, 720f)]
+	[InlineData(960f, 540f)]
+	[InlineData(1920f, 1080f)]
+	public void FitPanelSize_keeps_default_panel_within_available_space(float width, float height)
+	{
+		var available = new LayoutSize(width, height);
+		var panel = ModalShellLayout.FitPanelSize(
+			ModalShellLayout.ComputePanelMinimumSize(available), available);
+
+		Assert.InRange(panel.Width, 0f, width - ModalShellLayout.ViewportInset * 2f);
+		Assert.InRange(panel.Height, 0f, height - ModalShellLayout.ViewportInset * 2f);
+	}
+
+	[Fact]
 	public void BaselinePanelMinimumSize_is_non_zero()
 	{
 		Assert.True(ModalShellLayout.BaselinePanelMinimumSize.Width > 0f);

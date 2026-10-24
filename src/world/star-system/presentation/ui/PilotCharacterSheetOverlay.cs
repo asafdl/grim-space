@@ -118,7 +118,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		portraitRow.AddChild(new UiFramedPortrait(
 			ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId))
 		{
-			CustomMinimumSize = new Vector2(PortraitSize, PortraitSize),
+			SizeOverride = new UiSizeOverride(PortraitSize, PortraitSize),
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 		});
 		portraitRow.AddChild(BuildPilotCursor(1, canCyclePilots));
@@ -223,7 +223,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	{
 		const int cursorWidth = 20;
 		const int cursorHeight = 16;
-		var host = new CenterContainer
+		var host = new Control
 		{
 			CustomMinimumSize = new Vector2(cursorWidth, PortraitSize),
 			Visible = visible,
@@ -234,8 +234,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		var iconHost = new Control
 		{
 			CustomMinimumSize = new Vector2(cursorWidth, cursorHeight),
-			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			Position = new Vector2(0f, (PortraitSize - cursorHeight) * 0.5f),
 			MouseFilter = MouseFilterEnum.Ignore,
 			PivotOffset = new Vector2(cursorWidth * 0.5f, cursorHeight * 0.5f),
 			RotationDegrees = direction < 0 ? -90f : 90f,

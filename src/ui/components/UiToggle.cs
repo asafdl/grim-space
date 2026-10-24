@@ -3,8 +3,16 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
-public sealed partial class UiToggle : HBoxContainer
+public sealed partial class UiToggle : HBoxContainer, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private const string OnTexturePath =
 		"res://assets/ui/components/runtime/toggle_on_base.png";
 	private const string OffTexturePath =
@@ -30,7 +38,7 @@ public sealed partial class UiToggle : HBoxContainer
 	{
 		_palette = palette ?? HudPalettes.BlueCyan;
 		Alignment = AlignmentMode.Center;
-		CustomMinimumSize = new Vector2(62f, 28f);
+		_sizing = new UiSizing(this, new UiSize(62f, 28f));
 
 		var onTexture = LoadTexture(OnTexturePath);
 		_button = new TextureButton
@@ -41,7 +49,8 @@ public sealed partial class UiToggle : HBoxContainer
 			TextureNormal = LoadTexture(OffTexturePath),
 			TexturePressed = onTexture,
 			CustomMinimumSize = new Vector2(62f, 28f),
-			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
 			FocusMode = FocusModeEnum.All,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
 		};

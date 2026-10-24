@@ -70,7 +70,25 @@ Disabled or hidden UI is explanatory presentation only. Domain actions and execu
 
 ## Layout rules
 
-- Cards, list items, and nested/framed content containers derive their minimum size from content and padding. Set `CustomMinimumSize` when a screen needs a larger floor; wrapped text contributes its laid-out height instead of relying on estimated line counts.
+### Shared sizing API
+
+Every kit control implements `IUiSized`:
+
+- `DefaultSize` is read-only and owned by the component or visual variant. Zero means content-driven on that axis, not hidden or collapsed.
+- `SizeOverride` accepts a `UiSizeOverride` with optional `Width` and `Height`. Unspecified axes retain their defaults; setting the whole property to `null` restores the current variant's defaults. Changing variants preserves explicit overrides.
+- Defaults and overrides are layout size floors, not forced pixel dimensions. Godot containers fit the control into their allocated space using `SizeFlags`; content minimums still win. A narrower override permits shrinking below a built-in default, but cannot clip text or remove intrinsic padding.
+- Fit means layout/reflow, not scaling fonts. Wrapped text can increase height, and overflowing collections belong in scroll containers. Portraits, reticles, and toggle artwork preserve their aspect ratio.
+- Supply finite, non-negative dimensions. Invalid dimensions throw rather than silently falling back.
+
+For example, `button.SizeOverride = new UiSizeOverride(Width: 280f)` keeps the variant's default height. Use this API instead of writing `Size` or `CustomMinimumSize` on kit controls. Godot layout nodes still use their native sizing properties.
+
+Production callers use overrides for deliberate frame sizes, portrait slots, aligned key-binding columns, and large narrative actions. Menu buttons use their variant defaults and parent fill; content cards reflow to the modal's available width rather than imposing a second fixed width. Keep spacing in layout containers instead of inventing extra component minimum-width adjustments.
+
+`ModalShell` caps its default or requested panel size to the available viewport with a 20 px inset per edge; oversized bodies scroll instead of pushing the panel off-screen.
+
+- Image-list rows start at 110 px high and fit their parent's width. Portrait size and text insets stay fixed as text wraps and increases row height; rendered dimensions never feed back into minimum-size margins.
+- `UiButton` fills available horizontal space by default (`SizeFlagsHorizontal = ExpandFill`). Set `ShrinkCenter` (or another non-fill flag) when a screen needs intrinsic-width buttons, such as modal footers or component-gallery rows.
+- Cards, list items, and nested/framed content containers derive their minimum size from content and padding. Set `SizeOverride` when a screen needs a different floor; wrapped text contributes its laid-out height instead of relying on estimated line counts.
 - Keep text inside the artwork's usable interior. List-item content uses 60 px left padding and is vertically centered.
 - Container variants own their content margins, header side slots, dismiss-button pocket, subtitle band height, and body start offset. `ModalShell` always reserves the subtitle band and applies `BodyMarginTop` from the active `UiContainer` visual; screens must not reposition titles or add per-screen body offsets.
 - Component typography derives its colors from the active palette. Screen-specific semantic values may use an explicit override, such as gold contract difficulty stars.

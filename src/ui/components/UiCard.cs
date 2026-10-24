@@ -10,8 +10,16 @@ public enum UiCardVisual
 	Technical,
 }
 
-public sealed partial class UiCard : BaseButton
+public sealed partial class UiCard : BaseButton, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private const string AngledTexturePath =
 		"res://assets/ui/components/runtime/surface_angled_neutral.png";
 	private const string FramedTexturePath =
@@ -53,6 +61,7 @@ public sealed partial class UiCard : BaseButton
 			?? throw new InvalidOperationException($"Could not load UI palette shader '{ShaderPath}'.");
 
 		_palette = palette ?? HudPalettes.BlueCyan;
+		_sizing = new UiSizing(this, new UiSize(0f, 0f));
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 

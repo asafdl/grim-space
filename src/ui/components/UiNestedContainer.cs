@@ -6,24 +6,21 @@ namespace GrimSpace.Ui.Components;
 /// <summary>
 /// Shrink-wrapped panel: <see cref="UiContainer"/> background plus padded content host.
 /// </summary>
-public sealed partial class UiNestedContainer : Container
+public sealed partial class UiNestedContainer : Container, IUiSized
 {
-	private readonly UiContainer _background;
-	private readonly MarginContainer _margin;
-	private float _extraMinWidth;
-
-	public float ExtraMinimumWidth
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
 	{
-		get => _extraMinWidth;
-		set
-		{
-			_extraMinWidth = Mathf.Max(0f, value);
-			UpdateMinimumSize();
-		}
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
 	}
 
+	private readonly UiContainer _background;
+	private readonly MarginContainer _margin;
 	public UiNestedContainer(UiContainerVisual visual = UiContainerVisual.Simple)
 	{
+		_sizing = new UiSizing(this, new UiSize(0f, 0f));
 		MouseFilter = MouseFilterEnum.Ignore;
 
 		_background = new UiContainer();
@@ -66,9 +63,6 @@ public sealed partial class UiNestedContainer : Container
 	public override Vector2 _GetMinimumSize()
 	{
 		var contentMin = _margin.GetCombinedMinimumSize();
-		if (_extraMinWidth > 0f)
-			contentMin.X += _extraMinWidth;
-
 		return contentMin + new Vector2(
 			_background.PatchMarginLeft + _background.PatchMarginRight,
 			_background.PatchMarginTop + _background.PatchMarginBottom);

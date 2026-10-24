@@ -16,6 +16,7 @@ public sealed partial class FramedActionBar : Control
 	private readonly MarginContainer _bottom;
 	private readonly PanelContainer _frame;
 	private readonly Label? _textBody;
+	private readonly CenterContainer _actionSlot;
 	private readonly UiButton _action;
 
 	private int _minWidth = DefaultMinWidth;
@@ -99,12 +100,11 @@ public sealed partial class FramedActionBar : Control
 
 		content.AddChild(body);
 
-		var actionSlot = new CenterContainer
+		_actionSlot = new CenterContainer
 		{
-			CustomMinimumSize = new Vector2(ActionWidth, ActionHeight),
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 		};
-		content.AddChild(actionSlot);
+		content.AddChild(_actionSlot);
 
 		_action = new UiButton("Next", HudActionKind.Primary, HudPalettes.BlueCyan)
 		{
@@ -113,15 +113,29 @@ public sealed partial class FramedActionBar : Control
 		};
 		ApplyNarrativeActionStyle(_action);
 		_action.Pressed += () => ActionPressed?.Invoke();
-		actionSlot.AddChild(_action);
+		_actionSlot.AddChild(_action);
+		SyncActionSlotMinimumSize();
 	}
 
 	internal static void ApplyNarrativeActionStyle(UiButton button)
 	{
+		ApplyNarrativeFramedLook(button);
+		button.SizeOverride = new UiSizeOverride(ActionWidth, ActionHeight);
+		button.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+	}
+
+	internal static void ApplyNarrativeChoiceStyle(UiButton button)
+	{
+		ApplyNarrativeFramedLook(button);
+		button.SizeOverride = new UiSizeOverride(0f, ActionHeight);
+		button.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+	}
+
+	private static void ApplyNarrativeFramedLook(UiButton button)
+	{
 		button.SetPalette(HudPalettes.BlueCyan);
 		button.SetActionKind(HudActionKind.Primary);
 		button.SetVisual(UiButtonVisual.Framed);
-		button.CustomMinimumSize = new Vector2(ActionWidth, ActionHeight);
 		button.SetFontSize(ActionFontSize);
 	}
 
@@ -138,7 +152,11 @@ public sealed partial class FramedActionBar : Control
 	public string ActionText
 	{
 		get => _action.Text;
-		set => _action.Text = value;
+		set
+		{
+			_action.Text = value;
+			SyncActionSlotMinimumSize();
+		}
 	}
 
 	public bool ActionVisible
@@ -199,6 +217,14 @@ public sealed partial class FramedActionBar : Control
 			VerticalAlignment = VerticalAlignment.Center,
 			ThemeTypeVariation = "BodyLabel",
 		};
+
+	private void SyncActionSlotMinimumSize()
+	{
+		var minimum = _action.GetCombinedMinimumSize();
+		_actionSlot.CustomMinimumSize = new Vector2(
+			Mathf.Max(minimum.X, ActionWidth),
+			Mathf.Max(minimum.Y, ActionHeight));
+	}
 
 	private void UpdateLayout()
 	{

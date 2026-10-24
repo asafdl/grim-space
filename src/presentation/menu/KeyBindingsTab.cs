@@ -327,7 +327,7 @@ public partial class KeyBindingsTab : Control
 		var button = new UiKeycap(text, SettingsPalette)
 		{
 			ClipText = true,
-			CustomMinimumSize = new Vector2(KeyColumnWidth, 36),
+			SizeOverride = new UiSizeOverride(KeyColumnWidth, 36f),
 		};
 		button.Pressed += () => BeginCapture(action, secondary, button);
 		return button;

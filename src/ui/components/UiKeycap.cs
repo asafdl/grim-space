@@ -3,15 +3,23 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
-public sealed partial class UiKeycap : Button
+public sealed partial class UiKeycap : Button, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private HudPalette _palette;
 
 	public UiKeycap(string text, HudPalette? palette = null)
 	{
 		Text = text;
 		_palette = palette ?? HudPalettes.BlueCyan;
-		CustomMinimumSize = new Vector2(64f, 34f);
+		_sizing = new UiSizing(this, new UiSize(64f, 34f));
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 		Alignment = HorizontalAlignment.Center;

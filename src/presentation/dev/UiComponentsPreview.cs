@@ -69,6 +69,8 @@ public sealed partial class UiComponentsPreview : Control
 			HudPalettes.WithAlpha(Colors.White, 0.56f));
 		gallery.AddChild(description);
 		gallery.AddChild(CreatePaletteToolbar());
+		gallery.AddChild(CreateHeading("SIZING: DEFAULT / OVERRIDE / RESET", 20));
+		gallery.AddChild(CreateSizingPreview());
 		gallery.AddChild(CreateHeading("SETTING CONTROLS", 20));
 		gallery.AddChild(CreateInputControlsPreview());
 		gallery.AddChild(CreateHeading("RETICLES", 20));
@@ -153,6 +155,32 @@ public sealed partial class UiComponentsPreview : Control
 		return row;
 	}
 
+	private Control CreateSizingPreview()
+	{
+		var row = CreateCenteredRow();
+		var defaults = new UiButton("Default");
+		var overridden = new UiButton("Width override")
+		{
+			SizeOverride = new UiSizeOverride(Width: 280f),
+		};
+		overridden.SetVisual(UiButtonVisual.Technical);
+		var reset = new UiButton("Reset")
+		{
+			SizeOverride = new UiSizeOverride(Width: 280f),
+		};
+		reset.SetVisual(UiButtonVisual.Technical);
+		reset.SizeOverride = null;
+
+		foreach (var button in new[] { defaults, overridden, reset })
+		{
+			button.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+			row.AddChild(button);
+			_buttons.Add(button);
+		}
+
+		return row;
+	}
+
 	private Control CreateInputControlsPreview()
 	{
 		var controls = new VBoxContainer();
@@ -231,7 +259,7 @@ public sealed partial class UiComponentsPreview : Control
 	{
 		var select = new UiSelect
 		{
-			CustomMinimumSize = new Vector2(300f, 38f),
+			SizeOverride = new UiSizeOverride(Width: 300f),
 		};
 		select.AddItem("Borderless Fullscreen");
 		select.AddItem("Windowed");
@@ -348,7 +376,7 @@ public sealed partial class UiComponentsPreview : Control
 		var close = CreateActionButton("X", HudActionKind.Secondary);
 		close.SetIntegrated(true);
 		close.SetFontSize(23);
-		close.CustomMinimumSize = new Vector2(120f, 58f);
+		close.SizeOverride = new UiSizeOverride(120f, 58f);
 		close.Position = new Vector2(619f, 59f);
 		stage.AddChild(close);
 
@@ -394,7 +422,7 @@ public sealed partial class UiComponentsPreview : Control
 			"Improves performance while preserving the current component layout.",
 			"800 CR")
 		{
-			CustomMinimumSize = new Vector2(540f, 340f),
+			SizeOverride = new UiSizeOverride(540f, 340f),
 		};
 		card.SetVisual(visual);
 		_cards.Add(card);
@@ -473,7 +501,10 @@ public sealed partial class UiComponentsPreview : Control
 
 	private UiButton CreateActionButton(string text, HudActionKind kind)
 	{
-		var button = new UiButton(text, kind);
+		var button = new UiButton(text, kind)
+		{
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+		};
 		_buttons.Add(button);
 		return button;
 	}

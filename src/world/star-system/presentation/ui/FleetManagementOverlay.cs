@@ -22,7 +22,7 @@ public sealed partial class FleetManagementOverlay : Control
 	private const int PilotPopupGridVSeparation = 6;
 	private const int AbilityIconSize = 30;
 	private const int AbilitySelectorRows = 4;
-	private const float StatsPanelExtraWidth = 40f;
+	private const int StatsRowExtraSeparation = 40;
 	private readonly ModalShell _shell;
 	private readonly CenteredCarousel _carousel;
 	private readonly PopupPanel _pilotPopup;
@@ -277,10 +277,11 @@ public sealed partial class FleetManagementOverlay : Control
 		rows.AddChild(SummaryRow("ACTION POINTS", ship.ActionPoints.ToString(), ActionPointColor));
 		rows.AddChild(SummaryRow("MANEUVER POINTS", ship.ManeuverPoints.ToString(), ManeuverPointColor));
 		rows.AddChild(SummaryRow("INITIATIVE", ship.Initiative.ToString(), InitiativeColor));
-		return CreateNestedContainer(
-			rows,
-			SizeFlags.ShrinkBegin,
-			extraMinWidth: StatsPanelExtraWidth);
+		foreach (var row in rows.GetChildren().OfType<HBoxContainer>())
+			row.AddThemeConstantOverride(
+				"separation",
+				row.GetThemeConstant("separation") + StatsRowExtraSeparation);
+		return CreateNestedContainer(rows, SizeFlags.ShrinkBegin);
 	}
 
 	private Control BuildAbilityWorkspace(FleetShipView ship, FleetAbilityView selectedAbility)
@@ -442,13 +443,13 @@ public sealed partial class FleetManagementOverlay : Control
 	{
 		var portrait = new UiFramedPortrait(ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId))
 		{
+			SizeOverride = new UiSizeOverride(size, size),
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = SizeFlags.ShrinkBegin,
 			MouseFilter = MouseFilterEnum.Stop,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
 			TooltipText = tooltip,
 		};
-		portrait.SetSquareSize(size);
 		portrait.GuiInput += @event =>
 		{
 			if (@event is not InputEventMouseButton { Pressed: true } mouse)
@@ -527,8 +528,7 @@ public sealed partial class FleetManagementOverlay : Control
 
 	private static UiNestedContainer CreateNestedContainer(
 		Control content,
-		SizeFlags sizeFlagsHorizontal = SizeFlags.ExpandFill,
-		float extraMinWidth = 0f)
+		SizeFlags sizeFlagsHorizontal = SizeFlags.ExpandFill)
 	{
 		var container = new UiNestedContainer
 		{
@@ -536,7 +536,6 @@ public sealed partial class FleetManagementOverlay : Control
 			SizeFlagsVertical = SizeFlags.ShrinkBegin,
 		};
 		container.SetContent(content);
-		container.ExtraMinimumWidth = extraMinWidth;
 		return container;
 	}
 

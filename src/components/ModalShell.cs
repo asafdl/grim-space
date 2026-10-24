@@ -285,7 +285,7 @@ public sealed partial class ModalShell : Control
 		{
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
-			CustomMinimumSize = ToGodotSize(ModalShellLayout.BaselinePanelMinimumSize),
+			SizeOverride = ToSizeOverride(ModalShellLayout.BaselinePanelMinimumSize),
 		};
 		_container.SetVisual(_containerVisual);
 		center.AddChild(_container);
@@ -402,6 +402,7 @@ public sealed partial class ModalShell : Control
 		_headerButton = new UiButton("×", HudActionKind.Secondary, _palette)
 		{
 			FocusMode = FocusModeEnum.All,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 		};
 		_headerButton.SetVisual(UiButtonVisual.Compact);
@@ -467,6 +468,7 @@ public sealed partial class ModalShell : Control
 		var dismissOffsets = _container.DismissButtonOffsets;
 		_dismissButton = new UiButton("X", HudActionKind.Secondary, _palette)
 		{
+			SizeOverride = new UiSizeOverride(dismissOffsets.Size.X, dismissOffsets.Size.Y),
 			Visible = false,
 			AnchorLeft = 1f,
 			AnchorRight = 1f,
@@ -523,6 +525,7 @@ public sealed partial class ModalShell : Control
 		var button = new UiButton(action.Label, action.Kind, _palette)
 		{
 			Disabled = !action.Enabled,
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
 		};
 		button.SetVisual(_footerButtonVisual);
 		button.Pressed += () => action.OnPressed(button);
@@ -546,8 +549,11 @@ public sealed partial class ModalShell : Control
 		var containerSize = ModalShellLayout.ResolveContainerSize(
 			ToLayoutSize(Size),
 			ToLayoutSize(viewportSize));
-		_container.CustomMinimumSize = _panelMinimumSizeOverride
-			?? ToGodotSize(ModalShellLayout.ComputePanelMinimumSize(containerSize));
+		var panelSize = _panelMinimumSizeOverride is { } size
+			? ToLayoutSize(size)
+			: ModalShellLayout.ComputePanelMinimumSize(containerSize);
+		_container.SizeOverride = ToSizeOverride(
+			ModalShellLayout.FitPanelSize(panelSize, containerSize));
 		ApplyContainerLayoutMetrics();
 		RebuildFooter();
 	}
@@ -563,5 +569,5 @@ public sealed partial class ModalShell : Control
 
 	private static LayoutSize ToLayoutSize(Vector2 size) => new(size.X, size.Y);
 
-	private static Vector2 ToGodotSize(LayoutSize size) => new(size.Width, size.Height);
+	private static UiSizeOverride ToSizeOverride(LayoutSize size) => new(size.Width, size.Height);
 }

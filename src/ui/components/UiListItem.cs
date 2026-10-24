@@ -10,8 +10,16 @@ public enum UiListItemVisual
 	Technical,
 }
 
-public partial class UiListItem : BaseButton
+public partial class UiListItem : BaseButton, IUiSized
 {
+	private protected readonly UiSizing Sizing;
+	public UiSize DefaultSize => Sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => Sizing.SizeOverride;
+		set => Sizing.SizeOverride = value;
+	}
+
 	private const string TagTexturePath =
 		"res://assets/ui/components/runtime/list_item_base.png";
 	private const string BracketTexturePath =
@@ -56,6 +64,7 @@ public partial class UiListItem : BaseButton
 			?? throw new InvalidOperationException($"Could not load sci-fi palette shader '{ShaderPath}'.");
 
 		_palette = palette ?? HudPalettes.BlueCyan;
+		Sizing = new UiSizing(this, new UiSize(0f, 0f));
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 

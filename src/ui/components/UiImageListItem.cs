@@ -7,11 +7,11 @@ public sealed partial class UiImageListItem : UiListItem
 {
 	private const string BracketTexturePath =
 		"res://assets/ui/components/runtime/list_item_bracket_base.png";
-	private const float BracketArtWidth = 1120f;
+	private const float DefaultRowHeight = 110f;
 	private const float BracketArtHeight = 300f;
-	private const float BracketTextLeftInsetX = 148f;
 	private const float BracketCircleCenterY = 136f;
 	private const float BracketCircleDiameter = 245f;
+	private const float PortraitDiameter = DefaultRowHeight * BracketCircleDiameter / BracketArtHeight;
 	private const float PortraitGap = 0.2f;
 	private const float PortraitOverlap = 18f;
 
@@ -28,6 +28,9 @@ public sealed partial class UiImageListItem : UiListItem
 	{
 		ArgumentNullException.ThrowIfNull(image);
 
+		Sizing.SetDefaultSize(new UiSize(0f, DefaultRowHeight));
+		SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		SetContentMargins(60, Mathf.CeilToInt(PortraitDiameter + PortraitGap + 48f), 12, 24);
 		HideBackground();
 		_bracket = new TextureRect
 		{
@@ -53,22 +56,18 @@ public sealed partial class UiImageListItem : UiListItem
 		if (Size.X <= 0f || Size.Y <= 0f)
 			return;
 
-		var portraitDiameter = Size.Y * BracketCircleDiameter / BracketArtHeight;
 		var bodyWidth = Mathf.Max(
 			0f,
-			Size.X - PortraitGap - portraitDiameter + PortraitOverlap);
+			Size.X - PortraitGap - PortraitDiameter + PortraitOverlap);
 		_bracket.Position = Vector2.Zero;
 		_bracket.Size = new Vector2(bodyWidth, Size.Y);
 
 		var portraitLeft = bodyWidth + PortraitGap - PortraitOverlap;
-		var radius = portraitDiameter * 0.5f;
-		var centerY = Size.Y * BracketCircleCenterY / BracketArtHeight;
+		var radius = PortraitDiameter * 0.5f;
+		var centerY = (Size.Y - DefaultRowHeight) * 0.5f
+			+ DefaultRowHeight * BracketCircleCenterY / BracketArtHeight;
 		_portrait.Position = new Vector2(portraitLeft, centerY - radius);
-		_portrait.Size = Vector2.One * portraitDiameter;
-		var rightMargin = portraitDiameter + PortraitGap + 48f;
-		var leftMargin = Mathf.CeilToInt(
-			BracketTextLeftInsetX / BracketArtWidth * bodyWidth + 8f);
-		SetContentMargins(leftMargin, Mathf.CeilToInt(rightMargin), 12, 12);
+		_portrait.Size = Vector2.One * PortraitDiameter;
 	}
 
 	private static Texture2D LoadTexture(string path) =>

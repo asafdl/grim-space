@@ -123,7 +123,7 @@ public sealed partial class ContractHudOverlay : Control
 		_declinePopup.Hide();
 		_shell.SetTitle(ContractDisplay.TypeDisplayName(_selected));
 		_shell.SetSubtitle(
-			$"{ContractDisplay.Title(_selected)} · Issued by {ContractDisplay.Issuer(_selected)}");
+			$"Issued by {ContractDisplay.Issuer(_selected)}");
 		_shell.SetHeader(HudHeaderMode.Back, ShowList);
 		_shell.SetBackHandler(ShowList);
 

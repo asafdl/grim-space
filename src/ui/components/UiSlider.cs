@@ -3,8 +3,16 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
-public sealed partial class UiSlider : HSlider
+public sealed partial class UiSlider : HSlider, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private const string GrabberTexturePath =
 		"res://assets/ui/components/runtime/slider_grabber_base.png";
 
@@ -17,7 +25,7 @@ public sealed partial class UiSlider : HSlider
 		MinValue = 0d;
 		MaxValue = 100d;
 		Step = 1d;
-		CustomMinimumSize = new Vector2(220f, 28f);
+		_sizing = new UiSizing(this, new UiSize(220f, 28f));
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 		_grabberTexture = GD.Load<Texture2D>(GrabberTexturePath)

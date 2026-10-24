@@ -166,7 +166,7 @@ public sealed partial class NpcDialogHudOverlay : CanvasLayer
 			{
 				FocusMode = Control.FocusModeEnum.All,
 			};
-			FramedActionBar.ApplyNarrativeActionStyle(button);
+			FramedActionBar.ApplyNarrativeChoiceStyle(button);
 			var choiceId = choice.Id;
 			button.Pressed += () => ChoiceSelected?.Invoke(choiceId);
 			_choices.AddChild(button);

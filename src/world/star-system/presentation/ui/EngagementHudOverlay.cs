@@ -119,7 +119,7 @@ public sealed partial class EngagementHudOverlay : Control
 		var card = new UiCard(title, subtitle, description, trailing)
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			CustomMinimumSize = new Vector2(580f, minHeight),
+			SizeOverride = new UiSizeOverride(Height: minHeight),
 		};
 		card.SetVisual(visual);
 		card.SetInteractive(false);

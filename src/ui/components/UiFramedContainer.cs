@@ -3,13 +3,22 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
-public sealed partial class UiFramedContainer : Container
+public sealed partial class UiFramedContainer : Container, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private readonly UiContainer _background;
 	private readonly MarginContainer _margin;
 
 	public UiFramedContainer()
 	{
+		_sizing = new UiSizing(this, new UiSize(0f, 0f));
 		MouseFilter = MouseFilterEnum.Ignore;
 
 		_background = new UiContainer();

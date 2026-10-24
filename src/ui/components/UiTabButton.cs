@@ -3,8 +3,16 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
-public sealed partial class UiTabButton : Button
+public sealed partial class UiTabButton : Button, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private HudPalette _palette;
 
 	public UiTabButton(string text, HudPalette? palette = null)
@@ -12,7 +20,7 @@ public sealed partial class UiTabButton : Button
 		Text = text;
 		_palette = palette ?? HudPalettes.BlueCyan;
 		ToggleMode = true;
-		CustomMinimumSize = new Vector2(100f, 38f);
+		_sizing = new UiSizing(this, new UiSize(100f, 38f));
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 		SizeFlagsHorizontal = SizeFlags.ShrinkCenter;

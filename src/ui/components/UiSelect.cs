@@ -3,14 +3,22 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
-public sealed partial class UiSelect : OptionButton
+public sealed partial class UiSelect : OptionButton, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private HudPalette _palette;
 
 	public UiSelect(HudPalette? palette = null)
 	{
 		_palette = palette ?? HudPalettes.BlueCyan;
-		CustomMinimumSize = new Vector2(220f, 38f);
+		_sizing = new UiSizing(this, new UiSize(220f, 38f));
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 		AddThemeFontSizeOverride("font_size", 14);

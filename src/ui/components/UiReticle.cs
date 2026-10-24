@@ -11,8 +11,16 @@ public enum UiReticleVisual
 	White,
 }
 
-public sealed partial class UiReticle : TextureRect
+public sealed partial class UiReticle : TextureRect, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private const string TexturePath =
 		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
 	private const float TextureSize = 256f;
@@ -22,7 +30,7 @@ public sealed partial class UiReticle : TextureRect
 		Texture = GD.Load<Texture2D>(TexturePath)
 			?? throw new InvalidOperationException(
 				$"Could not load reticle texture '{TexturePath}'.");
-		CustomMinimumSize = new Vector2(TextureSize, TextureSize);
+		_sizing = new UiSizing(this, new UiSize(TextureSize, TextureSize));
 		ExpandMode = ExpandModeEnum.IgnoreSize;
 		StretchMode = StretchModeEnum.KeepAspectCentered;
 		MouseFilter = MouseFilterEnum.Ignore;

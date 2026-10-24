@@ -54,7 +54,7 @@ public partial class IntroSceneView : Control
 			Modulate = new Color(1f, 1f, 1f, 0.9f),
 		};
 		_skipButton.SetVisual(UiButtonVisual.Back);
-		_skipButton.CustomMinimumSize = new Vector2(185f, 60f);
+		_skipButton.SizeOverride = new UiSizeOverride(185f, 60f);
 		_skipButton.SetFontSize(26);
 		_skipButton.Pressed += () => SkipPressed?.Invoke();
 		AddChild(_skipButton);

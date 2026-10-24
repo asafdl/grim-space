@@ -124,7 +124,7 @@ public partial class GameSettingsMenu : Control
 
 		var frame = new UiContainer(HudPalettes.PurpleRed)
 		{
-			CustomMinimumSize = new Vector2(600f, 300f),
+			SizeOverride = new UiSizeOverride(600f, 300f),
 		};
 		frame.SetVisual(UiContainerVisual.Technical);
 		center.AddChild(frame);
@@ -165,10 +165,16 @@ public partial class GameSettingsMenu : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		actions.AddThemeConstantOverride("separation", 12);
-		var cancel = new UiButton("Cancel", HudActionKind.Secondary, HudPalettes.PurpleRed);
+		var cancel = new UiButton("Cancel", HudActionKind.Secondary, HudPalettes.PurpleRed)
+		{
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+		};
 		cancel.SetVisual(UiButtonVisual.WideBeveled);
 		cancel.Pressed += DiscardAndExit;
-		var apply = new UiButton("Apply", HudActionKind.Primary, HudPalettes.PurpleRed);
+		var apply = new UiButton("Apply", HudActionKind.Primary, HudPalettes.PurpleRed)
+		{
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+		};
 		apply.SetVisual(UiButtonVisual.WideBeveled);
 		apply.Pressed += ApplyAndExit;
 		actions.AddChild(cancel);

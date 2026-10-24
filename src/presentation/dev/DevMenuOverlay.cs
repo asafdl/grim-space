@@ -82,12 +82,6 @@ public sealed partial class DevMenuOverlay : Control
 				OnSpawnPilotRecruitmentLead,
 				_canSpawnPilotRecruitmentLead?.Invoke() == true));
 
-		foreach (var child in items.GetChildren())
-		{
-			if (child is UiButton button)
-				button.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-		}
-
 		_shell.SetBody(items);
 		var viewport = GetViewportRect().Size;
 		_shell.SetPanelMinimumSize(new Vector2(

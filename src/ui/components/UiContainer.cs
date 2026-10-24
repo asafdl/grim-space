@@ -12,8 +12,16 @@ public enum UiContainerVisual
 	SidebarLandscape,
 }
 
-public sealed partial class UiContainer : NinePatchRect
+public sealed partial class UiContainer : NinePatchRect, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private const string ModalTexturePath =
 		"res://assets/ui/components/runtime/modal_panel_neutral.png";
 	private const string FramedTexturePath =
@@ -51,6 +59,7 @@ public sealed partial class UiContainer : NinePatchRect
 
 	public UiContainer(HudPalette palette)
 	{
+		_sizing = new UiSizing(this, new UiSize(0f, 0f));
 		var shader = GD.Load<Shader>(ShaderPath)
 			?? throw new InvalidOperationException($"Could not load UI palette shader '{ShaderPath}'.");
 

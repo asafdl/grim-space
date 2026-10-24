@@ -165,7 +165,6 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 	{
 		var button = new UiButton("", HudActionKind.Secondary, Palette)
 		{
-			CustomMinimumSize = new Vector2(144, 40),
 			FocusMode = FocusModeEnum.All,
 			SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
 		};

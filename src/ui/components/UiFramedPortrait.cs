@@ -3,8 +3,16 @@ using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
 
-public sealed partial class UiFramedPortrait : Control
+public sealed partial class UiFramedPortrait : Control, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private const string CircleClipShaderPath =
 		"res://assets/ui/components/runtime/circle_clip.gdshader";
 	private const string FrameTexturePath =
@@ -23,6 +31,7 @@ public sealed partial class UiFramedPortrait : Control
 		HudPalette? palette = null)
 	{
 		ArgumentNullException.ThrowIfNull(portrait);
+		_sizing = new UiSizing(this, new UiSize(0f, 0f));
 		MouseFilter = MouseFilterEnum.Ignore;
 
 		ShaderMaterial? material = framePaletteMaterial;
@@ -70,19 +79,6 @@ public sealed partial class UiFramedPortrait : Control
 	}
 
 	public void SetFramePaletteMaterial(ShaderMaterial material) => _frame.Material = material;
-
-	public void SetSquareSize(int size)
-	{
-		CustomMinimumSize = Vector2.One * size;
-		UpdateMinimumSize();
-		LayoutPortrait();
-	}
-
-	public override Vector2 _GetMinimumSize()
-	{
-		var min = CustomMinimumSize;
-		return min.X > 0f || min.Y > 0f ? min : Vector2.Zero;
-	}
 
 	public void ApplyPalette(HudPalette palette)
 	{

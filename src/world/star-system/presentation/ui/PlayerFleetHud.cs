@@ -37,7 +37,7 @@ public partial class PlayerFleetHud : MarginContainer
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
 		_fleetButton.SetVisual(UiButtonVisual.Technical);
-		_fleetButton.CustomMinimumSize = new Vector2(200f, 46f);
+		_fleetButton.SizeOverride = new UiSizeOverride(Width: 200f);
 		_fleetButton.Pressed += () => FleetManagementRequested?.Invoke();
 		content.AddChild(_fleetButton);
 

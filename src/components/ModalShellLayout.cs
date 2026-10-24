@@ -25,6 +25,12 @@ internal static class ModalShellLayout
 
 	public const float PanelScale = 1.2f;
 	public const float MaxPanelWidth = 960f;
+	public const float ViewportInset = 20f;
+
+	public static LayoutSize FitPanelSize(LayoutSize panelSize, LayoutSize containerSize) =>
+		new(
+			MathF.Min(panelSize.Width, MathF.Max(0f, containerSize.Width - ViewportInset * 2f)),
+			MathF.Min(panelSize.Height, MathF.Max(0f, containerSize.Height - ViewportInset * 2f)));
 
 	public static LayoutSize ComputePanelMinimumSize(LayoutSize containerSize)
 	{

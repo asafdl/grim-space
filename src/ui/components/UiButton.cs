@@ -13,8 +13,16 @@ public enum UiButtonVisual
 	WideBeveled,
 }
 
-public sealed partial class UiButton : BaseButton
+public sealed partial class UiButton : BaseButton, IUiSized
 {
+	private readonly UiSizing _sizing;
+	public UiSize DefaultSize => _sizing.DefaultSize;
+	public UiSizeOverride? SizeOverride
+	{
+		get => _sizing.SizeOverride;
+		set => _sizing.SizeOverride = value;
+	}
+
 	private const string ActionTexturePath =
 		"res://assets/ui/components/runtime/button_base.png";
 	private const string BackTexturePath =
@@ -53,7 +61,8 @@ public sealed partial class UiButton : BaseButton
 
 		_palette = palette ?? HudPalettes.BlueCyan;
 		_kind = kind;
-		CustomMinimumSize = new Vector2(145f, 44f);
+		_sizing = new UiSizing(this, new UiSize(145f, 44f));
+		SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		FocusMode = FocusModeEnum.All;
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 
@@ -92,12 +101,24 @@ public sealed partial class UiButton : BaseButton
 		ButtonDown += RefreshVisualState;
 		ButtonUp += RefreshVisualState;
 		RefreshVisualState();
+		UpdateMinimumSize();
 	}
 
 	public string Text
 	{
 		get => _label.Text;
-		set => _label.Text = value;
+		set
+		{
+			_label.Text = value;
+			UpdateMinimumSize();
+		}
+	}
+
+	public override Vector2 _GetMinimumSize()
+	{
+		var labelSize = _label.GetMinimumSize();
+		var paddingX = _label.OffsetLeft - _label.OffsetRight;
+		return new Vector2(labelSize.X + paddingX, labelSize.Y);
 	}
 
 	public void SetPalette(HudPalette palette)
@@ -112,8 +133,11 @@ public sealed partial class UiButton : BaseButton
 		RefreshVisualState();
 	}
 
-	public void SetFontSize(int fontSize) =>
+	public void SetFontSize(int fontSize)
+	{
 		_label.AddThemeFontSizeOverride("font_size", fontSize);
+		UpdateMinimumSize();
+	}
 
 	public void SetVisual(UiButtonVisual visual)
 	{
@@ -127,20 +151,21 @@ public sealed partial class UiButton : BaseButton
 			UiButtonVisual.WideBeveled => WideBeveledTexturePath,
 			_ => ActionTexturePath,
 		});
-		CustomMinimumSize = visual switch
+		_sizing.SetDefaultSize(visual switch
 		{
-			UiButtonVisual.Back => new Vector2(147f, 46f),
-			UiButtonVisual.Compact => new Vector2(133f, 46f),
-			UiButtonVisual.Technical => new Vector2(157f, 46f),
-			UiButtonVisual.Framed => new Vector2(151f, 52f),
-			UiButtonVisual.WideBeveled => new Vector2(159f, 54f),
-			_ => new Vector2(145f, 44f),
-		};
+			UiButtonVisual.Back => new UiSize(147f, 46f),
+			UiButtonVisual.Compact => new UiSize(133f, 46f),
+			UiButtonVisual.Technical => new UiSize(157f, 46f),
+			UiButtonVisual.Framed => new UiSize(151f, 52f),
+			UiButtonVisual.WideBeveled => new UiSize(159f, 54f),
+			_ => new UiSize(145f, 44f),
+		});
 		(_label.OffsetLeft, _label.OffsetRight) = visual switch
 		{
 			UiButtonVisual.Back => (12f, -20f),
 			_ => (16f, -16f),
 		};
+		UpdateMinimumSize();
 		RefreshVisualState();
 	}
 

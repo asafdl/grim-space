@@ -174,7 +174,7 @@ public partial class ResourceHud : MarginContainer
 
 		var panel = new UiNestedContainer(UiContainerVisual.SidebarLandscape)
 		{
-			CustomMinimumSize = new Vector2(
+			SizeOverride = new UiSizeOverride(
 				ResourcePanelMinimumWidth,
 				ResourcePanelMinimumHeight),
 			MouseFilter = MouseFilterEnum.Ignore,
