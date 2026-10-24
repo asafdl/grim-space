@@ -1,0 +1,26 @@
+file teaser.mp4  frames 2079  duration 34.65s
+detector: luma delta > 0.03 or hist corr < 0.90, refractory 0.6 s
+boundaries (17): [0.0, 1.88, 3.88, 4.7, 5.48, 7.38, 8.18, 10.28, 12.08, 13.3, 14.15, 17.0, 20.48, 23.5, 26.0, 27.37, 30.7]
+raw map (50): [0.0, 0.05, 0.3, 0.33, 1.88, 1.9, 1.95, 3.88, 3.9, 4.23, 4.7, 4.72, 4.73, 4.75, 4.77, 4.78, 5.48, 5.5, 5.52, 7.38, 7.87, 8.18, 8.2, 8.22, 8.23, 8.25, 8.27, 8.28, 10.28, 12.08, 13.3, 13.45, 13.78, 13.82, 14.15, 14.58, 14.6, 14.63, 17.0, 17.02, 20.48, 20.52, 23.5, 23.52, 23.55, 26.0, 27.37, 27.38, 30.7, 30.72]
+
+| t | prev shot | next shot | pre | post | edge corr | level step | type | stills |
+|---|---|---|---|---|---|---|---|---|
+|  0.00 | - | 1.88 | 0.003 | 0.003 | +0.02 | +0.066 | fade-in | work\v8_trans\before\t00.00_pre.png / work\v8_trans\before\t00.00_post.png |
+|  1.88 | 0.00 | 3.88 | 0.097 | 0.097 | +0.04 | -0.035 | hard cut | work\v8_trans\before\t01.88_pre.png / work\v8_trans\before\t01.88_post.png |
+|  3.88 | 1.88 | 4.70 | 0.038 | 0.038 | +0.02 | +0.062 | hard cut | work\v8_trans\before\t03.88_pre.png / work\v8_trans\before\t03.88_post.png |
+|  4.70 | 3.88 | 5.48 | 0.057 | 0.053 | +0.07 | +0.005 | hard cut | work\v8_trans\before\t04.70_pre.png / work\v8_trans\before\t04.70_post.png |
+|  5.48 | 4.70 | 7.38 | 0.065 | 0.061 | +0.08 | -0.006 | hard cut | work\v8_trans\before\t05.48_pre.png / work\v8_trans\before\t05.48_post.png |
+|  7.38 | 5.48 | 8.18 | 0.066 | 0.066 | +0.14 | -0.001 | hard cut | work\v8_trans\before\t07.38_pre.png / work\v8_trans\before\t07.38_post.png |
+|  8.18 | 7.38 | 10.28 | 0.110 | 0.111 | +0.01 | -0.047 | hard cut | work\v8_trans\before\t08.18_pre.png / work\v8_trans\before\t08.18_post.png |
+| 10.28 | 8.18 | 12.08 | 0.081 | 0.081 | +0.32 | +0.005 | hard cut | work\v8_trans\before\t10.28_pre.png / work\v8_trans\before\t10.28_post.png |
+| 12.08 | 10.28 | 13.30 | 0.073 | 0.072 | +0.04 | +0.007 | hard cut | work\v8_trans\before\t12.08_pre.png / work\v8_trans\before\t12.08_post.png |
+| 13.30 | 12.08 | 14.15 | 0.085 | 0.085 | -0.02 | -0.012 | hard cut | work\v8_trans\before\t13.30_pre.png / work\v8_trans\before\t13.30_post.png |
+| 14.15 | 13.30 | 17.00 | 0.047 | 0.047 | +0.25 | +0.000 | hard cut | work\v8_trans\before\t14.15_pre.png / work\v8_trans\before\t14.15_post.png |
+| 17.00 | 14.15 | 20.48 | 0.141 | 0.141 | +0.01 | -0.069 | hard cut | work\v8_trans\before\t17.00_pre.png / work\v8_trans\before\t17.00_post.png |
+| 20.48 | 17.00 | 23.50 | 0.063 | 0.063 | +0.10 | -0.023 | hard cut | work\v8_trans\before\t20.48_pre.png / work\v8_trans\before\t20.48_post.png |
+| 23.50 | 20.48 | 26.00 | 0.058 | 0.058 | -0.05 | +0.088 | hard cut | work\v8_trans\before\t23.50_pre.png / work\v8_trans\before\t23.50_post.png |
+| 26.00 | 23.50 | 27.37 | 0.047 | 0.047 | +0.12 | +0.027 | hard cut | work\v8_trans\before\t26.00_pre.png / work\v8_trans\before\t26.00_post.png |
+| 27.37 | 26.00 | 30.70 | 0.074 | 0.074 | -0.02 | +0.004 | hard cut | work\v8_trans\before\t27.37_pre.png / work\v8_trans\before\t27.37_post.png |
+| 30.70 | 27.37 | 34.65 | 0.070 | 0.070 | +0.63 | -0.027 | hard cut | work\v8_trans\before\t30.70_pre.png / work\v8_trans\before\t30.70_post.png |
+
+types: {'fade-in': 1, 'hard cut': 16}

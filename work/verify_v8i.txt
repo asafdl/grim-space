@@ -1,0 +1,85 @@
+== SHOT MAP (thresholds published: luma-delta 0.03 + hist-corr 0.98, refractory 0.6 s) ==
+frames 2077  duration 34.62s  shots 22  ASL 1.57s  longest 3.94s
+boundaries (refractory 0.6 s): [0.0, 0.78, 1.88, 3.9, 4.7, 5.63, 6.28, 7.02, 8.2, 8.95, 9.68, 10.3, 12.1, 13.32, 14.17, 16.7, 17.33, 19.3, 20.47, 23.52, 25.98, 27.38, 30.68]
+boundaries (refractory 0.0 s): [0.0, 0.02, 0.03, 0.05, 0.07, 0.08, 0.1, 0.12, 0.13, 0.15, 0.17, 0.18, 0.2, 0.22, 0.23, 0.25, 0.27, 0.28, 0.3, 0.33, 0.78, 1.88, 1.92, 1.97, 3.9, 3.92, 4.7, 4.72, 4.73, 4.75, 4.77, 4.78, 4.8, 4.82, 4.83, 4.85, 5.63, 5.65, 5.67, 5.68, 5.7, 5.72, 6.28, 6.3, 6.38, 7.02, 7.03, 7.4, 8.2, 8.22, 8.23, 8.25, 8.27, 8.28, 8.3, 8.32, 8.33, 8.35, 8.95, 9.03, 9.68, 10.23, 10.3, 10.9, 12.1, 12.68, 13.32, 13.7, 13.72, 13.8, 13.83, 14.17, 14.63, 14.68, 16.7, 16.72, 16.73, 16.98, 17.0, 17.33, 19.3, 20.47, 20.5, 23.52, 23.57, 25.98, 27.38, 27.4, 30.68, 30.7]
+cuts the refractory suppressed (67): [0.02, 0.03, 0.05, 0.07, 0.08, 0.1, 0.12, 0.13, 0.15, 0.17, 0.18, 0.2, 0.22, 0.23, 0.25, 0.27, 0.28, 0.3, 0.33, 1.92, 1.97, 3.92, 4.72, 4.73, 4.75, 4.77, 4.78, 4.8, 4.82, 4.83, 4.85, 5.65, 5.67, 5.68, 5.7, 5.72, 6.3, 6.38, 7.03, 7.4, 8.22, 8.23, 8.25, 8.27, 8.28, 8.3, 8.32, 8.33, 8.35, 9.03, 10.23, 10.9, 12.68, 13.7, 13.72, 13.8, 13.83, 14.63, 14.68, 16.72, 16.73, 16.98, 17.0, 20.5, 23.57, 27.4, 30.7]
+
+== LUMA FLOOR ==
+frames below 0.030: 1.3%  (gate: <=5%)   mean luma 0.0682
+card frames 30.70-34.60s: min 0.0319 mean 0.0402 max 0.0461 (gate: card >=0.030)
+
+== SEAMS (AC-T1: incoming >= 0.5x outgoing, both above the dark class) ==
+  t= 1.88  outgoing 0.090  incoming 0.059  ratio 0.66  OK
+  t= 3.90  outgoing 0.043  incoming 0.081  ratio 1.88  OK
+  t= 4.70  outgoing 0.051  incoming 0.051  ratio 1.00  OK
+  t= 5.63  outgoing 0.058  incoming 0.055  ratio 0.95  OK
+  t= 6.28  outgoing 0.061  incoming 0.067  ratio 1.09  OK
+  t= 7.02  outgoing 0.074  incoming 0.064  ratio 0.86  OK
+  t= 8.20  outgoing 0.100  incoming 0.056  ratio 0.56  OK
+  t= 8.95  outgoing 0.063  incoming 0.072  ratio 1.13  OK
+  t= 9.68  outgoing 0.079  incoming 0.067  ratio 0.85  OK
+  t=10.30  outgoing 0.073  incoming 0.073  ratio 1.00  OK
+  t=12.10  outgoing 0.068  incoming 0.074  ratio 1.09  OK
+  t=13.32  outgoing 0.078  incoming 0.065  ratio 0.84  OK
+  t=14.17  outgoing 0.040  incoming 0.040  ratio 0.98  OK
+  t=16.70  outgoing 0.141  incoming 0.127  ratio 0.90  OK
+  t=17.33  outgoing 0.066  incoming 0.067  ratio 1.00  OK
+  t=19.30  outgoing 0.064  incoming 0.057  ratio 0.89  OK
+  t=20.47  outgoing 0.065  incoming 0.033  ratio 0.52  OK
+  t=23.52  outgoing 0.052  incoming 0.120  ratio 2.28  OK
+  t=25.98  outgoing 0.107  incoming 0.067  ratio 0.63  OK
+  t=27.38  outgoing 0.067  incoming 0.065  ratio 0.97  OK
+  t=30.68  outgoing 0.064  incoming 0.036  ratio 0.56  OK
+black-hole seams: 0 of 21
+
+== DEAD TIME (AC-T6: no run below 0.030 longer than 0.15 s, 1.0-30.7 s) ==
+runs below the floor: [(13.82, 0.03), (17.0, 0.02), (20.48, 0.03)]
+runs longer than 0.15 s: 0  (gate: 0)
+
+== GOOP FIELD ==
+green px in 10.90-15.50s: peak 52 (= 7488 at 1920x1080)  longest run >=300px: 0.37s (gate: >=1.0s)
+
+== CHROMA (saturation > 90) ==
+at 160x90 (scale to 1920x1080: x144): peak 282 px/frame   mean 44.8 px/frame   (V4 reference, full res: peak 32554, mean 1155)
+
+== IN-SHOT EVENTS (luma transient > 0.012 inside a shot) ==
+count 18: [(0.3, 0.0287), (0.33, 0.0379), (0.78, 0.017), (1.88, 0.021), (1.92, 0.0271), (4.25, 0.0403), (8.03, 0.0413), (13.32, 0.013), (13.8, 0.0329), (14.63, 0.071), (16.98, 0.082), (17.0, 0.0331), (20.47, 0.036), (20.5, 0.0137), (23.52, 0.0674), (25.98, 0.0397), (27.4, 0.0146), (30.68, 0.0313)]
+per-shot evidence: 12 of 22 shots carry >=1 in-shot event; the bare shots: [5, 6, 7, 9, 10, 11, 12, 13, 17, 18]
+
+== SFX CAUSATION (work/sfx_v6.json vs the nearest visible change) ==
+    1.70s menu_hover_click.wav               J-CUT BRIDGE -> cut 1.88  lead 0.18s OK
+    3.70s menu_hover_click.wav               J-CUT BRIDGE -> cut 3.9  lead 0.20s OK
+    5.55s lightning_cannon_mount_charge.wav  nearest transient 5.63  delta 0.08s OK
+    6.20s lightning_cannon_hit.wav           nearest transient 6.28  delta 0.08s OK
+    7.95s lightning_cannon_hit.wav           nearest transient 8.03  delta 0.08s OK
+    8.97s ship_death_enhanced_v2.wav         nearest transient 8.95  delta 0.02s OK
+   14.38s menu_hover_click.wav               J-CUT BRIDGE -> cut 14.63  lead 0.25s OK
+   16.50s lightning_cannon_mount_charge.wav  J-CUT BRIDGE -> cut 16.7  lead 0.20s OK
+   20.50s lightning_cannon_hit.wav           nearest transient 20.5  delta 0.00s OK
+   23.28s menu_hover_click.wav               J-CUT BRIDGE -> cut 23.52  lead 0.24s OK
+   25.75s menu_hover_click.wav               J-CUT BRIDGE -> cut 25.98  lead 0.23s OK
+   27.15s lightning_cannon_mount_charge.wav  J-CUT BRIDGE -> cut 27.38  lead 0.23s OK
+   30.68s void_bomb_explosion.wav            nearest transient 30.68  delta 0.00s OK
+J-cut bridges: 7
+
+== AUDIO ==
+integrated -14.1 LUFS  true peak -3.2 dBFS  LRA 11.7 LU
+loudest second 31s (-8.1 dB RMS); the last 3 s start at 31s
+silence: [Parsed_silencedetect_0 @ 000001f80187bec0] silence_start: 0 | [Parsed_silencedetect_0 @ 000001f80187bec0] silence_end: 0.374375 | silence_duration: 0.374375 | [Parsed_silencedetect_0 @ 000001f80187bec0] silence_start: 0.465542 | [Parsed_silencedetect_0 @ 000001f80187bec0] silence_end: 0.870083 | silence_duration: 0.404542
+
+== CARD ENTRY (AC-T5: hit within 0.1 s of the onset, hold >= 2.5 s) ==
+onset 30.68s  picture luma step -0.0004  audio peak 30.76s (offset +0.08s)  card hold 3.94s
+gate: |offset| <= 0.10 s  OK   hold OK
+
+== LIEU CHECKS (from this file's pixels only) ==
+first in-shot event at 0.3s (loop-driven clock)  gate: the console legible <= 2.0 s
+shot lengths: [(0.0, 0.78), (0.78, 1.1), (1.88, 2.02), (3.9, 0.8), (4.7, 0.93), (5.63, 0.65), (6.28, 0.74), (7.02, 1.18), (8.2, 0.75), (8.95, 0.73), (9.68, 0.62), (10.3, 1.8), (12.1, 1.22), (13.32, 0.85), (14.17, 2.53), (16.7, 0.63), (17.33, 1.97), (19.3, 1.17), (20.47, 3.05), (23.52, 2.46), (25.98, 1.4), (27.38, 3.3), (30.68, 3.94)]
+hairline shots <0.6 s: 0 []  min 0.62s  max 3.94s  (novelty-dwell band: the loop beats are the long ones, not decor)
+
+== MICROTRAILER (six 1s samples, 232x130) ==
+   2.30s  mean luma 0.0449  max 255
+   4.60s  mean luma 0.0530  max 196
+   9.00s  mean luma 0.0754  max 241
+  12.60s  mean luma 0.0763  max 208
+  24.00s  mean luma 0.1187  max 255
+  28.00s  mean luma 0.0717  max 245

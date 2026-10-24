@@ -187,6 +187,12 @@ public partial class TeaserController : Node
 
 		_viewportDisplay.Modulate = new Color(1, 1, 1, 0);
 
+		// Nothing is on screen until the fight is: an empty subviewport
+		// clears to the engine's default grey, and a grey card under the
+		// opening fade is the film flashing a blank screen. The clear colour
+		// is black, so the first reveal lands on the battle, not on nothing.
+		RenderingServer.SetDefaultClearColor(Colors.Black);
+
 		_transition = GetNode<ColorRect>("Overlay/Transition");
 		_titleText = GetNode<Label>("Overlay/TitleText");
 		BuildTitleCard();
@@ -395,14 +401,12 @@ public partial class TeaserController : Node
 		MapNavigationContext.ClearReturnToFacade();
 
 		var mapInstance = GD.Load<PackedScene>(MapScene).Instantiate();
-		await CutToWorld(mapInstance);
+
+		// Dressed inside the cut: the reveal lands on the lit map.
+		await CutToWorld(mapInstance, dress: DressMapForFilm);
 
 		await ToSignal(GetTree(), "process_frame");
-
-		HideMapStar(mapInstance);
-		HideMapEventHorizon(mapInstance);
-		DismissMapNarrative(mapInstance);
-		LightMapForFilm(mapInstance);
+		await ToSignal(GetTree(), "process_frame");
 		PushInOnMap(mapInstance);
 
 		await HoldUntil(MapEnd);
@@ -419,18 +423,15 @@ public partial class TeaserController : Node
 		MapNavigationContext.ClearReturnToFacade();
 
 		var mapInstance = GD.Load<PackedScene>(MapScene).Instantiate();
-		await CutToWorld(mapInstance);
-
-		await ToSignal(GetTree(), "process_frame");
 
 		// The sun clause: the sun session in the main repo is mid-repair, so
 		// the film bakes no footage of it. This slot stays a named placeholder
 		// in the beat plan (THE REACH, 23.50-26.00); the map is shot the way
 		// v7 shot it until the built sun lands.
-		HideMapStar(mapInstance);
-		HideMapEventHorizon(mapInstance);
-		DismissMapNarrative(mapInstance);
-		LightMapForFilm(mapInstance);
+		await CutToWorld(mapInstance, dress: DressMapForFilm);
+
+		await ToSignal(GetTree(), "process_frame");
+		await ToSignal(GetTree(), "process_frame");
 		PushInOnMap(mapInstance, 1.2f);
 
 		await HoldUntil(ReachEnd);
@@ -467,14 +468,11 @@ public partial class TeaserController : Node
 		MapNavigationContext.EnterFacility(poiId, facilityId);
 
 		var dockyard = GD.Load<PackedScene>(DockyardScene).Instantiate();
-		await CutToWorld(dockyard);
 
-		await ToSignal(GetTree(), "process_frame");
-
-		LightWorldForFilm(dockyard);
-
-		await ToSignal(GetTree(), "process_frame");
-		await ToSignal(GetTree(), "process_frame");
+		// The dock renders complete on its first frame (26.02 was measured lit
+		// and full), so this cut needs no warm frames; only the map scene bakes
+		// its content in over its first frames.
+		await CutToWorld(dockyard, warmFrames: 0, dress: LightWorldForFilm);
 
 		await HoldUntil(ShopEnd);
 	}
@@ -506,15 +504,15 @@ public partial class TeaserController : Node
 		MapNavigationContext.ClearReturnToFacade();
 
 		var mapInstance = GD.Load<PackedScene>(MapScene).Instantiate();
-		await CutToWorld(mapInstance);
 
+		// The map is dressed inside the cut: the first frame the film reveals
+		// is the lit map with its route, not the scene's stock chrome.
+		await CutToWorld(mapInstance, dress: DressMapForFilm);
+
+		// The map camera settles over its first frames; the push is measured
+		// from the settled pose, so it starts on the system, not in open space.
 		await ToSignal(GetTree(), "process_frame");
 		await ToSignal(GetTree(), "process_frame");
-
-		HideMapStar(mapInstance);
-		HideMapEventHorizon(mapInstance);
-		DismissMapNarrative(mapInstance);
-		LightMapForFilm(mapInstance);
 		PushInOnMap(mapInstance, 0.8f);
 
 		// The contract became live inside the claim beat's first frames, so the
@@ -1353,20 +1351,63 @@ public partial class TeaserController : Node
 	/// A cut to a world shot. The world viewport has already rendered the next
 	/// scene before the cut, so the cut lands on a picture and never on black.
 	/// </summary>
-	private async Task CutToWorld(Node incoming)
+	/// <summary>
+	/// A cut to a world scene. The incoming scene's first render is sky and
+	/// chrome only: the map's station, its routes and the ships land a frame
+	/// later, so a swap that reveals the scene immediately is a cut through a
+	/// black hole. The world stays off the screen for <paramref name="warmFrames"/>
+	/// frames while the incoming scene renders underneath, and the previous
+	/// shot holds the frame; the cut then lands on lit imagery.
+	///
+	/// <paramref name="dress"/> runs after the scene is in the tree (its own
+	/// environment exists then) and before the reveal, so the first frame the
+	/// film shows is the dressed scene, never the undressed one.
+	/// </summary>
+	private async Task CutToWorld(Node incoming, int warmFrames = 2, Action<Node>? dress = null)
 	{
 		var root = _viewport.GetNode<Node>("CurrentScene");
 		var outgoing = _current;
+
+		_viewportDisplay.Modulate = new Color(1, 1, 1, 0);
 
 		FreeStaged(outgoing);
 		root.AddChild(incoming);
 		_current = incoming;
 
-		_viewportDisplay.Modulate = new Color(1, 1, 1, 1);
 		_battleDisplay.Modulate = new Color(1, 1, 1, 1);
 
+		if (warmFrames > 0)
+		{
+			// One process tick first: the scene's own environment exists only
+			// after its first frame, and a dress applied before that is lost.
+			await ToSignal(GetTree(), "process_frame");
+			dress?.Invoke(incoming);
+
+			for (var i = 1; i < warmFrames; i++)
+			{
+				await ToSignal(GetTree(), "process_frame");
+			}
+		}
+		else
+		{
+			dress?.Invoke(incoming);
+		}
+
+		_viewportDisplay.Modulate = new Color(1, 1, 1, 1);
 		await ToSignal(GetTree(), "process_frame");
-		await ToSignal(GetTree(), "process_frame");
+	}
+
+	/// <summary>
+	/// The map as the film shows it: no star, no event horizon, no narrative
+	/// page, and the exposure lifted so the route reads. Applied inside the
+	/// cut, before the reveal.
+	/// </summary>
+	private static void DressMapForFilm(Node mapInstance)
+	{
+		HideMapStar(mapInstance);
+		HideMapEventHorizon(mapInstance);
+		DismissMapNarrative(mapInstance);
+		LightMapForFilm(mapInstance);
 	}
 
 	/// <summary>

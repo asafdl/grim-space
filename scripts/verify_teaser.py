@@ -78,6 +78,7 @@ def main() -> None:
     print("boundaries (refractory 0.6 s):", boundaries)
     raw_map = shots(luma, hist, refractory=0.0)
     print("boundaries (refractory 0.0 s):", raw_map)
+    raw_times = sorted({round(b, 2) for b in raw_map})
     suppressed = [b for b in raw_map if b not in boundaries]
     print(f"cuts the refractory suppressed ({len(suppressed)}):", suppressed)
 
@@ -87,6 +88,41 @@ def main() -> None:
     print(f"frames below 0.030: {below * 100:.1f}%  (gate: <=5%)   mean luma {luma.mean():.4f}")
     print(f"card frames {CARD_START:.2f}-{CARD_END:.2f}s: min {card.min():.4f} "
           f"mean {card.mean():.4f} max {card.max():.4f} (gate: card >=0.030)")
+
+    # AC-T1 / AC-T6: the seam set and the dead-time ban, measured from this
+    # file only. A seam fails when the incoming shot is under half the
+    # outgoing's level and the pair is dark (the black-hole class).
+    print("\n== SEAMS (AC-T1: incoming >= 0.5x outgoing, both above the dark class) ==")
+    seams = [b for b in boundaries if 1.0 <= b <= 30.7]
+    seam_rows = []
+    for b in seams:
+        i = int(round(b * fps))
+        outgoing = float(luma[max(0, i - 3):i].mean())
+        incoming = float(luma[i + 1:i + 4].mean()) if i + 4 <= n else float(luma[i + 1:].mean())
+        ratio = incoming / outgoing if outgoing > 1e-6 else 0.0
+        dark = incoming < 0.030 or outgoing < 0.030
+        verdict = "BLACK-HOLE" if (ratio < 0.5 and dark) else "OK"
+        seam_rows.append((b, outgoing, incoming, ratio, verdict))
+        print(f"  t={b:5.2f}  outgoing {outgoing:.3f}  incoming {incoming:.3f}  "
+              f"ratio {ratio:.2f}  {verdict}")
+    print(f"black-hole seams: {sum(1 for row in seam_rows if row[4] != 'OK')} of {len(seam_rows)}")
+
+    print("\n== DEAD TIME (AC-T6: no run below 0.030 longer than 0.15 s, 1.0-30.7 s) ==")
+    lo_i, hi_i = int(1.0 * fps), int(30.7 * fps)
+    run = 0
+    runs_below = []
+    for i in range(lo_i, min(hi_i, n)):
+        if luma[i] < 0.030:
+            run += 1
+        else:
+            if run:
+                runs_below.append((round((i - run) / fps, 2), round(run / fps, 2)))
+            run = 0
+    if run:
+        runs_below.append((round((min(hi_i, n) - run) / fps, 2), round(run / fps, 2)))
+    long_runs = [r for r in runs_below if r[1] > 0.15]
+    print(f"runs below the floor: {runs_below if runs_below else 'none'}")
+    print(f"runs longer than 0.15 s: {len(long_runs)}  (gate: 0)")
 
     print("\n== GOOP FIELD ==")
     lo, hi = int(GOOP_WINDOW[0] * fps), int(GOOP_WINDOW[1] * fps)
@@ -141,12 +177,27 @@ def main() -> None:
                    for i in range(1, len(delta)) if float(delta[i]) > 0.012]
     # A cut is a visible change too: the picture is replaced.
     times = sorted({t for t, _ in all_changes} | {round(b, 2) for b in boundaries})
+    bridges = 0
     for item in sfx:
         t = item["time"]
+        name = Path(item['path']).name
+        if item.get("role") == "bridge":
+            # J-cut class: the incoming scene's sound leads its picture cut
+            # by 0.15-0.60 s (craft note S-T4 / AC-T4). The lead is measured
+            # to the raw map: the refractory map hides cuts the film still
+            # makes, and a bridge answers a picture change, not a display map.
+            nxt = next((b for b in raw_times if b > t), None)
+            lead = (nxt - t) if nxt is not None else 99.0
+            ok = 0.15 <= lead <= 0.60
+            bridges += 1
+            print(f"  {t:6.2f}s {name:<34} J-CUT BRIDGE -> cut {nxt}  lead {lead:.2f}s "
+                  f"{'OK' if ok else 'OUT OF WINDOW'}")
+            continue
         near = min(times, key=lambda x: abs(x - t)) if times else None
         delta_s = abs(near - t) if near is not None else 99
-        print(f"  {t:6.2f}s {Path(item['path']).name:<34} nearest transient {near}  "
+        print(f"  {t:6.2f}s {name:<34} nearest transient {near}  "
               f"delta {delta_s:.2f}s {'OK' if delta_s <= 0.15 else 'OUT OF TOLERANCE'}")
+    print(f"J-cut bridges: {bridges}")
 
     print("\n== AUDIO ==")
     probe = subprocess.run(
@@ -189,6 +240,22 @@ def main() -> None:
         capture_output=True, text=True, check=True).stderr
     runs = [l.strip() for l in silence.splitlines() if "silence_start" in l or "silence_end" in l]
     print("silence:", " | ".join(runs[:4]) if runs else "none")
+
+    # AC-T5: the card lands on a hit. Both the picture and the waveform are
+    # read off the shipped file; the onset time is the last detected boundary.
+    print("\n== CARD ENTRY (AC-T5: hit within 0.1 s of the onset, hold >= 2.5 s) ==")
+    onset = boundaries[-1]
+    on_i = int(round(onset * fps))
+    luma_step = float(luma[on_i] - luma[on_i - 1]) if on_i > 0 else 0.0
+    near = samples[int(max(0, onset - 0.15) * 48000):int((onset + 0.15) * 48000)]
+    win = int(0.02 * 48000)
+    env = np.array([np.abs(near[i:i + win]).max() for i in range(0, max(1, len(near) - win), win)])
+    peak_at = onset - 0.15 + (int(np.argmax(env)) * 0.02 + 0.01) if len(env) else onset
+    print(f"onset {onset:.2f}s  picture luma step {luma_step:+.4f}  "
+          f"audio peak {peak_at:.2f}s (offset {peak_at - onset:+.2f}s)  "
+          f"card hold {duration - onset:.2f}s")
+    print(f"gate: |offset| <= 0.10 s  {'OK' if abs(peak_at - onset) <= 0.10 else 'FAIL'}   "
+          f"hold {'OK' if duration - onset >= 2.5 else 'SHORT'}")
 
     print("\n== LIEU CHECKS (from this file's pixels only) ==")
     first_change = events[0][0] if events else None

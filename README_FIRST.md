@@ -1,10 +1,16 @@
 # README FIRST — Grim Space Teaser Context
 
-> **Updated 2026-10-23 (V8: the film opens on the loop).** Re-cut per the V8
-> mandate — the four lieu-audit misses as a numbered minimum plus the gates
-> and the sun clause. The deliverable is `teaser.mp4` — **34.65 s, 1080p60,
-> stereo at -14.0 LUFS** (LRA 11.9 LU, true peak -3.4 dBFS), 22 shots, ASL
-> 1.57 s, no shot >3.95 s, luma floor 0.5 % below 0.030 (V7: 1.0 %).
+> **Updated 2026-10-24 (V8.1: the transitions pass, one item at a time).** The
+> V8 film re-cut against the film-geek's transition craft note (`AC-T1..AC-T7`):
+> every seam graded, two fixed (the opening fade no longer reveals an empty
+> grey viewport; the claim map no longer enters through a 0.012-luma black
+> frame), seven world seams carried by J-cut sound bridges (leads 0.18-0.25 s),
+> and the in-shot SFX re-timed to this render's own transients. The deliverable
+> is `teaser.mp4` — **34.62 s, 1080p60, stereo at -14.1 LUFS** (LRA 11.7 LU,
+> true peak -3.2 dBFS), 22 shots, ASL 1.57 s, no shot >3.94 s, luma floor
+> 1.3 % below 0.030, **0 black-hole seams of 21** and **0 dead-time runs**.
+> The cut list, the KEEP/FIX sheet, the beat table and the before/after strip
+> are in `TEASER_NOTES.md` §V8.1 and `work/v8_trans/`.
 >
 > **The promise, in one sentence — the thing a viewer can say after watching:**
 >

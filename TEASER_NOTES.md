@@ -2910,3 +2910,158 @@ Therefore: the reach slot bakes no sun (the clause). Two supporting facts:
 | Verification | `python scripts/verify_teaser.py teaser.mp4` → `work/verify_v8.txt`; chroma → `work/chroma_v8.txt`; sheet → `work/v8_sheet/v8_vs_v7_sheet.png` |
 | Capture command | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v8g.avi --fixed-fps 60 --quit-after 2300 "res://scenes/teaser.tscn"` (the recorder exits SIGSEGV at teardown as in every pass; the AVI is complete at 2079 frames) |
 | Tests | `dotnet test grim-space.Tests/grim-space.Tests.csproj` — see the commit message for the count |
+
+## V8.1 — TRANSITIONS, ONE ITEM AT A TIME
+
+The order: transitions only. The acceptance law: the film-geek's craft note
+`transitions.md` v1 (`S-T1..S-T6` sources, `AC-T1..AC-T7` gates). The one item
+is the seam between two shots — not pacing, colour, sound or text, except
+where a seam fix necessarily touches its boundary (the audio bridge and the
+map lighting are those two boundaries).
+
+### 1. THE CUT LIST (the geek's detector, from the shipped file)
+
+`python work/transitions_v8.py teaser.mp4` — every boundary the order's
+detector finds (luma delta > 0.03 **or** hist corr < 0.90), with the 0.6 s
+refractory published next to the raw map, and two stills per row
+(`work/v8_trans/shipped/`). The full output is `work/transitions_v8i.txt`;
+the visible list is 17 boundaries at 16 internal cuts. The picture-cut
+classification below is read from the stills (a camera replace) or the raw
+cluster (a light event inside the same shot); the automated `type` column
+says "hard cut" for every non-fade row because the two-detector instrument
+cannot separate a same-scene beam flash from a cut at 480x270 — the human
+read is in the "why" column, and every claim has its frame path.
+
+| t | pre -> post | picture | verdict | why |
+|---|---|---|---|---|
+| 0.00 | 0.000 -> 0.000 | fade-in | KEEP | the cold open; the fade now lands on the fight, not on a blank screen (0.30 row) |
+| 0.30 | 0.26 -> 0.03 (v8) | grey card under the fade | **FIXED** | an empty subviewport cleared to the engine's grey and the fade revealed it for 0.11 s; stills `work/v8_trans/before/t00.30_pre.png` (grey) vs `after/t00.30_pre.png` (black) |
+| 1.88/1.90 | 0.090 -> 0.012 -> 0.059 (v8) | claim map enters | **FIXED** | the map's first rendered frame was empty sky + HUD: one frame at **0.012**, under the 0.030 floor; `work/v8_trans/t190.jpg` is that frame, `work/v8_trans/before/t01.88_post.png` is the map one frame later. Shipped v8.1: 1.88 -> 1.92 = 0.075/0.074, then 0.043, no frame under 0.030 (`shipped/t01.92_pre.png`, `t01.92_post.png`) |
+| 3.90 | 0.045 -> 0.045 | map -> loop cut | KEEP | the cut-in carries the J-cut click (lead 0.20 s) |
+| 4.72 | 0.057 -> 0.053 | in-battle action camera | KEEP | the game's own cut at the fire; the ship and the rocks jump together (`shipped/t04.72_pre.png`, `_post.png`) |
+| 5.65 | 0.065 -> 0.062 | in-battle action camera | KEEP | same: the exchange cut, taken on the resolve |
+| 7.40 | 0.066 -> 0.066 | loss camera | KEEP | the camera sits on the hull before it dies |
+| 8.03 | 0.064 -> 0.065 | death flash | KEEP | a light event in the same scene |
+| 10.30 / 12.10 / 13.32 | flat | in-battle cuts | KEEP | action-camera cuts, same class |
+| 14.17 | 0.047 -> 0.047 | goop field end | KEEP | the map cut follows at 14.63, bridged (lead 0.25 s) |
+| 16.98 | 0.116 -> 0.116 | map -> carrier | KEEP | bridged (lead 0.20 s at 16.70) |
+| 20.47 | 0.071 -> 0.071 | carrier cut | KEEP | action camera |
+| 23.52 | 0.058 -> 0.058 | carrier -> reach map | KEEP | it **does not** pass through black: the reach map's first frame is 0.124 (ratio 2.28); the "26 s near-black band" the geek logged is not in the shipped v8 file — that read predates the v8g map-lighting lift (the v8g file at 26.0 measured 0.047 -> 0.074). The class is fixed anyway (the warm gate), and the seam now carries a 0.24 s bridge; `shipped/t23.52_pre.png`, `_post.png` |
+| 25.98 | 0.113 -> 0.113 | reach -> dock | KEEP | 0.113 -> 0.074 on the first dock frame, no dip; the dock renders full and lit on its first frame (`shipped/t25.98_post.png`); bridge 0.23 s |
+| 27.38 | 0.074 -> 0.074 | dock -> threat | KEEP | bridge 0.23 s |
+| 30.68 | 0.070 -> 0.043 | card entry | KEEP | the three text blocks appear in a single frame (no word flicker: `work/v8_trans/after_new_30.80.jpg` and `before/t30.70_post.png` are the same frame content); the hit lands +0.08 s after the onset and the card holds 3.94 s |
+
+Fixed: **2 of 17 rows** (the opener grey card, the claim black-hole frame) and
+the whole world-swap class behind them. Kept: **15** (the detector's list) —
+plus the raw-map light events inside battle beats (4.25, 8.2, 13.8, 17.0,
+23.57) that read the same way.
+
+### 2. THE FIX (code)
+
+1. **`RenderingServer.SetDefaultClearColor(Colors.Black)`** in `_Ready`: an
+   empty `SubViewport` clears to the engine default (grey), and the opening
+   fade was revealing that empty viewport from 0.20 s until the battle
+   loaded. The film now fades from black to the fight.
+2. **`CutToWorld(incoming, warmFrames = 2, dress)`**: the incoming world is
+   added and rendered **while it is off the screen**; the previous shot holds
+   the frame; the reveal happens on a scene that has already drawn. That is
+   what kills the 1.90 frame — the cut now lands on imagery
+   (0.075 -> 0.074 -> 0.043). The `dress` callback runs after the scene is in
+   the tree (its own environment exists then) and before the reveal, so the
+   map's first frame is the lit map with its route, never the stock-chrome
+   frame. The map beats pass `DressMapForFilm` (star/horizon/narrative off,
+   exposure lift); the dockyard passes `LightWorldForFilm` and no warm frames
+   (its first frame is already complete). The push-in is read two frames
+   later, from the settled pose.
+3. **`work/sfx_v6.json` — the sound bridges.** Five new J-cut bridges and two
+   converted (`1.70`, `3.70`, `14.38`, `16.50`, `23.28`, `25.75`, `27.15`),
+   placed 0.15-0.60 s **before** their picture cut, from the game's own SFX
+   sheet (`menu_hover_click` for the map/dock, `lightning_cannon_mount_charge`
+   for the battle entries). The four in-shot SFX were re-timed to this run's
+   own transients (`5.47->5.55`, `6.13->6.20`, `7.92->7.95`, `16.75->16.50`):
+   the run seed is the game's own, so the exchange frames move every render.
+4. **`scripts/verify_teaser.py`** grew the gates this order is graded on:
+   `AC-T1` seam map (outgoing vs incoming luma, black-hole class), `AC-T6`
+   dead-time runs, `AC-T5` card entry (audio transient vs onset, hold), and
+   the bridge gate (J-cut lead against the **raw** map, because the refractory
+   map hides cuts the film still makes). The thresholds are published in the
+   output; no gate cites a literal from its own source.
+
+### 3. THE ACCEPTANCE GATES, MEASURED ON THE SHIPPED FILE
+
+`python scripts/verify_teaser.py teaser.mp4` -> `work/verify_v8i.txt`.
+
+| gate | the bar | the shipped file |
+|---|---|---|
+| **AC-T1** seam energy | no mid-file boundary with incoming < 0.5x outgoing **and** the pair dark | **0 black-hole seams of 21**; the tightest ratio is 0.52 (t=20.47) and no seam frame is under 0.030 |
+| **AC-T2** carried action | intra-scene cuts land mid-motion | every intra-battle cut is the game's own action camera, taken on the fire/hit resolve (`shipped/t04.72_*`, `t05.65_*`); the edge-continuity metric is the auditor's instrument, not reimplemented here |
+| **AC-T3** graphic match | salient-line overlap **or** a J-cut bridge | every world seam is bridged (AC-T4), so the alternative branch is met for all 7 |
+| **AC-T4** sound bridge | incoming sound 0.15-0.60 s before the picture cut | 7 bridges, leads **0.18 / 0.20 / 0.25 / 0.20 / 0.24 / 0.23 / 0.23 s**, all measured against the raw map |
+| **AC-T5** card hit | a hit within +/-0.1 s of the onset; hold >=2.5 s | audio peak **+0.08 s**; card holds **3.94 s** |
+| **AC-T6** dead-time ban | no run below 0.030 longer than 0.15 s (1.0-30.7 s) | **0 runs** (the longest is 0.03 s at 13.82) |
+| **AC-T7** whip ban | no whip-pan | none: every transition is a cut, the opening fade, or a map entry; the camera moves are `OrbitPose` tweens, not pan cuts; the 0.5 s green wireframe stays under the clause |
+
+Standing gates that had to survive the re-render: 22 shots, ASL 1.57 s,
+longest 3.94 s, no hairline, floor 1.3 % below 0.030 (gate <=5 %), card min
+0.0319, music 3 states with the loudest second at 31 s, `-14.1 LUFS`,
+`-3.2 dBFS` true peak, `LRA 11.7 LU`, 6/6 non-bridge SFX rows within 0.08 s
+of a visible transient.
+
+### 4. THE BEAT TABLE (regenerated after the render, trust clause)
+
+`work/beat_table_v8i.txt`, built from this file's own boundaries through the
+shipped verifier:
+
+| beat | plan mark | shipped picture change | delta |
+|---|---|---|---|
+| FIGHT OPENS (fade) | 0.00 | 0.00 | +0.00 |
+| CLAIM (map) | 1.90 | 1.88 | -0.02 |
+| LOOP (commit) | 3.90 | 3.90 | +0.00 |
+| COST (loss) | 7.40 | 7.40 | +0.00 |
+| WRECK/PLAN | 9.40 | 9.68 | +0.28 |
+| GOOP | 11.20 | 10.90 | -0.30 |
+| GOOP FIELD | 13.20 | 13.32 | +0.12 |
+| PROGRESS (map) | 14.60 | 14.63 | +0.03 |
+| THE MAP | 17.00 | 17.00 | +0.00 |
+| ESCALATION | 20.50 | 20.50 | +0.00 |
+| ODD NUMBERS | 23.50 | 23.52 | +0.02 |
+| REACH (map, sun placeholder) | 26.00 | 25.98 | -0.02 |
+| DOCKYARD | 27.40 | 27.40 | +0.00 |
+| THREAT | 30.70 | 30.70 | +0.00 |
+| CARD | 34.60 | (the film ends) | — |
+
+The three "near mark" rows are beats whose *camera* changes are the battle's
+own action cuts, not beat marks; the beat marks themselves sit within 0.03 s
+of plan (the warm frames cost 0.02-0.03 s at each map entry).
+
+### 5. THE SHEET
+
+`work/v8_trans/transitions_v8i_sheet.png` — five rows, each with the two
+frames either side of the seam on the **before** file (v8, `cfbed560`) and
+the same two frames on the **after** file: 0.30 (grey->black), 1.90
+(black-hole->map), 23.50 (battle->map), 25.98 (map->dock), 30.70 (card).
+
+### 6. THE SHIPPED FILE (v8.1)
+
+| | |
+|---|---|
+| File | `teaser.mp4` |
+| Duration | 34.62 s picture (2077 frames @ 60) and 34.62 s sound |
+| Picture | 1920x1080, H.264 high profile, bt709 |
+| Sound | AAC 192 kb/s, 48 kHz stereo, **-14.1 LUFS**, **-3.2 dBFS** true peak, **LRA 11.7 LU**; 13 SFX placements (7 bridges + 6 in-shot) |
+| Cut | `work/v8i_cut.mp4` (CRF 20) mixed to `work/v8i_mixed.mp4` by `scripts/mix_teaser_v6.py --track track-20.ogg --music-start 14.0 --sfx work/sfx_v6.json` |
+| Verification | `python scripts/verify_teaser.py teaser.mp4` -> `work/verify_v8i.txt`; cut list -> `work/transitions_v8i.txt`; beat table -> `work/beat_table_v8i.txt` |
+| Capture command | `Godot_v4.7.2-stable_mono_win64_console.exe --path <repo> --write-movie v8i.raw.avi --fixed-fps 60 --quit-after 2300 "res://scenes/teaser.tscn"` (the recorder exits SIGSEGV at teardown in every pass; the AVI is complete at 2078 frames) |
+| Tests | `dotnet test grim-space.Tests/grim-space.Tests.csproj` (no test project file was touched by this item) |
+
+### 7. THE HONEST RESIDUALS (v8.1)
+
+| What | The number | Why |
+|---|---|---|
+| The geek's 26 s "near-black band" does not reproduce on the shipped v8 file | seam at 26.0: outgoing 0.107, incoming 0.067 — ratio 0.63, both over the floor | the read predates the v8g map-lighting lift; the class is fixed (warm-frame gate) and the seam carries a 0.23 s bridge. If the auditor's instrument sees it on the same window, the thresholds need pinning side by side |
+| The claim map sits darker than v8's | 0.043-0.044 vs 0.059-0.066 | the push now starts from the settled pose (a closer camera on the star); it is above the floor and the route reads (`work/v8_trans/after_new_2.20.jpg`) |
+| The reach map sits brighter than v8's | 0.112-0.124 vs 0.048-0.070 | same cause, opposite direction (the settled pose is closer to the nebula); the beat now reads as a map with a destination |
+| Goop 0.37 s against the 1.0 s gate | unchanged | the game's own replay removes the hazard; out of this item's scope |
+| Chroma peak 282 px/frame at 160x90 | v8: 392 | this render's own seed puts less saturated beam on screen; the V4 comparison is unchanged |
+| "Cut on action" inside the battles | structural | the film's intra-battle cuts are the game's own action camera; the auditor's edge-field continuity metric is not reimplemented here, so AC-T2 is graded from stills, not from a number |
+| The sun slot | THE REACH 23.50-26.00, placeholder | the standing clause holds: no footage of a mid-repair sun |
