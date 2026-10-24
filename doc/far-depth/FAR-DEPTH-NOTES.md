@@ -47,6 +47,16 @@ comparison would be apples-to-oranges), frame 180 = 6.0 s settled.
    `evidence/kit1/item3_thinner-rim.png` (left: fat rim; right: thinner rim,
    same rig pose and t=6s on both sides).
 
+4. **The bright side follows the view, not a painted patch.** Doppler beaming
+   is now computed per fragment from the camera ray of the disk material's
+   orbital direction (`dot(orbital_dir, to_camera)`), not from a fixed
+   quad-local edge painted at build time. At the pose the map was tuned for
+   (yaw 62) both arrangements agree
+   (`item4_same-pose-tuned.png`); orbit the camera (rig drift 4 deg/s,
+   yaw 45 -> 69) and the bright band re-places on the ring
+   (`item4_doppler-follows-view.png`), while the baked version keeps the same
+   patch of ring lit at every yaw.
+
 ## What was actually wrong (found by rendering, not guessing)
 
 The "black hole" was **not an object at all**. It was a photo collage:

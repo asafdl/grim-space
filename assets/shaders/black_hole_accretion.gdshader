@@ -9,8 +9,9 @@ uniform float energy : hint_range(0.0, 4.0) = 1.6;
 uniform vec3 hot_color : source_color = vec3(1.0, 0.93, 0.70);
 uniform vec3 warm_color : source_color = vec3(1.0, 0.47, 0.16);
 uniform vec3 outer_color : source_color = vec3(0.45, 0.12, 0.04);
-// Approaching-side boosting: multiplied against the quad-local X coordinate
-// (X is aligned to the map direction at build time).
+// Approaching-side boosting. No longer painted on a fixed disk edge: the
+// bright side follows where the orbital material actually moves TOWARD the
+// camera, so orbiting the map slides the bright band around the ring.
 uniform float doppler_amount : hint_range(0.0, 1.5) = 0.55;
 uniform float doppler_sign : hint_range(-1.0, 1.0) = 1.0;
 uniform float swirl_speed : hint_range(0.0, 2.0) = 0.30;
@@ -59,7 +60,18 @@ void fragment() {
 	vec3 col = mix(warm_color, outer_color, clamp(t * 1.4, 0.0, 1.0));
 	col += hot_color * hot_edge * 1.5;
 
-	float doppler = 1.0 + doppler_amount * doppler_sign * p.x;
+	// Doppler beaming, view-dependent: bright where the disk material's orbital
+	// velocity carries it toward the camera, dim where it recedes. The orbital
+	// direction comes from the disk plane normal (world NORMAL of the quad) and
+	// the fragment's offset from the disk center (MODEL_MATRIX origin = the
+	// hole center); the camera term is the fragment-to-camera ray.
+	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	vec3 hole_center = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	vec3 from_center = world_pos - hole_center;
+	vec3 orbital_dir = normalize(cross(world_normal, from_center));
+	vec3 to_camera = normalize(CAMERA_POSITION_WORLD - world_pos);
+	float doppler = max(0.05, 1.0 + doppler_amount * doppler_sign * dot(orbital_dir, to_camera));
 	// Two octaves of TIME noise: a slow swell plus a faster shimmer, so the
 	// disk never holds one still brightness (a photo would).
 	float pulse = noise(vec2(TIME * flicker_speed, 3.1)) * 0.65
