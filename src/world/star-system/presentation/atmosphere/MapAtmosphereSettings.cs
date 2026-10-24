@@ -9,9 +9,6 @@ namespace GrimSpace.World.StarSystem.Presentation.Atmosphere;
 /// </summary>
 public sealed record MapAtmosphereSettings(
 	float StarfieldEnergy = 0.26f,
-	float NebulaStrength = 0.45f,
-	float NebulaAngularRadius = 0.30f,
-	float NebulaAspect = 1.071f,
 	float HorizonStrength = 0.36f,
 	float HorizonAngularRadius = 0.12f,
 	float HorizonAspect = 1.778f,
@@ -19,9 +16,7 @@ public sealed record MapAtmosphereSettings(
 	float AmbientEnergy = 0.44f,
 	float FillLightEnergy = 0.17f)
 {
-	public Vector3 NebulaDirection { get; init; } = new(0.764f, -0.404f, -0.503f);
-
-	/// <summary>Same sky band as <see cref="NebulaDirection"/> (negative Y) so top-down orbit camera sees both.</summary>
+	/// <summary>Same sky band as the star field's negative-Y band so the top-down orbit camera sees both.</summary>
 	public Vector3 HorizonDirection { get; init; } = new(-0.62f, -0.38f, -0.52f);
 
 	public static MapAtmosphereSettings Default { get; } = new();

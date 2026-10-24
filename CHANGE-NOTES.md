@@ -1,3 +1,24 @@
+## verdict 10 - nebula splice removed
+
+The pink M17 patch that floated beside the sun and station is gone from the map
+sky. Only the patch's three hosts changed: `map_sky.gdshader` (nebula sampler +
+uniforms + splice line deleted), `MapBackdrop.cs` and `MapAtmosphereSettings.cs`
+(their nebula feed deleted) — every sun parameter stays, halo still
+`CoronaStrength` 0.18 / `CoronaHaloReach` 0.5 in `MapCelestialVisuals.cs`.
+Close-up is safe by law: sun_test skies itself with `PanoramaSkyMaterial`
+(`SunTestScene.cs:260-291`, `sun_test.tscn:3` lists only that script) and never
+loads `map_sky`, whose sole loader is `MapBackdrop.cs:13`. Evidence at seed 48
+(before left / after right): `refs/comparison/nebula_boot_before_after.png`,
+`refs/comparison/nebula_zoom_before_after.png`; the diff is the patch mass at
+frame right (2.03 % of pixels) plus a fleet-card portrait flicker from a
+separate UI random stream, and the sky still reads balanced afterwards — sun
+and station anchor the left, starfield and belt lines carry the right — so no
+moved-patch render was made; `messier_17.jpg` stays on disk unreferenced, one
+`panorama_patch` call away if ever wanted back. Rig note: the temporary
+seed-lock helper had a slice typo (`[13..]` instead of `[14..]`) that silently
+kept seeds random; fixed, and seed-locked before/after replays matched 99.87 %
+of pixels.
+
 ## verdict 8 - aura capped
 
 The big additive cloud around the map sun is gone. `CoronaStrength` 0.40 → 0.18
