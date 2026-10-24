@@ -2,7 +2,7 @@
 // perspective (not a decal), tilted to open toward the playfield camera, with
 // spiral-shear grain and a doppler-bright approaching side.
 shader_type spatial;
-render_mode blend_add, depth_draw_never, cull_disabled, unshaded;
+render_mode blend_add, cull_disabled, unshaded;
 
 uniform float inner_ratio : hint_range(0.05, 0.9) = 0.5;
 uniform float energy : hint_range(0.0, 4.0) = 1.6;

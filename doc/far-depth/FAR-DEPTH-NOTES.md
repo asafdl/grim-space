@@ -57,6 +57,17 @@ comparison would be apples-to-oranges), frame 180 = 6.0 s settled.
    (`item4_doppler-follows-view.png`), while the baked version keeps the same
    patch of ring lit at every yaw.
 
+5. **Depth interacts (or at least is allowed to).** The accretion disk said
+   `depth_draw_never`, i.e. the material formally refused to participate in the
+   depth buffer. The flag was removed so the disk/horizon read and respect
+   depth like other world geometry. Honest result: at every tested pose
+   (near/far/different yaw, `item5_depth-write.png`) the frames are identical —
+   the transparent pass was already depth-testing against the star sphere, so
+   the flag was latent, not load-bearing. Kept the removal anyway: it costs
+   nothing and enforces that the hole can occlude things going forward, with
+   zero regression. The additive glow itself can't be pixel-occluded (that's
+   what blend_add means), which is a later-round question, not a kit-1 one.
+
 ## What was actually wrong (found by rendering, not guessing)
 
 The "black hole" was **not an object at all**. It was a photo collage:
