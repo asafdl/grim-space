@@ -63,6 +63,16 @@ internal static class BattleHudCopy
 	public const string ReturnToStarMap = "Return to Star Map";
 	public const string ReturnToMainMenu = "Main Menu";
 
+	public const string VictoryTitle = "Victory";
+	public const string VictoryCompletionLabel = "Engagement complete";
+	public const string VictoryNoDamageReport = "No hostile losses recorded.";
+	public const string VictoryKilled = "Killed";
+
+	public static string VictoryExperience(int experience) => $"+{experience} XP";
+
+	public static string VictoryDamageReportLine(string targetLabel, int experience) =>
+		$"{targetLabel} - {VictoryKilled} - {VictoryExperience(experience)}";
+
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 
 	public static string Charges(int current, int max) => $"{current}/{max}";

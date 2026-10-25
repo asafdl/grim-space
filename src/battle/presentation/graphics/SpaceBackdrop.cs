@@ -6,8 +6,6 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class SpaceBackdrop : Node3D
 {
 	private const string StarsTexturePath = "res://assets/textures/8k_stars.jpg";
-	private const string SkyShaderPath = "res://assets/shaders/map_sky.gdshader";
-	private const string NebulaTexturePath = "res://assets/textures/space/battle_nebula_patch.png";
 	private const string DustTexturePath = "res://assets/textures/particles/circle_05.png";
 	private const string SmokeTexturePath = "res://assets/textures/particles/smoke_02.png";
 	private const string PlanetTexturePath = "res://assets/textures/2k_venus_surface.jpg";
@@ -15,7 +13,7 @@ public sealed partial class SpaceBackdrop : Node3D
 	private const float PlanetDistanceScale = 2.65f;
 	private const float PlanetRadiusScale = 0.22f;
 
-	public void Build(BoundedGrid grid, int seed, Basis openingCameraBasis)
+	public void Build(BoundedGrid grid, int seed)
 	{
 		var center = WorldMapping.GridCenter(grid);
 		var halfExtent = new Vector3(
@@ -24,35 +22,23 @@ public sealed partial class SpaceBackdrop : Node3D
 			grid.Depth * WorldMapping.CellSize) * 0.5f;
 		var chamberRadius = halfExtent.Length();
 
-		AddChild(CreateWorldEnvironment(openingCameraBasis));
+		AddChild(CreateWorldEnvironment());
 		AddChild(RedDwarfSun.CreateVisual(center, chamberRadius));
 		AddChild(CreatePlanet(center, chamberRadius));
 		AddChild(CreatePlanetLight(center));
 		AddChild(CreateDustStream(center, halfExtent, seed));
 	}
 
-	private static WorldEnvironment CreateWorldEnvironment(Basis openingCameraBasis)
+	private static WorldEnvironment CreateWorldEnvironment()
 	{
-		var skyMaterial = new ShaderMaterial
-		{
-			Shader = GD.Load<Shader>(SkyShaderPath),
-		};
-		skyMaterial.SetShaderParameter("stars_panorama", GD.Load<Texture2D>(StarsTexturePath));
-		skyMaterial.SetShaderParameter("nebula_panorama", GD.Load<Texture2D>(NebulaTexturePath));
-		skyMaterial.SetShaderParameter(
-			"horizon_panorama",
-			GD.Load<Texture2D>("res://assets/textures/event-horizon.jpg"));
-		skyMaterial.SetShaderParameter("energy", 0.65f);
-		skyMaterial.SetShaderParameter("nebula_strength", 0.32f);
-		var forward = (openingCameraBasis * Vector3.Forward).Normalized();
-		var up = (openingCameraBasis * Vector3.Up).Normalized();
-		skyMaterial.SetShaderParameter("nebula_center", (forward + up * 0.12f).Normalized());
-		skyMaterial.SetShaderParameter("nebula_radius", 0.34f);
-		skyMaterial.SetShaderParameter("nebula_aspect", 2f);
-		skyMaterial.SetShaderParameter("horizon_strength", 0f);
+		var stars = GD.Load<Texture2D>(StarsTexturePath);
 		var sky = new Sky
 		{
-			SkyMaterial = skyMaterial,
+			SkyMaterial = new PanoramaSkyMaterial
+			{
+				Panorama = stars,
+				EnergyMultiplier = 0.65f,
+			},
 			ProcessMode = Sky.ProcessModeEnum.Quality,
 		};
 

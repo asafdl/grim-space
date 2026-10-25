@@ -65,6 +65,7 @@ public partial class BattleController : Node3D
 	private PresentationFrame _currentFrame = null!;
 
 	private bool _strategicBattle;
+	private IReadOnlyList<BattleSpawn> _encounterSpawns = [];
 	private EBattlePhase _lastPhase = (EBattlePhase)(-1);
 	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
 	private readonly List<string> _resolvedRoundActivations = [];
@@ -89,6 +90,7 @@ public partial class BattleController : Node3D
 		{
 			try
 			{
+				_encounterSpawns = Session.Instance.Run.ActiveBattle!.Spawns;
 				_battle = Session.Instance.Run.CreateActiveBattleOrchestrator();
 				backdropSeed = Session.Instance.Run.ActiveBattle!.Seed;
 			}
@@ -103,6 +105,7 @@ public partial class BattleController : Node3D
 		else
 		{
 			var devEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
+			_encounterSpawns = devEncounter.Spawns;
 			_battle = BattleOrchestrator.FromEncounter(devEncounter);
 			backdropSeed = devEncounter.Seed;
 		}
@@ -156,7 +159,7 @@ public partial class BattleController : Node3D
 			openingPose.Distance,
 			openingPose.Yaw,
 			openingPose.Pitch);
-		backdrop.Build(layout.Grid, backdropSeed, _camera.GlobalBasis);
+		backdrop.Build(layout.Grid, backdropSeed);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
@@ -322,6 +325,7 @@ public partial class BattleController : Node3D
 		_battleHud.CommandHud.CycleTargetRequested += CycleEnemyFocus;
 		_battleHud.CommandHud.ReturnToPlayerRequested += _translator.OnReturnToPlayer;
 		_battleHud.OutcomeOverlay.ResetRequested += OnOutcomeOverlayAction;
+		_battleHud.VictoryOverlay.ContinueRequested += OnOutcomeOverlayAction;
 		_battleHud.RestartRequested += _translator.OnRestart;
 		_battleHud.RetireRequested += _translator.OnRetire;
 		_battleHud.MainMenuRequested += GoToMainMenu;
@@ -719,7 +723,11 @@ public partial class BattleController : Node3D
 			frame.AbilityHoveredIndex);
 		_areaActionPreview.ApplyFrame(frame);
 		_voidBombPreview.ApplyFrame(frame);
-		_battleHud.Apply(frame, _battle.Phase, allowEndTurn: CanEndTurn);
+		_battleHud.Apply(
+			frame,
+			_battle.Phase,
+			allowEndTurn: CanEndTurn,
+			victorySummary: BuildVictorySummary(frame));
 		ApplyMountSelector(frame);
 		ReportIssueSystemContext.SetBattleSnapshot(
 			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
@@ -875,6 +883,20 @@ public partial class BattleController : Node3D
 
 	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialBlocksEndTurn) =>
 		acceptsCommands && !tutorialBlocksEndTurn;
+
+	private BattleVictorySummary? BuildVictorySummary(PresentationFrame frame)
+	{
+		if (!frame.ShowOutcomeOverlay || frame.Outcome != EBattleResult.Win)
+			return null;
+
+		var outcome = CommitBattleOutcomeRules.CaptureOutcome(
+			_battle.Engine.World,
+			frame.Outcome);
+		return BattleVictorySummaryBuilder.Build(
+			outcome,
+			_encounterSpawns,
+			_frames.BattleTimelineEntries);
+	}
 
 	private void OnOutcomeOverlayAction()
 	{

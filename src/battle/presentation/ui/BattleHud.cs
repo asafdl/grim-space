@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Components;
 using GrimSpace.Presentation.Menu;
 using GrimSpace.Math.Grid;
@@ -25,6 +26,7 @@ public partial class BattleHud : Node
 	public BattleCommandHud CommandHud { get; private set; } = null!;
 	public TurnFlowBar TurnFlowBar { get; private set; } = null!;
 	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
+	public BattleVictoryOverlay VictoryOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
 
 	public bool IsPauseMenuOpen =>
@@ -167,6 +169,9 @@ public partial class BattleHud : Node
 
 		OutcomeOverlay = new BattleOutcomeOverlay();
 		AddChild(OutcomeOverlay);
+
+		VictoryOverlay = new BattleVictoryOverlay();
+		AddChild(VictoryOverlay);
 
 		PauseMenu = new BattlePauseMenuOverlay();
 		PauseMenu.ContinueRequested += ClosePauseMenu;
@@ -320,7 +325,11 @@ public partial class BattleHud : Node
 		_mountSelectorBackdrop.AcceptEvent();
 	}
 
-	public void Apply(PresentationFrame frame, EBattlePhase phase, bool allowEndTurn)
+	public void Apply(
+		PresentationFrame frame,
+		EBattlePhase phase,
+		bool allowEndTurn,
+		BattleVictorySummary? victorySummary = null)
 	{
 		var hideHud = frame.ShowOutcomeOverlay;
 		if (hideHud)
@@ -344,8 +353,14 @@ public partial class BattleHud : Node
 		_actionLogPanel.SetEntries(frame.ActionLogEntries);
 		_actionLogLayer.Visible = !hideHud && GameSettings.ShowActionLog;
 
-		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay;
-		if (frame.ShowOutcomeOverlay)
+		var showVictory = frame.ShowOutcomeOverlay
+			&& frame.Outcome == EBattleResult.Win
+			&& victorySummary is not null;
+		VictoryOverlay.Visible = showVictory;
+		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay && !showVictory;
+		if (showVictory)
+			VictoryOverlay.Sync(victorySummary!, _strategicBattle);
+		else if (frame.ShowOutcomeOverlay)
 			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogEntries, _strategicBattle);
 
 		_bottomHud.Visible = !hideHud;

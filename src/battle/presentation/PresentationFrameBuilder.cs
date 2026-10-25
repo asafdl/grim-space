@@ -23,9 +23,11 @@ public sealed class PresentationFrameBuilder
 	public InteractionState Interaction { get; } = new();
 
 	private readonly List<ActionLog.Entry> _actionLogEntries = [];
+	private readonly List<ITimelineEntry> _battleTimelineEntries = [];
 	private int? _lastLoggedTurn;
 
 	public IReadOnlyList<ActionLog.Entry> ActionLogEntries => _actionLogEntries;
+	public IReadOnlyList<ITimelineEntry> BattleTimelineEntries => _battleTimelineEntries;
 
 	public string FocusId(BattleOrchestrator battle) =>
 		Interaction.FocusId ?? battle.PlayerId;
@@ -44,6 +46,7 @@ public sealed class PresentationFrameBuilder
 			_actionLogEntries.Add(ActionLog.TurnHeader(turnNumber));
 			_lastLoggedTurn = turnNumber;
 		}
+		_battleTimelineEntries.AddRange(history);
 		_actionLogEntries.AddRange(ActionLog.Format(history, id => ActionLog.DisplayName(units, id)));
 	}
 
