@@ -14,6 +14,9 @@ public sealed partial class UiImageListItem : UiListItem
 	private const float PortraitDiameter = DefaultRowHeight * BracketCircleDiameter / BracketArtHeight;
 	private const float PortraitGap = 0.2f;
 	private const float PortraitOverlap = 18f;
+	private const int TextMarginLeft = 68;
+	private const int TextMarginTop = 18;
+	private const int TextMarginBottom = 24;
 
 	private readonly TextureRect _bracket;
 	private readonly UiFramedPortrait _portrait;
@@ -30,7 +33,11 @@ public sealed partial class UiImageListItem : UiListItem
 
 		Sizing.SetDefaultSize(new UiSize(0f, DefaultRowHeight));
 		SizeFlagsHorizontal = SizeFlags.ExpandFill;
-		SetContentMargins(60, Mathf.CeilToInt(PortraitDiameter + PortraitGap + 48f), 12, 24);
+		SetContentMargins(
+			TextMarginLeft,
+			Mathf.CeilToInt(PortraitDiameter + PortraitGap + 48f),
+			TextMarginTop,
+			TextMarginBottom);
 		HideBackground();
 		_bracket = new TextureRect
 		{

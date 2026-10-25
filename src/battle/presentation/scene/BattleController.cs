@@ -892,10 +892,12 @@ public partial class BattleController : Node3D
 		var outcome = CommitBattleOutcomeRules.CaptureOutcome(
 			_battle.Engine.World,
 			frame.Outcome);
+		var run = Session.Instance.Run;
 		return BattleVictorySummaryBuilder.Build(
 			outcome,
 			_encounterSpawns,
-			_frames.BattleTimelineEntries);
+			_frames.BattleTimelineEntries,
+			pilotId => run.PilotRegistry.TryGet(pilotId, out var pilot) ? pilot : null);
 	}
 
 	private void OnOutcomeOverlayAction()

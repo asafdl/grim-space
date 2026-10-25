@@ -15,21 +15,6 @@ namespace GrimSpace.Tests.Presentation;
 public sealed class BattleVictorySummaryTests
 {
 	[Fact]
-	public void LastPlayerDamagerByTarget_UsesFinalPlayerImpactPerEnemy()
-	{
-		var timeline = new ITimelineEntry[]
-		{
-			new Record<ImpactFacts>(new ImpactFacts("ally-b", "enemy-1", default, default, 0, 5)),
-			new Record<ImpactFacts>(new ImpactFacts("ally-a", "enemy-1", default, default, 0, 10)),
-		};
-		var players = new HashSet<string>(StringComparer.Ordinal) { "ally-a", "ally-b" };
-
-		var killers = BattleKillAttribution.LastPlayerDamagerByTarget(timeline, players);
-
-		Assert.Equal("ally-a", killers["enemy-1"]);
-	}
-
-	[Fact]
 	public void LastPlayerDamagerByTarget_CreditsVoidBombKillToSpawner()
 	{
 		var timeline = new ITimelineEntry[]
@@ -49,58 +34,64 @@ public sealed class BattleVictorySummaryTests
 	}
 
 	[Fact]
-	public void Build_ListsDestroyedEnemiesWithXpAndCompletionRow()
+	public void ForPlayerUnits_CreditsVoidBombDamageToSpawner()
 	{
-		var spawns = new[]
+		var timeline = new ITimelineEntry[]
 		{
-			PlayerSpawn("fighter-a", "pilot-a"),
-			EnemySpawn("enemy-1", EType.RepurposedMiner),
-			EnemySpawn("enemy-2", EType.RepurposedMiner),
+			new Record<SpawnFacts>(new SpawnFacts(
+				"fighter-a",
+				"void-bomb-1",
+				EType.VoidBomb,
+				default)),
+			new Record<ImpactFacts>(new ImpactFacts("void-bomb-1", "enemy-1", default, default, 5, 20)),
+			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-a", default, default, 0, 12)),
 		};
-		var outcome = new BattleOutcome(
-			"battle-1",
-			EBattleResult.Win,
-			[
-				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
-				OutcomeTestKit.Handoff("enemy-1", EType.RepurposedMiner, 0),
-				OutcomeTestKit.Handoff("enemy-2", EType.RepurposedMiner, 0),
-			]);
+		var players = new HashSet<string>(StringComparer.Ordinal) { "fighter-a" };
 
-		var summary = BattleVictorySummaryBuilder.Build(outcome, spawns, []);
+		var totals = BattleUnitPerformance.ForPlayerUnits(timeline, players)["fighter-a"];
 
-		Assert.Equal(2, summary.DamageRows.Count);
-		Assert.All(
-			summary.DamageRows,
-			row => Assert.Equal(PilotProgression.KillXpPerKill, row.ExperienceGained));
-		Assert.Equal(PilotProgression.CompletionXp, summary.CompletionRow?.ExperienceGained);
-		Assert.Equal(
-			"Repurposed Miner (T0)",
-			summary.DamageRows[0].TargetLabel);
+		Assert.Equal(25, totals.Dealt);
+		Assert.Equal(12, totals.Taken);
 	}
 
 	[Fact]
-	public void Build_BundlesCompletionXpOntoSingleEnemyRow()
+	public void Build_ListsPilotsWithDamageXpAndScore()
 	{
 		var spawns = new[]
 		{
 			PlayerSpawn("fighter-a", "pilot-a"),
-			EnemySpawn("enemy-1", EType.RepurposedMiner),
+			PlayerSpawn("fighter-b", "pilot-b"),
+			EnemySpawn("enemy-1"),
 		};
 		var outcome = new BattleOutcome(
 			"battle-1",
 			EBattleResult.Win,
 			[
 				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
-				OutcomeTestKit.Handoff("enemy-1", EType.RepurposedMiner, 0),
+				OutcomeTestKit.Handoff("fighter-b", EType.Fighter, 1),
+				OutcomeTestKit.Handoff("enemy-1", EType.Fighter, 0),
 			]);
+		var timeline = new ITimelineEntry[]
+		{
+			new Record<ImpactFacts>(new ImpactFacts("fighter-a", "enemy-1", default, default, 0, 50)),
+			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-b", default, default, 0, 30)),
+		};
 
-		var summary = BattleVictorySummaryBuilder.Build(outcome, spawns, []);
+		var summary = BattleVictorySummaryBuilder.Build(outcome, spawns, timeline, _ => null);
 
-		var row = Assert.Single(summary.DamageRows);
-		Assert.Null(summary.CompletionRow);
+		Assert.Equal(2, summary.Pilots.Count);
+		var top = summary.Pilots[0];
+		Assert.Equal("pilot-a", top.DisplayName);
+		Assert.Equal(50, top.DamageDealt);
+		Assert.Equal(0, top.DamageTaken);
 		Assert.Equal(
 			PilotProgression.CompletionXp + PilotProgression.KillXpPerKill,
-			row.ExperienceGained);
+			top.ExperienceEarned);
+		Assert.Equal('S', top.ScoreGrade);
+
+		var second = summary.Pilots[1];
+		Assert.Equal(0, second.DamageDealt);
+		Assert.Equal(30, second.DamageTaken);
 	}
 
 	private static BattleSpawn PlayerSpawn(string shipId, string pilotId) =>
@@ -111,10 +102,10 @@ public sealed class BattleVictorySummaryTests
 			Team = ETeam.Player,
 		};
 
-	private static BattleSpawn EnemySpawn(string shipId, EType chassis) =>
+	private static BattleSpawn EnemySpawn(string shipId) =>
 		new()
 		{
-			Ship = ShipInstance.FromCatalog(shipId, chassis),
+			Ship = ShipInstance.FromCatalog(shipId, EType.Fighter),
 			Team = ETeam.Enemy,
 		};
 }

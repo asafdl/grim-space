@@ -64,14 +64,11 @@ internal static class BattleHudCopy
 	public const string ReturnToMainMenu = "Main Menu";
 
 	public const string VictoryTitle = "Victory";
-	public const string VictoryCompletionLabel = "Engagement complete";
-	public const string VictoryNoDamageReport = "No hostile losses recorded.";
-	public const string VictoryKilled = "Killed";
+	public const string VictoryNoPilotPerformance = "No pilot performance to report.";
 
-	public static string VictoryExperience(int experience) => $"+{experience} XP";
-
-	public static string VictoryDamageReportLine(string targetLabel, int experience) =>
-		$"{targetLabel} - {VictoryKilled} - {VictoryExperience(experience)}";
+	public static string VictoryPilotPerformanceMetadata(int damageDealt, int damageTaken, int experience) =>
+		$"Damage done {damageDealt} · Damage taken {damageTaken}\n"
+		+ (experience > 0 ? $"+{experience} XP" : "No XP");
 
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 

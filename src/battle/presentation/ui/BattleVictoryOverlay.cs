@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.Ui.Components;
+using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -26,18 +27,18 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 		_shell.SetBackHandler(null);
 
 		var body = HudWidgets.CreateCardList();
-		if (summary.DamageRows.Count == 0 && summary.CompletionRow is null)
+		body.AddThemeConstantOverride("separation", 10);
+
+		if (summary.Pilots.Count == 0)
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
-				BattleHudCopy.VictoryNoDamageReport));
+				BattleHudCopy.VictoryNoPilotPerformance));
 		}
 		else
 		{
-			foreach (var row in summary.DamageRows)
-				body.AddChild(CreateDamageRow(row));
-			if (summary.CompletionRow is { } completion)
-				body.AddChild(CreateDamageRow(completion));
+			foreach (var row in summary.Pilots)
+				body.AddChild(CreatePilotRow(row));
 		}
 
 		_shell.SetBody(body);
@@ -53,17 +54,24 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 
 	public void HideOverlay() => Visible = false;
 
-	private static Label CreateDamageRow(BattleDamageReportRow row)
+	private static UiImageListItem CreatePilotRow(BattleVictoryPilotRow row)
 	{
-		var label = new Label
+		var item = new UiImageListItem(
+			row.DisplayName,
+			BattleHudCopy.VictoryPilotPerformanceMetadata(
+				row.DamageDealt,
+				row.DamageTaken,
+				row.ExperienceEarned),
+			string.Empty,
+			ShipPilotPortraitCatalog.TextureFor(row.PortraitId))
 		{
-			Text = BattleHudCopy.VictoryDamageReportLine(row.TargetLabel, row.ExperienceGained),
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			FocusMode = Control.FocusModeEnum.None,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			MouseDefaultCursorShape = Control.CursorShape.Arrow,
 		};
-		HudStyles.ApplyTextRole(label, HudTextRole.Body);
-		return label;
+		item.SetTrailingContent(BattlePerformanceGradeDisplay.CreateTrailing(row.ScoreGrade));
+		return item;
 	}
 
 	private void Build()
