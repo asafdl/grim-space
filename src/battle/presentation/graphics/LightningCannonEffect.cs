@@ -14,7 +14,31 @@ public partial class LightningCannonEffect : Node3D
 	private const float TextAppearSeconds = 0.16f;
 	private const float TextFadeSeconds = 0.2f;
 	internal const float StrikeSeconds = GrowthSeconds;
+	internal const float ChainHopStrikeSeconds = GrowthSeconds * 0.65f;
+	private const float ChainHopCadenceSeconds = 0.05f;
+	private const float BeamToFirstChainStrikeFraction = 0.42f;
 	private const float LifetimeSeconds = 0.8f;
+
+	internal static float ChainSegmentStartDelay(int segmentIndex)
+	{
+		if (segmentIndex <= 0)
+			return 0f;
+
+		return StrikeSeconds * BeamToFirstChainStrikeFraction
+			+ (segmentIndex - 1) * ChainHopCadenceSeconds;
+	}
+
+	internal static float ChainSequencePauseSeconds(int segmentCount)
+	{
+		if (segmentCount <= 0)
+			return StrikeSeconds;
+
+		var lastSegment = segmentCount - 1;
+		var lastStrike = lastSegment == 0
+			? StrikeSeconds
+			: ChainHopStrikeSeconds;
+		return ChainSegmentStartDelay(lastSegment) + lastStrike;
+	}
 	private static PackedScene? _model;
 	private static Shader? _revealShader;
 	private readonly List<MeshInstance3D> _boltPieces = [];
@@ -23,6 +47,7 @@ public partial class LightningCannonEffect : Node3D
 	private float _boltMinimumX;
 	private float _boltMaximumX;
 	private float _elapsed;
+	private float _startDelay;
 	private float _strikeSeconds = StrikeSeconds;
 	private float _lifetimeSeconds = LifetimeSeconds;
 	private Vector3 _chargeSoundPosition;
@@ -64,7 +89,8 @@ public partial class LightningCannonEffect : Node3D
 		Vector3 dorsal,
 		float cellSize,
 		float strikeSeconds = StrikeSeconds,
-		float lifetimeSeconds = LifetimeSeconds)
+		float lifetimeSeconds = LifetimeSeconds,
+		float startDelay = 0f)
 	{
 		ArgumentNullException.ThrowIfNull(points);
 		if (points.Count < 2)
@@ -80,7 +106,15 @@ public partial class LightningCannonEffect : Node3D
 			throw new ArgumentException("Path direction and dorsal must be nonparallel.");
 
 		var reach = start.DistanceTo(end);
-		return SpawnBolt(parent, start, fore, up, reach, strikeSeconds, lifetimeSeconds);
+		return SpawnBolt(
+			parent,
+			start,
+			fore,
+			up,
+			reach,
+			strikeSeconds,
+			lifetimeSeconds,
+			startDelay);
 	}
 
 	private static LightningCannonEffect SpawnBolt(
@@ -90,7 +124,8 @@ public partial class LightningCannonEffect : Node3D
 		Vector3 up,
 		float reach,
 		float strikeSeconds,
-		float lifetimeSeconds)
+		float lifetimeSeconds,
+		float startDelay = 0f)
 	{
 		_model ??= GD.Load<PackedScene>(ModelPath)
 			?? throw new InvalidOperationException(
@@ -98,8 +133,9 @@ public partial class LightningCannonEffect : Node3D
 		var effect = new LightningCannonEffect
 		{
 			Name = "LightningCannonEffect",
+			_startDelay = Mathf.Max(0f, startDelay),
 			_strikeSeconds = strikeSeconds,
-			_lifetimeSeconds = lifetimeSeconds,
+			_lifetimeSeconds = lifetimeSeconds + Mathf.Max(0f, startDelay),
 			_chargeSoundPosition = origin,
 			_soundParent = parent,
 		};
@@ -264,7 +300,15 @@ public partial class LightningCannonEffect : Node3D
 		}
 	}
 
-	public override void _Ready() =>
+	public override void _Ready()
+	{
+		if (_startDelay <= 0f)
+			PlayChargeSound();
+		else
+			GetTree().CreateTimer(_startDelay).Timeout += PlayChargeSound;
+	}
+
+	private void PlayChargeSound() =>
 		PresentationSfx.PlayWorldOneShot(
 			_soundParent,
 			_chargeSoundPosition,
@@ -279,7 +323,11 @@ public partial class LightningCannonEffect : Node3D
 			return;
 		}
 
-		var growth = Mathf.Clamp(_elapsed / _strikeSeconds, 0f, 1f);
+		if (_elapsed < _startDelay)
+			return;
+
+		var animElapsed = _elapsed - _startDelay;
+		var growth = Mathf.Clamp(animElapsed / _strikeSeconds, 0f, 1f);
 		var easedGrowth = growth * growth * (3f - 2f * growth);
 		var revealCutoff = Mathf.Lerp(
 			_boltMaximumX,
@@ -290,7 +338,7 @@ public partial class LightningCannonEffect : Node3D
 				"reveal_cutoff",
 				revealCutoff);
 
-		var boltFadeStart = GrowthSeconds + HoldSeconds;
+		var boltFadeStart = _startDelay + GrowthSeconds + HoldSeconds;
 		var boltAlpha = _elapsed < boltFadeStart
 			? 1f
 			: 1f - Mathf.Clamp(
@@ -300,10 +348,10 @@ public partial class LightningCannonEffect : Node3D
 		SetAlpha(_boltPieces, boltAlpha);
 
 		var textFadeStart = _lifetimeSeconds - TextFadeSeconds;
-		var textAlpha = _elapsed < TextAppearSeconds
+		var textAlpha = animElapsed < TextAppearSeconds
 			? 0f
-			: _elapsed < GrowthSeconds
-				? (_elapsed - TextAppearSeconds)
+			: animElapsed < GrowthSeconds
+				? (animElapsed - TextAppearSeconds)
 					/ (GrowthSeconds - TextAppearSeconds)
 				: _elapsed < textFadeStart
 					? 1f

@@ -28,14 +28,24 @@ public sealed class LightningCannonActionClip : IReplayClip
 		var frame = BodyFrame.From(state);
 		var direction = frame.Step(lightningCannon.MountedOn);
 		var path = BuildVisualPath(state.Position, direction, spec, areaFacts);
+		var dorsal = ToVector3(frame.Dorsal);
+		var cellSize = WorldMapping.CellSize;
+		var segmentCount = path.Count - 1;
+		for (var segment = 0; segment < segmentCount; segment++)
+		{
+			var chainHop = segment > 0;
+			LightningCannonEffect.FireAlongPath(
+				context.HazardBursts,
+				[path[segment], path[segment + 1]],
+				dorsal,
+				cellSize,
+				strikeSeconds: chainHop
+					? LightningCannonEffect.ChainHopStrikeSeconds
+					: LightningCannonEffect.StrikeSeconds,
+				startDelay: LightningCannonEffect.ChainSegmentStartDelay(segment));
+		}
 
-		LightningCannonEffect.FireAlongPath(
-			context.HazardBursts,
-			path,
-			ToVector3(frame.Dorsal),
-			WorldMapping.CellSize);
-
-		return ClipPlayback.Pause(LightningCannonEffect.StrikeSeconds);
+		return ClipPlayback.Pause(LightningCannonEffect.ChainSequencePauseSeconds(segmentCount));
 	}
 
 	private static Vector3 ToVector3(Coord coord) =>
