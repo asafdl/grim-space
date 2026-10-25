@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Contracts;
@@ -8,7 +9,11 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed partial class ContractHudOverlay : Control
 {
+	private const string ContractAcceptSfxPath =
+		"res://assets/sfx/ui/336585__anthousai__coins-in-paper-bowl-05.wav";
+
 	private readonly ModalShell _shell;
+	private readonly AudioStreamPlayer _contractAcceptSfx;
 	private readonly CompactConfirmationPopup _declinePopup;
 	private StarMap _map = null!;
 	private string _activePoiId = "";
@@ -37,7 +42,17 @@ public sealed partial class ContractHudOverlay : Control
 		_shell.AddChild(_declinePopup);
 		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
+
+		_contractAcceptSfx = new AudioStreamPlayer
+		{
+			Stream = GD.Load<AudioStream>(ContractAcceptSfxPath)
+				?? throw new InvalidOperationException($"Could not load SFX '{ContractAcceptSfxPath}'."),
+			Bus = AudioBuses.Sfx,
+		};
+		AddChild(_contractAcceptSfx);
 	}
+
+	public void PlayContractAcceptFeedback() => _contractAcceptSfx.Play();
 
 	public bool IsOpen => _shell.IsOpen;
 
@@ -262,6 +277,7 @@ public sealed partial class ContractHudOverlay : Control
 		if (_selected is null)
 			return;
 
+		PlayContractAcceptFeedback();
 		AcceptRequested?.Invoke(_selected.Id);
 	}
 

@@ -145,6 +145,7 @@ public sealed class FacilityContractHudPresenter
 		switch (choiceId)
 		{
 			case FacilityNpcDialogs.AcceptLeadChoiceId:
+				_contractHud.PlayContractAcceptFeedback();
 				if (_binding.Intents.TryAcceptContract(leadId))
 				{
 					_activeLeadId = null;
