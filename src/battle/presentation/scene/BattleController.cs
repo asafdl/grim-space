@@ -128,9 +128,6 @@ public partial class BattleController : Node3D
 		var layout = _battle.Layout;
 
 		var backdrop = new SpaceBackdrop();
-		backdrop.Build(layout.Grid, backdropSeed);
-		AddChild(backdrop);
-		MoveChild(backdrop, 0);
 
 		_camera = GetNode<Controller>("Camera3D");
 		_cameraDirector = new BattleCameraDirector(_camera);
@@ -159,6 +156,9 @@ public partial class BattleController : Node3D
 			openingPose.Distance,
 			openingPose.Yaw,
 			openingPose.Pitch);
+		backdrop.Build(layout.Grid, backdropSeed);
+		AddChild(backdrop);
+		MoveChild(backdrop, 0);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
 
