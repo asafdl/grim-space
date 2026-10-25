@@ -480,7 +480,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		if (PlayerId is null || !Map.WaitingForPlayerInput)
 			return;
 
-		if (_playerAgent.PendingActionUsesImmediateLaneOnly())
+		if (_playerAgent.PendingActionSkipsStrategicAdvance())
 			return;
 
 		_resolvingInputAction = true;
@@ -588,6 +588,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private static bool NeedsAutonomousAgent(Units.State state) =>
 		state.PatrolRadius > 0 || state.PursuitDirective is not null;
 
+	// TODO: this shouldn't sit here, it's a leak
 	private void CommitDockedTargetPursuitStops()
 	{
 		var actions = Map.FleetRegistry.All

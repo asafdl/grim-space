@@ -4,7 +4,7 @@ using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Presentation.Scene;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -13,7 +13,7 @@ public partial class PlayerFleetHud : MarginContainer
 	private readonly Dictionary<string, ShipPilot> _pilots = new(StringComparer.Ordinal);
 	private UiButton _fleetButton = null!;
 	private VBoxContainer _pilotColumn = null!;
-	private StarSystemOrchestrator? _orchestrator;
+	private UserIntentTranslator? _intents;
 
 	public event Action? FleetManagementRequested;
 	public event Action<string>? PilotSheetRequested;
@@ -46,9 +46,9 @@ public partial class PlayerFleetHud : MarginContainer
 		content.AddChild(_pilotColumn);
 	}
 
-	public void Sync(State run, StarSystemOrchestrator orchestrator)
+	public void Sync(State run, StarSystemOrchestrator orchestrator, UserIntentTranslator intents)
 	{
-		_orchestrator = orchestrator;
+		_intents = intents;
 		_fleetButton.Text =
 			$"FLEET · {run.GetFieldedShipIds().Count}/{RunPilotRegistry.MaxActivePilots}  "
 			+ $"[{GameInputBindings.Label("map_fleet_management")}]";
@@ -97,11 +97,8 @@ public partial class PlayerFleetHud : MarginContainer
 		}
 	}
 
-	private void OnPilotSelected(string shipId)
-	{
-		_orchestrator?.TryCommitPlayerInput(
-			new SelectActiveFleetShipAction(State.PlayerFleetUnitId, shipId));
-	}
+	private void OnPilotSelected(string shipId) =>
+		_intents?.TrySelectActiveShip(shipId);
 
 	private void OnPilotSheetRequested(string pilotId) =>
 		PilotSheetRequested?.Invoke(pilotId);

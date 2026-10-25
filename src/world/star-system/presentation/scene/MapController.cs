@@ -46,7 +46,7 @@ public partial class MapController : Node3D
 	private EngagementController _engagement = null!;
 	private DeliveryTurnInDialogPresenter _deliveryMeetingDialog = null!;
 	private MapSceneBinding _mapBinding = null!;
-	private LeadSaleMapMerchantPresenter _leadSaleMerchant = null!;
+	private MerchantPresenter _leadSaleMerchant = null!;
 	private WreckController _wreck = null!;
 	private IDisposable _deliveryMeetingSubscription = null!;
 	private IDisposable _pursuitChangedSubscription = null!;
@@ -128,10 +128,7 @@ public partial class MapController : Node3D
 			_orchestrator,
 			_strategicHud.PresentInsufficientFunds,
 			_strategicHud.PresentSystemError);
-		_leadSaleMerchant = new LeadSaleMapMerchantPresenter(
-			_uiLayer,
-			_mapBinding,
-			() => { });
+		_leadSaleMerchant = new MerchantPresenter(_uiLayer, _mapBinding, () => { });
 		_deliveryMeetingSubscription = _orchestrator.Subscribe<ReachContactAction>(OnReachContact);
 
 		var wreckHud = new WreckHudOverlay();
@@ -682,7 +679,7 @@ public partial class MapController : Node3D
 				_deliveryMeetingDialog.OpenMeeting(action.TargetId);
 				break;
 			case EContactIntent.BlackMarketMeeting:
-				_leadSaleMerchant.OpenMeeting(action.TargetId);
+				_leadSaleMerchant.OpenLeadSaleMeeting(action.TargetId);
 				break;
 		}
 	}

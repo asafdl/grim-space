@@ -8,21 +8,21 @@ using GrimSpace.Ui.Components;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
-public sealed partial class DockyardHudOverlay : Control
+public sealed partial class CatalogMerchantHudOverlay : Control
 {
 	private readonly ModalShell _shell;
 	private State _run = null!;
 	private UserIntentTranslator? _intents;
 	private MerchantEndpoint _endpoint;
 	private EMerchantCatalog _catalog;
-	private string _facilityTitle = "";
-	private EMerchantSubtype _subtype;
+	private string _title = "";
+	private string _subtitle = "";
 	private MerchantCatalogQuote? _catalogQuote;
 
 	public event Action<MerchantCatalog.Offer, MerchantCatalog.Target, string>? PurchaseRequested;
 	public event Action? Closed;
 
-	public DockyardHudOverlay()
+	public CatalogMerchantHudOverlay()
 	{
 		AnchorsPreset = (int)LayoutPreset.FullRect;
 		AnchorRight = 1f;
@@ -43,27 +43,29 @@ public sealed partial class DockyardHudOverlay : Control
 
 	public void Open(
 		State run,
-		StarMap map,
-		string facilityTitle,
-		EMerchantSubtype subtype,
 		UserIntentTranslator intents,
 		MerchantEndpoint endpoint,
-		EMerchantCatalog catalog)
+		EMerchantCatalog catalog,
+		string title,
+		string subtitle,
+		EMerchantSubtype? upgradeSubtype = null)
 	{
-		if (subtype is not (EMerchantSubtype.Weapons or EMerchantSubtype.ShipSupport))
-			throw new ArgumentOutOfRangeException(
-				nameof(subtype),
-				subtype,
-				"Upgrade HUD only supports weapon and ship-support merchants.");
+		if (catalog is EMerchantCatalog.Weapons or EMerchantCatalog.ShipSupport
+			&& upgradeSubtype is not (EMerchantSubtype.Weapons or EMerchantSubtype.ShipSupport))
+		{
+			throw new ArgumentException(
+				"Upgrade merchants require a weapon or ship-support subtype.",
+				nameof(upgradeSubtype));
+		}
 
 		_run = run;
 		_intents = intents;
 		_endpoint = endpoint;
 		_catalog = catalog;
-		_facilityTitle = facilityTitle;
-		_subtype = subtype;
+		_title = title;
+		_subtitle = subtitle;
 		_catalogQuote = null;
-		_shell.Open(SheetTitle(), facilityTitle);
+		_shell.Open(title, subtitle);
 		RequestCatalog();
 	}
 
@@ -73,10 +75,27 @@ public sealed partial class DockyardHudOverlay : Control
 		_shell.Close();
 	}
 
-	public void Sync(State run, StarMap map)
+	public void Sync(State run)
 	{
 		_run = run;
-		if (IsOpen && _catalogQuote is not null)
+		if (!IsOpen)
+			return;
+
+		if (!TryGetActiveShip(out var ship))
+		{
+			if (_catalogQuote is not null)
+			{
+				_catalogQuote = null;
+				ShowMain();
+			}
+
+			return;
+		}
+
+		if (_catalogQuote is null
+			|| !string.Equals(_catalogQuote.ShipId, ship.Id, StringComparison.Ordinal))
+			RequestCatalog();
+		else
 			ShowMain();
 	}
 
@@ -109,25 +128,24 @@ public sealed partial class DockyardHudOverlay : Control
 		}
 
 		_catalogQuote = null;
-		if (!_intents.TryFetchMerchantCatalog(
-			    _endpoint,
-			    _catalog,
-			    ship.Clone()))
+		if (!_intents.TryFetchMerchantCatalog(_endpoint, _catalog, ship.Clone()))
 			ShowMain();
 	}
 
 	private void ShowMain()
 	{
 		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
-		_shell.SetTitle(SheetTitle());
-		_shell.SetSubtitle($"{_facilityTitle} · {MerchantOfferDisplay.BandLabel(tier)}");
+		_shell.SetTitle(_title);
+		_shell.SetSubtitle(
+			_catalog == EMerchantCatalog.Healing
+				? _subtitle
+				: $"{_subtitle} · {MerchantOfferDisplay.BandLabel(tier)}");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
 
 		var body = HudWidgets.CreateCardList();
 		body.AddThemeConstantOverride("separation", 18);
-		AddStatus(body);
 
 		if (!TryGetActiveShip(out var ship))
 		{
@@ -140,12 +158,46 @@ public sealed partial class DockyardHudOverlay : Control
 		{
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
-				"Loading shop catalog…"));
+				_catalog == EMerchantCatalog.Healing
+					? "Loading services…"
+					: "Loading shop catalog…"));
 			_shell.SetBody(body);
 			return;
 		}
 
-		var offers = _catalogQuote.Offers;
+		if (_catalog == EMerchantCatalog.Healing)
+			PopulateHealingOffers(body, ship);
+		else
+			PopulateUpgradeOffers(body, ship);
+
+		_shell.SetBody(body);
+	}
+
+	private void PopulateHealingOffers(VBoxContainer body, ShipInstance ship)
+	{
+		var offers = _catalogQuote!.Offers;
+		foreach (var offer in offers)
+		{
+			var captured = offer;
+			var target = captured.Targets.Single();
+			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
+			body.AddChild(MerchantUiListItem.Create(
+				HealingTitle(captured, target),
+				HealingBody(captured, target, ship),
+				captured.Cost,
+				canAfford,
+				() => PurchaseRequested?.Invoke(captured, target, ship.Id)));
+		}
+
+		if (offers.Count == 0)
+			body.AddChild(HudWidgets.CreateStatusPanel(
+				HudStatusKind.Neutral,
+				"No support services are currently needed."));
+	}
+
+	private void PopulateUpgradeOffers(VBoxContainer body, ShipInstance ship)
+	{
+		var offers = _catalogQuote!.Offers;
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
@@ -162,8 +214,6 @@ public sealed partial class DockyardHudOverlay : Control
 				canAfford,
 				() => ShowTargets(captured, ship)));
 		}
-
-		_shell.SetBody(body);
 	}
 
 	private void ShowTargets(MerchantCatalog.Offer offer, ShipInstance ship)
@@ -213,17 +263,42 @@ public sealed partial class DockyardHudOverlay : Control
 		_shell.SetBody(body);
 	}
 
-	private void AddStatus(VBoxContainer body)
-	{
-	}
-
-	private string SheetTitle() =>
-		_subtype switch
+	private static string HealingTitle(
+		MerchantCatalog.Offer offer,
+		MerchantCatalog.Target target) =>
+		offer.Offering.Kind switch
 		{
-			EMerchantSubtype.Weapons => "Ability upgrades",
-			EMerchantSubtype.ShipSupport => "Ship upgrades",
+			MerchantCatalog.Kind.RepairHull => "Repair hull",
+			MerchantCatalog.Kind.RechargeAllShields => "Recharge all shields",
+			MerchantCatalog.Kind.RechargeShieldFace when target.Face is { } face =>
+				$"Recharge {MerchantOfferDisplay.FaceLabel(face).ToLowerInvariant()} shields",
 			_ => throw new InvalidOperationException(
-				$"Unsupported merchant subtype '{_subtype}'."),
+				$"Unsupported healing service {offer.Offering.Kind}."),
+		};
+
+	private static string HealingBody(
+		MerchantCatalog.Offer offer,
+		MerchantCatalog.Target target,
+		ShipInstance ship) =>
+		offer.Offering.Kind switch
+		{
+			MerchantCatalog.Kind.RepairHull =>
+				MerchantOfferDisplay.HullRepairBody(
+					ship.HullPoints,
+					ship.Loadout.MaxHullPoints),
+			MerchantCatalog.Kind.RechargeAllShields =>
+				MerchantOfferDisplay.RechargeAllBody(
+					ship.TotalCurrentShieldPoints,
+					ship.TotalMaxShieldPoints),
+			MerchantCatalog.Kind.RechargeShieldFace when target.Face is { } face =>
+				MerchantOfferDisplay.ShieldRechargeBody(
+					System.Math.Clamp(
+						ship.ShieldPoints[face],
+						0,
+						ship.Loadout.MaxShieldPoints[face]),
+					ship.Loadout.MaxShieldPoints[face]),
+			_ => throw new InvalidOperationException(
+				$"Unsupported healing service {offer.Offering.Kind}."),
 		};
 
 	private bool TryGetActiveShip(out ShipInstance ship)

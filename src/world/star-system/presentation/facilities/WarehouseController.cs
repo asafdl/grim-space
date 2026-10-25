@@ -12,7 +12,6 @@ public partial class WarehouseController : Control
 	private FacilitySceneBinding _binding = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
 	private MerchantPresenter _merchant = null!;
-	private HealingStationPresenter _healingStation = null!;
 	private UiButton _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
@@ -35,10 +34,6 @@ public partial class WarehouseController : Control
 
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
-		_healingStation = new HealingStationPresenter(
-			this,
-			_binding,
-			UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
@@ -71,7 +66,6 @@ public partial class WarehouseController : Control
 			return;
 
 		if (_merchant.IsOpen
-			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen)
@@ -92,7 +86,7 @@ public partial class WarehouseController : Control
 				_merchant.Open(facilityOperator, interaction);
 				break;
 			case EFacilityOperatorRole.HealingStation:
-				_healingStation.Open(facilityOperator);
+				_merchant.OpenHealing(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Contracts:
 			case EFacilityOperatorRole.StoryContact:
@@ -119,7 +113,6 @@ public partial class WarehouseController : Control
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _merchant.IsOpen
-			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;

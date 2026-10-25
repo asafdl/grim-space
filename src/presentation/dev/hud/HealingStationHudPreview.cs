@@ -18,14 +18,15 @@ public sealed partial class HealingStationHudPreview : Control
 		var endpoint = dev.TradeHubEndpoint(
 			TradeHub.DockyardFacilitySlug,
 			TradeHub.DockyardHealingStationSceneSlotId);
-		var overlay = new HealingStationHudOverlay();
+		var overlay = new CatalogMerchantHudOverlay();
 		UiHudPreviewChrome.MountOverlay(this, overlay);
 		overlay.Open(
 			dev.Run,
-			dev.Map,
-			"Preview healing bay",
 			dev.Intents,
-			endpoint);
+			endpoint,
+			EMerchantCatalog.Healing,
+			"Healing station",
+			"Preview healing bay");
 		overlay.ReceiveCatalogQuote(
 			dev.BuildCatalogQuote(endpoint, EMerchantCatalog.Healing));
 	}

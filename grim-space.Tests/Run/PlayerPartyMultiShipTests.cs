@@ -11,6 +11,7 @@ using GrimSpace.Units.Enums;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
@@ -39,8 +40,7 @@ public sealed class PlayerPartyMultiShipTests
 		using var run = RunState.CreateNewRun(42);
 		var secondId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
-		Assert.True(run.StarSystem.TryCommitPlayerInput(
-			new SelectActiveFleetShipAction(RunState.PlayerFleetUnitId, secondId)));
+		Assert.True(SelectActiveShip(run, secondId));
 
 		var registry = PersistenceRegistry.CreateDefault();
 		var snapshot = run.CaptureSnapshot(registry);
@@ -58,8 +58,7 @@ public sealed class PlayerPartyMultiShipTests
 		var first = run.GetFieldedShipIds()[0];
 		var secondId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
-		Assert.True(run.StarSystem.TryCommitPlayerInput(
-			new SelectActiveFleetShipAction(RunState.PlayerFleetUnitId, secondId)));
+		Assert.True(SelectActiveShip(run, secondId));
 
 		var encounter = new BattleEncounter
 		{
@@ -107,8 +106,7 @@ public sealed class PlayerPartyMultiShipTests
 		var first = run.GetFieldedShipIds()[0];
 		var secondId = TypedIdGenerator.NextId("gunship");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
-		Assert.True(run.StarSystem.TryCommitPlayerInput(
-			new SelectActiveFleetShipAction(RunState.PlayerFleetUnitId, secondId)));
+		Assert.True(SelectActiveShip(run, secondId));
 
 		var selected = run.ItemInventory.Get(secondId);
 		selected.HullPoints = 1;
@@ -211,6 +209,11 @@ public sealed class PlayerPartyMultiShipTests
 			run.ItemInventory.Register(declaration, pirate.State.Id);
 		return pirate;
 	}
+
+	private static bool SelectActiveShip(RunState run, string shipId) =>
+		new UserIntentTranslator(
+			RunState.PlayerFleetUnitId,
+			run.StarSystem.ImmediatePlayerActions).TrySelectActiveShip(shipId);
 
 	private static void SeedResources(StarMap map, int credits, int scrap)
 	{

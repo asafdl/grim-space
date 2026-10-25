@@ -13,7 +13,6 @@ public partial class DockyardController : Control
 {
 	private FacilitySceneBinding _binding = null!;
 	private MerchantPresenter _merchant = null!;
-	private HealingStationPresenter _healingStation = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
 	private UiButton _backButton = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
@@ -31,10 +30,6 @@ public partial class DockyardController : Control
 		_backButton = FacilitySceneControls.InstallLeaveButton(this, ReturnToMap);
 
 		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
-		_healingStation = new HealingStationPresenter(
-			this,
-			_binding,
-			UpdateBackButton);
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 
 		_npcDialog = new FacilityNpcDialogPresenter(
@@ -75,7 +70,6 @@ public partial class DockyardController : Control
 			return;
 
 		if (_merchant.IsOpen
-			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen)
@@ -96,7 +90,7 @@ public partial class DockyardController : Control
 				_merchant.Open(facilityOperator, interaction);
 				break;
 			case EFacilityOperatorRole.HealingStation:
-				_healingStation.Open(facilityOperator);
+				_merchant.OpenHealing(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Contracts:
 			case EFacilityOperatorRole.StoryContact:
@@ -128,7 +122,6 @@ public partial class DockyardController : Control
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _merchant.IsOpen
-			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;

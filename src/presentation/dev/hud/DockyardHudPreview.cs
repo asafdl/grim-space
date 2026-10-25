@@ -32,16 +32,16 @@ public sealed partial class DockyardHudPreview : Control
 		};
 
 		var endpoint = dev.TradeHubEndpoint(facilitySlug, slotId);
-		var overlay = new DockyardHudOverlay();
+		var overlay = new CatalogMerchantHudOverlay();
 		UiHudPreviewChrome.MountOverlay(this, overlay);
 		overlay.Open(
 			dev.Run,
-			dev.Map,
-			"Preview dockyard",
-			Subtype,
 			dev.Intents,
 			endpoint,
-			MerchantSubtypeRouting.CatalogFor(Subtype));
+			catalog,
+			Subtype == EMerchantSubtype.Weapons ? "Ability upgrades" : "Ship upgrades",
+			"Preview dockyard",
+			Subtype);
 		overlay.ReceiveCatalogQuote(dev.BuildCatalogQuote(endpoint, catalog));
 	}
 }

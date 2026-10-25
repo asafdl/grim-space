@@ -3,7 +3,7 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
-using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Presentation.Scene;
 
 namespace GrimSpace.Tests.World.StarSystem;
 
@@ -11,7 +11,7 @@ namespace GrimSpace.Tests.World.StarSystem;
 public sealed class PlayerFleetSelectionTests
 {
 	[Fact]
-	public void TryCommitPlayerInput_UpdatesRuntimeSelectedMember()
+	public void TrySelectActiveShip_UpdatesRuntimeSelectedMember()
 	{
 		using var run = State.CreateNewRun(42);
 		var first = run.GetFieldedShipIds()[0];
@@ -21,8 +21,10 @@ public sealed class PlayerFleetSelectionTests
 		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
 		Assert.Equal(first, runtime.SelectedMemberShipId);
 
-		Assert.True(run.StarSystem.TryCommitPlayerInput(
-			new SelectActiveFleetShipAction(State.PlayerFleetUnitId, secondId)));
+		var intents = new UserIntentTranslator(
+			State.PlayerFleetUnitId,
+			run.StarSystem.ImmediatePlayerActions);
+		Assert.True(intents.TrySelectActiveShip(secondId));
 		Assert.Equal(secondId, runtime.SelectedMemberShipId);
 	}
 

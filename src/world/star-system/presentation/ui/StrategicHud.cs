@@ -8,6 +8,7 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Objectives;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -29,6 +30,7 @@ public partial class StrategicHud : CanvasLayer
 	private SystemErrorBanner _errorBanner = null!;
 	private ReportIssueDialog _reportIssueDialog = null!;
 	private StarSystemOrchestrator _orchestrator = null!;
+	private UserIntentTranslator _intents = null!;
 	private string? _fleetReturnShipId;
 	private bool _returnToFleetAfterPilotSheet;
 
@@ -62,6 +64,9 @@ public partial class StrategicHud : CanvasLayer
 		_reportIssueDialog = new ReportIssueDialog();
 		_modalLayer.AddChild(_reportIssueDialog);
 		_orchestrator = Session.Instance.Run.StarSystem;
+		_intents = new UserIntentTranslator(
+			State.PlayerFleetUnitId,
+			_orchestrator.ImmediatePlayerActions);
 		_resourceFeed = new ResourceTransactionFeed();
 		_resourceFeed.Bind(Session.Instance.Run.Transitions, _orchestrator, _resourceHud);
 		_contractStateSubscription =
@@ -73,13 +78,13 @@ public partial class StrategicHud : CanvasLayer
 		_pilotSheet.PilotCycleRequested += OnPilotCycleRequested;
 		SetProcess(true);
 		SyncObjectives();
-		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator);
+		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator, _intents);
 	}
 
 	public override void _Process(double _)
 	{
 		SyncObjectives();
-		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator);
+		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator, _intents);
 	}
 
 	public override void _ExitTree()

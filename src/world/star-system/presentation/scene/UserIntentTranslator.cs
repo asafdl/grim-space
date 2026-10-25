@@ -121,6 +121,9 @@ public sealed class UserIntentTranslator
 	public bool TryHirePilot(LeadSaleMerchantEndpoint endpoint, int slot) =>
 		TrySubmitImmediately(new HirePilotAction(FacilityActorId(), endpoint, slot));
 
+	public bool TrySelectActiveShip(string shipId) =>
+		TrySubmitImmediately(new SelectActiveFleetShipAction(FacilityActorId(), shipId));
+
 	public bool TryCompleteDeliveryFacilityLeg(
 		string poiId,
 		string facilityId,

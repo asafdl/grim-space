@@ -13,7 +13,6 @@ public partial class RefineryController : Control
 	private UiButton _backButton = null!;
 	private FacilityContractHudPresenter _contractHud = null!;
 	private MerchantPresenter _merchant = null!;
-	private HealingStationPresenter _healingStation = null!;
 	private FacilityNpcDialogPresenter _npcDialog = null!;
 	private DeliveryTurnInDialogPresenter _deliveryTurnInDialog = null!;
 
@@ -34,10 +33,6 @@ public partial class RefineryController : Control
 		_backButton = FacilitySceneControls.InstallLeaveButton(this, ReturnToMap);
 		_contractHud = new FacilityContractHudPresenter(this, _binding, UpdateBackButton);
 		_merchant = new MerchantPresenter(this, _binding, UpdateBackButton);
-		_healingStation = new HealingStationPresenter(
-			this,
-			_binding,
-			UpdateBackButton);
 		_npcDialog = new FacilityNpcDialogPresenter(
 			this,
 			_backButton,
@@ -69,7 +64,6 @@ public partial class RefineryController : Control
 			return;
 
 		if (_merchant.IsOpen
-			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen)
@@ -90,7 +84,7 @@ public partial class RefineryController : Control
 				_merchant.Open(facilityOperator, interaction);
 				break;
 			case EFacilityOperatorRole.HealingStation:
-				_healingStation.Open(facilityOperator);
+				_merchant.OpenHealing(facilityOperator);
 				break;
 			case EFacilityOperatorRole.Contracts:
 			case EFacilityOperatorRole.StoryContact:
@@ -117,7 +111,6 @@ public partial class RefineryController : Control
 
 	private void UpdateBackButton() =>
 		_backButton.Disabled = _merchant.IsOpen
-			|| _healingStation.IsOpen
 			|| _contractHud.IsOpen
 			|| _npcDialog.IsOpen
 			|| _deliveryTurnInDialog.IsOpen;
