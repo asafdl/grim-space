@@ -385,9 +385,8 @@ public partial class Controller : Camera3D, ICameraRig
 		var panSpeed = OrbitControls.KeyboardPanSpeed;
 		if (flatPan != Vector2.Zero)
 		{
-			flatPan = flatPan.Normalized();
-			var (right, forward) = OrbitPose.FlatPanAxes(GlobalTransform.Basis);
-			_pose.FlatPan(flatPan, right, forward, panSpeed, deltaF);
+			var (right, forward) = OrbitPose.ViewPanAxes(GlobalTransform.Basis);
+			_pose.ViewPan(flatPan, right, forward, panSpeed, deltaF);
 		}
 
 		if (verticalPan != 0f)

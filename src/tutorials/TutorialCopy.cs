@@ -16,7 +16,6 @@ internal static class TutorialCopy
 		$"- Move camera with {GameInputBindings.Label("battle_pan_up")} {GameInputBindings.Label("battle_pan_left")} " +
 		$"{GameInputBindings.Label("battle_pan_down")} {GameInputBindings.Label("battle_pan_right")}, " +
 		$"{GameInputBindings.Label("battle_pan_vertical_up")} / {GameInputBindings.Label("battle_pan_vertical_down")} for height, " +
-		$"or HOLD {GameInputBindings.Label("battle_camera_pan")} and drag.\n" +
 		$"- Press {GameInputBindings.Label("battle_focus")} to refocus on your ship.";
 
 	public static string Turn2MovePrompt =>

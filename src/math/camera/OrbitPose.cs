@@ -73,6 +73,21 @@ public struct OrbitPose
 		Pivot += (right * pan.X + forward * pan.Y) * speed * delta;
 	}
 
+	/// <summary>
+	/// Fly-style pan along camera right and look direction (W/S into the scene, A/D strafe).
+	/// Moving the pivot shifts the camera by the same delta while orbit offset stays fixed.
+	/// </summary>
+	public void ViewPan(Vector2 pan, Vector3 cameraRight, Vector3 viewForward, float speed, float delta)
+	{
+		if (pan == Vector2.Zero)
+			return;
+
+		pan = pan.Normalized();
+		var right = cameraRight.Normalized();
+		var forward = viewForward.Normalized();
+		Pivot += (right * pan.X + forward * pan.Y) * speed * delta;
+	}
+
 	/// <summary>Moves the pivot along world up/down (Y axis).</summary>
 	public void VerticalPan(float axis, float speed, float delta)
 	{
@@ -147,6 +162,10 @@ public struct OrbitPose
 		var forward = Flatten(-basis.Z);
 		return (right, forward);
 	}
+
+	/// <summary>Camera right and look direction from a camera basis.</summary>
+	public static (Vector3 Right, Vector3 Forward) ViewPanAxes(Basis basis) =>
+		(basis.X.Normalized(), (-basis.Z).Normalized());
 
 	private static Vector3 Flatten(Vector3 v)
 	{
