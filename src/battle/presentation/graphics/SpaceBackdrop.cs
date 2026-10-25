@@ -13,7 +13,7 @@ public sealed partial class SpaceBackdrop : Node3D
 	private const float PlanetDistanceScale = 2.65f;
 	private const float PlanetRadiusScale = 0.22f;
 
-	public void Build(BoundedGrid grid, int seed)
+	public void Build(BoundedGrid grid, int seed, Camera3D camera)
 	{
 		var center = WorldMapping.GridCenter(grid);
 		var halfExtent = new Vector3(
@@ -23,9 +23,10 @@ public sealed partial class SpaceBackdrop : Node3D
 		var chamberRadius = halfExtent.Length();
 
 		AddChild(CreateWorldEnvironment());
-		AddChild(RedDwarfSun.CreateVisual(center, chamberRadius));
+		var ruinedCarrier = RuinedCarrierBackdrop.Create(center, chamberRadius, camera);
+		AddChild(ruinedCarrier);
+		AddChild(RedDwarfSun.CreateVisual(center, chamberRadius, camera));
 		AddChild(CreatePlanet(center, chamberRadius));
-		AddChild(CreatePlanetLight(center));
 		AddChild(CreateDustStream(center, halfExtent, seed));
 	}
 
@@ -50,8 +51,8 @@ public sealed partial class SpaceBackdrop : Node3D
 				BackgroundMode = Godot.Environment.BGMode.Sky,
 				Sky = sky,
 				AmbientLightSource = Godot.Environment.AmbientSource.Color,
-				AmbientLightColor = new Color(0.12f, 0.14f, 0.18f),
-				AmbientLightEnergy = 0.24f,
+				AmbientLightColor = new Color(0.025f, 0.03f, 0.045f),
+				AmbientLightEnergy = 0.025f,
 				ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled,
 				TonemapMode = Godot.Environment.ToneMapper.Filmic,
 				FogEnabled = false,
@@ -65,8 +66,8 @@ public sealed partial class SpaceBackdrop : Node3D
 			Name = "PurplePlanetLight",
 			Position = gridCenter,
 			Basis = Basis.LookingAt(-RedDwarfSun.LightDirection, Vector3.Up),
-			LightColor = new Color(0.58f, 0.38f, 0.86f),
-			LightEnergy = 0.28f,
+			LightColor = new Color(0.34f, 0.42f, 0.62f),
+			LightEnergy = 0.08f,
 			LightCullMask = PresentationLayers.World,
 			ShadowEnabled = false,
 		};

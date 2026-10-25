@@ -159,11 +159,15 @@ public partial class BattleController : Node3D
 			openingPose.Distance,
 			openingPose.Yaw,
 			openingPose.Pitch);
-		backdrop.Build(layout.Grid, backdropSeed);
 		AddChild(backdrop);
+		backdrop.Build(layout.Grid, backdropSeed, _camera);
 		MoveChild(backdrop, 0);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
-		RedDwarfSun.Configure(GetNode<DirectionalLight3D>("DirectionalLight3D"), gridCenter, chamberRadius);
+		RedDwarfSun.Configure(
+			GetNode<DirectionalLight3D>("DirectionalLight3D"),
+			gridCenter,
+			chamberRadius,
+			_camera);
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);
