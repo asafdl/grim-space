@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dywb1mo0ye0ol"
-path="res://.godot/imported/battle_nebula_panorama.png-f11b96b914d73d3aa67d852a02fac429.ctex"
+uid="uid://btq7bx6de0ots"
+path="res://.godot/imported/battle_nebula_patch.png-410942b6414b090051baf9b1fb3d8a82.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/space/battle_nebula_panorama.png"
-dest_files=["res://.godot/imported/battle_nebula_panorama.png-f11b96b914d73d3aa67d852a02fac429.ctex"]
+source_file="res://assets/textures/space/battle_nebula_patch.png"
+dest_files=["res://.godot/imported/battle_nebula_patch.png-410942b6414b090051baf9b1fb3d8a82.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

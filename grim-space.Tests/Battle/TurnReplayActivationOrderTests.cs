@@ -48,6 +48,14 @@ public sealed class TurnReplayActivationOrderTests
 	}
 
 	[Fact]
+	public void TurnFlowTimeline_IndexOfUnit_FindsActivationIndex()
+	{
+		var timeline = TurnFlowTimeline.Build([], ["A", "B", "C"]);
+		Assert.Equal(1, TurnFlowTimeline.IndexOfUnit(timeline, "B"));
+		Assert.Equal(-1, TurnFlowTimeline.IndexOfUnit(timeline, "missing"));
+	}
+
+	[Fact]
 	public void CenteredCarouselWindow_ClampsAndMapsVisibleItems()
 	{
 		var timeline = TurnFlowTimeline.Build([], ["A", "B", "C", "D", "E", "F", "G"]);

@@ -25,7 +25,6 @@ public sealed partial class UserIntentTranslator : Node
 	private readonly Controller _camera;
 	private readonly BattleHud _hud;
 	private readonly AbilitySourcePickerView _abilitySourcePicker;
-	private readonly Func<IReadOnlyDictionary<string, UnitView>> _unitViews;
 
 	private bool _enabled;
 	private bool _canIssueActions;
@@ -57,15 +56,13 @@ public sealed partial class UserIntentTranslator : Node
 		IActionSink actions,
 		Controller camera,
 		BattleHud hud,
-		AbilitySourcePickerView abilitySourcePicker,
-		Func<IReadOnlyDictionary<string, UnitView>> unitViews)
+		AbilitySourcePickerView abilitySourcePicker)
 	{
 		_actorId = actorId;
 		_actions = actions;
 		_camera = camera;
 		_hud = hud;
 		_abilitySourcePicker = abilitySourcePicker;
-		_unitViews = unitViews;
 	}
 
 	public void Bind(string actorId, IActionSink actions)
@@ -84,7 +81,6 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? MoveSelectionCanceled;
 	public event Action? MoveSelectionCompleted;
 	public event Action<int?, int>? AbilityHoverChanged;
-	public event Action<string>? FocusUnitRequested;
 	public event Action? CycleEnemyRequested;
 	public event Action? ReturnToPlayerRequested;
 	public event Action? FocusCameraRequested;
@@ -477,22 +473,6 @@ public sealed partial class UserIntentTranslator : Node
 
 	private void HandleMoveClick(Vector2 screenPosition)
 	{
-		if (UnitPick.Pick(_camera, screenPosition, _unitViews()) is { } unitId)
-		{
-			if (unitId != _actorId)
-			{
-				FocusUnitRequested?.Invoke(unitId);
-				_moveHoveredCell = null;
-				return;
-			}
-
-			if (_isInspecting)
-			{
-				ReturnToPlayerRequested?.Invoke();
-				return;
-			}
-		}
-
 		if (_isInspecting || !_canIssueActions)
 			return;
 

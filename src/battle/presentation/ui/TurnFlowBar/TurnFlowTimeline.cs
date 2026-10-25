@@ -56,4 +56,16 @@ public static class TurnFlowTimeline
 
 		return 0;
 	}
+
+	/// <summary>Latest activation index for <paramref name="unitId"/> (units may appear in multiple turns).</summary>
+	public static int IndexOfUnit(IReadOnlyList<TurnFlowEntry> timeline, string unitId)
+	{
+		for (var index = timeline.Count - 1; index >= 0; index--)
+		{
+			if (timeline[index].UnitId == unitId)
+				return index;
+		}
+
+		return -1;
+	}
 }

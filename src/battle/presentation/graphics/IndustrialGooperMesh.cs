@@ -13,6 +13,7 @@ public static class IndustrialGooperMesh
 		_model ??= GD.Load<PackedScene>(ModelPath)
 			?? throw new InvalidOperationException($"Could not load industrial gooper model '{ModelPath}'.");
 		var scene = _model.Instantiate<Node3D>();
+		scene.Rotation = new Vector3(0f, -Mathf.Pi / 2f, 0f);
 
 		try
 		{

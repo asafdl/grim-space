@@ -156,7 +156,7 @@ public partial class BattleController : Node3D
 			openingPose.Distance,
 			openingPose.Yaw,
 			openingPose.Pitch);
-		backdrop.Build(layout.Grid, backdropSeed);
+		backdrop.Build(layout.Grid, backdropSeed, _camera.GlobalBasis);
 		AddChild(backdrop);
 		MoveChild(backdrop, 0);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
@@ -204,8 +204,7 @@ public partial class BattleController : Node3D
 			_agent,
 			_camera,
 			_battleHud,
-			_abilitySourcePicker,
-			() => _battleView.UnitViews)
+			_abilitySourcePicker)
 		{
 			Name = "UserIntentTranslator",
 		};
@@ -364,7 +363,6 @@ public partial class BattleController : Node3D
 			RefreshPresentation();
 		};
 		_translator.AbilityHoverChanged += OnAbilityHoverChanged;
-		_translator.FocusUnitRequested += FocusUnit;
 		_translator.CycleEnemyRequested += CycleEnemyFocus;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
 		_translator.FocusCameraRequested += () =>
@@ -579,19 +577,6 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
-	private void FocusUnit(string unitId)
-	{
-		if (!_battle.AcceptsPlayerInput)
-			return;
-
-		var previewUnits = _frames.BuildFrame(_battle, _agent, acceptsCommands: false).PreviewUnits;
-		if (!previewUnits.TryGetValue(unitId, out var unit) || !unit.IsAlive)
-			return;
-
-		_frames.Interaction.FocusUnit(unitId);
-		RefreshPresentation();
-	}
-
 	private void CycleEnemyFocus()
 	{
 		if (!_battle.AcceptsPlayerInput)
@@ -625,18 +610,35 @@ public partial class BattleController : Node3D
 
 	private void FocusUnitFromTopBar(string unitId)
 	{
+		if (!TryApplyTopBarUnitFocus(unitId))
+			return;
+
+		_cameraDirector.FocusPlayer(GetUnitRenderedPosition(unitId));
+	}
+
+	private bool TryApplyTopBarUnitFocus(string unitId)
+	{
 		if (_battle.Phase == EBattlePhase.Replaying)
 		{
 			if (!UnitRegistry.For(_battle.Engine.World).TryGet(unitId, out var liveUnit)
 				|| !liveUnit.State.IsAlive)
-				return;
+				return false;
 
 			_frames.Interaction.FocusUnit(unitId);
 			RefreshPresentation();
-			return;
+			return true;
 		}
 
-		FocusUnit(unitId);
+		if (!_battle.AcceptsPlayerInput)
+			return false;
+
+		var previewUnits = _frames.BuildFrame(_battle, _agent, acceptsCommands: false).PreviewUnits;
+		if (!previewUnits.TryGetValue(unitId, out var unit) || !unit.IsAlive)
+			return false;
+
+		_frames.Interaction.FocusUnit(unitId);
+		RefreshPresentation();
+		return true;
 	}
 
 	private void RebuildTurnFlowTimeline()
@@ -810,13 +812,18 @@ public partial class BattleController : Node3D
 
 	private void OnTutorialFlowCompleted(TutorialFlow _) => RefreshPresentation();
 
-	private Vector3 GetPlayerRenderedPosition()
+	private Vector3 GetPlayerRenderedPosition() =>
+		GetUnitRenderedPosition(_battle.PlayerId);
+
+	private Vector3 GetUnitRenderedPosition(string unitId)
 	{
-		var playerId = _battle.PlayerId;
-		if (_battleView.UnitViews.TryGetValue(playerId, out var view))
+		if (_battleView.UnitViews.TryGetValue(unitId, out var view))
 			return view.GlobalPosition;
 
-		return WorldMapping.ToWorld(_agent.Sim.StateOf<ActorState>(playerId).Position);
+		if (_currentFrame.PreviewUnits.TryGetValue(unitId, out var preview))
+			return WorldMapping.ToWorld(preview.Position);
+
+		return WorldMapping.ToWorld(_agent.Sim.StateOf<ActorState>(unitId).Position);
 	}
 
 	private void ApplyUnitStates(PresentationFrame frame)
