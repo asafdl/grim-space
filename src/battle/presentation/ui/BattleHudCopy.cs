@@ -1,11 +1,14 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Application;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
 
@@ -33,10 +36,11 @@ internal static class BattleHudCopy
 
 	public const string MoveTooltip =
 		"Move your ship within the movement bubble.";
-	public const string ActionPointsTooltip =
-		"Moves cost Action Points";
-	public const string ManeuverPointsTooltip =
-		"Yaw, pitch, and roll maneuvers cost Maneuver Points";
+	public static string ActionPointsTooltip =>
+		$"Moves cost Action Points.\nEach AP spent adds {HeatChangeEffect.PerApSpent} heat.";
+	public static string ManeuverPointsTooltip =>
+		$"Yaw, pitch, and roll maneuvers cost Maneuver Points.\nEach MP spent adds {HeatChangeEffect.PerMpSpent} heat.";
+	public const string HeatTitle = "HT";
 
 	public const string EndTurn = "Execute Turn";
 	public const string EndTurnTooltip = "Execute your queued actions and end your turn.";
@@ -133,7 +137,7 @@ internal static class BattleHudCopy
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.ShieldsUp);
 		return
 			$"{definition.Name}:\n{definition.Description}\n" +
-			$"Next turn: -{ShieldsUpDef.NextTickApPenalty} AP.";
+			$"Next turn: -{ShieldsUpDef.NextTickApPenalty} AP.\n{AbilityHeatCostLine}";
 	}
 
 	public static string SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>
@@ -141,13 +145,34 @@ internal static class BattleHudCopy
 			? SpawnRepurposedMinerTooltipFor(bay)
 			: "Deploy Repurposed Miner";
 
+	public static string HeatTooltip(
+		int heat,
+		HeatSpec profile,
+		bool overdrive,
+		bool overheat) =>
+		$"Heat {heat}/{profile.EffectiveCapacity}\n" +
+		$"{HeatStatusLine(overdrive, overheat)}\n" +
+		$"Costs: +{HeatChangeEffect.PerApSpent} per AP · +{HeatChangeEffect.PerMpSpent} per MP · +{HeatChangeEffect.PerAbilityUse} per ability.\n" +
+		$"Cools {profile.ClearPerTurn} each round unless overdriven or overheated.\n" +
+		$"At capacity: overdrive (+{OverdriveDamageBonusModifier.BonusPercent}% attack damage), then overheat next turn (abilities locked).";
+
+	public static string HeatStatusLine(bool overdrive, bool overheat) =>
+		overheat
+			? "Status: OVERHEAT — abilities locked; heat frozen."
+			: overdrive
+				? "Status: OVERDRIVE — attacks deal bonus damage."
+				: "Status: nominal.";
+
+	public static string AbilityHeatCostLine =>
+		$"Heat: +{HeatChangeEffect.PerAbilityUse}.";
+
 	public static string ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
 		$"Scrap Drone Swarm:\nShort-range {BattleDistance.ApproximateCells(swarm.BurstRange + 1)} homing drones.\n" +
-		$"Deals {swarm.Damage} damage.";
+		$"Deals {swarm.Damage} damage.\n{AbilityHeatCostLine}";
 
 	public static string LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
 		$"Lightning Cannon:\n{BattleDistance.ApproximateCells(lightningCannon.LineLength)} beam. Chains up to {lightningCannon.MaxChains} times within {BattleDistance.ApproximateCells(lightningCannon.ChainRange)}.\n" +
-		$"Deals {lightningCannon.Damage} damage ({lightningCannon.ChainFalloffPercentPerHop}% less per chain hop).";
+		$"Deals {lightningCannon.Damage} damage ({lightningCannon.ChainFalloffPercentPerHop}% less per chain hop).\n{AbilityHeatCostLine}";
 
 	public static string GoopGunTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<GoopGunSpec>(unit, EAbilityKind.GoopGun) is { } goop
@@ -157,12 +182,12 @@ internal static class BattleHudCopy
 	public static string GoopGunTooltipFor(GoopGunSpec goop) =>
 		$"Goop Gun:\nCoats an area ahead in blocking goop.\n" +
 		$"Placement reach: {BattleDistance.ApproximateCells(goop.Range)}.\n" +
-		$"Cooldown: {goop.UnavailableTurns} turns after use.";
+		$"Cooldown: {goop.UnavailableTurns} turns after use.\n{AbilityHeatCostLine}";
 
 	public static string VoidBombTooltipFor(VoidBombLauncherSpec launcher) =>
 		$"Void bomb:\nFires a homing bomb for {launcher.BlastDamage} damage, which travels for {launcher.FuelTurns} turns. Beware of hitting yourself!\n" +
 		$"Detonation radius: {BattleDistance.ApproximateCells(launcher.BlastRadius)}\n" +
-		$"Cooldown: {launcher.CooldownTurns}.";
+		$"Cooldown: {launcher.CooldownTurns}.\n{AbilityHeatCostLine}";
 
 	public static string DetonateTooltipFor(VoidBombProjectile projectile) =>
 		$"Detonate:\nBlast radius: {BattleDistance.ApproximateCells(projectile.BlastRadius)}; {projectile.BlastDamage} damage.\n" +
@@ -173,7 +198,7 @@ internal static class BattleHudCopy
 		$"Deploy Repurposed Miner:\nLaunches a repurposed miner ship from the ventral bay.\n" +
 		$"Repurposed Miners can launch scrap drone swarms, and have forward facing shields.\n" +
 		$"Max living repurposed miners: {bay.MaxLivingChildren}.\n" +
-		$"Cooldown: {bay.CooldownTurns} turns after launch.";
+		$"Cooldown: {bay.CooldownTurns} turns after launch.\n{AbilityHeatCostLine}";
 
 	private static T? FirstInstalled<T>(UnitDisplayState unit, EAbilityKind kind)
 		where T : AbilitySpec =>

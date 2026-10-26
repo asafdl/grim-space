@@ -70,6 +70,8 @@ public sealed class ScrapDroneSwarmDef
 	public bool IsLegal(ScrapDroneSwarmAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
+		if (state.Overheat)
+			return false;
 		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
 			return false;
@@ -90,6 +92,7 @@ public sealed class ScrapDroneSwarmDef
 		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Scrap drone swarm spec missing area damage.");
 		IEffect<BattleWorld, ActorRuntime>[] effects =
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new ApplyAreaDamageEffect(
 				EImpactCause.ScrapDroneSwarmBurst,
 				cells,

@@ -231,6 +231,8 @@ public static class ActionLog
 			ExpireTemporaryShieldGrantAction => null,
 			ApDeltaAction => null,
 			ResetShieldsUpUsedThisTurnAction => null,
+			EnterOverheatAction => null,
+			ClearOverheatAction => null,
 			FuelBurnAction => null,
 			Record<SpawnFacts> => null,
 			_ => null,

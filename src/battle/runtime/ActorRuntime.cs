@@ -15,7 +15,12 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	private static readonly IReadOnlyList<PilotCapabilityGrant> EmptyGrants =
 		Array.Empty<PilotCapabilityGrant>();
 
-	public ActorRuntime() : this(null, null, EmptyGrants, EmptyCapabilities, ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>.Empty) { }
+	public ActorRuntime() : this(
+		null,
+		null,
+		EmptyGrants,
+		EmptyCapabilities,
+		BattlePilotCapabilityPipelineFactory.Build(EmptyCapabilities)) { }
 
 	private ActorRuntime(
 		string? pilotId,
@@ -44,7 +49,12 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public static ActorRuntime From(PilotBattleSnapshot? snapshot)
 	{
 		if (snapshot is null)
-			return new ActorRuntime(null, null, EmptyGrants, EmptyCapabilities, ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>.Empty);
+			return new ActorRuntime(
+				null,
+				null,
+				EmptyGrants,
+				EmptyCapabilities,
+				BattlePilotCapabilityPipelineFactory.Build(EmptyCapabilities));
 
 		var grants = snapshot.CapabilityGrants.Count == 0
 			? EmptyGrants

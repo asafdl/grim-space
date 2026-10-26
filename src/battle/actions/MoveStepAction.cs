@@ -91,6 +91,7 @@ public sealed class MoveDef
 		var destination = actor.Position + BodyFrame.From(actor).Step(action.Direction);
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerApSpent * cost),
 			new MoveEffect(destination),
 			new ApChangeEffect(-cost),
 		];

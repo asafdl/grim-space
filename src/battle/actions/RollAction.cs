@@ -70,6 +70,7 @@ public sealed class RollDef
 
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerMpSpent * cost),
 			new RollEffect(action.Direction),
 			new MpChangeEffect(-cost),
 		];

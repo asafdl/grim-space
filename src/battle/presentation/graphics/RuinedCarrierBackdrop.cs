@@ -7,17 +7,18 @@ public static class RuinedCarrierBackdrop
 	private const string WreckPath = "res://assets/models/wreck_debris_pack/";
 	private const string ShaderPath = "res://assets/shaders/ruined_carrier.gdshader";
 	private const float HullScale = 5f;
+	private const float CarrierSunClearance = 120f;
 	private const float BreakHalfWidth = 1.2f;
 	private const float HalfSeparation = 0.55f;
 	private const float CarrierLongitudinalCenter = -2.21f;
 
 	public static Node3D Create(Vector3 gridCenter, float chamberRadius, Camera3D camera)
 	{
-		var sunPosition = RedDwarfSun.VisualPosition(gridCenter, chamberRadius, camera);
+		var sunPosition = RedDwarfSun.VisualPosition(gridCenter, chamberRadius);
 		var sunDirection = (sunPosition - camera.GlobalPosition).Normalized();
 		var carrierDistance = camera.GlobalPosition.DistanceTo(sunPosition)
 			- chamberRadius * RedDwarfSun.RadiusScale
-			- HullScale * 1.5f;
+			- CarrierSunClearance;
 		var sunRadius = chamberRadius * RedDwarfSun.RadiusScale;
 		var root = new Node3D
 		{

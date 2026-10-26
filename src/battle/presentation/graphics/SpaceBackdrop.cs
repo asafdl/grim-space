@@ -25,7 +25,7 @@ public sealed partial class SpaceBackdrop : Node3D
 		AddChild(CreateWorldEnvironment());
 		var ruinedCarrier = RuinedCarrierBackdrop.Create(center, chamberRadius, camera);
 		AddChild(ruinedCarrier);
-		AddChild(RedDwarfSun.CreateVisual(center, chamberRadius, camera));
+		AddChild(RedDwarfSun.CreateVisual(center, chamberRadius));
 		AddChild(CreatePlanet(center, chamberRadius));
 		AddChild(CreateDustStream(center, halfExtent, seed));
 	}

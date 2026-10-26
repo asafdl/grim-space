@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Units.Maneuvering;
 
@@ -29,6 +30,8 @@ public sealed class VoidBombSpec : ShipSpec
 			MovementActionPoints,
 			ForwardMoveApCost,
 			LateralMoveApCost);
+
+	public override HeatSpec Heat => HeatSpec.None;
 
 	public override FaceShieldPoints DefaultMaxShieldPoints
 	{

@@ -1,5 +1,4 @@
 using GrimSpace.Battle;
-using GrimSpace.Pilots;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
@@ -46,9 +45,11 @@ public sealed class ActorRuntimeAssemblyTests
 			battle.Engine.World,
 			runtime);
 
+		var damage = Assert.IsType<GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect>(
+			effects.First(effect => effect is GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect));
 		Assert.Equal(
 			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
-			((GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect)effects[0]).ShieldDamageBonusPercent);
+			damage.ShieldDamageBonusPercent);
 	}
 
 	[Fact]

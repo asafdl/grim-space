@@ -55,7 +55,8 @@ public sealed class ShieldsUpDef
 		if (!IsPossible(action, world, runtime))
 			return false;
 
-		return !world.StateOf(action.ActorId).ShieldsUpUsedThisTurn;
+		var state = world.StateOf(action.ActorId);
+		return !state.Overheat && !state.ShieldsUpUsedThisTurn;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
@@ -68,6 +69,7 @@ public sealed class ShieldsUpDef
 		var delay = FollowUpDelayTicks;
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new GrantTemporaryShieldPercentOfFaceMaxEffect(
 				grantId,
 				PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax),

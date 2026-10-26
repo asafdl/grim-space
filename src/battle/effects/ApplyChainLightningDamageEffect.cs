@@ -18,7 +18,8 @@ public sealed class ApplyChainLightningDamageEffect(
 	int chainFalloffPercentPerHop,
 	Coord origin,
 	int shieldDamageBonus = 0,
-	int shieldDamageBonusPercent = 0) : IEffect<BattleWorld, ActorRuntime>
+	int shieldDamageBonusPercent = 0,
+	int damageBonusPercent = 0) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> BeamCells => beamCells;
@@ -28,6 +29,7 @@ public sealed class ApplyChainLightningDamageEffect(
 	public Coord Origin => origin;
 	public int ShieldDamageBonus => shieldDamageBonus;
 	public int ShieldDamageBonusPercent => shieldDamageBonusPercent;
+	public int DamageBonusPercent => damageBonusPercent;
 
 	public ApplyChainLightningDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
@@ -38,7 +40,8 @@ public sealed class ApplyChainLightningDamageEffect(
 			chainFalloffPercentPerHop,
 			origin,
 			shieldDamageBonus + amount,
-			shieldDamageBonusPercent);
+			shieldDamageBonusPercent,
+			damageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
@@ -49,6 +52,19 @@ public sealed class ApplyChainLightningDamageEffect(
 			chainFalloffPercentPerHop,
 			origin,
 			shieldDamageBonus,
+			percent,
+			damageBonusPercent);
+
+	public ApplyChainLightningDamageEffect WithDamageBonusPercent(int percent) =>
+		new(
+			cause,
+			beamCells,
+			hops,
+			baseDamage,
+			chainFalloffPercentPerHop,
+			origin,
+			shieldDamageBonus,
+			shieldDamageBonusPercent,
 			percent);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
@@ -103,6 +119,8 @@ public sealed class ApplyChainLightningDamageEffect(
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
 		var appliedDamage = damage;
+		if (damageBonusPercent != 0)
+			appliedDamage = ScalePercent(appliedDamage, 100 + damageBonusPercent);
 		var appliedShieldDamageBonus = shieldDamageBonus;
 		if (shieldDamageBonusPercent > 0)
 			appliedShieldDamageBonus += PortionOf(appliedDamage, shieldDamageBonusPercent);

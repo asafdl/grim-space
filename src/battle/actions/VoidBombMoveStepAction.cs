@@ -88,6 +88,7 @@ public sealed class VoidBombMoveDef
 
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerApSpent * stepCost),
 			new MoveEffect(to),
 			new ApChangeEffect(-stepCost),
 		];

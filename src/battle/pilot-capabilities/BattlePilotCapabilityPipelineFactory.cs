@@ -21,7 +21,12 @@ public static class BattlePilotCapabilityPipelineFactory
 		IReadOnlySet<EPilotCapabilityId> capabilities)
 	{
 		ArgumentNullException.ThrowIfNull(capabilities);
-		var modifiers = new List<IActionEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>();
+		var modifiers = new List<IActionEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>>
+		{
+			new ActionTagEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>(
+				[BattleActionTags.Attack],
+				OverdriveDamageBonusModifier.Instance),
+		};
 		if (capabilities.Contains(EPilotCapabilityId.AdjacentDamageBonus))
 		{
 			modifiers.Add(new ActionTagEffectModifier<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>(
@@ -40,9 +45,6 @@ public static class BattlePilotCapabilityPipelineFactory
 				[BattleActionTags.Attack, BattleActionTags.ScrapDrone],
 				ScrapDroneSwarmDamageBonusModifier.Instance));
 		}
-
-		if (modifiers.Count == 0)
-			return ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>.Empty;
 
 		return new ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>(
 			modifiers);

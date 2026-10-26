@@ -76,6 +76,8 @@ public sealed class SpawnRepurposedMinerDef
 	public bool IsLegal(SpawnRepurposedMinerAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
+		if (actor.Overheat)
+			return false;
 		var installed = actor.FindInstalled(EAbilityKind.MinerBay, action.MountedOn);
 		if (installed is null)
 			return false;
@@ -102,6 +104,7 @@ public sealed class SpawnRepurposedMinerDef
 			: throw new InvalidOperationException("Repurposed Miner bay spec missing cooldown.");
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new SpawnRepurposedMinerEffect(installed.Mount, action.SpawnedUnitId),
 			new MountCooldownEffect(installed.Mount, cooldown),
 		];

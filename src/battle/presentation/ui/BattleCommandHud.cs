@@ -4,6 +4,7 @@ using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Player;
 using GrimSpace.Components;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -14,8 +15,9 @@ public sealed partial class BattleCommandHud : Control
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
 	private const float ConsoleHeight = 120f;
-	private const float ResourceHeight = 48f;
+	private const float ResourceHeight = 72f;
 	private const float ResourceWidth = 154f;
+	private static readonly Color HeatBarColor = new(0.95f, 0.48f, 0.22f);
 	private const float ResourceGap = 6f;
 	private const float PortraitSize = 104f;
 	private const string ExecuteFramePath = "res://assets/ui/battle/execute_action_frame.svg";
@@ -34,6 +36,7 @@ public sealed partial class BattleCommandHud : Control
 	private readonly Label _executeHotkey;
 	private readonly BattleResourceBar _apBar;
 	private readonly BattleResourceBar _mpBar;
+	private readonly BattleResourceBar _heatBar;
 	private readonly BattlePortraitHealthBar _healthBar;
 	private readonly BattlePortraitShieldBar _shieldBar;
 	private readonly TextureRect _pilotPortraitImage;
@@ -236,6 +239,11 @@ public sealed partial class BattleCommandHud : Control
 			HudPalettes.PurpleRed.Secondary,
 			BattleHudCopy.ManeuverPointsTooltip);
 		ResourceMeters.AddChild(_mpBar);
+		_heatBar = new BattleResourceBar(
+			BattleHudCopy.HeatTitle,
+			HeatBarColor,
+			BattleHudCopy.HeatTooltip(0, HeatSpec.Standard, false, false));
+		ResourceMeters.AddChild(_heatBar);
 
 		_focusButton = CreateActionButton(
 			"res://assets/ui/abilities/focus.svg",
@@ -298,10 +306,25 @@ public sealed partial class BattleCommandHud : Control
 		int actionPoints,
 		int maxActionPoints,
 		int maneuverPoints,
-		int maxManeuverPoints)
+		int maxManeuverPoints,
+		UnitDisplayState focusState)
 	{
 		_apBar.Apply(actionPoints, maxActionPoints);
+		_apBar.TooltipText = BattleHudCopy.ActionPointsTooltip;
 		_mpBar.Apply(maneuverPoints, maxManeuverPoints);
+		_mpBar.TooltipText = BattleHudCopy.ManeuverPointsTooltip;
+
+		var participates = focusState.HeatProfile.Participates;
+		_heatBar.Visible = participates;
+		if (!participates)
+			return;
+
+		_heatBar.Apply(focusState.Heat, focusState.HeatCapacity);
+		_heatBar.TooltipText = BattleHudCopy.HeatTooltip(
+			focusState.Heat,
+			focusState.HeatProfile,
+			focusState.Overdrive,
+			focusState.Overheat);
 	}
 
 	public void ApplyDefenses(

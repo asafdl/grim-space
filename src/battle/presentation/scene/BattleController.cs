@@ -166,8 +166,7 @@ public partial class BattleController : Node3D
 		RedDwarfSun.Configure(
 			GetNode<DirectionalLight3D>("DirectionalLight3D"),
 			gridCenter,
-			chamberRadius,
-			_camera);
+			chamberRadius);
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);

@@ -90,6 +90,8 @@ public sealed class VoidBombDef
 	public bool IsLegal(VoidBombAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
+		if (state.Overheat)
+			return false;
 		var installed = state.FindInstalled(EAbilityKind.VoidBombLauncher, action.MountedOn);
 		if (installed is null)
 			return false;
@@ -112,6 +114,7 @@ public sealed class VoidBombDef
 			: throw new InvalidOperationException("VoidBomb launcher spec missing cooldown.");
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new SpawnVoidBombEffect(installed.Mount, action.SpawnedUnitId),
 			new MountCooldownEffect(installed.Mount, cooldown),
 		];

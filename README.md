@@ -253,6 +253,14 @@ Strategic engagements deploy as seeded 3D interceptions. The initiating fleet st
 
 Movement uses two independently refilled resources. Action points (AP) pay for translation, while maneuver points (MP) pay for yaw, pitch, and roll. Each chassis owns its AP/MP allotments, supported translations and rotations, and their costs through [`ManeuverabilitySpec`](src/units/maneuvering/ManeuverabilitySpec.cs); battle [`State`](src/battle/units/State.cs) holds the effective profile and current pools. Void bombs derive a zero-MP profile from their launcher snapshot. Path selection ranks exact destination poses by AP cost first, then MP cost.
 
+### Heat, overdrive, and overheat
+
+Chassis that participate in heat ([`HeatSpec`](src/units/heat/HeatSpec.cs) on [`ShipSpec.Heat`](src/units/specs/ShipSpec.cs), copied to `State.HeatProfile`) track a heat pool capped at capacity (`Standard` is 100, clear 20/round, gain multiplier 1). Opt-out with `HeatSpec.None` (e.g. void bombs)—gate with `Participates` only, never type branches.
+
+Actions emit [`HeatChangeEffect`](src/battle/effects/HeatChangeEffect.cs) deltas (`+10` per AP spent, `+5` per MP spent, `+20` per ability). Positive gains scale by `GainMultiplier` and no-op while overheated. Hitting capacity sets **overdrive** and schedules [`EnterOverheatAction`](src/battle/actions/EnterOverheatAction.cs) for the next tick; that clears overdrive, sets **overheat**, and schedules [`ClearOverheatAction`](src/battle/actions/ClearOverheatAction.cs) (heat to 0). Round upkeep cools by `ClearPerTurn` when neither flag is set.
+
+**Overdrive:** Attack-tagged damage through [`OverdriveDamageBonusModifier`](src/battle/pilot-capabilities/OverdriveDamageBonusModifier.cs) gains +80% (including the threshold-crossing attack). Reads the acting actor only. **Overheat:** ship abilities are illegal; movement remains legal and heat gain is frozen.
+
 ### Turn loop
 
 [`BattleOrchestrator`](src/battle/BattleOrchestrator.cs) walks [`UnitRegistry.ActivationOrder`](src/battle/units/UnitRegistry.cs), ordered by descending chassis initiative with stable enlistment-order ties. Each player-controlled activation enters `PlayerTurn`; ending it commits that actor, resolves following AI activations up to the next player-controlled actor, and packages that segment as a [`TurnReplay`](src/battle/TurnReplay.cs). The next player activation starts only after the segment replay completes. Newly spawned actors join the remaining activation order. Round upkeep is committed after the final activation, then the tick advances and a new initiative pass begins.

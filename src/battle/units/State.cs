@@ -4,6 +4,7 @@ using GrimSpace.Battle.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Units;
@@ -32,6 +33,10 @@ public sealed class State
 	public int DefensiveManeuversRollIndex { get; set; }
 	public bool InTheFrayActive { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
+	public required HeatSpec HeatProfile { get; set; }
+	public int Heat { get; set; }
+	public bool Overdrive { get; set; }
+	public bool Overheat { get; set; }
 
 	public bool IsAlive => HullPoints > 0;
 
@@ -103,6 +108,10 @@ public sealed class State
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			InTheFrayActive = InTheFrayActive,
 			Maneuverability = Maneuverability,
+			HeatProfile = HeatProfile,
+			Heat = Heat,
+			Overdrive = Overdrive,
+			Overheat = Overheat,
 		};
 		foreach (var (mount, runtime) in MountRuntime)
 			copy.MountRuntime[mount] = runtime.Clone();
@@ -125,6 +134,7 @@ public sealed class State
 			? VoidBombProjectile.CatalogDefault()
 			: null;
 		var maneuverability = ship.Spec.Maneuverability;
+		var heatProfile = ship.Spec.Heat;
 		var state = new State
 		{
 			Id = ship.Id,
@@ -143,6 +153,8 @@ public sealed class State
 			Projectile = projectile,
 			ParentId = parentId,
 			Maneuverability = maneuverability,
+			HeatProfile = heatProfile,
+			Heat = 0,
 		};
 		foreach (var installed in ship.Loadout.InstalledAbilities)
 			state.MountRuntime[installed.Mount] = installed.Spec.CreateInitialRuntime();

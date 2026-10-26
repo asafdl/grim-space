@@ -72,6 +72,7 @@ public sealed class HeadingDef
 
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerMpSpent * cost),
 			new HeadingTurnEffect(action.Turn),
 			new MpChangeEffect(-cost),
 		];

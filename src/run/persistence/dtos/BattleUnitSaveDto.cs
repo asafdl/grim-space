@@ -26,4 +26,10 @@ public sealed record BattleUnitSaveDto(
 	bool ShieldsUpUsedThisTurn = false,
 	int? DefensiveManeuversMpSpentLastTurn = null,
 	int DefensiveManeuversRollIndex = 0,
-	bool InTheFrayActive = false);
+	bool InTheFrayActive = false,
+	int Heat = 0,
+	int? HeatCapacity = null,
+	int? HeatClearPerTurn = null,
+	float? HeatGainMultiplier = null,
+	bool Overdrive = false,
+	bool Overheat = false);

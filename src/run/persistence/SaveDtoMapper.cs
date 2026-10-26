@@ -14,6 +14,7 @@ using BattleUnitState = GrimSpace.Battle.Units.State;
 using GrimSpace.Run.Items;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Units.Specs;
@@ -235,8 +236,14 @@ public static class SaveDtoMapper
 			state.DefensiveManeuversMpSpentLastTurn,
 			state.DefensiveManeuversRollIndex,
 			state.InTheFrayActive,
+			state.Heat,
+			state.Overdrive,
+			state.Overheat,
 			MaxAp = state.Maneuverability.MaxActionPoints,
 			MaxMp = state.Maneuverability.MaxManeuverPoints,
+			HeatCapacity = state.HeatProfile.Capacity,
+			HeatClearPerTurn = state.HeatProfile.ClearPerTurn,
+			HeatGainMultiplier = state.HeatProfile.GainMultiplier,
 			state.Projectile,
 			MountRuntime = state.MountRuntime.Select(pair => new
 			{
@@ -269,6 +276,7 @@ public static class SaveDtoMapper
 		state.DefensiveManeuversMpSpentLastTurn = dto.DefensiveManeuversMpSpentLastTurn;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
 		state.InTheFrayActive = dto.InTheFrayActive;
+		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
 			dto.MaxAp,
@@ -342,8 +350,14 @@ public static class SaveDtoMapper
 				state.DefensiveManeuversMpSpentLastTurn,
 				state.DefensiveManeuversRollIndex,
 				state.InTheFrayActive,
+				state.Heat,
+				state.Overdrive,
+				state.Overheat,
 				MaxAp = state.Maneuverability.MaxActionPoints,
 				MaxMp = state.Maneuverability.MaxManeuverPoints,
+				HeatCapacity = state.HeatProfile.Capacity,
+				HeatClearPerTurn = state.HeatProfile.ClearPerTurn,
+				HeatGainMultiplier = state.HeatProfile.GainMultiplier,
 				state.Projectile,
 				MountRuntime = state.MountRuntime.Select(pair => new
 				{
@@ -866,6 +880,14 @@ public static class SaveDtoMapper
 			state.DefensiveManeuversMpSpentLastTurn = unitDto.DefensiveManeuversMpSpentLastTurn;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
 			state.InTheFrayActive = unitDto.InTheFrayActive;
+			RestoreHeat(
+				state,
+				unitDto.Heat,
+				unitDto.HeatCapacity,
+				unitDto.HeatClearPerTurn,
+				unitDto.HeatGainMultiplier,
+				unitDto.Overdrive,
+				unitDto.Overheat);
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
 				unitDto.MaxAp,
@@ -998,6 +1020,27 @@ public static class SaveDtoMapper
 				Remaining = RestoreFaces(dto.Remaining),
 			});
 		}
+	}
+
+	private static void RestoreHeat(
+		BattleUnitState state,
+		int heat,
+		int? heatCapacity,
+		int? heatClearPerTurn,
+		float? heatGainMultiplier,
+		bool overdrive,
+		bool overheat)
+	{
+		state.Heat = heat;
+		state.Overdrive = overdrive;
+		state.Overheat = overheat;
+		if (heatCapacity is null && heatClearPerTurn is null && heatGainMultiplier is null)
+			return;
+
+		state.HeatProfile = new HeatSpec(
+			heatCapacity ?? state.HeatProfile.Capacity,
+			heatClearPerTurn ?? state.HeatProfile.ClearPerTurn,
+			heatGainMultiplier ?? state.HeatProfile.GainMultiplier);
 	}
 
 	private static FaceShieldDto CaptureFaces(FaceShieldPoints points) =>

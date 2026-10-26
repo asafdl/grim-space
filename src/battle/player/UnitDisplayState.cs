@@ -5,6 +5,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Units.Maneuvering;
@@ -25,6 +26,10 @@ public sealed record UnitDisplayState(
 	int ActionPoints,
 	int ManeuverPoints,
 	ManeuverabilitySpec Maneuverability,
+	HeatSpec HeatProfile,
+	int Heat,
+	bool Overdrive,
+	bool Overheat,
 	IReadOnlyList<MountDisplayState> Mounts,
 	int FuelRemaining,
 	VoidBombProjectile? Projectile,
@@ -48,6 +53,10 @@ public sealed record UnitDisplayState(
 			state.ActionPoints,
 			state.ManeuverPoints,
 			state.Maneuverability,
+			state.HeatProfile,
+			state.Heat,
+			state.Overdrive,
+			state.Overheat,
 			state.Loadout.InstalledAbilities
 				.Select(installed => MountDisplayState.Capture(
 					installed,
@@ -62,6 +71,7 @@ public sealed record UnitDisplayState(
 
 	public int MaxActionPoints => Maneuverability.MaxActionPoints;
 	public int MaxManeuverPoints => Maneuverability.MaxManeuverPoints;
+	public int HeatCapacity => HeatProfile.EffectiveCapacity;
 
 	public int UsesRemaining(EAbilityKind kind) =>
 		Mounts
@@ -104,6 +114,10 @@ public sealed record UnitDisplayState(
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,
 			Maneuverability = Maneuverability,
+			HeatProfile = HeatProfile,
+			Heat = Heat,
+			Overdrive = Overdrive,
+			Overheat = Overheat,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
 		};
 		foreach (var mount in Mounts)

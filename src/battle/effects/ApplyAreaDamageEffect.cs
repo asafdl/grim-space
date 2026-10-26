@@ -18,6 +18,7 @@ public sealed class ApplyAreaDamageEffect(
 	int shieldDamageBonus = 0,
 	int shieldDamageBonusPercent = 0,
 	int adjacentHitDamagePercent = 100,
+	int damageBonusPercent = 0,
 	bool destroySource = false) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
@@ -27,6 +28,7 @@ public sealed class ApplyAreaDamageEffect(
 	public int ShieldDamageBonus => shieldDamageBonus;
 	public int ShieldDamageBonusPercent => shieldDamageBonusPercent;
 	public int AdjacentHitDamagePercent => adjacentHitDamagePercent;
+	public int DamageBonusPercent => damageBonusPercent;
 
 	public ApplyAreaDamageEffect WithAdditionalDamage(int amount) =>
 		new(
@@ -37,6 +39,7 @@ public sealed class ApplyAreaDamageEffect(
 			shieldDamageBonus,
 			shieldDamageBonusPercent,
 			adjacentHitDamagePercent,
+			damageBonusPercent,
 			destroySource);
 
 	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
@@ -48,6 +51,7 @@ public sealed class ApplyAreaDamageEffect(
 			shieldDamageBonus + amount,
 			shieldDamageBonusPercent,
 			adjacentHitDamagePercent,
+			damageBonusPercent,
 			destroySource);
 
 	public ApplyAreaDamageEffect WithShieldDamageBonusPercent(int percent) =>
@@ -59,6 +63,7 @@ public sealed class ApplyAreaDamageEffect(
 			shieldDamageBonus,
 			percent,
 			adjacentHitDamagePercent,
+			damageBonusPercent,
 			destroySource);
 
 	public ApplyAreaDamageEffect WithAdjacentHitDamagePercent(int percent) =>
@@ -69,6 +74,19 @@ public sealed class ApplyAreaDamageEffect(
 			origin,
 			shieldDamageBonus,
 			shieldDamageBonusPercent,
+			percent,
+			damageBonusPercent,
+			destroySource);
+
+	public ApplyAreaDamageEffect WithDamageBonusPercent(int percent) =>
+		new(
+			cause,
+			cells,
+			damage,
+			origin,
+			shieldDamageBonus,
+			shieldDamageBonusPercent,
+			adjacentHitDamagePercent,
 			percent,
 			destroySource);
 
@@ -116,6 +134,8 @@ public sealed class ApplyAreaDamageEffect(
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
 		var appliedDamage = damage;
+		if (damageBonusPercent != 0)
+			appliedDamage = ScalePercent(appliedDamage, 100 + damageBonusPercent);
 		if (origin.ManhattanDistanceTo(unit.Position) == 1 && adjacentHitDamagePercent != 100)
 			appliedDamage = ScalePercent(appliedDamage, adjacentHitDamagePercent);
 

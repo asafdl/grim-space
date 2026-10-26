@@ -84,6 +84,8 @@ public sealed class GoopGunDef
 	public bool IsLegal(GoopGunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
+		if (state.Overheat)
+			return false;
 		var installed = state.FindInstalled(EAbilityKind.GoopGun, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).CooldownRemaining > 0)
 			return false;
@@ -122,6 +124,7 @@ public sealed class GoopGunDef
 
 		return
 		[
+			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new AddHazardEffect(hazard),
 			new MountCooldownEffect(installed.Mount, goopGun.UnavailableTurns + 1),
 			new ScheduleActionEffect(2, new RemoveHazardAction(action.ActorId, action.GoopHazardId)),

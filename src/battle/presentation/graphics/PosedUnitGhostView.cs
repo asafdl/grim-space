@@ -67,6 +67,7 @@ public sealed partial class PosedUnitGhostView : Node3D
 			Dorsal = spec.Dorsal,
 			Starboard = GrimSpace.Math.Grid.Coord.Cross(spec.Dorsal, spec.Fore),
 			Maneuverability = chassis.Maneuverability,
+			HeatProfile = chassis.Heat,
 			HullPoints = loadout.MaxHullPoints,
 			ShieldPoints = loadout.MaxShieldPoints.Clone(),
 		};

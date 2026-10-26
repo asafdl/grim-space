@@ -10,6 +10,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	private int _previousActionPoints;
 	private int _previousManeuverPoints;
+	private int _previousHeat;
 	private Dictionary<AbilityMount, MountRuntimeCounters>? _previousMountRuntime;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -17,6 +18,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		var actor = world.StateOf(actorId);
 		_previousActionPoints = actor.ActionPoints;
 		_previousManeuverPoints = actor.ManeuverPoints;
+		_previousHeat = actor.Heat;
 		_previousMountRuntime = actor.MountRuntime.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.Clone());
@@ -26,6 +28,9 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		foreach (var installed in actor.Loadout.InstalledAbilities)
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
+		if (actor.HeatProfile.Participates && !actor.Overdrive && !actor.Overheat)
+			actor.Heat = System.Math.Max(0, actor.Heat - actor.HeatProfile.ClearPerTurn);
+
 		return [];
 	}
 
@@ -34,6 +39,7 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		var actor = world.StateOf(actorId);
 		actor.ActionPoints = _previousActionPoints;
 		actor.ManeuverPoints = _previousManeuverPoints;
+		actor.Heat = _previousHeat;
 		if (_previousMountRuntime is null)
 			return;
 

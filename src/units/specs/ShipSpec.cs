@@ -1,5 +1,6 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Units.Maneuvering;
@@ -13,6 +14,7 @@ public abstract class ShipSpec
 	public abstract int DefaultMaxHullPoints { get; }
 	public abstract FaceShieldPoints DefaultMaxShieldPoints { get; }
 	public abstract ManeuverabilitySpec Maneuverability { get; }
+	public virtual HeatSpec Heat => HeatSpec.Standard;
 	public abstract IReadOnlyList<WeaponSlot> Slots { get; }
 
 	public bool Supports(AbilityMount mount) =>

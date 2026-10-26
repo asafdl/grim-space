@@ -371,7 +371,8 @@ public partial class BattleHud : Node
 			focusState.ActionPoints,
 			focusState.MaxActionPoints,
 			focusState.ManeuverPoints,
-			focusState.MaxManeuverPoints);
+			focusState.MaxManeuverPoints,
+			focusState);
 		CommandHud.ApplyDefenses(
 			focusState.HullPoints,
 			focusState.MaxHullPoints,

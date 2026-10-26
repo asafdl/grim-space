@@ -73,6 +73,8 @@ public sealed class LightningCannonDef
 	public bool IsLegal(LightningCannonAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
+		if (state.Overheat)
+			return false;
 		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
 			return false;
@@ -94,6 +96,7 @@ public sealed class LightningCannonDef
 		var chain = ChainLightning.Resolve(world, action.ActorId, lightningCannon, action.MountedOn);
 		var effects = new IEffect<BattleWorld, ActorRuntime>[]
 		{
+			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new ApplyChainLightningDamageEffect(
 				EImpactCause.LightningCannonBurst,
 				chain.BeamCells,
