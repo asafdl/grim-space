@@ -37,19 +37,22 @@ public sealed class ContractNarrativePicker
 		if (eligible.Count == 0)
 		{
 			narrative = Fallback(kind);
-			return !IsTitleInUse(map, narrative.Title, supplementalBoardContracts);
+			return kind == EContractKind.Lead
+				|| !IsTitleInUse(map, narrative.Title, supplementalBoardContracts);
 		}
 
-		var unused = FilterUnused(map, eligible, supplementalBoardContracts);
-		if (unused.Count == 0)
+		var pool = kind == EContractKind.Lead
+			? eligible
+			: FilterUnused(map, eligible, supplementalBoardContracts);
+		if (pool.Count == 0)
 		{
 			narrative = null!;
 			return false;
 		}
 
 		var random = CreateRandom(map.Seed, tick, slotIndex, kind);
-		var index = (int)(random.NextDouble() * unused.Count);
-		narrative = unused[index].ToNarrative();
+		var index = (int)(random.NextDouble() * pool.Count);
+		narrative = pool[index].ToNarrative();
 		return true;
 	}
 
@@ -81,6 +84,8 @@ public sealed class ContractNarrativePicker
 		var used = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var contract in map.ContractRegistry.All)
 		{
+			if (contract.Category == EContractCategory.Lead)
+				continue;
 			if (!IsPendingOrActive(map, contract.Id))
 				continue;
 
@@ -91,7 +96,12 @@ public sealed class ContractNarrativePicker
 			return used;
 
 		foreach (var contract in supplementalBoardContracts)
+		{
+			if (contract.Category == EContractCategory.Lead)
+				continue;
+
 			used.Add(contract.Narrative.Title);
+		}
 
 		return used;
 	}

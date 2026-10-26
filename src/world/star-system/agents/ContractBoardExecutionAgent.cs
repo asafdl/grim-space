@@ -520,25 +520,13 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			return false;
 
 		var kind = PickLeadKind(map.Seed, tick, _config.Leads.KindWeights);
-		var queuedContracts = queued
-			.Select(candidate => candidate.Contract)
-			.ToArray();
-		if (!_narrativePicker.TryPick(
-			map,
-			EContractKind.Lead,
-			tick,
-			slotIndex: 0,
-			out var narrative,
-			queuedContracts))
-			return false;
-
 		var contractId = LeadContractIdFor(map, tick);
 		if (!ContractFactory.TryBuildLead(
 			map,
 			contractId,
 			new LeadCreateArgs(
 				kind,
-				narrative,
+				_narrativePicker.Pick(map, EContractKind.Lead, tick, slotIndex: 0),
 				_config.Leads.SaleDurationTicks,
 				_config.Leads.SpaceMeetingChance),
 			out var contract))

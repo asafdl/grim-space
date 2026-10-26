@@ -2,6 +2,9 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
+using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.Tests.World.StarSystem;
 
 namespace GrimSpace.Tests.World.StarSystem.Contracts.Generation;
@@ -151,6 +154,39 @@ public sealed class ContractNarrativePickerTests(StarMapFixture maps)
 			tick: 3,
 			slotIndex: 0,
 			out _));
+	}
+
+	[Fact]
+	public void TryPick_Lead_IgnoresTitleUniqueness()
+	{
+		var map = maps.Fresh(42);
+		var picker = new ContractNarrativePicker(new ContractNarrativePickerConfig
+		{
+			Entries =
+			[
+				new(EContractKind.Lead, "Quiet Opportunity", "Already offered."),
+			],
+		});
+		var first = picker.Pick(map, EContractKind.Lead, tick: 1, slotIndex: 0);
+		Assert.True(map.ContractRegistry.TryAdd(new Contract(
+			"lead-existing",
+			new BlackMarketSaleObjective(
+				new BlackMarketFacilityDestination("poi-a", "facility-a"),
+				EMerchantSubtype.Weapons,
+				durationTicks: 10),
+			EDangerLevel.VeryLow,
+			map.ControllingFaction,
+			new ContractTerms(ResourceBundle.Empty),
+			first,
+			Category: EContractCategory.Lead)));
+
+		Assert.True(picker.TryPick(
+			map,
+			EContractKind.Lead,
+			tick: 2,
+			slotIndex: 0,
+			out var second));
+		Assert.Equal(first.Title, second.Title);
 	}
 
 	private static Contract TakeHuntTemplate(StarMap map) =>
