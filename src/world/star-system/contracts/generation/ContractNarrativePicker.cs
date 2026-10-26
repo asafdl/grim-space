@@ -14,17 +14,43 @@ public sealed class ContractNarrativePicker
 		StarMap map,
 		EContractKind kind,
 		int tick,
-		int slotIndex)
+		int slotIndex,
+		IReadOnlyList<Contract>? supplementalBoardContracts = null)
+	{
+		if (TryPick(map, kind, tick, slotIndex, out var narrative, supplementalBoardContracts))
+			return narrative;
+
+		return Fallback(kind);
+	}
+
+	public bool TryPick(
+		StarMap map,
+		EContractKind kind,
+		int tick,
+		int slotIndex,
+		out ContractNarrative narrative,
+		IReadOnlyList<Contract>? supplementalBoardContracts = null)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 
 		var eligible = EligibleEntries(kind);
 		if (eligible.Count == 0)
-			return Fallback(kind);
+		{
+			narrative = Fallback(kind);
+			return !IsTitleInUse(map, narrative.Title, supplementalBoardContracts);
+		}
+
+		var unused = FilterUnused(map, eligible, supplementalBoardContracts);
+		if (unused.Count == 0)
+		{
+			narrative = null!;
+			return false;
+		}
 
 		var random = CreateRandom(map.Seed, tick, slotIndex, kind);
-		var index = (int)(random.NextDouble() * eligible.Count);
-		return eligible[index].ToNarrative();
+		var index = (int)(random.NextDouble() * unused.Count);
+		narrative = unused[index].ToNarrative();
+		return true;
 	}
 
 	private IReadOnlyList<ContractNarrativePoolEntry> EligibleEntries(EContractKind kind) =>
@@ -33,6 +59,53 @@ public sealed class ContractNarrativePicker
 				entry.Kind == kind
 				&& entry.Subtype == ContractNarrativeSubtype.Contract)
 			.ToArray();
+
+	private static IReadOnlyList<ContractNarrativePoolEntry> FilterUnused(
+		StarMap map,
+		IReadOnlyList<ContractNarrativePoolEntry> eligible,
+		IReadOnlyList<Contract>? supplementalBoardContracts)
+	{
+		var used = CollectUsedTitles(map, supplementalBoardContracts);
+		if (used.Count == 0)
+			return eligible;
+
+		return eligible
+			.Where(entry => !used.Contains(entry.Title))
+			.ToArray();
+	}
+
+	private static HashSet<string> CollectUsedTitles(
+		StarMap map,
+		IReadOnlyList<Contract>? supplementalBoardContracts)
+	{
+		var used = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var contract in map.ContractRegistry.All)
+		{
+			if (!IsPendingOrActive(map, contract.Id))
+				continue;
+
+			used.Add(contract.Narrative.Title);
+		}
+
+		if (supplementalBoardContracts is null)
+			return used;
+
+		foreach (var contract in supplementalBoardContracts)
+			used.Add(contract.Narrative.Title);
+
+		return used;
+	}
+
+	private static bool IsTitleInUse(
+		StarMap map,
+		string title,
+		IReadOnlyList<Contract>? supplementalBoardContracts) =>
+		CollectUsedTitles(map, supplementalBoardContracts).Contains(title);
+
+	private static bool IsPendingOrActive(StarMap map, string contractId) =>
+		map.ContractRegistry.IsPending(contractId)
+		|| map.ContractRegistry.TryGetState(contractId, out var state)
+		&& state.Status == EContractStatus.Active;
 
 	private static ContractNarrative Fallback(EContractKind kind) =>
 		kind switch

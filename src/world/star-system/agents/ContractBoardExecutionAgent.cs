@@ -472,9 +472,26 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		if (decision is null)
 			return false;
 
+		if (!_narrativePicker.TryPick(
+			map,
+			decision.Kind,
+			tick,
+			slot,
+			out var narrative,
+			queuedBoardContracts))
+			return false;
+
 		var contractId = ContractIdFor(map, tick, slot);
 		var danger = StarSystemDangerProgression.RollDanger(map, tick, slot, "contract-danger");
-		if (!TryBuildContract(map, contractId, decision, danger, tick, slot, out var contract))
+		if (!TryBuildContract(
+			map,
+			contractId,
+			decision,
+			danger,
+			tick,
+			slot,
+			narrative,
+			out var contract))
 			return false;
 
 		addition = new ContractAddition(contract, tick + _config.TtlTicks);
@@ -503,13 +520,25 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			return false;
 
 		var kind = PickLeadKind(map.Seed, tick, _config.Leads.KindWeights);
+		var queuedContracts = queued
+			.Select(candidate => candidate.Contract)
+			.ToArray();
+		if (!_narrativePicker.TryPick(
+			map,
+			EContractKind.Lead,
+			tick,
+			slotIndex: 0,
+			out var narrative,
+			queuedContracts))
+			return false;
+
 		var contractId = LeadContractIdFor(map, tick);
 		if (!ContractFactory.TryBuildLead(
 			map,
 			contractId,
 			new LeadCreateArgs(
 				kind,
-				_narrativePicker.Pick(map, EContractKind.Lead, tick, slotIndex: 0),
+				narrative,
 				_config.Leads.SaleDurationTicks,
 				_config.Leads.SpaceMeetingChance),
 			out var contract))
@@ -617,6 +646,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		EDangerLevel danger,
 		int tick,
 		int slot,
+		ContractNarrative narrative,
 		out Contract contract)
 	{
 		contract = null!;
@@ -626,35 +656,35 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				return ContractFactory.TryBuildHunt(
 					map,
 					contractId,
-					BuildHuntArgs(map, danger, tick, slot),
+					BuildHuntArgs(map, danger, tick, slot, narrative),
 					out contract);
 			case EContractKind.Delivery:
 				contract = ContractFactory.Build(
 					map,
 					contractId,
 					EContractKind.Delivery,
-					BuildDeliveryArgs(map, contractId, danger, tick, slot));
+					BuildDeliveryArgs(map, contractId, danger, narrative));
 				return true;
 			case EContractKind.Wreckage:
 				return ContractFactory.TryBuildWreckage(
 					map,
 					contractId,
-					BuildWreckageArgs(map, danger, tick, slot),
+					BuildWreckageArgs(map, danger, tick, slot, narrative),
 					out contract);
 			default:
 				throw new ArgumentOutOfRangeException(nameof(decision.Kind), decision.Kind, null);
 		}
 	}
 
-	private HuntCreateArgs BuildHuntArgs(
+	private static HuntCreateArgs BuildHuntArgs(
 		StarMap map,
 		EDangerLevel danger,
 		int tick,
-		int slot)
+		int slot,
+		ContractNarrative narrative)
 	{
 		var landmarkIds = MapLandmarkQueries.AllIds(map);
 		var areaPickMix = (long)StableSeedMixer.From(map.Seed).Add(tick).Add(slot).Add("hunt-area").Value;
-		var narrative = _narrativePicker.Pick(map, EContractKind.Hunt, tick, slot);
 
 		return new HuntCreateArgs(
 			new AreaPickerArgs(landmarkIds, DeterministicPickMix: areaPickMix),
@@ -662,26 +692,23 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			narrative);
 	}
 
-	private DeliveryCreateArgs BuildDeliveryArgs(
+	private static DeliveryCreateArgs BuildDeliveryArgs(
 		StarMap map,
 		string contractId,
 		EDangerLevel danger,
-		int tick,
-		int slot)
-	{
-		var narrative = _narrativePicker.Pick(map, EContractKind.Delivery, tick, slot);
-		return new DeliveryCreateArgs(
+		ContractNarrative narrative) =>
+		new(
 			danger,
 			narrative,
 			Generation: new DeliveryGenerationConfig(
 				StarSystemDangerProgression.RollDeliveryLegCount(map.Seed, contractId, danger)));
-	}
 
-	private WreckageCreateArgs BuildWreckageArgs(
+	private static WreckageCreateArgs BuildWreckageArgs(
 		StarMap map,
 		EDangerLevel danger,
 		int tick,
-		int slot)
+		int slot,
+		ContractNarrative narrative)
 	{
 		var navLandmarkIds = map.NavigationLandmarks
 			.Select(landmark => landmark.Id)
@@ -693,7 +720,6 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		var referenceMode = modeRandom.NextDouble() < WreckageBorderReferenceWeight
 			? EAreaPickerReferenceMode.LandmarkWithBorderTriangle
 			: EAreaPickerReferenceMode.TriangulateLandmarks;
-		var narrative = _narrativePicker.Pick(map, EContractKind.Wreckage, tick, slot);
 
 		return new WreckageCreateArgs(
 			new AreaPickerArgs(
