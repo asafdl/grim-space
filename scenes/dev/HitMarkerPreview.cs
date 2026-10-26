@@ -28,7 +28,7 @@ public partial class HitMarkerPreview : Node3D
 	private int _typeIndex;
 	private int _faceIndex;
 	private int _damage = 12;
-	private bool _shieldDamage = true;
+	private bool _shieldDamage;
 	private bool _lightningHit;
 	private bool _frozen;
 	private Label _status = null!;
@@ -160,7 +160,7 @@ public partial class HitMarkerPreview : Node3D
 		var type = ShipTypes[_typeIndex];
 		var hitFace = HitFaces[_faceIndex];
 		_status.Text =
-			$"Hit feedback preview  |  {type}  |  Hit from: {BattleHudCopy.FaceName(hitFace)}  |  Damage: {_damage}  |  Layer: {(_shieldDamage ? "Shield" : "Hull")}  |  {(_lightningHit ? "Lightning" : "Sparks")}  |  {(_frozen ? "Frozen" : "Looping")}\n" +
+			$"Hit feedback preview  |  {type}  |  Hit from: {BattleHudCopy.FaceName(hitFace)}  |  Damage: {_damage}  |  Layer: {(_shieldDamage ? "Shield" : "Hull + fragments")}  |  {(_lightningHit ? "Lightning" : "Sparks")}  |  {(_frozen ? "Frozen" : "Looping")}\n" +
 			"Space: hit   F: cycle hit face   C: shield/hull layer   L: lightning/sparks   P: freeze loop   Up/Down: damage   Left/Right: ship type";
 	}
 }

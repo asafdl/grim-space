@@ -303,7 +303,17 @@ public partial class UnitView : Node3D
 		if (shieldDamage > 0)
 			OneShotParticles.PlayHitSparks(this, emitPoint, emitBasis);
 		if (hullDamage > 0)
+		{
 			OneShotParticles.PlayHullHitSparks(this, emitPoint, emitBasis);
+			var host = GetParent()
+				?? throw new InvalidOperationException("Hull hit effects require a unit scene parent.");
+			var hullSize = Mathf.Max(_hullBounds.Size.X, Mathf.Max(_hullBounds.Size.Y, _hullBounds.Size.Z));
+			OneShotParticles.PlayHullFragments(
+				host,
+				GlobalTransform * new Transform3D(emitBasis, emitPoint),
+				hullSize,
+				hullDamage);
+		}
 		if (lightning)
 			PresentationSfx.PlayWorldOneShot(this, emitPoint, PresentationSfx.LightningCannonHitPath);
 		if (hasShieldDamage || hasHullDamage)

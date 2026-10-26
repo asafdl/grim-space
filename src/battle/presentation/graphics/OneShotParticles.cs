@@ -4,7 +4,7 @@ using Godot;
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 /// <summary>
-/// One-shot <see cref="GpuParticles3D"/> bursts — Godot's built-in particle path for explosions/sparks.
+/// One-shot particle bursts and mesh effects for impacts and ship destruction.
 /// </summary>
 internal static class OneShotParticles
 {
@@ -45,12 +45,113 @@ internal static class OneShotParticles
 	private static Texture2D? _smokeTexture;
 	private static PackedScene? _boomText;
 	private static PackedScene[]? _wreckageModels;
+	private static readonly string[] HullFragmentPaths =
+	[
+		"res://assets/models/wreck_debris_pack/bent_armor.glb",
+		"res://assets/models/wreck_debris_pack/engine_fragment.glb",
+		"res://assets/models/wreck_debris_pack/hull_panel.glb",
+	];
+	private static PackedScene[]? _hullFragmentModels;
+	private const double HullFragmentLifetime = 1.5;
+	private static readonly Color FragmentHeatColor = new(1f, 0.24f, 0.015f);
 
 	public static void PlayHitSparks(Node parent, Vector3 localPosition, Basis? localBasis = null)
 		=> PlaySparks(parent, localPosition, localBasis, ref _hitSparks, HitSparksPath);
 
 	public static void PlayHullHitSparks(Node parent, Vector3 localPosition, Basis? localBasis = null)
 		=> PlaySparks(parent, localPosition, localBasis, ref _hullHitSparks, HullHitSparksPath);
+
+	public static void PlayHullFragments(
+		Node host,
+		Transform3D worldTransform,
+		float hullSize,
+		int hullDamage)
+	{
+		if (hullDamage <= 0)
+			throw new ArgumentOutOfRangeException(nameof(hullDamage), "Hull damage must be positive.");
+		_hullFragmentModels ??= HullFragmentPaths.Select(path => GD.Load<PackedScene>(path)
+			?? throw new InvalidOperationException($"Could not load hull fragment '{path}'."))
+			.ToArray();
+		var fragmentCount = (hullDamage - 1) / 4 + 1;
+		var burst = new Node3D { Name = "HullHitFragments" };
+		host.AddChild(burst);
+		burst.TopLevel = true;
+		burst.GlobalTransform = worldTransform;
+
+		for (var i = 0; i < fragmentCount; i++)
+		{
+			var pivot = new Node3D { Name = $"Fragment_{i}" };
+			burst.AddChild(pivot);
+			var model = _hullFragmentModels[(int)(GD.Randi() % (uint)_hullFragmentModels.Length)]
+				.Instantiate<Node3D>();
+			pivot.AddChild(model);
+			var meshes = model.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>().Prepend(model as MeshInstance3D).OfType<MeshInstance3D>().ToArray();
+			Aabb? bounds = null;
+			foreach (var mesh in meshes)
+			{
+				var geometry = mesh.Mesh
+					?? throw new InvalidOperationException($"Hull fragment '{mesh.Name}' has no mesh.");
+				var transform = pivot.GlobalTransform.AffineInverse() * mesh.GlobalTransform;
+				var partBounds = transform * geometry.GetAabb();
+				bounds = bounds is { } existing ? existing.Merge(partBounds) : partBounds;
+			}
+			var modelBounds = bounds
+				?? throw new InvalidOperationException($"Hull fragment '{model.Name}' has no meshes.");
+			var longestSide = Mathf.Max(modelBounds.Size.X, Mathf.Max(modelBounds.Size.Y, modelBounds.Size.Z));
+			if (longestSide <= 0f)
+				throw new InvalidOperationException("Hull fragment mesh has no extent.");
+			var size = Mathf.Clamp(hullSize * 0.065f, 0.045f, 0.11f) * RandomRange(0.7f, 1.3f);
+			pivot.Scale = Vector3.One * (size / longestSide);
+			model.Position -= modelBounds.GetCenter();
+			pivot.Rotation = new Vector3(
+				RandomRange(-Mathf.Pi, Mathf.Pi),
+				RandomRange(-Mathf.Pi, Mathf.Pi),
+				RandomRange(-Mathf.Pi, Mathf.Pi));
+
+			var heat = burst.CreateTween().SetParallel();
+			foreach (var mesh in meshes)
+			{
+				PresentationLayers.MarkWorld(mesh);
+				mesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+				var geometry = mesh.Mesh
+					?? throw new InvalidOperationException($"Hull fragment '{mesh.Name}' has no mesh.");
+				for (var surface = 0; surface < geometry.GetSurfaceCount(); surface++)
+				{
+					var source = mesh.GetActiveMaterial(surface) as BaseMaterial3D
+						?? throw new InvalidOperationException(
+							$"Hull fragment '{mesh.Name}' surface {surface} has no 3D material.");
+					var material = (BaseMaterial3D)source.Duplicate();
+					material.EmissionEnabled = true;
+					material.Emission = FragmentHeatColor;
+					material.EmissionTexture = null;
+					material.EmissionEnergyMultiplier = 3.5f;
+					material.AlbedoColor = FragmentHeatColor;
+					mesh.SetSurfaceOverrideMaterial(surface, material);
+					heat.TweenProperty(material, "albedo_color", source.AlbedoColor, 0.72)
+						.SetDelay(0.1);
+					heat.TweenProperty(material, "emission_energy_multiplier", 0f, 0.72)
+						.SetDelay(0.1)
+						.SetTrans(Tween.TransitionType.Quad)
+						.SetEase(Tween.EaseType.In);
+				}
+			}
+
+			var direction = new Vector3(RandomRange(-0.55f, 0.55f), 1f, RandomRange(-0.55f, 0.55f))
+				.Normalized();
+			var spin = new Vector3(RandomRange(-8f, 8f), RandomRange(-8f, 8f), RandomRange(-8f, 8f));
+			var motion = burst.CreateTween().SetParallel();
+			motion.TweenProperty(pivot, "position", direction * RandomRange(1.4f, 2.8f), HullFragmentLifetime);
+			motion.TweenProperty(pivot, "rotation", pivot.Rotation + spin, HullFragmentLifetime);
+			foreach (var mesh in meshes)
+				motion.TweenProperty(mesh, "transparency", 1f, 0.65)
+					.SetDelay(HullFragmentLifetime - 0.65);
+		}
+
+		var cleanup = burst.CreateTween();
+		cleanup.TweenInterval(HullFragmentLifetime);
+		cleanup.TweenCallback(Callable.From(burst.QueueFree));
+	}
 
 	private static void PlaySparks(
 		Node parent,
