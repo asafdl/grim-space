@@ -8,7 +8,7 @@ public static class RedDwarfSun
 	private const string SurfaceTexturePath = "res://assets/textures/2k_sun.jpg";
 	private const string SurfaceShaderPath =
 		"res://assets/shaders/battle_red_dwarf.gdshader";
-	public const float DistanceScale = 5f;
+	public const float DistanceScale = 10f;
 	public const float RadiusScale = 0.72f;
 	private const float ReferenceDistanceScale = 2.4f;
 
