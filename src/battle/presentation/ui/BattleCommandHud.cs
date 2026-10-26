@@ -17,7 +17,8 @@ public sealed partial class BattleCommandHud : Control
 	private const float ConsoleHeight = 160f;
 	private const float ResourceHeight = 128f;
 	private const float ResourceWidth = 240f;
-	private static readonly Color HeatBarColor = new(0.95f, 0.48f, 0.22f);
+	private static readonly Color HeatBarColor = new(0.78f, 0.3f, 0.08f);
+	private static readonly Color ManeuverPointsBarColor = new(0.4f, 0.3f, 0.62f);
 	private const float ResourceGap = 6f;
 	private const float ResourceRightPadding = 12f;
 	private const float ResourceBottomPadding = 12f;
@@ -244,10 +245,10 @@ public sealed partial class BattleCommandHud : Control
 		ResourceMeters.AddChild(_apBar);
 		_mpBar = new BattleResourceBar(
 			name: null,
-			color: HudPalettes.PurpleRed.Secondary,
+			color: ManeuverPointsBarColor,
 			tooltip: BattleHudCopy.ManeuverPointsTooltip,
 			iconPath: ManeuverPointsIconPath,
-			iconTint: HudPalettes.PurpleRed.Secondary);
+			iconTint: ManeuverPointsBarColor);
 		ResourceMeters.AddChild(_mpBar);
 		_heatBar = new BattleResourceBar(
 			name: null,

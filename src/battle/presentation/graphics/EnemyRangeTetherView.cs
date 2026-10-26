@@ -128,7 +128,11 @@ public sealed partial class EnemyRangeTetherView : Node3D
 				: 0f,
 			maxShield > 0
 				? targetState.ShieldPoints[shieldFace] / (float)maxShield
-				: 0f);
+				: 0f,
+			targetState.HeatCapacity > 0
+				? targetState.Heat / (float)targetState.HeatCapacity
+				: 0f,
+			targetState.HeatProfile.Participates);
 		Show();
 		UpdateVisual();
 	}

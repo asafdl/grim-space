@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://pq2wjsm57jvi"
-path="res://.godot/imported/battle-resource-bars-asset-reuse.jpg-6be2efae0224c63586a947be93d204df.ctex"
+uid="uid://d084rm43n0dwa"
+path="res://.godot/imported/flame_05.png-428e32785e106bdd223690a8477422e4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/battle/mockups/battle-resource-bars-asset-reuse.jpg"
-dest_files=["res://.godot/imported/battle-resource-bars-asset-reuse.jpg-6be2efae0224c63586a947be93d204df.ctex"]
+source_file="res://assets/vfx/flame_halo/flame_05.png"
+dest_files=["res://.godot/imported/flame_05.png-428e32785e106bdd223690a8477422e4.ctex"]
 
 [params]
 

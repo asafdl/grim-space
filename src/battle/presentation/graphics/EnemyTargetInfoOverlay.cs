@@ -13,6 +13,7 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 	private const string ReticleTexturePath = "res://assets/ui/battle/enemy_target_reticle.svg";
 
 	private static readonly Vector2 RailCenter = new(120f, 92f);
+	private static readonly Color HeatBarColor = new(0.78f, 0.3f, 0.08f);
 	private static readonly Color RailUnderlayColor = new(0.01f, 0.03f, 0.05f, 0.96f);
 	private static readonly Color EmptyRailColor = new(0.36f, 0.48f, 0.58f, 0.92f);
 	private static readonly Color HullColor = new(1f, 0.5f, 0.42f);
@@ -21,6 +22,8 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 	private readonly Sprite2D _reticle;
 	private float _hullRatio;
 	private float _shieldRatio;
+	private float _heatRatio;
+	private bool _showsHeat;
 
 	public EnemyTargetInfoOverlay()
 	{
@@ -59,11 +62,18 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 		AddChild(identity);
 	}
 
-	public void Set(string identity, float hullRatio, float shieldRatio)
+	public void Set(
+		string identity,
+		float hullRatio,
+		float shieldRatio,
+		float heatRatio,
+		bool showsHeat)
 	{
 		GetNode<Label>("Identity").Text = identity;
 		_hullRatio = Mathf.Clamp(hullRatio, 0f, 1f);
 		_shieldRatio = Mathf.Clamp(shieldRatio, 0f, 1f);
+		_heatRatio = Mathf.Clamp(heatRatio, 0f, 1f);
+		_showsHeat = showsHeat;
 		QueueRedraw();
 	}
 
@@ -76,6 +86,8 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 		const float hullStart = Mathf.Pi * 0.5f;
 		DrawRail(shieldStart, _shieldRatio, ShieldColor);
 		DrawRail(hullStart, _hullRatio, HullColor);
+		if (_showsHeat)
+			DrawRail(0f, _heatRatio, HeatBarColor);
 	}
 
 	private void DrawRail(float start, float ratio, Color color)

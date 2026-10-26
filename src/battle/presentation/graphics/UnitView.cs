@@ -28,6 +28,7 @@ public partial class UnitView : Node3D
 	private readonly Dictionary<GeometryInstance3D, ShaderMaterial> _moveGhostMaterials = [];
 	private MovementTrailView? _movementTrail;
 	private Vector3? _movementTangent;
+	private FlameHaloView? _flameHalo;
 
 	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
 
@@ -63,6 +64,15 @@ public partial class UnitView : Node3D
 			BindShip();
 
 		BindShieldBubble(state);
+		if (state.HeatProfile.Participates)
+		{
+			_flameHalo = new FlameHaloView
+			{
+				Name = "FlameHalo",
+				Position = new Vector3(0f, _hullBounds.End.Y + 0.32f, 0f),
+			};
+			AddChild(_flameHalo);
+		}
 
 		Sync(state);
 	}
@@ -79,6 +89,7 @@ public partial class UnitView : Node3D
 		SetMovementTrailEmitting(false);
 		VisualState = visualState;
 		Visible = visualState != UnitVisualState.Hidden;
+		UpdateHeatIndicator(state);
 		if (!Visible)
 			return;
 
@@ -214,6 +225,7 @@ public partial class UnitView : Node3D
 
 		VisualState = UnitVisualState.Live;
 		Visible = true;
+		UpdateHeatIndicator(state);
 		ApplyVisualState();
 		SetMovementTrailEmitting(true);
 		var startPosition = Position;
@@ -256,6 +268,7 @@ public partial class UnitView : Node3D
 
 		VisualState = UnitVisualState.Live;
 		Visible = true;
+		UpdateHeatIndicator(state);
 		ApplyVisualState();
 		SetMovementTrailEmitting(emitTrail);
 		var startQuat = NormalizeRotationQuaternion(Basis.GetRotationQuaternion());
@@ -471,6 +484,17 @@ public partial class UnitView : Node3D
 		Position = WorldMapping.ToWorld(state.Position);
 		ApplyOrientation(state);
 		ApplyShields(state);
+	}
+
+	private void UpdateHeatIndicator(State state)
+	{
+		var showOnUnit = VisualState is UnitVisualState.Live or UnitVisualState.PendingDeath;
+		_flameHalo?.SetHeat(
+			state.Heat,
+			state.HeatProfile.EffectiveCapacity,
+			state.Overdrive,
+			state.Overheat,
+			showOnUnit);
 	}
 
 	private void BindShip()
