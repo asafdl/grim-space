@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, cull_front, depth_draw_never, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_add, cull_front, depth_draw_never, shadows_disabled, fog_disabled;
 
 uniform sampler2D stars_panorama : filter_linear_mipmap, source_color;
 uniform sampler2D nebula_panorama : filter_linear_mipmap, source_color;
@@ -83,4 +83,5 @@ void fragment() {
 	vec3 nebula = panorama_patch(panorama_direction, nebula_panorama, nebula_center, nebula_radius, nebula_aspect, vec2(1.0)) * nebula_strength;
 	vec3 horizon = panorama_patch(panorama_direction, horizon_panorama, horizon_center, horizon_radius, horizon_aspect, horizon_uv_flip) * horizon_strength;
 	ALBEDO = stars + nebula + horizon;
+	ALPHA = 1.0;
 }
