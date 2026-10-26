@@ -12,11 +12,13 @@ public static class SvgIconLoader
 
 	public static Texture2D LoadCentered(string? path, Color tint, int sizePx, int paddingPx = 3)
 	{
-		var image = LoadImage(path, sizePx);
-		image = CenterOpaquePixels(image, sizePx, paddingPx);
+		var image = LoadCenteredImage(path, sizePx, paddingPx);
 		Tint(image, tint);
 		return ImageTexture.CreateFromImage(image);
 	}
+
+	public static Texture2D LoadRawCentered(string? path, int sizePx, int paddingPx = 3) =>
+		ImageTexture.CreateFromImage(LoadCenteredImage(path, sizePx, paddingPx));
 
 	private static Texture2D Load(string? path, int sizePx, bool tintPixels, Color tint)
 	{
@@ -24,6 +26,12 @@ public static class SvgIconLoader
 		if (tintPixels)
 			Tint(image, tint);
 		return ImageTexture.CreateFromImage(image);
+	}
+
+	private static Image LoadCenteredImage(string? path, int sizePx, int paddingPx)
+	{
+		var image = LoadImage(path, sizePx);
+		return CenterOpaquePixels(image, sizePx, paddingPx);
 	}
 
 	private static Image LoadImage(string? path, int sizePx)

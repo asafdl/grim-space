@@ -14,13 +14,19 @@ public sealed partial class BattleCommandHud : Control
 {
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
-	private const float ConsoleHeight = 120f;
-	private const float ResourceHeight = 72f;
-	private const float ResourceWidth = 154f;
+	private const float ConsoleHeight = 160f;
+	private const float ResourceHeight = 128f;
+	private const float ResourceWidth = 240f;
 	private static readonly Color HeatBarColor = new(0.95f, 0.48f, 0.22f);
 	private const float ResourceGap = 6f;
+	private const float ResourceRightPadding = 12f;
+	private const float ResourceBottomPadding = 12f;
 	private const float PortraitSize = 104f;
+	private const string ActionPointsIconPath = "res://assets/ui/battle/action_points.svg";
 	private const string ExecuteFramePath = "res://assets/ui/battle/execute_action_frame.svg";
+	private const string HeatIconPath = "res://assets/ui/battle/heat.png";
+	private const string ManeuverPointsIconPath = "res://assets/ui/battle/maneuver_points.png";
+	private static readonly Color ActionPointsBarColor = new(0.78f, 0.12f, 0.27f);
 	private static readonly Color CommandAccent =
 		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight, 0.78f);
 
@@ -207,15 +213,15 @@ public sealed partial class BattleCommandHud : Control
 		var resourceHost = new MarginContainer
 		{
 			Name = "ResourceHost",
-			AnchorLeft = 0f,
+			AnchorLeft = 1f,
 			AnchorTop = 1f,
-			AnchorRight = 0f,
+			AnchorRight = 1f,
 			AnchorBottom = 1f,
-			OffsetLeft = 0f,
-			OffsetTop = -ConsoleHeight - ResourceGap - ResourceHeight,
-			OffsetRight = ResourceWidth,
-			OffsetBottom = -ConsoleHeight - ResourceGap,
-			GrowHorizontal = GrowDirection.Both,
+			OffsetLeft = ResourceRightPadding,
+			OffsetTop = -ResourceHeight - ResourceBottomPadding,
+			OffsetRight = ResourceRightPadding + ResourceWidth,
+			OffsetBottom = -ResourceBottomPadding,
+			GrowHorizontal = GrowDirection.End,
 			GrowVertical = GrowDirection.Begin,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
@@ -227,22 +233,28 @@ public sealed partial class BattleCommandHud : Control
 			Alignment = BoxContainer.AlignmentMode.Begin,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		ResourceMeters.AddThemeConstantOverride("separation", 3);
+		ResourceMeters.AddThemeConstantOverride("separation", 1);
 		resourceHost.AddChild(ResourceMeters);
 		_apBar = new BattleResourceBar(
-			"AP",
-			HudPalettes.PurpleRed.Primary,
-			BattleHudCopy.ActionPointsTooltip);
+			name: null,
+			ActionPointsBarColor,
+			BattleHudCopy.ActionPointsTooltip,
+			ActionPointsIconPath,
+			ActionPointsBarColor);
 		ResourceMeters.AddChild(_apBar);
 		_mpBar = new BattleResourceBar(
-			"MP",
-			HudPalettes.PurpleRed.Secondary,
-			BattleHudCopy.ManeuverPointsTooltip);
+			name: null,
+			color: HudPalettes.PurpleRed.Secondary,
+			tooltip: BattleHudCopy.ManeuverPointsTooltip,
+			iconPath: ManeuverPointsIconPath,
+			iconTint: HudPalettes.PurpleRed.Secondary);
 		ResourceMeters.AddChild(_mpBar);
 		_heatBar = new BattleResourceBar(
-			BattleHudCopy.HeatTitle,
-			HeatBarColor,
-			BattleHudCopy.HeatTooltip(0, HeatSpec.Standard, false, false));
+			name: null,
+			color: HeatBarColor,
+			tooltip: BattleHudCopy.HeatTooltip(0, HeatSpec.Standard, false, false),
+			iconPath: HeatIconPath,
+			iconTint: HeatBarColor);
 		ResourceMeters.AddChild(_heatBar);
 
 		_focusButton = CreateActionButton(
