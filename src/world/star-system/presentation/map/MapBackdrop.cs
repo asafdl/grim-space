@@ -5,8 +5,8 @@ using GrimSpace.World.StarSystem.Presentation.Atmosphere;
 namespace GrimSpace.World.StarSystem.Presentation.Map;
 
 /// <summary>
-/// Star panorama with a nebula glow spliced in via a composite sky shader, plus
-/// the black hole hung as a real 3D object far behind the playfield. Keeps the
+/// Star panorama with a nebula glow and the black hole folded in as one
+/// composite sky shader — everything far is direction-locked sky-pass pixels. Keeps the
 /// playfield readable and visually distinct from battle's enclosed chamber sky.
 /// </summary>
 public sealed partial class MapBackdrop : Node3D
@@ -25,7 +25,6 @@ public sealed partial class MapBackdrop : Node3D
 	{
 		var atmosphere = settings ?? MapAtmosphereSettings.Default;
 		AddChild(CreateWorldEnvironment(atmosphere, noSky));
-		AddChild(MapBlackHoleVisual.Create(atmosphere));
 	}
 
 	private static WorldEnvironment CreateWorldEnvironment(MapAtmosphereSettings settings, bool noSky)
@@ -41,6 +40,9 @@ public sealed partial class MapBackdrop : Node3D
 		skyMaterial.SetShaderParameter("nebula_center", settings.NebulaDirection.Normalized());
 		skyMaterial.SetShaderParameter("nebula_radius", settings.NebulaAngularRadius);
 		skyMaterial.SetShaderParameter("nebula_aspect", settings.NebulaAspect);
+		skyMaterial.SetShaderParameter("bh_center", settings.BlackHoleDirection.Normalized());
+		skyMaterial.SetShaderParameter("bh_shadow_radius", settings.BlackHoleShadowAngularRadius);
+		skyMaterial.SetShaderParameter("bh_glow_radius", settings.BlackHoleGlowAngularRadius);
 
 		var sky = new Sky
 		{

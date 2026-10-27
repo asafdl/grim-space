@@ -12,12 +12,12 @@ public sealed record MapAtmosphereSettings(
 	float NebulaStrength = 0.45f,
 	float NebulaAngularRadius = 0.30f,
 	float NebulaAspect = 1.071f,
-	// The black hole hangs FAR beyond the playfield as a real 3D object
-	// (<see cref="MapBackdrop.Geometry"/>: MapBlackHoleVisual), so its numbers
-	// are world units, not sky-shader degrees.
-	float BlackHoleDistance = 260f,
-	float BlackHoleHorizonRadius = 26f,
-	float BlackHoleDiskRadius = 50f,
+	// The black hole lives in the map SKY SHADER as a direction-locked
+	// sky-pass feature, so its numbers are angular (radians), not world units:
+	// old world-space tuning was horizon 26 / disk 50 at distance 260 => atan
+	// 0.0996 / 0.190 rad.
+	float BlackHoleShadowAngularRadius = 0.10f,
+	float BlackHoleGlowAngularRadius = 0.19f,
 	float SunGlowEnergy = 0.78f,
 	float AmbientEnergy = 0.44f,
 	float FillLightEnergy = 0.17f)
@@ -25,9 +25,9 @@ public sealed record MapAtmosphereSettings(
 	public Vector3 NebulaDirection { get; init; } = new(0.764f, -0.404f, -0.503f);
 
 	/// <summary>
-	/// <see cref="MapBlackHoleVisual"/> placement direction from the map origin;
-	/// opposite-ish of <see cref="NebulaDirection"/> so one wide orbit shows both
-	/// far layers separately.
+	/// The black hole's sky direction (the sky-pass feature point); opposite-ish
+	/// of <see cref="NebulaDirection"/> so one wide orbit shows both far layers
+	/// separately.
 	/// </summary>
 	public Vector3 BlackHoleDirection { get; init; } = new(-0.62f, -0.38f, -0.52f);
 
