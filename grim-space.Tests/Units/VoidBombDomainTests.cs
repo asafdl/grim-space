@@ -71,7 +71,10 @@ public sealed class VoidBombDomainTests
 			unit,
 			new AbilityLegality(WeaponPeek.Empty, false, Detonate: false, ShieldsUp: false));
 
-		Assert.Equal(BattleHudCopy.DetonateTooltipFor(unit), spec.Tooltip(unit));
+		var expectedTooltip = BattleHudCopy.DetonateTooltipFor(unit);
+		var actualTooltip = spec.Tooltip(unit);
+		Assert.Equal(expectedTooltip.Title, actualTooltip.Title);
+		Assert.Equal(expectedTooltip.Body, actualTooltip.Body);
 		Assert.Equal("res://assets/ui/abilities/detonate.svg", spec.IconPath);
 		Assert.Equal("2/2", ready.Charges);
 		Assert.True(ready.Enabled);

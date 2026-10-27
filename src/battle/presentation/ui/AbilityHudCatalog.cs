@@ -52,7 +52,7 @@ public static class AbilityHudCatalog
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Def,
 		AbilityTargetingSpec Targeting,
 		string? IconPath,
-		Func<UnitDisplayState, string> Tooltip,
+		Func<UnitDisplayState, BattleHudTooltipContent> Tooltip,
 		Func<UnitDisplayState, AbilityLegality, string> Charges,
 		Func<AbilityLegality, bool> IsLegal)
 	{

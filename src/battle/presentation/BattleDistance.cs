@@ -17,7 +17,7 @@ public static class BattleDistance
 	}
 
 	public static string ApproximateCells(float cells) =>
-		$"~{Format(cells * MetersPerCell)}";
+		$"{Format(cells * MetersPerCell)}";
 
 	public static string Format(float meters)
 	{

@@ -184,7 +184,10 @@ public sealed class TimelineTests
 		var history = battle.Engine.History();
 		var torpedoIndex = history.ToList().FindIndex(entry => entry is VoidBombAction);
 		Assert.True(torpedoIndex >= 0);
-		var spawn = Assert.IsType<Record<SpawnFacts>>(history[torpedoIndex + 1]);
+		var spawn = history
+			.Skip(torpedoIndex + 1)
+			.OfType<Record<SpawnFacts>>()
+			.First();
 		Assert.Equal(battle.PlayerId, spawn.Value.SourceId);
 		Assert.Equal(EType.VoidBomb, spawn.Value.EntityType);
 

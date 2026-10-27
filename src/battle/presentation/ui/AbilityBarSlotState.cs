@@ -1,6 +1,6 @@
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed record AbilityBarSlotState(
-	string Tooltip,
+	BattleHudTooltipContent Tooltip,
 	string Charges,
 	bool Enabled);

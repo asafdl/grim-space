@@ -28,12 +28,14 @@ public sealed partial class BattlePortraitShieldBar : Control
 
 	private readonly int[] _current = new int[Faces.Length];
 	private readonly int[] _max = new int[Faces.Length];
+	private BattleHudTooltipContent _tooltip =
+		BattleHudCopy.ShieldsTooltip(ESpatialOrientation.Forward, 0, 0);
 
 	public BattlePortraitShieldBar()
 	{
 		CustomMinimumSize = new Vector2(166f, 166f);
 		MouseFilter = MouseFilterEnum.Stop;
-		TooltipText = BattleHudCopy.ShieldsTooltip;
+		TooltipText = _tooltip.TriggerText;
 	}
 
 	public void Set(FaceShieldPoints current, FaceShieldPoints max)
@@ -55,9 +57,15 @@ public sealed partial class BattlePortraitShieldBar : Control
 		if (!TryGetFaceIndex(atPosition, out var faceIndex))
 			return string.Empty;
 
-		return $"{BattleHudCopy.FaceName(Faces[faceIndex])} Shields "
-			+ $"{_current[faceIndex]}/{_max[faceIndex]}";
+		_tooltip = BattleHudCopy.ShieldsTooltip(
+			Faces[faceIndex],
+			_current[faceIndex],
+			_max[faceIndex]);
+		return _tooltip.TriggerText;
 	}
+
+	public override Control _MakeCustomTooltip(string forText) =>
+		BattleHudTooltipCard.Create(_tooltip);
 
 	public override void _Draw()
 	{

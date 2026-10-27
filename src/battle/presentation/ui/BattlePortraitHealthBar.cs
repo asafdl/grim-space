@@ -14,6 +14,7 @@ public sealed partial class BattlePortraitHealthBar : Control
 	private static readonly Color FillColor = new(0.82f, 0.08f, 0.16f, 1f);
 	private static readonly Color BorderColor = new(0.96f, 0.96f, 1f, 0.96f);
 
+	private BattleHudTooltipContent _tooltip = BattleHudCopy.HullTooltip(0, 1);
 	private int _current;
 	private int _max = 1;
 
@@ -21,7 +22,6 @@ public sealed partial class BattlePortraitHealthBar : Control
 	{
 		CustomMinimumSize = new Vector2(124f, 124f);
 		MouseFilter = MouseFilterEnum.Stop;
-		TooltipText = BattleHudCopy.HullTooltip;
 		Set(0, 1);
 	}
 
@@ -29,6 +29,8 @@ public sealed partial class BattlePortraitHealthBar : Control
 	{
 		_max = System.Math.Max(0, max);
 		_current = System.Math.Clamp(current, 0, _max);
+		_tooltip = BattleHudCopy.HullTooltip(_current, _max);
+		TooltipText = _tooltip.TriggerText;
 		QueueRedraw();
 	}
 
@@ -47,7 +49,10 @@ public sealed partial class BattlePortraitHealthBar : Control
 	}
 
 	public override string _GetTooltip(Vector2 atPosition) =>
-		$"Hull {_current}/{_max}";
+		_tooltip.TriggerText;
+
+	public override Control _MakeCustomTooltip(string forText) =>
+		BattleHudTooltipCard.Create(_tooltip);
 
 	public override void _Draw()
 	{

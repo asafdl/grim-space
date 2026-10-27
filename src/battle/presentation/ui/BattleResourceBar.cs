@@ -30,6 +30,7 @@ public sealed partial class BattleResourceBar : Control
 	private const float BarHeight = 42f;
 
 	private readonly Color _resourceColor;
+	private BattleHudTooltipContent _tooltipContent;
 	private readonly TextureRect _rail;
 	private readonly TextureRect _icon;
 	private readonly Label _valueLabel;
@@ -39,7 +40,7 @@ public sealed partial class BattleResourceBar : Control
 	public BattleResourceBar(
 		string? name,
 		Color color,
-		string tooltip,
+		BattleHudTooltipContent tooltip,
 		string? iconPath = null,
 		Color? iconTint = null)
 	{
@@ -47,9 +48,10 @@ public sealed partial class BattleResourceBar : Control
 			throw new ArgumentException("A resource bar requires either a name or an icon.", nameof(name));
 
 		_resourceColor = color;
+		_tooltipContent = tooltip;
 		CustomMinimumSize = new Vector2(BarWidth, BarHeight);
 		MouseFilter = MouseFilterEnum.Stop;
-		TooltipText = tooltip;
+		TooltipText = tooltip.TriggerText;
 
 		_rail = new TextureRect
 		{
@@ -71,7 +73,6 @@ public sealed partial class BattleResourceBar : Control
 				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 				MouseFilter = MouseFilterEnum.Ignore,
-				TooltipText = tooltip,
 			};
 			AddChild(_icon);
 		}
@@ -98,6 +99,12 @@ public sealed partial class BattleResourceBar : Control
 		LayoutOverlays();
 	}
 
+	public void SetTooltip(BattleHudTooltipContent tooltip)
+	{
+		_tooltipContent = tooltip;
+		TooltipText = tooltip.TriggerText;
+	}
+
 	public void Apply(int current, int max)
 	{
 		_current = current;
@@ -105,6 +112,9 @@ public sealed partial class BattleResourceBar : Control
 		_valueLabel.Text = $"{current}/{max}";
 		QueueRedraw();
 	}
+
+	public override Control _MakeCustomTooltip(string forText) =>
+		BattleHudTooltipCard.Create(_tooltipContent);
 
 	private void LayoutOverlays()
 	{

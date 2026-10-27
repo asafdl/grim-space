@@ -182,7 +182,7 @@ public sealed partial class BattleCommandHud : Control
 		};
 		_commandWing.AddChild(ExecuteAction);
 
-		_inspectBackButton = new Button
+		_inspectBackButton = new BattleHudTooltipButton
 		{
 			Text = BattleHudCopy.BackToPlayer.ToUpperInvariant(),
 			CustomMinimumSize = new Vector2(136f, 34f),
@@ -253,7 +253,7 @@ public sealed partial class BattleCommandHud : Control
 		_heatBar = new BattleResourceBar(
 			name: null,
 			color: HeatBarColor,
-			tooltip: BattleHudCopy.HeatTooltip(0, HeatSpec.Standard, false, false),
+			tooltip: BattleHudCopy.HeatTooltip(HeatSpec.Standard),
 			iconPath: HeatIconPath,
 			iconTint: HeatBarColor);
 		ResourceMeters.AddChild(_heatBar);
@@ -291,7 +291,7 @@ public sealed partial class BattleCommandHud : Control
 			GameInputBindings.PrimaryLabel("battle_undo"));
 		AddUtilityAction(_undoButton);
 
-		_executeButton = new Button
+		_executeButton = new BattleHudTooltipButton
 		{
 			Text = "EXECUTE TURN",
 			CustomMinimumSize = new Vector2(136f, 34f),
@@ -323,9 +323,9 @@ public sealed partial class BattleCommandHud : Control
 		UnitDisplayState focusState)
 	{
 		_apBar.Apply(actionPoints, maxActionPoints);
-		_apBar.TooltipText = BattleHudCopy.ActionPointsTooltip;
+		_apBar.SetTooltip(BattleHudCopy.ActionPointsTooltip);
 		_mpBar.Apply(maneuverPoints, maxManeuverPoints);
-		_mpBar.TooltipText = BattleHudCopy.ManeuverPointsTooltip;
+		_mpBar.SetTooltip(BattleHudCopy.ManeuverPointsTooltip);
 
 		var participates = focusState.HeatProfile.Participates;
 		_heatBar.Visible = participates;
@@ -333,11 +333,7 @@ public sealed partial class BattleCommandHud : Control
 			return;
 
 		_heatBar.Apply(focusState.Heat, focusState.HeatCapacity);
-		_heatBar.TooltipText = BattleHudCopy.HeatTooltip(
-			focusState.Heat,
-			focusState.HeatProfile,
-			focusState.Overdrive,
-			focusState.Overheat);
+		_heatBar.SetTooltip(BattleHudCopy.HeatTooltip(focusState.HeatProfile));
 	}
 
 	public void ApplyDefenses(
@@ -385,7 +381,7 @@ public sealed partial class BattleCommandHud : Control
 			var card = _abilityCards[i];
 			var state = AbilityHudCatalog.BuildState(card.Spec, focusState, abilities);
 			card.Button.Disabled = !canAct || !state.Enabled;
-			card.Button.TooltipText = state.Tooltip;
+			card.Button.SetTooltip(state.Tooltip);
 			SetPressed(card.Button, mode == card.Spec.Mode);
 		}
 
@@ -508,13 +504,13 @@ public sealed partial class BattleCommandHud : Control
 		return string.IsNullOrEmpty(label) ? "Esc" : label;
 	}
 
-	private static Button CreateActionButton(
+	private static BattleHudTooltipButton CreateActionButton(
 		string? iconPath,
 		Color accent,
 		string tooltip,
 		bool toggleMode)
 	{
-		var button = new Button
+		var button = new BattleHudTooltipButton
 		{
 			CustomMinimumSize = new Vector2(SlotSize, SlotSize),
 			Icon = SvgIconLoader.LoadCentered(iconPath, accent, (int)IconPx),
@@ -731,7 +727,7 @@ public sealed partial class BattleCommandHud : Control
 		};
 
 	private sealed record AbilityCard(
-		Button Button,
+		BattleHudTooltipButton Button,
 		Label Hotkey,
 		AbilityHudCatalog.Spec Spec);
 }
