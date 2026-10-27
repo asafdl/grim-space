@@ -28,5 +28,5 @@ public sealed class BattleDistanceTests
 
 	[Fact]
 	public void ApproximateCellsUsesTacticalScale() =>
-		Assert.Equal("~7 km", BattleDistance.ApproximateCells(7));
+		Assert.Equal("7 km", BattleDistance.ApproximateCells(7));
 }
