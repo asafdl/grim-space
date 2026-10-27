@@ -7,66 +7,66 @@
   },
   {
     "path": "assets/sfx/ui/menu_hover_click.wav",
-    "time": 3.7,
+    "time": 1.717,
     "gain_db": -8.0,
     "role": "bridge"
   },
   {
     "path": "assets/sfx/abilities/lightning_cannon_mount_charge.wav",
-    "time": 5.55,
+    "time": 3.567,
     "gain_db": -4.0
   },
   {
     "path": "assets/sfx/abilities/lightning_cannon_hit.wav",
-    "time": 6.2
+    "time": 4.217
   },
   {
     "path": "assets/sfx/abilities/lightning_cannon_hit.wav",
-    "time": 7.95,
+    "time": 5.967,
     "gain_db": -2.0
   },
   {
     "path": "assets/sfx/ships/ship_death_enhanced_v2.wav",
-    "time": 8.97
+    "time": 6.987
   },
   {
     "path": "assets/sfx/ui/menu_hover_click.wav",
-    "time": 14.38,
+    "time": 12.397,
     "gain_db": -8.0,
     "role": "bridge"
   },
   {
     "path": "assets/sfx/abilities/lightning_cannon_mount_charge.wav",
-    "time": 16.5,
+    "time": 12.87,
     "gain_db": -10.0,
     "role": "bridge"
   },
   {
     "path": "assets/sfx/abilities/lightning_cannon_hit.wav",
-    "time": 20.5,
+    "time": 16.634,
     "gain_db": -3.0
   },
   {
     "path": "assets/sfx/ui/menu_hover_click.wav",
-    "time": 23.28,
+    "time": 19.414,
     "gain_db": -8.0,
     "role": "bridge"
   },
   {
     "path": "assets/sfx/ui/menu_hover_click.wav",
-    "time": 25.75,
+    "time": 19.417,
     "gain_db": -8.0,
     "role": "bridge"
   },
   {
     "path": "assets/sfx/abilities/lightning_cannon_mount_charge.wav",
-    "time": 27.15,
+    "time": 20.817,
     "gain_db": -10.0,
     "role": "bridge"
   },
   {
     "path": "assets/sfx/abilities/void_bomb_explosion.wav",
-    "time": 30.68
+    "time": 24.347
   },
   {
     "path": "work/hook_boom.wav",
@@ -81,35 +81,35 @@
     "role": "bed"
   },
   {
-    "time": 2.0,
+    "time": 1.84,
     "path": "assets/sfx/ui/menu_hover_click.wav",
     "gain_db": -35.0,
     "name": "map_drone_b",
     "role": "bed"
   },
   {
-    "time": 4.7,
+    "time": 2.717,
     "path": "assets/sfx/ui/menu_hover_click.wav",
     "gain_db": -35.0,
     "name": "map_drone_c",
     "role": "bed"
   },
   {
-    "time": 7.0,
+    "time": 5.017,
     "path": "assets/sfx/ui/menu_hover_click.wav",
     "gain_db": -35.0,
     "name": "map_drone_d",
     "role": "bed"
   },
   {
-    "time": 27.38,
+    "time": 21.047,
     "path": "assets/sfx/ui/menu_hover_click.wav",
     "gain_db": -35.0,
     "name": "map_drone_e",
     "role": "bed"
   },
   {
-    "time": 30.68,
+    "time": 24.347,
     "path": "assets/sfx/ui/menu_hover_click.wav",
     "gain_db": -35.0,
     "name": "map_drone_f",

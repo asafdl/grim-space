@@ -17,9 +17,9 @@ import numpy as np
 
 W, H = 160, 90
 HW, HH = 32, 18
-CARD_START = 30.70
-CARD_END = 34.60
-GOOP_WINDOW = (10.90, 15.50)
+CARD_START = 24.35
+CARD_END = 28.28
+GOOP_WINDOW = (8.90, 13.15)  # retimed for v8iii cut (was 10.90-15.50 on 34.62s v8ii)
 MICRO = [2.30, 4.60, 9.00, 12.60, 24.00, 28.00]
 
 # The film's chain: every beat, the sentence that joins it to the one before,
