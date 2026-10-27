@@ -38,7 +38,6 @@ public sealed partial class FlameHaloView : Node3D
 	{
 		_worldUpOffset = worldUpOffset;
 		TopLevel = true;
-		FollowHost();
 	}
 
 	public override void _Ready()
@@ -106,7 +105,7 @@ public sealed partial class FlameHaloView : Node3D
 
 	private void FollowHost()
 	{
-		if (GetParent() is not Node3D host)
+		if (!IsInsideTree() || GetParent() is not Node3D host || !host.IsInsideTree())
 			return;
 
 		GlobalTransform = new Transform3D(
