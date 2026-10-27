@@ -111,11 +111,12 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	float t = clamp((ang - bh_shadow_radius) / max(bh_glow_radius - bh_shadow_radius, 0.001), 0.0, 1.0);
 	float ring_angle = atan(projected.y, projected.x);
 
-	// The shadow: an opaque pure-black disc with a clean edge, UNDER the glow
-	// in this one element — the glow mask starts at the shadow radius, so glow
-	// can never bleed onto the disc.
-	float shadow = 1.0 - smoothstep(bh_shadow_radius * 0.985, bh_shadow_radius * 1.02, ang);
-	float glow_mask = smoothstep(bh_shadow_radius, bh_shadow_radius * 1.12, ang);
+	// ITEM B — the shadow: a solid opaque pure-black disc with a clean edge.
+	// It is drawn UNDER the glow in this one element: the glow mask rises only
+	// once the disc edge is fully drawn (1.02x radius outward), so glow never
+	// bleeds onto the black disc — no fresnel-rim-only read, no grey fringe.
+	float shadow = 1.0 - smoothstep(bh_shadow_radius * 0.99, bh_shadow_radius * 1.01, ang);
+	float glow_mask = smoothstep(bh_shadow_radius * 1.02, bh_shadow_radius * 1.10, ang);
 
 	// Broad soft photon ring + wide diffuse outward falloff (tuned next round).
 	float ring_center = bh_shadow_radius + (bh_glow_radius - bh_shadow_radius) * 0.35;
