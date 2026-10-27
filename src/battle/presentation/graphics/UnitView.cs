@@ -11,6 +11,12 @@ public partial class UnitView : Node3D
 	private static readonly FontFile DamagePopupFont = GD.Load<FontFile>(
 		"res://assets/ui/fonts/AnakManja.ttf")
 		?? throw new InvalidOperationException("Could not load the damage popup font.");
+	private static readonly Texture2D HullDamageIcon = GD.Load<Texture2D>(
+		"res://assets/ui/battle/hull.png")
+		?? throw new InvalidOperationException("Could not load the hull damage icon.");
+	private static readonly Texture2D ShieldDamageIcon = GD.Load<Texture2D>(
+		"res://assets/ui/battle/shield.png")
+		?? throw new InvalidOperationException("Could not load the shield damage icon.");
 	private static readonly Color ShieldDamageColor = new(0.04f, 0.72f, 1f);
 	private static readonly Color HullDamageColor = new(1f, 0.06f, 0.015f);
 	private static readonly ESpatialOrientation[] Faces = Enum.GetValues<ESpatialOrientation>();
@@ -377,32 +383,48 @@ public partial class UnitView : Node3D
 		var hasHullDamage = hullDamage > 0;
 		var splitPopups = hasShieldDamage && hasHullDamage;
 		if (hasShieldDamage)
-			AddDamagePopup(shieldDamage, ShieldDamageColor, splitPopups ? -0.62f : 0f);
+			AddDamagePopup(
+				shieldDamage,
+				ShieldDamageColor,
+				ShieldDamageIcon,
+				splitPopups ? -0.62f : 0f);
 		if (hasHullDamage)
-			AddDamagePopup(hullDamage, HullDamageColor, splitPopups ? 0.62f : 0f);
+			AddDamagePopup(
+				hullDamage,
+				HullDamageColor,
+				HullDamageIcon,
+				splitPopups ? 0.62f : 0f);
 	}
 
-	private void AddDamagePopup(int damage, Color color, float horizontalOffset)
+	private void AddDamagePopup(
+		int damage,
+		Color color,
+		Texture2D iconTexture,
+		float horizontalOffset)
 	{
 		var tiltDirection = damage % 2 == 0 ? -1f : 1f;
+		var fontSize = _type == EType.VoidBomb ? 104 : 132;
 		var popup = new Node3D
 		{
 			Name = "DamagePopup",
 			Position = new Vector3(horizontalOffset, PopupLabelHeight(_type) + 0.45f, 0f),
 		};
-		var label = new Label3D
+		var viewport = CreateDamagePopupViewport($"-{damage}", color, iconTexture, fontSize);
+		var label = new Sprite3D
 		{
-			Text = $"-{damage}",
+			Name = "Label",
+			Texture = viewport.GetTexture(),
 			Rotation = new Vector3(0f, 0f, tiltDirection * 0.16f),
 			Scale = Vector3.One * 0.78f,
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			Font = DamagePopupFont,
-			FontSize = _type == EType.VoidBomb ? 104 : 132,
-			OutlineSize = 20,
-			Modulate = color,
-			OutlineModulate = new Color(0.025f, 0.035f, 0.075f),
+			Shaded = false,
+			Transparent = true,
+			Centered = true,
+			PixelSize = 0.005f,
+			TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
 		};
 		AddChild(popup);
+		popup.AddChild(viewport);
 		popup.AddChild(label);
 
 		var floatTween = CreateTween();
@@ -435,6 +457,65 @@ public partial class UnitView : Node3D
 		wobbleTween.Parallel().TweenProperty(label, "rotation", Vector3.Zero, 0.55)
 			.SetTrans(Tween.TransitionType.Quad)
 			.SetEase(Tween.EaseType.Out);
+	}
+
+	private static SubViewport CreateDamagePopupViewport(
+		string text,
+		Color color,
+		Texture2D iconTexture,
+		int fontSize)
+	{
+		const int outlineSize = 20;
+		const int gap = 10;
+		var iconPx = Mathf.RoundToInt(fontSize * 0.92f);
+		var textSize = DamagePopupFont.GetStringSize(text, HorizontalAlignment.Left, -1, fontSize);
+		var pad = outlineSize + 2;
+		var width = Mathf.CeilToInt(pad + textSize.X + gap + iconPx + pad);
+		var height = Mathf.CeilToInt(pad + Mathf.Max(textSize.Y, iconPx) + pad);
+
+		var viewport = new SubViewport
+		{
+			Name = "DamagePopupViewport",
+			Size = new Vector2I(width, height),
+			TransparentBg = true,
+			Disable3D = true,
+			RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+		};
+		var row = new HBoxContainer
+		{
+			Name = "Row",
+			Position = Vector2.Zero,
+			Size = new Vector2(width, height),
+			Alignment = BoxContainer.AlignmentMode.Center,
+		};
+		row.AddThemeConstantOverride("separation", gap);
+
+		var label = new Label
+		{
+			Text = text,
+			VerticalAlignment = VerticalAlignment.Center,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		label.AddThemeFontOverride("font", DamagePopupFont);
+		label.AddThemeFontSizeOverride("font_size", fontSize);
+		label.AddThemeColorOverride("font_color", color);
+		label.AddThemeColorOverride("font_outline_color", new Color(0.025f, 0.035f, 0.075f));
+		label.AddThemeConstantOverride("outline_size", outlineSize);
+
+		var icon = new TextureRect
+		{
+			Texture = iconTexture,
+			CustomMinimumSize = new Vector2(iconPx, iconPx),
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			Modulate = color,
+		};
+
+		row.AddChild(label);
+		row.AddChild(icon);
+		viewport.AddChild(row);
+		return viewport;
 	}
 
 	public void PlayDeathExplosion()
