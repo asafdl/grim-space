@@ -19,6 +19,9 @@ uniform float bh_shadow_radius : hint_range(0.01, 1.2) = 0.10;
 // Outer edge of the glow. EHT/GMVA class: shadow diameter ~ half the glow
 // diameter (shadow small inside generous light).
 uniform float bh_glow_radius : hint_range(0.02, 1.6) = 0.19;
+// Photon-ring band gaussian sigma. Visible FWHM = 1.66 * this (= 0.174 rad),
+// >= 1/3 of the glow diameter (0.127 rad) — a broad soft band, never a knife line.
+uniform float bh_ring_thickness : hint_range(0.01, 0.8) = 0.105;
 uniform float bh_energy : hint_range(0.0, 4.0) = 1.55;
 uniform vec3 bh_hot_color : source_color = vec3(1.0, 0.93, 0.70);
 uniform vec3 bh_warm_color : source_color = vec3(1.0, 0.47, 0.16);
@@ -118,10 +121,15 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	float shadow = 1.0 - smoothstep(bh_shadow_radius * 0.99, bh_shadow_radius * 1.01, ang);
 	float glow_mask = smoothstep(bh_shadow_radius * 1.02, bh_shadow_radius * 1.10, ang);
 
-	// Broad soft photon ring + wide diffuse outward falloff (tuned next round).
-	float ring_center = bh_shadow_radius + (bh_glow_radius - bh_shadow_radius) * 0.35;
-	float ring_band = exp(-pow((ang - ring_center) / (0.25 * (bh_glow_radius - bh_shadow_radius)), 2.0));
-	float halo = pow(1.0 - t, 2.0);
+	// ITEM C — photon ring + glow per the real references: a BROAD soft band
+	// (visible FWHM ~ 3.3 * glow 0.4-glow-width >= 1/3 of the glow diameter,
+	// no knife line anywhere) riding a wide diffuse falloff that runs all the
+	// way out to the glow edge, so the shadow stays small inside generous light.
+	float ring_center = bh_shadow_radius + (bh_glow_radius - bh_shadow_radius) * 0.42;
+	float ring_width = bh_ring_thickness;
+	float ring_band = exp(-pow((ang - ring_center) / ring_width, 2.0));
+	float halo = pow(max(1.0 - t, 0.0), 1.35)
+		* (1.0 - smoothstep(bh_glow_radius * 0.86, bh_glow_radius, ang));
 
 	// Differential swirl on TIME (inner laps outer), carried over.
 	float spiral = ring_angle * 1.5 - t * 7.5 + TIME * bh_swirl_speed * (1.45 - 0.95 * t);
@@ -134,11 +142,13 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// Doppler side: bright on one side of the ring.
 	float doppler = max(0.05, 1.0 + bh_doppler_amount * bh_doppler_sign * dot(unit, vec2(0.8, 0.6)));
 
-	float brightness = (ring_band * 1.5 + halo * 0.65)
+	float brightness = (ring_band * 0.9 + halo * 0.30)
 		* bh_energy * glow_mask * doppler * alive
-		* (0.55 + grain * bh_grain * 0.55);
-	vec3 glow = bh_hot_color * ring_band
-		+ mix(bh_warm_color, bh_outer_color, smoothstep(0.1, 0.75, t)) * (ring_band * 0.6 + halo);
+		* (0.55 + grain * bh_grain * 0.35);
+	vec3 ring_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.45, t));
+	vec3 glow = ring_col * ring_band
+		+ mix(bh_warm_color * 0.7, bh_outer_color, smoothstep(0.15, 0.8, t)) * (halo * 0.8)
+		+ bh_hot_color * halo * 0.25;
 
 	return base * (1.0 - shadow) + glow * brightness;
 }
