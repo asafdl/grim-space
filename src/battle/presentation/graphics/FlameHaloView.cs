@@ -10,10 +10,9 @@ public sealed partial class FlameHaloView : Node3D
 	private const float FlameScale = 0.5f;
 	private const float FlameWidth = 0.43f;
 	private const float FramesPerSecond = 10f;
-	private static readonly Color GhostFlame = new(0.18f, 0.86f, 1f);
-	private static readonly Color CyanFlame = new(0.04f, 0.68f, 1f);
-	private static readonly Color OrangeFlame = new(1f, 0.58f, 0.16f);
-	private static readonly Color RedFlame = new(1f, 0.28f, 0.12f);
+	private const float WarmupVisualCap = 0.28f;
+	private static readonly Color WarmupFlame = new(0.12f, 0.78f, 1f);
+	private static readonly Color OverdriveFlame = new(1f, 0.42f, 0.1f);
 	private static readonly Color OverheatFlame = new(0.04f, 0.58f, 1f);
 	private static Texture2D[]? _frames;
 
@@ -29,9 +28,18 @@ public sealed partial class FlameHaloView : Node3D
 	private float _targetHeat;
 	private float _elapsed;
 	private float _frameElapsed;
+	private float _worldUpOffset;
 	private int _frameIndex;
+	private bool _overdrive;
 	private bool _overheat;
 	private bool _active;
+
+	public void AttachAbove(float worldUpOffset)
+	{
+		_worldUpOffset = worldUpOffset;
+		TopLevel = true;
+		FollowHost();
+	}
 
 	public override void _Ready()
 	{
@@ -70,6 +78,7 @@ public sealed partial class FlameHaloView : Node3D
 
 	public override void _Process(double delta)
 	{
+		FollowHost();
 		_elapsed += (float)delta;
 		if (_active)
 		{
@@ -95,17 +104,38 @@ public sealed partial class FlameHaloView : Node3D
 		UpdateFlame();
 	}
 
+	private void FollowHost()
+	{
+		if (GetParent() is not Node3D host)
+			return;
+
+		GlobalTransform = new Transform3D(
+			Basis.Identity,
+			host.GlobalPosition + Vector3.Up * _worldUpOffset);
+	}
+
 	public void SetHeat(int heat, int capacity, bool overdrive, bool overheat, bool visible)
 	{
-		_overheat = overheat;
-		_active = visible && capacity > 0 && (heat > 0 || overdrive || overheat);
-		_targetHeat = capacity > 0
+		var nextActive = visible && capacity > 0 && (heat > 0 || overdrive || overheat);
+		var heatRatio = capacity > 0
 			? Mathf.Clamp(heat / (float)capacity, 0f, 1f)
 			: 0f;
-		if (overdrive)
-			_targetHeat = 1f;
-		else if (overheat)
-			_targetHeat = Mathf.Max(_targetHeat, 0.65f);
+		var nextTarget = overdrive
+			? 1f
+			: overheat
+				? Mathf.Max(heatRatio, 0.55f)
+				: heatRatio * WarmupVisualCap;
+		if (_active == nextActive
+			&& _overdrive == overdrive
+			&& _overheat == overheat
+			&& Mathf.IsEqualApprox(_targetHeat, nextTarget))
+			return;
+
+		var enteredOverdrive = overdrive && !_overdrive;
+		_overdrive = overdrive;
+		_overheat = overheat;
+		_active = nextActive;
+		_targetHeat = nextTarget;
 
 		if (!IsInsideTree())
 		{
@@ -115,8 +145,7 @@ public sealed partial class FlameHaloView : Node3D
 
 		_heatTween?.Kill();
 		_heatTween = CreateTween();
-		var tweenDuration = overheat ? 0.8 : overdrive ? 0.32 : 0.65;
-		_heatTween.TweenMethod(
+		var tween = _heatTween.TweenMethod(
 			Callable.From<float>(value =>
 			{
 				_displayedHeat = value;
@@ -124,9 +153,11 @@ public sealed partial class FlameHaloView : Node3D
 			}),
 			_displayedHeat,
 			_targetHeat,
-			tweenDuration)
-			.SetTrans(Tween.TransitionType.Sine)
-			.SetEase(Tween.EaseType.Out);
+			enteredOverdrive ? 0.48 : overheat ? 0.8 : 0.55);
+		if (enteredOverdrive)
+			tween.SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+		else
+			tween.SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
 	}
 
 	private static Sprite3D CreateSprite(Texture2D texture) =>
@@ -149,6 +180,8 @@ public sealed partial class FlameHaloView : Node3D
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
 			DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Disabled,
+			BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
+			BillboardKeepScale = true,
 			AlbedoTexture = texture,
 			AlbedoColor = new Color(1f, 1f, 1f, alpha),
 			EmissionEnabled = true,
@@ -170,19 +203,40 @@ public sealed partial class FlameHaloView : Node3D
 		if (_flameRoot is null || _flame is null || _glow is null)
 			return;
 
-		var flicker = 0.97f + 0.03f * Mathf.Sin(_elapsed * 10.5f);
+		var flicker = 0.97f + 0.03f * Mathf.Sin(_elapsed * (_overdrive ? 14f : 8f));
 		var height = PixelSize * TextureHeight * FlameScale * _displayedHeat * flicker;
 		_flameRoot.Scale = new Vector3(FlameWidth, FlameScale * _displayedHeat * flicker, 1f);
 		_flameRoot.Position = Vector3.Up * (height * 0.5f);
+		_glow.Scale = Vector3.One * (_overdrive ? 2.15f : 1.55f);
 
-		var color = _overheat ? OverheatFlame : HeatColor(_displayedHeat);
-		_flameMaterial.AlbedoColor = new Color(color.R, color.G, color.B, 0.32f);
+		var color = FlameColor();
+		var overdrivePunch = _overdrive
+			? Mathf.Clamp(Mathf.InverseLerp(WarmupVisualCap, 1f, _displayedHeat), 0f, 1f)
+			: 0f;
+		_flameMaterial.AlbedoColor = new Color(color.R, color.G, color.B, 0.28f + 0.1f * overdrivePunch);
 		_flameMaterial.Emission = color;
-		var core = color.Lerp(Colors.White, 0.3f);
-		_coreMaterial.AlbedoColor = new Color(core.R, core.G, core.B, 0.24f);
+		_flameMaterial.EmissionEnergyMultiplier = 3.2f + 2.4f * overdrivePunch;
+		var core = color.Lerp(Colors.White, 0.22f + 0.28f * overdrivePunch);
+		_coreMaterial.AlbedoColor = new Color(core.R, core.G, core.B, 0.22f + 0.1f * overdrivePunch);
 		_coreMaterial.Emission = core;
-		_glowMaterial.AlbedoColor = new Color(color.R, color.G, color.B, 0.2f);
+		_coreMaterial.EmissionEnergyMultiplier = 2.4f + 2.2f * overdrivePunch;
+		_glowMaterial.AlbedoColor = new Color(color.R, color.G, color.B, 0.16f + 0.12f * overdrivePunch);
 		_glowMaterial.Emission = color;
+		_glowMaterial.EmissionEnergyMultiplier = 5f + 3.5f * overdrivePunch;
+	}
+
+	private Color FlameColor()
+	{
+		if (_overheat)
+			return OverheatFlame;
+		if (!_overdrive)
+			return WarmupFlame;
+
+		var punch = Mathf.Clamp(
+			Mathf.InverseLerp(WarmupVisualCap, 1f, _displayedHeat),
+			0f,
+			1f);
+		return WarmupFlame.Lerp(OverdriveFlame, punch);
 	}
 
 	private static Texture2D[] LoadFrames()
@@ -196,15 +250,5 @@ public sealed partial class FlameHaloView : Node3D
 		}
 
 		return frames;
-	}
-
-	private static Color HeatColor(float heat)
-	{
-		if (heat < 0.55f)
-			return GhostFlame.Lerp(CyanFlame, heat / 0.55f);
-		if (heat < 0.82f)
-			return CyanFlame.Lerp(OrangeFlame, (heat - 0.55f) / 0.27f);
-
-		return OrangeFlame.Lerp(RedFlame, (heat - 0.82f) / 0.18f);
 	}
 }

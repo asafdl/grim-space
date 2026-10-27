@@ -49,4 +49,14 @@ public sealed class ReplayState
 		Defense.AbsorbWithShields(state, impact.Face, impact.ShieldDamage);
 		state.HullPoints = System.Math.Max(0, state.HullPoints - impact.HullDamage);
 	}
+
+	public void ApplyHeat(HeatChangedFacts heat)
+	{
+		if (!_states.TryGetValue(heat.ActorId, out var state))
+			return;
+
+		state.Heat = heat.Heat;
+		state.Overdrive = heat.Overdrive;
+		state.Overheat = heat.Overheat;
+	}
 }

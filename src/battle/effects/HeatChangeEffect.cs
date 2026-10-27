@@ -54,7 +54,14 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 		}
 
 		_applied = true;
-		return [];
+		return
+		[
+			new Record<HeatChangedFacts>(new HeatChangedFacts(
+				actorId,
+				actor.Heat,
+				actor.Overdrive,
+				actor.Overheat)),
+		];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

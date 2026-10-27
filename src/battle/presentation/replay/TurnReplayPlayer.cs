@@ -211,6 +211,9 @@ public partial class TurnReplayPlayer : Node3D
 					}
 					_impactWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
 					break;
+				case Record<HeatChangedFacts> { Value: var heat }:
+					ApplyHeatChanged(heat);
+					break;
 			}
 		}
 
@@ -260,6 +263,15 @@ public partial class TurnReplayPlayer : Node3D
 		var view = _clipContext.UnitViews[spawned.Id];
 		view.ConfigureMovementTrail(TrailColorFor(spawned.Id));
 		view.Sync(spawned);
+	}
+
+	private void ApplyHeatChanged(HeatChangedFacts heat)
+	{
+		_clipContext.ReplayState.ApplyHeat(heat);
+		if (!_clipContext.UnitViews.TryGetValue(heat.ActorId, out var view))
+			return;
+
+		view.RefreshHeat(_clipContext.ReplayState.StateOf(heat.ActorId));
 	}
 
 	private bool PlayImpact(ImpactFacts impact)

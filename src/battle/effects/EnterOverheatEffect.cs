@@ -23,7 +23,14 @@ public sealed class EnterOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.Overdrive = false;
 		actor.Overheat = true;
 		_applied = true;
-		return [];
+		return
+		[
+			new Record<HeatChangedFacts>(new HeatChangedFacts(
+				actorId,
+				actor.Heat,
+				actor.Overdrive,
+				actor.Overheat)),
+		];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

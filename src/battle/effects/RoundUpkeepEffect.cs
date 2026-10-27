@@ -29,7 +29,21 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
 		if (actor.HeatProfile.Participates && !actor.Overdrive && !actor.Overheat)
-			actor.Heat = System.Math.Max(0, actor.Heat - actor.HeatProfile.ClearPerTurn);
+		{
+			var cleared = System.Math.Max(0, actor.Heat - actor.HeatProfile.ClearPerTurn);
+			if (cleared != actor.Heat)
+			{
+				actor.Heat = cleared;
+				return
+				[
+					new Record<HeatChangedFacts>(new HeatChangedFacts(
+						actorId,
+						actor.Heat,
+						actor.Overdrive,
+						actor.Overheat)),
+				];
+			}
+		}
 
 		return [];
 	}

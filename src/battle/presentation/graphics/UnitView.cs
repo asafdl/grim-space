@@ -66,12 +66,9 @@ public partial class UnitView : Node3D
 		BindShieldBubble(state);
 		if (state.HeatProfile.Participates)
 		{
-			_flameHalo = new FlameHaloView
-			{
-				Name = "FlameHalo",
-				Position = new Vector3(0f, _hullBounds.End.Y + 0.32f, 0f),
-			};
+			_flameHalo = new FlameHaloView { Name = "FlameHalo" };
 			AddChild(_flameHalo);
+			_flameHalo.AttachAbove(_hullBounds.End.Y + 0.32f);
 		}
 
 		Sync(state);
@@ -485,6 +482,9 @@ public partial class UnitView : Node3D
 		ApplyOrientation(state);
 		ApplyShields(state);
 	}
+
+	/// <summary>Updates heat VFX without interrupting pose animation.</summary>
+	public void RefreshHeat(State state) => UpdateHeatIndicator(state);
 
 	private void UpdateHeatIndicator(State state)
 	{
