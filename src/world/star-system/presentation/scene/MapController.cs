@@ -86,13 +86,16 @@ public partial class MapController : Node3D
 	private bool _revealAllUnits;
 	private bool _wired; // set on the LAST line of _Ready; _ExitTree keys off it
 
-	// Movie-capture pose (--mappose=yawDeg,pitchDeg,dist[,driftDegPerSec], like
+	// Movie-capture pose (--mappose=yawDeg,pitchDeg,dist[,driftDegPerSec[,panWestUnitsPerSec[,panZUnitsPerSec]]], like
 	// sun_test --capture): every frame the camera is snapped to the pose (plus
-	// the optional slow yaw drift) so evidence renders are exactly repeatable
-	// and the parallax response can be filmed. No argument, no effect.
+	// the optional slow yaw drift and the optional westward/north pivot
+	// translation — the WASD-equivalent camera move for the parallax rig) so
+	// evidence renders are exactly repeatable and the parallax response can be
+	// filmed. No argument, no effect.
 	private bool _captureActive;
 	private OrbitPose _capturePose;
 	private float _captureYawDriftDegreesPerSecond;
+	private Vector2 _capturePanPerSecond;
 	private float _captureElapsed;
 	private ESimMode _pauseMenuPreviousSimMode;
 	private string? _settledPresentationModeId;
@@ -426,6 +429,13 @@ public partial class MapController : Node3D
 
 		if (fields.Length > 3)
 			_ = float.TryParse(fields[3], out yawDriftDegreesPerSecond);
+		float panWestPerSecond = 0f;
+		if (fields.Length > 4)
+			_ = float.TryParse(fields[4], out panWestPerSecond);
+		float panZPerSecond = 0f;
+		if (fields.Length > 5)
+			_ = float.TryParse(fields[5], out panZPerSecond);
+		_capturePanPerSecond = new Vector2(panWestPerSecond, panZPerSecond);
 
 		pose = new OrbitPose
 		{
@@ -443,6 +453,12 @@ public partial class MapController : Node3D
 		_captureElapsed += (float)delta;
 		var pose = _capturePose;
 		pose.Yaw += Mathf.DegToRad(_captureYawDriftDegreesPerSecond * _captureElapsed);
+		// The WASD-equivalent MOVE: pivot slides westward (and optionally
+		// northward) at the dev rate, so the camera translates during capture.
+		pose.Pivot += new Vector3(
+			-_capturePanPerSecond.X * _captureElapsed,
+			0f,
+			-_capturePanPerSecond.Y * _captureElapsed);
 		// Snap against the camera's own zoom band, not the active mode's
 		// limits: the cinematic boot mode caps distance at 14, which would
 		// silently flatten every --mappose distance to 14. Dev-only.

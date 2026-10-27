@@ -3,6 +3,62 @@
 Task: the black hole and the far backgrounds "looked weird / paper-flat".
 Branch `graphic/far-depth`, isolated to this worktree + `doc/far-depth` evidence.
 
+## Sky-pass black hole v2 (skypass round, after realism kit 1)
+
+User ruling: the far black hole moves from a world-space 3D object into the
+SKY PASS (`map_sky.gdshader`) as one direction-locked feature — same semantics
+as the nebula patch: it is a fixed direction on the sky dome, so it has zero
+parallax under WASD pans and no far-clip ceiling (the camera's Far=400 never
+clips the sky). One commit per item; evidence in `evidence/skypass/`, heavy
+movies/stills under `/d/ops-work/fardepth/skypass/`.
+
+A. **Direction-locked fold.** The old pass (`MapBlackHoleVisual` + the two
+   `black_hole_*.gdshader` files, horizon sphere + additive quad at world
+   distance 260) is REMOVED, not dual-drawn — no double black hole anywhere.
+   The hole now renders inside `map_sky.gdshader`: shadow + ring + glow are
+   one sky-pass element at the fixed sky direction (`MapAtmosphereSettings.
+   BlackHoleDirection`), sizes are angular radians now (0.10 rad shadow /
+   0.19 rad glow — the same on-screen size the old 260-unit tuning produced).
+   The closedup law holds in code: the new pass is reachable only through
+   `MapBackdrop`, which is built only by `MapController` (the map scene);
+   battle's `SpaceBackdrop` (`src/battle/presentation/graphics/SpaceBackdrop.cs`)
+   uses its own `PanoramaSkyMaterial` and never touches `map_sky.gdshader`
+   (`grep -rn map_sky src/` → MapBackdrop.cs only).
+   Evidence: `itemA_skypass-fold.png` (world-space pass vs sky-pass, rig pose
+   62,25,42).
+B. **Solid black shadow, clean edge, glow never on it.** The shadow is an
+   opaque pure-black disc; the glow's brightness mask is zero inside 1.02x of
+   the shadow radius, so light cannot bleed onto the disc and the rim is drawn
+   under the light inside this one element. Evidence:
+   `itemB_shadow.png` (edge detail before/after).
+C. **Ring + glow like the real references** (the EHT/GMVA class strips in
+   `real-vs-ours-v4.png`): a broad soft photon-ring band — gaussian sigma
+   0.105 rad, visible thickness ~0.17 rad, which is more than 1/3 of the glow
+   diameter (0.38 rad) — over a wide diffuse falloff that runs all the way to
+   the glow edge. No thin knife line, no single-pixel cut, shadow small
+   inside generous light (shadow diameter ~ half the glow diameter, like the
+   reference stills). Evidence: `itemC_ring-glow.png`.
+D. **One side brighter.** A doppler crescent brightens one side of the ring
+   (amount 0.85); its side was tuned against the rig so the bright band sits
+   lower-left at the evidence pose — the same placement the kit-1 item-4
+   world-space doppler produced at that pose. Honest tradeoff under
+   direction-lock: in a sky pass the image is pinned to the ring the way a
+   real photograph pins it, so the "bright side follows the view" mechanism of
+   the world-space pass is gone; what is kept is the calibrated bright-side
+   placement. Evidence: `itemD_doppler.png`.
+E. **Zero parallax under a westward camera move.** The dev rig gained an
+   optional pan on `--mappose` (fields 5/6 = west/north units per second;
+   dev-only, no argument → no effect). At pose 62,25,42 with a 4 u/s westward
+   pivot slide, the pure-black disc's centroid moved (1343.49, 533.71) →
+   (1344.63, 532.57) px from frame 170 to frame 470 — ~1.1 px of drift while
+   the camera translated ~57 world units; the playfield elements on the same
+   frames slide visibly. Evidence: `itemE_zeroparallax.png` (f170 vs f470,
+   same still-pair crop), `itemE_no-clip.png` (d72 stare: old world-space pass
+   vs sky-pass — no clip ceiling involved anymore).
+   Build/test before the renders: `dotnet build` clean; `dotnet test` 1601
+   succeeded, the same 2 pre-existing `BattleSpawnPilotTests` failures as on
+   the untouched base commit.
+
 ## Realism kit 1 (the review round after the 3D rebuild)
 
 The geek review of the first 3D pass said: still reads like a decal because the
@@ -165,6 +221,6 @@ Also verified: `dotnet build` clean; `dotnet test` 1601/1603 — the 2 failures
 |---|---|---|
 | Stars | sky-pass panorama | Keep — sky pass is "infinitely far" by construction, correct semantics |
 | Nebula | sky-pass splice | Keep — same far semantics; its only flat-look neighbour (the decal) is gone |
-| Black hole | ~~sky decal~~ → world-space horizon sphere + additive accretion disk | Replaced with real 3D at distance 260; photon-ring lensing hint at the limb |
+| Black hole | ~~sky decal~~ ~~world-space horizon sphere + additive disk~~ → sky-pass feature inside `map_sky.gdshader` | Direction-locked sky-pass pixels: zero parallax, no far-clip ceiling (skypass v2 round above) |
 | Dust cards | world-space billboards | Keep — they already respond to camera and sit on the playfield scale |
 | Sun / planets / stations | world-space meshes | Untouched (near/mid layers, already 3D) |
