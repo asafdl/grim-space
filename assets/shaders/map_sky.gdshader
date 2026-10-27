@@ -28,7 +28,7 @@ uniform vec3 bh_warm_color : source_color = vec3(1.0, 0.47, 0.16);
 uniform vec3 bh_outer_color : source_color = vec3(0.45, 0.12, 0.04);
 // One side of the ring brighter. In a direction-locked sky pass the doppler
 // side is pinned to the ring the way a real photograph pins it.
-uniform float bh_doppler_amount : hint_range(0.0, 1.5) = 0.55;
+uniform float bh_doppler_amount : hint_range(0.0, 1.5) = 0.85;
 uniform float bh_doppler_sign : hint_range(-1.0, 1.0) = 1.0;
 // Alive grain + differential swirl on TIME, carried over from the old disk.
 uniform float bh_swirl_speed : hint_range(0.0, 2.0) = 0.30;
@@ -140,11 +140,11 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	float alive = 1.0 + bh_flicker * (pulse * 2.0 - 1.0) * 0.5;
 
 	// Doppler side: bright on one side of the ring.
-	float doppler = max(0.05, 1.0 + bh_doppler_amount * bh_doppler_sign * dot(unit, vec2(0.8, 0.6)));
+	float doppler = max(0.05, 1.0 + bh_doppler_amount * bh_doppler_sign * dot(unit, vec2(0.65, 0.75)));
 
-	float brightness = (ring_band * 0.9 + halo * 0.30)
-		* bh_energy * glow_mask * doppler * alive
-		* (0.55 + grain * bh_grain * 0.35);
+	float brightness = bh_energy * glow_mask * alive
+		* (0.55 + grain * bh_grain * 0.35)
+		* (ring_band * (0.85 + 1.25 * max(doppler - 1.0, 0.0)) + halo * 0.30 * doppler);
 	vec3 ring_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.45, t));
 	vec3 glow = ring_col * ring_band
 		+ mix(bh_warm_color * 0.7, bh_outer_color, smoothstep(0.15, 0.8, t)) * (halo * 0.8)
