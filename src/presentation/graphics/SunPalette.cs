@@ -143,6 +143,15 @@ public sealed class SunPalette
 	/// </summary>
 	public float CoronaHaloReach { get; init; } = 1.2f;
 
+	/// <summary>
+	/// Option A: 1 = the corona halo uses the soft exponential envelope
+	/// (spreads outward past the rim, no hard seam at the tail's end);
+	/// 0 = the legacy polynomial ring that stops dead at
+	/// <see cref="CoronaHaloReach"/>.  Default 0 keeps every existing
+	/// consumer — including the sun_test close-up — on the legacy path.
+	/// </summary>
+	public float CoronaHaloSoft { get; init; } = 0f;
+
 	/// <summary>Width of the prominence billboard, in star radii.</summary>
 	public float ProminenceQuadWidth { get; init; } = 10f;
 

@@ -1,3 +1,31 @@
+## limb darkening
+
+Plainly: the map sun's disc now darkens towards its edge instead of reading
+flat, and the thin ring of glow past the rim is replaced by a soft envelope
+that spreads outward and fades out smoothly — no hard seam anywhere. The disc
+darkening is the surface shader's existing mu-term (mu = dot(view direction,
+surface normal), I(mu) = 1 − u(1−mu) − v(1−mu)²) driven harder by the map
+palette only: u 0.30 → 0.55, v 0.08 → 0.14 (the HMI-measured shape), so the
+limb lands at about a quarter of centre brightness instead of about half. The
+soft halo is a new `halo_soft` uniform in `sun_corona.gdshader` (map sets 1,
+reach 0.5 → 0.55): same brightness at the limb, exponential tail, already
+under the shader's own dither noise before the shell silhouette — no kink,
+no 1 px seam.
+
+Only mesh-shader params moved (`MapCelestialVisuals.BuildStarPalette`,
+`SunPalette.CoronaHaloSoft`, two shader lines in `sun_corona.gdshader`) — no
+sky file, scene or camera touched. Close-up law holds by construction: sun_test
+skies itself with `PanoramaSkyMaterial` (`SunTestScene.cs:271`) and never
+loads `map_sky`; it pins its own u/v (`SunTestScene.cs:243-244`) and leaves
+`halo_soft` at its default 0, which the shader maps back to the legacy
+polynomial exactly — so the change cannot write a single close-up pixel
+differently. Measured pair: 99.667 % identical, all differing pixels in one
+compact patch on the lower-right limb (the seeded-feature delta class the
+earlier pairs carried; the redo pair's was the prominence site). Strips
+(before left / after right): `refs/comparison/limb_boot_before_after.png`,
+`limb_zoom_before_after.png`, `limb_closeup_before_after.png` (heavy renders
+in `D:/ops-work/sunexA/`).
+
 ## verdict 10 - nebula splice removed
 
 The pink M17 patch that floated beside the sun and station is gone from the map

@@ -217,6 +217,7 @@ public static class SunVisual
 		material.SetShaderParameter("inner_brightness", palette.InnerCoronaStrength);
 		material.SetShaderParameter("streamer_strength", palette.CoronaStreamerStrength);
 		material.SetShaderParameter("halo_reach", palette.CoronaHaloReach);
+		material.SetShaderParameter("halo_soft", palette.CoronaHaloSoft);
 		material.SetShaderParameter("seed", palette.Seed);
 		material.SetShaderParameter("sun_radius", radius);
 		material.SetShaderParameter("shell_radius", radius * palette.CoronaShellRadius);

@@ -33,6 +33,12 @@ uniform float falloff : hint_range(0.01, 1.0) = 0.18;
 // like the strategic map - pull it in so the glow hugs the limb instead of
 // reading as a brown ball with an edge.
 uniform float halo_reach : hint_range(0.1, 4.0) = 1.2;
+// Option A soft-envelope switch: 1 = a soft exponential halo that spreads
+// outward past the rim and dies under the dither noise before the shell
+// silhouette; 0 = the legacy polynomial ring that stops dead at halo_reach
+// (the default, and the close-up harness's path: mix() with 0 returns the
+// legacy term exactly, so its frame is untouched).
+uniform float halo_soft : hint_range(0.0, 1.0) = 0.0;
 uniform float streamer_density : hint_range(1.0, 80.0) = 24.0;
 uniform float streamer_strength : hint_range(0.0, 2.0) = 0.85;
 uniform float helmet_strength : hint_range(0.0, 2.0) = 0.65;
@@ -136,7 +142,14 @@ void fragment() {
 	// Both terms are at their maximum at dist = 0, so there is no dip between
 	// the surface and the corona and no interior ring.
 	float core = exp(-dist / max(falloff, 0.001));
-	float halo = pow(clamp(1.0 - dist / max(halo_reach, 0.001), 0.0, 1.0), 2.0);
+	// The legacy polynomial ring reaches 0 at halo_reach with a slope kink,
+	// which reads as a thin ring with a hard seam at map subtenses.  The soft
+	// option is a pure exponential with the SAME peak at the limb: it spreads
+	// outward past the rim, decays monotonically, and is under the sub-
+	// quantisation dither (0.006) before the shell-edge fade takes over, so
+	// nothing terminates visibly anywhere.
+	float halo_poly = pow(clamp(1.0 - dist / max(halo_reach, 0.001), 0.0, 1.0), 2.0);
+	float halo = mix(halo_poly, exp(-dist / max(halo_reach, 0.001)), halo_soft);
 	float outside = step(1.0, r);
 	// The shell must dissolve before its own silhouette: at exponential-tail
 	// brightness the last fraction of the shell sits under the dither noise,

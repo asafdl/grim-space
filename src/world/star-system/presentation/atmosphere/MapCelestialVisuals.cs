@@ -71,7 +71,15 @@ public static class MapCelestialVisuals
 			ProminenceFilamentWidth = 0.030f,
 			CoronaStrength = 0.18f,
 			CoronaStreamerStrength = 0.34f,
-			CoronaHaloReach = 0.5f,
+			CoronaHaloReach = 0.55f,
+			CoronaHaloSoft = 1f,
+			// Limb-darkening mu-term (option A): I(mu) = 1 - u(1-mu) - v(1-mu)^2
+			// with mu = dot(view_dir, surface_normal), as measured on HMI 193
+			// (u = 0.62, v = 0.18).  The map palette previously ran the palette
+			// defaults (u 0.30, v 0.08), which left the ~550 px boot disc reading
+			// flat towards the limb.
+			LimbDarkening = 0.55f,
+			LimbDarkeningSquared = 0.14f,
 			EmissionStrength = 0.26f + settings.SunGlowEnergy * 0.06f,
 			Seed = StableSeedMixer.From(seed).Add("map-star").Value % 997f,
 		};
