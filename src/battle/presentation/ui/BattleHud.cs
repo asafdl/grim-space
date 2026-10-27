@@ -35,7 +35,7 @@ public partial class BattleHud : Node
 
 	private bool _strategicBattle;
 
-	private PanelContainer _turnBadge = null!;
+	private Control _turnBadge = null!;
 	private Label _turnLabel = null!;
 	private CanvasLayer _phaseLayer = null!;
 	private ColorRect _planningVignette = null!;
@@ -78,36 +78,47 @@ public partial class BattleHud : Node
 		turnRow.AddThemeConstantOverride("separation", 8);
 		topMargin.AddChild(turnRow);
 
-		_turnBadge = new PanelContainer
+		_turnBadge = new Control
 		{
+			CustomMinimumSize = new Vector2(157f, 46f),
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
-		_turnBadge.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+		var turnBadgeMaterial = new ShaderMaterial
 		{
-			BgColor = HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight.Darkened(0.4f), 0.92f),
-			BorderColor = HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight, 0.95f),
-			BorderWidthLeft = 2,
-			BorderWidthTop = 2,
-			BorderWidthRight = 2,
-			BorderWidthBottom = 2,
-			CornerRadiusTopLeft = 4,
-			CornerRadiusTopRight = 4,
-			CornerRadiusBottomRight = 4,
-			CornerRadiusBottomLeft = 4,
-			ContentMarginLeft = 12,
-			ContentMarginRight = 12,
-			ContentMarginTop = 6,
-			ContentMarginBottom = 6,
-		});
+			Shader = GD.Load<Shader>("res://assets/ui/components/runtime/button_palette.gdshader")
+				?? throw new InvalidOperationException("Could not load technical button palette shader."),
+		};
+		turnBadgeMaterial.SetShaderParameter("surface_color", HudPalettes.PurpleRed.DeepSurface);
+		turnBadgeMaterial.SetShaderParameter("edge_color", HudPalettes.PurpleRed.Highlight);
+		turnBadgeMaterial.SetShaderParameter("palette_mix", 1f);
+		var turnBadgeBackground = new TextureRect
+		{
+			Texture = GD.Load<Texture2D>("res://assets/ui/components/runtime/button_technical_base.png")
+				?? throw new InvalidOperationException("Could not load technical button background."),
+			Material = turnBadgeMaterial,
+			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.Scale,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		_turnBadge.AddChild(turnBadgeBackground);
 		_turnLabel = new Label
 		{
 			Text = BattleHudCopy.Turn(1),
+			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			OffsetLeft = 16f,
+			OffsetRight = -16f,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
 			ThemeTypeVariation = "Turn",
+			Modulate = HudPalettes.PurpleRed.Primary,
 		};
 		_turnBadge.AddChild(_turnLabel);
 		turnRow.AddChild(_turnBadge);
