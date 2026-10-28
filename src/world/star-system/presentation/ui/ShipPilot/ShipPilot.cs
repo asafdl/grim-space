@@ -17,7 +17,9 @@ public partial class ShipPilot : PanelContainer
 	private Label _levelLabel = null!;
 	private LevelUpButton _levelUpButton = null!;
 	private TextureRect _portrait = null!;
+	private ProgressBar _shieldBar = null!;
 	private ProgressBar _hullBar = null!;
+	private ProgressBar _xpBar = null!;
 	private string? _portraitId;
 	private string? _pilotId;
 	private string? _shipId;
@@ -50,8 +52,16 @@ public partial class ShipPilot : PanelContainer
 		}
 		_levelLabel.Text = $"LV {claimedLevel}";
 		_levelUpButton.Visible = canLearnSkill;
+		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalMaxShieldPoints);
 		SetBar(_hullBar, ship.HullPoints, ship.Loadout.MaxHullPoints);
 		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
+		if (xpToNext > 0)
+			SetBar(_xpBar, xpInLevel, xpToNext);
+		else
+		{
+			_xpBar.MaxValue = 1;
+			_xpBar.Value = 1;
+		}
 		var xpLine = xpToNext > 0
 			? $"XP {xpInLevel}/{xpToNext}"
 			: "XP max";
@@ -129,8 +139,12 @@ public partial class ShipPilot : PanelContainer
 		_levelUpButton.Pressed += OnLevelUpPressed;
 		portraitFrame.AddChild(_levelUpButton);
 
+		_shieldBar = CreateBar(new Color(0.25f, 0.62f, 0.95f));
+		column.AddChild(_shieldBar);
 		_hullBar = CreateBar(new Color(0.85f, 0.15f, 0.18f));
 		column.AddChild(_hullBar);
+		_xpBar = CreateBar(HudPalettes.PurpleRed.Secondary);
+		column.AddChild(_xpBar);
 	}
 
 	private void OnPortraitGuiInput(InputEvent @event)

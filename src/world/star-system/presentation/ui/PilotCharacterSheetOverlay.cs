@@ -176,6 +176,11 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 				assignedShip.TotalCurrentShieldPoints,
 				assignedShip.TotalMaxShieldPoints,
 				new Color(0.25f, 0.62f, 0.95f)));
+			rail.AddChild(BuildMeter(
+				"HULL",
+				assignedShip.HullPoints,
+				assignedShip.Loadout.MaxHullPoints,
+				new Color(0.85f, 0.15f, 0.18f)));
 		}
 
 		var (currentXp, requiredXp) = PilotProgression.ProgressWithinLevel(pilot.ExperiencePoints);
