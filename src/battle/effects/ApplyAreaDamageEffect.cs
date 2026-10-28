@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Abilities;
-using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -107,10 +106,25 @@ public sealed class ApplyAreaDamageEffect(
 		{
 			new Record<AreaDamageFacts>(new AreaDamageFacts(actorId, cause, origin, cells)),
 		};
+		var detonator = UnitRegistry.For(world).UnitOf(actorId);
+		var voidBombFriendlyImmunity = cause == EImpactCause.VoidBombBlast
+			&& detonator.State.OneWithTheVoidActive;
 		foreach (var unit in UnitRegistry.For(world).All)
 		{
 			if (!unit.State.IsAlive || !cells.Contains(unit.State.Position))
 				continue;
+
+			if (voidBombFriendlyImmunity
+				&& detonator.RelationTo(unit) != EUnitRelation.Opponent)
+			{
+				if (destroySource && unit.State.Id == actorId)
+				{
+					_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
+					unit.State.HullPoints = 0;
+				}
+
+				continue;
+			}
 
 			_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
 			if (ApplyTo(
@@ -151,8 +165,11 @@ public sealed class ApplyAreaDamageEffect(
 		if (shieldDamageBonusPercent > 0)
 			appliedShieldDamageBonus += PortionOf(appliedDamage, shieldDamageBonusPercent);
 
-		if (InTheFrayRules.AppliesDamageReduction(world, targetUnit))
-			InTheFrayRules.ReduceIncomingDamage(ref appliedDamage, ref appliedShieldDamageBonus);
+		Defense.ApplyInTheFrayReduction(
+			world,
+			targetUnit,
+			ref appliedDamage,
+			ref appliedShieldDamageBonus);
 
 		if (damage > 0
 			&& unit.DefensiveManeuversMpSpentLastTurn == 0

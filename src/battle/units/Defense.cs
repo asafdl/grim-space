@@ -1,4 +1,6 @@
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 
 namespace GrimSpace.Battle.Units;
 
@@ -38,4 +40,41 @@ public static class Defense
 		var hullDamage = System.Math.Max(damage - shieldBefore, 0);
 		unit.HullPoints = System.Math.Max(unit.HullPoints - hullDamage, 0);
 	}
+
+	public static void ApplyInTheFrayReduction(
+		BattleWorld world,
+		Unit target,
+		ref int appliedDamage,
+		ref int appliedShieldDamageBonus)
+	{
+		if (!target.State.InTheFrayActive || !InTheFrayPositionMet(world, target))
+			return;
+
+		var retained = PilotSkillPercents.InTheFray.DamageTakenPercent;
+		var reducedShieldDamage = ScalePercent(appliedDamage + appliedShieldDamageBonus, retained);
+		appliedDamage = ScalePercent(appliedDamage, retained);
+		appliedShieldDamageBonus = reducedShieldDamage - appliedDamage;
+	}
+
+	private static bool InTheFrayPositionMet(BattleWorld world, Unit unit)
+	{
+		var distantEnemies = 0;
+		foreach (var other in world.UnitRegistry.All)
+		{
+			if (!other.State.IsAlive || unit.RelationTo(other) != EUnitRelation.Opponent)
+				continue;
+			if (unit.State.Position.ManhattanDistanceTo(other.State.Position)
+				< PilotSkillPercents.InTheFray.MinimumDistanceCells)
+				continue;
+
+			distantEnemies++;
+			if (distantEnemies >= PilotSkillPercents.InTheFray.MinimumEnemyCount)
+				return true;
+		}
+
+		return false;
+	}
+
+	private static int ScalePercent(int amount, int percent) =>
+		(int)System.Math.Round(amount * percent / 100m, System.MidpointRounding.AwayFromZero);
 }

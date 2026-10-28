@@ -62,6 +62,15 @@ public static class PilotSkillCatalog
 				tier: 4,
 				minimumEarnedLevel: 5,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
+			[EPilotSkillId.OneWithTheVoid] = new(
+				EPilotSkillId.OneWithTheVoid,
+				[EPilotCapabilityId.OneWithTheVoid],
+				new HudTooltipContent(
+					"One With The Void",
+					"Void bombs you launch never damage allies or your own ship."),
+				tier: 3,
+				minimumEarnedLevel: 4,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
 			[EPilotSkillId.DronesYearnForMines] = new(
 				EPilotSkillId.DronesYearnForMines,
 				[EPilotCapabilityId.ScrapRewardBonus],

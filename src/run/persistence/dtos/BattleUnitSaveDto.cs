@@ -28,6 +28,7 @@ public sealed record BattleUnitSaveDto(
 	int? DefensiveManeuversMpSpentLastTurn = null,
 	int DefensiveManeuversRollIndex = 0,
 	bool InTheFrayActive = false,
+	bool OneWithTheVoidActive = false,
 	int Heat = 0,
 	int? HeatCapacity = null,
 	int? HeatClearPerTurn = null,

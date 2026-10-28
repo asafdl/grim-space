@@ -17,6 +17,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string OverchargeEnginesIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
+	private const string VoidBombIconPath = "res://assets/ui/abilities/void_bomb.svg";
 	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
 	private const string SpaceRangerClassIconPath = "res://assets/ui/classes/space-ranger.png";
 	private const string SupportClassIconPath = "res://assets/ui/classes/support.png";
@@ -457,6 +458,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			EPilotSkillId.IonizedPayload => LightningIconPath,
 			EPilotSkillId.DefensiveManeuvers => ManeuverIconPath,
 			EPilotSkillId.InTheFray => FrayIconPath,
+			EPilotSkillId.OneWithTheVoid => VoidBombIconPath,
 			EPilotSkillId.DronesYearnForMines => SalvageIconPath,
 			EPilotSkillId.IKnowABot => BotIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(skillId), skillId, null),

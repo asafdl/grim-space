@@ -39,6 +39,7 @@ public sealed class SpawnVoidBombEffect(AbilityMount mount, string unitId)
 		torpedo.State.ActionPoints = projectile.MovementActionPoints;
 		torpedo.State.ManeuverPoints = 0;
 		torpedo.State.ParentId = actorId;
+		torpedo.State.OneWithTheVoidActive = firer.State.OneWithTheVoidActive;
 		units.Add(torpedo);
 		_spawned = torpedo;
 

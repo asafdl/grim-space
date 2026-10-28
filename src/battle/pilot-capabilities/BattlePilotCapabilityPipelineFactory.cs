@@ -16,6 +16,7 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.ScrapDroneSwarmDamageBonus
 			or EPilotCapabilityId.StationaryDamageDeflection
 			or EPilotCapabilityId.InTheFray
+			or EPilotCapabilityId.OneWithTheVoid
 			or EPilotCapabilityId.InitiativePenalty;
 
 	public static ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Build(

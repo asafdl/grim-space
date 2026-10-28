@@ -9,6 +9,7 @@ public enum EPilotCapabilityId
 	ScrapDroneSwarmDamageBonus,
 	StationaryDamageDeflection,
 	InTheFray,
+	OneWithTheVoid,
 	MinorScrapRewardBonus,
 	ScrapRewardBonus,
 	ShipUpgradeDiscount,

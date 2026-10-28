@@ -176,8 +176,12 @@ public sealed class BattleOrchestrator : IDisposable
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
 			if (pilotsByActorId is not null)
+			{
 				unit.State.InTheFrayActive = runtime.PilotCapabilities.Contains(
 					EPilotCapabilityId.InTheFray);
+				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
+					EPilotCapabilityId.OneWithTheVoid);
+			}
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
 

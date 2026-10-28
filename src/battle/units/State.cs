@@ -33,6 +33,7 @@ public sealed class State
 	public int? DefensiveManeuversMpSpentLastTurn { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
 	public bool InTheFrayActive { get; set; }
+	public bool OneWithTheVoidActive { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public required HeatSpec HeatProfile { get; set; }
 	public int Heat { get; set; }
@@ -109,6 +110,7 @@ public sealed class State
 			DefensiveManeuversMpSpentLastTurn = DefensiveManeuversMpSpentLastTurn,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			InTheFrayActive = InTheFrayActive,
+			OneWithTheVoidActive = OneWithTheVoidActive,
 			Maneuverability = Maneuverability,
 			HeatProfile = HeatProfile,
 			Heat = Heat,

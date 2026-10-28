@@ -1,5 +1,4 @@
 using GrimSpace.Battle.Abilities;
-using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -126,8 +125,11 @@ public sealed class ApplyChainLightningDamageEffect(
 		if (shieldDamageBonusPercent > 0)
 			appliedShieldDamageBonus += PortionOf(appliedDamage, shieldDamageBonusPercent);
 
-		if (InTheFrayRules.AppliesDamageReduction(world, targetUnit))
-			InTheFrayRules.ReduceIncomingDamage(ref appliedDamage, ref appliedShieldDamageBonus);
+		Defense.ApplyInTheFrayReduction(
+			world,
+			targetUnit,
+			ref appliedDamage,
+			ref appliedShieldDamageBonus);
 
 		if (damage > 0
 			&& unit.DefensiveManeuversMpSpentLastTurn == 0
