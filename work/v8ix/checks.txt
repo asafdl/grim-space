@@ -1,0 +1,21 @@
+=== V8IX PER-BOUNDARY MEASUREMENT (2.0 s dips, merged close pairs) ===
+    1.92 single  floor=0.000 OK  dip 0.92-2.92s = 2.00s
+    3.90 MERGED  floor=0.000 OK  span 2.90-5.72s = 2.82s (plateau 3.90-4.72)
+    4.72 MERGED  floor=0.000 OK  span 2.90-5.72s = 2.82s (plateau 3.90-4.72)
+    5.65 single  floor=0.000 OK  dip 4.65-6.65s = 2.00s
+    7.40 MERGED  floor=0.000 OK  span 6.40-9.03s = 2.63s (plateau 7.40-8.03)
+    8.03 MERGED  floor=0.000 OK  span 6.40-9.03s = 2.63s (plateau 7.40-8.03)
+   10.30 single  floor=0.000 OK  dip 9.30-11.30s = 2.00s
+   12.10 single  floor=0.000 OK  dip 11.10-13.10s = 2.00s
+   13.32 MERGED  floor=0.000 OK  span 12.32-15.17s = 2.85s (plateau 13.32-14.17)
+   14.17 MERGED  floor=0.000 OK  span 12.32-15.17s = 2.85s (plateau 13.32-14.17)
+   16.98 single  floor=0.000 OK  dip 15.98-17.98s = 2.00s
+   20.47 single  floor=0.000 OK  dip 19.47-21.47s = 2.00s
+   23.52 single  floor=0.000 OK  dip 22.52-24.52s = 2.00s
+   25.98 single  floor=0.000 OK  dip 24.98-26.98s = 2.00s
+   27.38 single  floor=0.000 OK  dip 26.38-28.38s = 2.00s
+   30.68 single  floor=0.000 OK  dip 29.68-31.68s = 2.00s
+  worst boundary floor = 0.000 OK
+  whole-file mean motion = 0.81 OK (0.5-3.0)
+  silence runs: 0  OK (zero)
+  loudness integrated = -13.9 LUFS OK (~-14)
