@@ -7,6 +7,18 @@ public static class PilotSkillPercents
 		public const int TemporaryShieldPercentOfFaceMax = 25;
 	}
 
+	public static class OverchargeEngines
+	{
+		/// <summary>Minimum AP required on the ship to activate (does not spend AP).</summary>
+		public const int MinimumApToUse = 2;
+
+		public const int RefreshedAp = 2;
+
+		public const int NextTurnApPenalty = 2;
+
+		public const int CooldownTurns = 2;
+	}
+
 	public static class DodgeThis
 	{
 		public const int AdditionalDamagePercent = 50;

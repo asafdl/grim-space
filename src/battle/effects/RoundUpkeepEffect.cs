@@ -28,6 +28,9 @@ public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		foreach (var installed in actor.Loadout.InstalledAbilities)
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
+		if (actor.OverchargeEnginesCooldownRemaining > 0)
+			actor.OverchargeEnginesCooldownRemaining--;
+
 		if (actor.HeatProfile.Participates && !actor.Overdrive && !actor.Overheat)
 		{
 			var cleared = System.Math.Max(0, actor.Heat - actor.HeatProfile.ClearPerTurn);

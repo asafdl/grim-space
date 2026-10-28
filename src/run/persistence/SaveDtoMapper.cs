@@ -240,6 +240,7 @@ public static class SaveDtoMapper
 			state.ParentId,
 			TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 			state.ShieldsUpUsedThisTurn,
+			state.OverchargeEnginesCooldownRemaining,
 			state.DefensiveManeuversMpSpentLastTurn,
 			state.DefensiveManeuversRollIndex,
 			state.InTheFrayActive,
@@ -280,6 +281,7 @@ public static class SaveDtoMapper
 		state.FuelRemaining = dto.FuelRemaining;
 		RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, dto.TemporaryShieldGrants);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
+		state.OverchargeEnginesCooldownRemaining = dto.OverchargeEnginesCooldownRemaining;
 		state.DefensiveManeuversMpSpentLastTurn = dto.DefensiveManeuversMpSpentLastTurn;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
 		state.InTheFrayActive = dto.InTheFrayActive;
@@ -354,6 +356,7 @@ public static class SaveDtoMapper
 				state.ParentId,
 				TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 				state.ShieldsUpUsedThisTurn,
+			state.OverchargeEnginesCooldownRemaining,
 				state.DefensiveManeuversMpSpentLastTurn,
 				state.DefensiveManeuversRollIndex,
 				state.InTheFrayActive,
@@ -877,6 +880,7 @@ public static class SaveDtoMapper
 			state.FuelRemaining = unitDto.FuelRemaining;
 			RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, unitDto.TemporaryShieldGrants);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
+			state.OverchargeEnginesCooldownRemaining = unitDto.OverchargeEnginesCooldownRemaining;
 			state.DefensiveManeuversMpSpentLastTurn = unitDto.DefensiveManeuversMpSpentLastTurn;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
 			state.InTheFrayActive = unitDto.InTheFrayActive;

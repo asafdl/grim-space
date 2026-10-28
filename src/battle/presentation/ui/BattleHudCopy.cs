@@ -148,6 +148,20 @@ internal static class BattleHudCopy
 			details);
 	}
 
+	public static BattleHudTooltipContent OverchargeEnginesTooltipFor(UnitDisplayState unit)
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.OverchargeEngines);
+		var mechanics =
+			$"[icon: {Icon.ActionPoints}, text: requires {PilotSkillPercents.OverchargeEngines.MinimumApToUse} AP, +{PilotSkillPercents.OverchargeEngines.RefreshedAp} up to max]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.OverchargeEngines.CooldownTurns} turns]\n[icon: {Icon.ActionPoints}, text: -{PilotSkillPercents.OverchargeEngines.NextTurnApPenalty} next turn]";
+		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
+			? mechanics
+			: $"{definition.Tooltip.Details}\n{mechanics}";
+		return new BattleHudTooltipContent(
+			definition.Tooltip.Title,
+			definition.Tooltip.Body,
+			details);
+	}
+
 	public static BattleHudTooltipContent SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<MinerBaySpec>(unit, EAbilityKind.MinerBay) is { } bay
 			? SpawnRepurposedMinerTooltipFor(bay)

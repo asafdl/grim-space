@@ -36,7 +36,8 @@ public sealed record UnitDisplayState(
 	bool IsAlive,
 	IReadOnlyList<PilotCapabilityGrant> PilotCapabilities,
 	string? PilotPortraitId,
-	bool ShieldsUpUsedThisTurn)
+	bool ShieldsUpUsedThisTurn,
+	int OverchargeEnginesCooldownRemaining)
 {
 	public static UnitDisplayState Capture(State state, ActorRuntime runtime) =>
 		new(
@@ -67,7 +68,8 @@ public sealed record UnitDisplayState(
 			state.IsAlive,
 			runtime.PilotCapabilityGrants.ToArray(),
 			runtime.PortraitId,
-			state.ShieldsUpUsedThisTurn);
+			state.ShieldsUpUsedThisTurn,
+			state.OverchargeEnginesCooldownRemaining);
 
 	public int MaxActionPoints => Maneuverability.MaxActionPoints;
 	public int MaxManeuverPoints => Maneuverability.MaxManeuverPoints;
@@ -119,6 +121,7 @@ public sealed record UnitDisplayState(
 			Overdrive = Overdrive,
 			Overheat = Overheat,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
+			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
 		};
 		foreach (var mount in Mounts)
 		{

@@ -14,6 +14,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string SalvageIconPath = "res://assets/ui/abilities/scrap_drone_swarm.svg";
 	private const string BotIconPath = "res://assets/ui/abilities/repurposed-miner.svg";
 	private const string DodgeIconPath = "res://assets/ui/abilities/spin.svg";
+	private const string OverchargeEnginesIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
 	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
@@ -451,6 +452,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		skillId switch
 		{
 			EPilotSkillId.ShieldsUp => ShieldIconPath,
+			EPilotSkillId.OverchargeEngines => OverchargeEnginesIconPath,
 			EPilotSkillId.DodgeThis => DodgeIconPath,
 			EPilotSkillId.IonizedPayload => LightningIconPath,
 			EPilotSkillId.DefensiveManeuvers => ManeuverIconPath,

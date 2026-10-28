@@ -3,6 +3,7 @@ namespace GrimSpace.Pilots;
 public enum EPilotCapabilityId
 {
 	ShieldBoost,
+	OverchargeEngines,
 	AdjacentDamageBonus,
 	LightningShieldDamageBonus,
 	ScrapDroneSwarmDamageBonus,

@@ -24,6 +24,7 @@ public sealed record BattleUnitSaveDto(
 	int? Initiative = null,
 	IReadOnlyList<TemporaryShieldGrantDto>? TemporaryShieldGrants = null,
 	bool ShieldsUpUsedThisTurn = false,
+	int OverchargeEnginesCooldownRemaining = 0,
 	int? DefensiveManeuversMpSpentLastTurn = null,
 	int DefensiveManeuversRollIndex = 0,
 	bool InTheFrayActive = false,

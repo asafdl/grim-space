@@ -10,6 +10,7 @@ public static class BattlePilotCapabilityPipelineFactory
 {
 	public static bool Supports(EPilotCapabilityId capabilityId) =>
 		capabilityId is EPilotCapabilityId.ShieldBoost
+			or EPilotCapabilityId.OverchargeEngines
 			or EPilotCapabilityId.AdjacentDamageBonus
 			or EPilotCapabilityId.LightningShieldDamageBonus
 			or EPilotCapabilityId.ScrapDroneSwarmDamageBonus

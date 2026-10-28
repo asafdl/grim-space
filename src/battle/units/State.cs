@@ -29,6 +29,7 @@ public sealed class State
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public List<TemporaryShieldGrant> TemporaryShieldGrants { get; } = [];
 	public bool ShieldsUpUsedThisTurn { get; set; }
+	public int OverchargeEnginesCooldownRemaining { get; set; }
 	public int? DefensiveManeuversMpSpentLastTurn { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
 	public bool InTheFrayActive { get; set; }
@@ -104,6 +105,7 @@ public sealed class State
 			Projectile = Projectile,
 			ParentId = ParentId,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
+			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
 			DefensiveManeuversMpSpentLastTurn = DefensiveManeuversMpSpentLastTurn,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			InTheFrayActive = InTheFrayActive,

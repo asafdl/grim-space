@@ -34,6 +34,7 @@ public static class PilotCapabilityActionDefs
 		capabilityId switch
 		{
 			EPilotCapabilityId.ShieldBoost => ShieldsUpDef.Instance,
+			EPilotCapabilityId.OverchargeEngines => OverchargeEnginesDef.Instance,
 			_ => null,
 		};
 }

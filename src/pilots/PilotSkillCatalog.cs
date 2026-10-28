@@ -17,6 +17,15 @@ public static class PilotSkillCatalog
 				tier: 2,
 				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.Global),
+			[EPilotSkillId.OverchargeEngines] = new(
+				EPilotSkillId.OverchargeEngines,
+				[EPilotCapabilityId.OverchargeEngines],
+				new HudTooltipContent(
+					"Overcharge Engines",
+					$"Requires {PilotSkillPercents.OverchargeEngines.MinimumApToUse} AP to use. Refresh {PilotSkillPercents.OverchargeEngines.RefreshedAp} AP this turn (up to max). {PilotSkillPercents.OverchargeEngines.CooldownTurns}-turn cooldown. Get {PilotSkillPercents.OverchargeEngines.NextTurnApPenalty} less AP next turn."),
+				tier: 3,
+				minimumEarnedLevel: 4,
+				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.DodgeThis] = new(
 				EPilotSkillId.DodgeThis,
 				[EPilotCapabilityId.AdjacentDamageBonus],

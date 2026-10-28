@@ -174,6 +174,19 @@ public static class AbilityHudCatalog
 					unit.ShieldsUpUsedThisTurn ? 0 : 1,
 					1),
 				legality => legality.ShieldsUp),
+			OverchargeEnginesDef => new(
+				EPlayerMode.OverchargeEngines,
+				def,
+				new AbilityTargetingSpec(
+					SelfSource<OverchargeEnginesAction>,
+					AbilitySourceMeshes.CreateDetonation,
+					new Color(0.95f, 0.55f, 0.22f, 0.5f)),
+				"res://assets/ui/abilities/yaw.svg",
+				BattleHudCopy.OverchargeEnginesTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.OverchargeEnginesCooldownRemaining == 0 ? 1 : 0,
+					1),
+				legality => legality.OverchargeEngines),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};

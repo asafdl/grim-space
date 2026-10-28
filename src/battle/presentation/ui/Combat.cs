@@ -10,4 +10,5 @@ public enum EPlayerMode
 	SpawnRepurposedMiner,
 	Detonate,
 	ShieldsUp,
+	OverchargeEngines,
 }
