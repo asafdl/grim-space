@@ -55,13 +55,14 @@ public partial class ShipPilot : PanelContainer
 		var xpLine = xpToNext > 0
 			? $"XP {xpInLevel}/{xpToNext}"
 			: "XP max";
-		_portrait.TooltipText =
+		HudTooltipCard.SetTooltip(
+			_portrait,
 			$"{pilotName}\n"
 			+ $"Lv {claimedLevel} · {xpLine}\n"
 			+ (canLearnSkill ? "Level up available\n" : "")
 			+ $"{ship.Spec.Chassis}\n"
 			+ $"HP {ship.HullPoints}/{ship.Loadout.MaxHullPoints}\n"
-			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalMaxShieldPoints}";
+			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalMaxShieldPoints}");
 		SetSelected(selected);
 	}
 

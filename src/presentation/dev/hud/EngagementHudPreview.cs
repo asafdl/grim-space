@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.World.StarSystem.Units;
 
@@ -27,6 +28,7 @@ public sealed partial class EngagementHudPreview : Control
 			EFaction.Pirates,
 			"2 × Repurposed Miner (T1)\n1 × Fighter (T0)",
 			IncludeAssignedContract ? dev.SampleHuntContract() : null,
-			FleeFailsDelivery: false));
+			FleeFailsDelivery: false,
+			HazardPayCredits: StrategicEconomyConfig.HazardPayCreditsPerPilot * 2));
 	}
 }

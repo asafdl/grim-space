@@ -13,7 +13,7 @@ public partial class ResourceHud : MarginContainer
 	private const int AmountMinimumWidth = 48;
 	private const int DeltaLabelHeight = 18;
 	private const int EntrySeparation = 16;
-	private const int ResourcePanelMinimumWidth = 408;
+	private const int ResourcePanelMinimumWidth = 520;
 	private const int ResourcePanelMinimumHeight = 94;
 	private const float CountUpSpeed = 140f;
 	private const float DeltaHoldDuration = 4f;
@@ -59,22 +59,62 @@ public partial class ResourceHud : MarginContainer
 		if (transaction.Change.IsEmpty)
 			return;
 
+		var isTravelFuel = transaction.Source == TransactionSource.TravelFuel;
 		foreach (var (id, delta) in transaction.Change)
 		{
 			_displayedAmounts[id] = _targetAmounts[id];
 			_targetAmounts[id] += delta;
-			ShowDelta(id, delta);
+			if (!isTravelFuel || id != ResourceId.Fuel)
+				ShowDelta(id, delta);
 		}
 
 		UpdateAmountLabels();
+		if (isTravelFuel)
+			return;
+
 		_transactionSfx.Play();
 	}
 
-	public void PresentInsufficientFunds()
+	public void PresentInsufficientFunds() =>
+		PresentFeedback("INSUFFICIENT FUNDS", hold: true);
+
+	public void PresentTravelFuelStatus(int fuelBalance, int routeFuelEstimate, bool starving)
+	{
+		if (starving)
+		{
+			PresentFeedback("FUEL STARVATION — HULL DAMAGE", hold: false);
+			return;
+		}
+
+		if (routeFuelEstimate <= 0)
+		{
+			ClearPersistentFeedback();
+			return;
+		}
+
+		if (fuelBalance < routeFuelEstimate)
+		{
+			PresentFeedback(
+				$"FUEL SHORT — NEED {routeFuelEstimate} (HAVE {fuelBalance})",
+				hold: false);
+			return;
+		}
+
+		ClearPersistentFeedback();
+	}
+
+	private void PresentFeedback(string text, bool hold, HudTextRole role = HudTextRole.Danger)
 	{
 		_feedbackTween?.Kill();
-		_feedbackLabel.Text = "INSUFFICIENT FUNDS";
-		_feedbackLabel.Modulate = HudStyles.TextColor(HudTextRole.Danger);
+		_feedbackLabel.Text = text;
+		HudStyles.ApplyTextRole(_feedbackLabel, role);
+		_feedbackLabel.Modulate = HudStyles.TextColor(role);
+
+		if (!hold)
+		{
+			_feedbackTween = null;
+			return;
+		}
 
 		var tween = CreateTween();
 		_feedbackTween = tween;
@@ -90,6 +130,15 @@ public partial class ResourceHud : MarginContainer
 			_feedbackTween = null;
 			_feedbackLabel.Text = "";
 		};
+	}
+
+	private void ClearPersistentFeedback()
+	{
+		if (_feedbackTween is not null)
+			return;
+
+		_feedbackLabel.Text = "";
+		_feedbackLabel.Modulate = Colors.Transparent;
 	}
 
 	public override void _Process(double delta)
@@ -266,20 +315,8 @@ public partial class ResourceHud : MarginContainer
 	}
 
 	private static string DisplayName(ResourceId id) =>
-		id switch
-		{
-			ResourceId.Credits => "Credits",
-			ResourceId.ScrapAlloy => "Scrap Alloy",
-			ResourceId.IndustrialCore => "Industrial Core",
-			_ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
-		};
+		ResourceIconCatalog.DisplayName(id);
 
 	private static string IconPath(ResourceId id) =>
-		id switch
-		{
-			ResourceId.Credits => "res://assets/ui/resources/credits.svg",
-			ResourceId.ScrapAlloy => "res://assets/ui/resources/scrap-alloy.svg",
-			ResourceId.IndustrialCore => "res://assets/ui/resources/industrial-core.svg",
-			_ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
-		};
+		ResourceIconCatalog.IconPath(id);
 }

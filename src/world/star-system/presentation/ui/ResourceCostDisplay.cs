@@ -7,6 +7,8 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public static class ResourceCostDisplay
 {
 	private const int IconSize = 16;
+	private const int EconomyIconSize = 20;
+	private const int EconomyBadgeSize = 10;
 
 	public static Control CreateAmountWithIcon(ResourceId id, int amount, HudTextRole role = HudTextRole.Metadata)
 	{
@@ -26,6 +28,34 @@ public static class ResourceCostDisplay
 		HudStyles.ApplyTextRole(amountLabel, role);
 		row.AddChild(amountLabel);
 		row.AddChild(CreateIcon(id));
+		return row;
+	}
+
+	public static Control CreateAmountWithBadgeIcon(
+		int amount,
+		string iconPath,
+		string tooltip,
+		HudTextRole role = HudTextRole.Metadata)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(iconPath);
+		ArgumentException.ThrowIfNullOrEmpty(tooltip);
+
+		var row = new HBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		row.AddThemeConstantOverride("separation", 4);
+
+		var amountLabel = new Label
+		{
+			Text = amount.ToString(),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		HudStyles.ApplyTextRole(amountLabel, role);
+		row.AddChild(amountLabel);
+		row.AddChild(CreateBadgedIcon(iconPath, tooltip));
 		return row;
 	}
 
@@ -196,4 +226,34 @@ public static class ResourceCostDisplay
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 			TooltipText = ResourceIconCatalog.DisplayName(id),
 		};
+
+	private static Control CreateBadgedIcon(string iconPath, string tooltip)
+	{
+		var composite = new Control
+		{
+			CustomMinimumSize = new Vector2(EconomyIconSize, EconomyIconSize),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			TooltipText = tooltip,
+		};
+		var symbol = new TextureRect
+		{
+			Texture = GD.Load<Texture2D>(iconPath)
+				?? throw new InvalidOperationException($"Could not load economy icon '{iconPath}'."),
+			CustomMinimumSize = new Vector2(EconomyIconSize, EconomyIconSize),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Size = new Vector2(EconomyIconSize, EconomyIconSize),
+		};
+		composite.AddChild(symbol);
+
+		var creditBadge = CreateIcon(ResourceId.Credits);
+		creditBadge.CustomMinimumSize = new Vector2(EconomyBadgeSize, EconomyBadgeSize);
+		creditBadge.Size = new Vector2(EconomyBadgeSize, EconomyBadgeSize);
+		creditBadge.Position = new Vector2(
+			EconomyIconSize - EconomyBadgeSize,
+			EconomyIconSize - EconomyBadgeSize);
+		composite.AddChild(creditBadge);
+		return composite;
+	}
 }

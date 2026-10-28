@@ -1,4 +1,5 @@
 using GrimSpace.Units.Enums;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Merchants;
@@ -12,6 +13,8 @@ public static class StarMarketSeed
 	public const int PilotHireCreditCost = 75;
 	public const int GunshipCreditCost = 400;
 	public const int GunshipIndustrialCoreCost = 1;
+	public const int FuelPurchaseCreditCost = StrategicEconomyConfig.FuelPurchaseCreditCost;
+	public const int FuelPurchaseAmount = StrategicEconomyConfig.FuelPurchaseAmount;
 
 	private static readonly (int Credits, int Scrap, int Cores)[] WeaponDamage =
 	[
@@ -109,6 +112,16 @@ public static class StarMarketSeed
 			EMerchantAvailabilityBand.T0,
 			alwaysAvailable: true,
 			MerchantListingPricing.ShieldRecharge(ShieldRechargeCreditsPerPoint)));
+
+		merchantListings.Add(new MerchantListing(
+			"healing.buy_fuel",
+			EMerchantCatalog.Healing,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.BuyFuel),
+			EMerchantAvailabilityBand.T0,
+			alwaysAvailable: true,
+			MerchantListingPricing.Fixed(ResourceBundle.Of(
+				ResourceId.Credits,
+				FuelPurchaseCreditCost))));
 
 		var recruitmentListings = new List<RecruitmentListing>
 		{

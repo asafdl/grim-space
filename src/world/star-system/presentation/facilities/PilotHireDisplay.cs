@@ -1,5 +1,6 @@
 using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Merchants;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -14,6 +15,14 @@ internal static class PilotHireDisplay
 
 	public static string ShipPackageLine(EType chassis, EShipGearTier gearTier) =>
 		$"{ShipChassisLabel(chassis)} ({gearTier})";
+
+	public static int SalaryAmount(PilotRecruitProfile profile)
+	{
+		ArgumentNullException.ThrowIfNull(profile);
+		return StrategicEconomyConfig.SalaryFor(
+			profile.BaseSalaryCredits,
+			profile.ClaimedLevel);
+	}
 
 	public static string EquipmentLine(EType chassis, EShipGearTier gearTier) =>
 		$"Equipment: {ShipPackageLine(chassis, gearTier)}";

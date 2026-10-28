@@ -5,4 +5,5 @@ public enum ResourceId
 	Credits,
 	ScrapAlloy,
 	IndustrialCore,
+	Fuel,
 }

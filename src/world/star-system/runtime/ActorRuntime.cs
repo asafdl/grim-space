@@ -21,6 +21,9 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public Coord PursuitPlannedInterceptDestination { get; set; }
 	public bool PursuitForceReplan { get; set; }
 	public string? SelectedMemberShipId { get; set; }
+	public long FuelLedgerJourneyId { get; set; }
+	public double FuelChargedDistanceAlongCurrentJourney { get; set; }
+	public double FuelUnchargedDistance { get; set; }
 	public Dictionary<string, int> IgnoreUntilTickByTargetId { get; } =
 		new(StringComparer.Ordinal);
 
@@ -57,7 +60,22 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 		PursuitPlannedInterceptDestination = default;
 		PursuitForceReplan = false;
 		SelectedMemberShipId = null;
+		ClearTravelFuelLedger();
 		IgnoreUntilTickByTargetId.Clear();
+	}
+
+	public void ClearTravelFuelLedger()
+	{
+		FuelLedgerJourneyId = 0;
+		FuelChargedDistanceAlongCurrentJourney = 0;
+		FuelUnchargedDistance = 0;
+	}
+
+	public void ApplyTravelFuelLedger(long journeyId, double chargedAlongJourney, double unchargedDistance)
+	{
+		FuelLedgerJourneyId = journeyId;
+		FuelChargedDistanceAlongCurrentJourney = chargedAlongJourney;
+		FuelUnchargedDistance = unchargedDistance;
 	}
 
 	public ActorRuntime Fork() => ActorRuntimeCopy.Clone(this);
@@ -69,7 +87,10 @@ public readonly record struct ActorRuntimeSnapshot(
 	int PendingCompletionTick,
 	long JourneyIdSequence,
 	int ActionCooldownUntilTick,
-	IReadOnlyDictionary<string, int> IgnoreUntilTickByTargetId);
+	IReadOnlyDictionary<string, int> IgnoreUntilTickByTargetId,
+	long FuelLedgerJourneyId = 0,
+	double FuelChargedDistanceAlongCurrentJourney = 0,
+	double FuelUnchargedDistance = 0);
 
 public static class ActorRuntimeCopy
 {
@@ -82,7 +103,10 @@ public static class ActorRuntimeCopy
 			session.ActionCooldownUntilTick,
 			new Dictionary<string, int>(
 				session.IgnoreUntilTickByTargetId,
-				StringComparer.Ordinal));
+				StringComparer.Ordinal),
+			session.FuelLedgerJourneyId,
+			session.FuelChargedDistanceAlongCurrentJourney,
+			session.FuelUnchargedDistance);
 
 	public static void Restore(ActorRuntime session, ActorRuntimeSnapshot snapshot)
 	{
@@ -91,6 +115,10 @@ public static class ActorRuntimeCopy
 		session.PendingCompletionTick = snapshot.PendingCompletionTick;
 		session.JourneyIdSequence = snapshot.JourneyIdSequence;
 		session.ActionCooldownUntilTick = snapshot.ActionCooldownUntilTick;
+		session.ApplyTravelFuelLedger(
+			snapshot.FuelLedgerJourneyId,
+			snapshot.FuelChargedDistanceAlongCurrentJourney,
+			snapshot.FuelUnchargedDistance);
 		session.IgnoreUntilTickByTargetId.Clear();
 		foreach (var (targetId, ignoreUntilTick) in snapshot.IgnoreUntilTickByTargetId)
 			session.IgnoreUntilTickByTargetId[targetId] = ignoreUntilTick;

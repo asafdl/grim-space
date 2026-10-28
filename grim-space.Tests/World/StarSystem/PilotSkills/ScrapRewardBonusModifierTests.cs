@@ -4,6 +4,7 @@ using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
@@ -80,10 +81,14 @@ public sealed class ScrapRewardBonusModifierTests
 			ResourceBundle.Of(ResourceId.ScrapAlloy, 5));
 
 		effect.Apply(map, runtime, "player");
-		Assert.Equal(5, map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + 5,
+			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 
 		effect.Undo(map, runtime, "player");
-		Assert.Equal(0, map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy,
+			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	private static void AssertResource(ResourceBundle resources, ResourceId id, int expected)

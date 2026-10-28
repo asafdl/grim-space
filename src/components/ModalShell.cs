@@ -520,7 +520,7 @@ public sealed partial class ModalShell : Control
 			_backHandler?.Invoke();
 	}
 
-	private UiButton CreateFooterButton(HudAction action)
+	private Control CreateFooterButton(HudAction action)
 	{
 		var button = new UiButton(action.Label, action.Kind, _palette)
 		{
@@ -529,7 +529,51 @@ public sealed partial class ModalShell : Control
 		};
 		button.SetVisual(_footerButtonVisual);
 		button.Pressed += () => action.OnPressed(button);
-		return button;
+
+		if (action.BadgeIconPath is not { Length: > 0 } iconPath
+			|| action.BadgeAmount is not { } amount
+			|| amount <= 0)
+			return button;
+
+		var row = new HBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		row.AddThemeConstantOverride("separation", 8);
+		row.AddChild(CreateFooterBadge(amount, iconPath));
+		row.AddChild(button);
+		return row;
+	}
+
+	private static Control CreateFooterBadge(int amount, string iconPath)
+	{
+		var row = new HBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		row.AddThemeConstantOverride("separation", 4);
+
+		var amountLabel = new Label
+		{
+			Text = amount.ToString(),
+			MouseFilter = MouseFilterEnum.Ignore,
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		HudStyles.ApplyTextRole(amountLabel, HudTextRole.Metadata);
+		row.AddChild(amountLabel);
+
+		var icon = new TextureRect
+		{
+			Texture = GD.Load<Texture2D>(iconPath),
+			CustomMinimumSize = new Vector2(20, 20),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		row.AddChild(icon);
+		return row;
 	}
 
 	public override void _Notification(int what)

@@ -4,6 +4,8 @@ using GrimSpace.Ui.Components;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Economy;
+
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public sealed partial class EngagementHudOverlay : Control
@@ -62,7 +64,16 @@ public sealed partial class EngagementHudOverlay : Control
 				pending.FleeFailsDelivery ? "Abandon delivery and flee" : "Flee",
 				HudActionKind.Destructive,
 				RequestFlee),
-			new HudAction("Engage", HudActionKind.Primary, RequestEngage),
+			new HudAction(
+				"Engage",
+				HudActionKind.Primary,
+				RequestEngage,
+				badgeIconPath: pending.HazardPayCredits > 0
+					? EconomyIconCatalog.HazardPayIconPath
+					: null,
+				badgeAmount: pending.HazardPayCredits > 0
+					? pending.HazardPayCredits
+					: null),
 		]);
 	}
 

@@ -27,6 +27,9 @@ public sealed record TransitPath(ImmutableArray<TransitLeg> Legs)
 	public (Coord Position, Coord Tangent) SampleAtElapsed(double elapsedTicks, double speedPerTick) =>
 		PiecewiseRouteSampler.SampleAtElapsed(Segments, elapsedTicks, speedPerTick);
 
+	public double DistanceTraveledAtElapsed(double elapsedTicks, double speedPerTick) =>
+		PiecewiseRouteSampler.DistanceTraveledAtElapsed(Segments, elapsedTicks, speedPerTick);
+
 	public TransitPath WithSpeedMultiplier(double multiplier)
 	{
 		if (!double.IsFinite(multiplier) || multiplier <= 0)

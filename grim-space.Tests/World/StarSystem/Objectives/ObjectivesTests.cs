@@ -50,9 +50,12 @@ public sealed class ContractFulfillmentTests(StarMapFixture maps)
 		Assert.Equal(contractId, completion.ContractId);
 		Assert.True(completion.Payment.TryGet(ResourceId.Credits, out var payment));
 		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, payment);
+		var creditsBefore = map.PlayerResources.GetBalance(ResourceId.Credits);
 		engine.Commit(completion);
 		Assert.True(map.ContractRegistry.IsCompleted(contractId));
-		Assert.Equal(TutorialBeatContracts.BeatAHuntRewardCredits, map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			creditsBefore + TutorialBeatContracts.BeatAHuntRewardCredits,
+			map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	[Fact]

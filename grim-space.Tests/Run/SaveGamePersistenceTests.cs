@@ -675,17 +675,22 @@ public sealed class SaveGamePersistenceTests
 	public void SaveDtoMapper_RoundTripsPlayerResources()
 	{
 		var map = StarMap.Create(42);
-		map.PlayerResources.TryApply(ResourceBundle.Create(
+		var expectedCredits = map.PlayerResources.GetBalance(ResourceId.Credits) + 120;
+		var expectedScrap = map.PlayerResources.GetBalance(ResourceId.ScrapAlloy) + 7;
+		var fuelDelta = 55 - map.PlayerResources.GetBalance(ResourceId.Fuel);
+		Assert.True(map.PlayerResources.TryApply(ResourceBundle.Create(
 			(ResourceId.Credits, 120),
-			(ResourceId.ScrapAlloy, 7)));
+			(ResourceId.ScrapAlloy, 7),
+			(ResourceId.Fuel, fuelDelta))));
 		var registry = PersistenceRegistry.CreateDefault();
 
 		var restored = SaveDtoMapper.RestoreStarMap(
 			SaveDtoMapper.CaptureStarMap(map, registry),
 			registry);
 
-		Assert.Equal(120, restored.PlayerResources.GetBalance(ResourceId.Credits));
-		Assert.Equal(7, restored.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(expectedCredits, restored.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(expectedScrap, restored.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(55, restored.PlayerResources.GetBalance(ResourceId.Fuel));
 	}
 
 	[Fact]

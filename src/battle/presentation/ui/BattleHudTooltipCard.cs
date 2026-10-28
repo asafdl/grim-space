@@ -7,8 +7,7 @@ internal sealed partial class BattleHudTooltipCard : PanelContainer
 {
 	private const float CornerCut = 12f;
 	private const float TooltipIconSize = 16f;
-	private const float TooltipContentWidth = 280f;
-	private const float TooltipPanelWidth = 320f;
+	private const float TooltipContentWidth = 360f;
 	private const float PartSeparation = 4f;
 	private const int BodyFontSize = 18;
 	private const string RegularFontPath = "res://assets/ui/fonts/Quantico-Regular.ttf";
@@ -31,16 +30,12 @@ internal sealed partial class BattleHudTooltipCard : PanelContainer
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
 		Visible = true;
-		// Viewport clamps TooltipPanel with get_contents_minimum_size() at show time.
-		// Pre-wrap icon+text into HBox rows so height is known up front. Do not use
-		// HFlowContainer: its min height is cached_size from a later _resort().
-		CustomMinimumSize = new Vector2(TooltipPanelWidth, 0f);
 		AddThemeStyleboxOverride("panel", new StyleBoxEmpty
 		{
-			ContentMarginLeft = 14f,
-			ContentMarginTop = 12f,
-			ContentMarginRight = 20f,
-			ContentMarginBottom = 14f,
+			ContentMarginLeft = 8f,
+			ContentMarginTop = 6f,
+			ContentMarginRight = 8f,
+			ContentMarginBottom = 6f,
 		});
 
 		var content = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
@@ -60,6 +55,8 @@ internal sealed partial class BattleHudTooltipCard : PanelContainer
 			else
 				content.AddChild(CreateWrappingBody(tooltip.Body));
 		}
+
+		CustomMinimumSize = GetCombinedMinimumSize();
 	}
 
 	public static Control Create(BattleHudTooltipContent tooltip) =>
@@ -108,7 +105,6 @@ internal sealed partial class BattleHudTooltipCard : PanelContainer
 	{
 		var body = CreateLabel(text, RegularFont, BodyFontSize, BodyColor);
 		body.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-		body.CustomMinimumSize = new Vector2(TooltipContentWidth, 0f);
 		body.CustomMaximumSize = new Vector2(TooltipContentWidth, -1f);
 		return body;
 	}

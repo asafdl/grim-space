@@ -90,6 +90,11 @@ public sealed class ShipSupportCatalogTests
 		Assert.Equal([default(MerchantCatalog.Target)], repair.Targets);
 		Assert.True(repair.Cost.TryGet(ResourceId.Credits, out _));
 
+		var buyFuel = offers.Single(offer => offer.Offering.Kind == MerchantCatalog.Kind.BuyFuel);
+		Assert.Equal([default(MerchantCatalog.Target)], buyFuel.Targets);
+		Assert.True(buyFuel.Cost.TryGet(ResourceId.Credits, out var fuelCredits));
+		Assert.Equal(StarMarketSeed.FuelPurchaseCreditCost, fuelCredits);
+
 		var recharge = offers.Single(offer =>
 			offer.Offering.Kind == MerchantCatalog.Kind.RechargeAllShields);
 		Assert.Equal([default(MerchantCatalog.Target)], recharge.Targets);

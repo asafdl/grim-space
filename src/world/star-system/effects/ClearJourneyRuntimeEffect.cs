@@ -11,6 +11,7 @@ public sealed class ClearJourneyRuntimeEffect : IEffect<StarMap, Runtime.ActorRu
 	{
 		runtime.CachedPath = null;
 		runtime.ClearPendingCompletion();
+		runtime.ClearTravelFuelLedger();
 		return [];
 	}
 

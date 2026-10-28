@@ -11,6 +11,7 @@ using GrimSpace.Tutorials;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Poi.Concrete;
@@ -29,7 +30,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Scene;
 
 public partial class MapController : Node3D
 {
-	private const float SecondsPerTick = 0.2f;
+	private const float SecondsPerTick = 1f / StrategicEconomyConfig.StrategicTicksPerSecond;
 	private static readonly float[] SpeedOptions = [1f, 2f, 4f];
 
 	private MapView _view = null!;
@@ -39,7 +40,7 @@ public partial class MapController : Node3D
 	private UnitsView _units = null!;
 	private CourseView _course = null!;
 	private MapCamera _camera = null!;
-	private Label _tooltip = null!;
+	private HudTooltipCard _tooltip = null!;
 	private MapTimeControls _timeControls = null!;
 	private CanvasLayer _uiLayer = null!;
 	private StrategicHud _strategicHud = null!;
@@ -89,8 +90,10 @@ public partial class MapController : Node3D
 		_camera = GetNode<MapCamera>("CameraPivot/SpringArm3D/Camera3D");
 
 		_uiLayer = GetNode<CanvasLayer>("UI");
-		_tooltip = GetNode<Label>("UI/Tooltip");
-		HudThemes.Apply(_tooltip, HudThemeFamily.Debug);
+		_tooltip = new HudTooltipCard();
+		var tooltipLayer = new CanvasLayer { Layer = 30 };
+		AddChild(tooltipLayer);
+		tooltipLayer.AddChild(_tooltip);
 		_timeControls = GetNode<MapTimeControls>("UI/MapTimeControls");
 		_strategicHud = GetNode<StrategicHud>("StrategicHud");
 
@@ -342,14 +345,18 @@ public partial class MapController : Node3D
 		SyncDockedFacadePresentation();
 		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible, _hidePlayerBeacon);
 
+		CaptureUiTooltipTexts(this);
+		var hoveredControl = GetViewport().GuiGetHoveredControl();
 		if (!_director.EffectiveInputPolicy.AllowsStrategicHover
 			|| IsBlockingModalOpen()
-			|| GetViewport().GuiGetHoveredControl() is not null)
+			|| hoveredControl is not null)
 		{
 			ClearStrategicHover();
+			PresentUiTooltip(hoveredControl);
 			return;
 		}
 
+		PresentUiTooltip(null);
 		var screen = GetViewport().GetMousePosition();
 		var target = ResolveInteractiveTarget(screen, tickFraction);
 		var unitHover = target.Unit;
@@ -376,8 +383,56 @@ public partial class MapController : Node3D
 		_tooltip.Visible = false;
 	}
 
+	private void PresentUiTooltip(Control? hoveredControl)
+	{
+		var tooltipText = GetUiTooltipText(hoveredControl);
+		if (string.IsNullOrWhiteSpace(tooltipText))
+		{
+			_tooltip.Visible = false;
+			return;
+		}
+
+		_tooltip.Present(tooltipText, GetViewport().GetMousePosition());
+	}
+
+	private static void CaptureUiTooltipTexts(Node node)
+	{
+		if (node is Control control && !string.IsNullOrEmpty(control.TooltipText))
+		{
+			control.SetMeta(HudTooltipCard.TooltipMetadataKey, control.TooltipText);
+			control.TooltipText = string.Empty;
+		}
+
+		foreach (var child in node.GetChildren())
+			CaptureUiTooltipTexts(child);
+	}
+
+	private static string? GetUiTooltipText(Control? hoveredControl)
+	{
+		for (var current = hoveredControl; current is not null; current = current.GetParent() as Control)
+		{
+			if (current.HasMeta(HudTooltipCard.TooltipMetadataKey))
+				return current.GetMeta(HudTooltipCard.TooltipMetadataKey).AsString();
+		}
+
+		return null;
+	}
+
+	private static void RestoreUiTooltipTexts(Node node)
+	{
+		if (node is Control control && control.HasMeta(HudTooltipCard.TooltipMetadataKey))
+		{
+			control.TooltipText = control.GetMeta(HudTooltipCard.TooltipMetadataKey).AsString();
+			control.RemoveMeta(HudTooltipCard.TooltipMetadataKey);
+		}
+
+		foreach (var child in node.GetChildren())
+			RestoreUiTooltipTexts(child);
+	}
+
 	public override void _ExitTree()
 	{
+		RestoreUiTooltipTexts(this);
 		Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
 		Session.Instance.ClearAutosaveContext();
 		Session.Instance.DevMenu.ClearMapActions();
@@ -934,33 +989,25 @@ public partial class MapController : Node3D
 	{
 		if (unitHover is not null)
 		{
-			_tooltip.Text = $"{unitHover.Type} ({unitHover.UnitId})";
-			_tooltip.Visible = true;
-			_tooltip.Position = screen + new Vector2(14, 18);
+			_tooltip.Present($"{unitHover.Type} ({unitHover.UnitId})", screen);
 			return;
 		}
 
 		if (wreckContractId is not null)
 		{
-			_tooltip.Text = _wreckage.TooltipFor(wreckContractId);
-			_tooltip.Visible = true;
-			_tooltip.Position = screen + new Vector2(14, 18);
+			_tooltip.Present(_wreckage.TooltipFor(wreckContractId), screen);
 			return;
 		}
 
 		if (landmarkId is not null)
 		{
-			_tooltip.Text = _landmarks.GetDisplayName(landmarkId) ?? landmarkId;
-			_tooltip.Visible = true;
-			_tooltip.Position = screen + new Vector2(14, 18);
+			_tooltip.Present(_landmarks.GetDisplayName(landmarkId) ?? landmarkId, screen);
 			return;
 		}
 
 		if (dockHover is not null)
 		{
-			_tooltip.Text = dockHover.DisplayName;
-			_tooltip.Visible = true;
-			_tooltip.Position = screen + new Vector2(14, 18);
+			_tooltip.Present(dockHover.DisplayName, screen);
 			return;
 		}
 
@@ -971,8 +1018,6 @@ public partial class MapController : Node3D
 		}
 
 		var poi = world.PointsOfInterest.First(p => p.Id == poiId);
-		_tooltip.Text = poi.DisplayName;
-		_tooltip.Visible = true;
-		_tooltip.Position = screen + new Vector2(14, 18);
+		_tooltip.Present(poi.DisplayName, screen);
 	}
 }

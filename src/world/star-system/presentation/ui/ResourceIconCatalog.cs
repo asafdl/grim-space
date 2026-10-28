@@ -10,6 +10,7 @@ public static class ResourceIconCatalog
 			ResourceId.Credits => "Credits",
 			ResourceId.ScrapAlloy => "Scrap Alloy",
 			ResourceId.IndustrialCore => "Industrial Core",
+			ResourceId.Fuel => "Fuel",
 			_ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
 		};
 
@@ -19,6 +20,7 @@ public static class ResourceIconCatalog
 			ResourceId.Credits => "res://assets/ui/resources/credits.svg",
 			ResourceId.ScrapAlloy => "res://assets/ui/resources/scrap-alloy.svg",
 			ResourceId.IndustrialCore => "res://assets/ui/resources/industrial-core.svg",
+			ResourceId.Fuel => "res://assets/ui/resources/fuel.png",
 			_ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
 		};
 }

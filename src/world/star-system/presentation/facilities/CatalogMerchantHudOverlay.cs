@@ -272,6 +272,7 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 			MerchantCatalog.Kind.RechargeAllShields => "Recharge all shields",
 			MerchantCatalog.Kind.RechargeShieldFace when target.Face is { } face =>
 				$"Recharge {MerchantOfferDisplay.FaceLabel(face).ToLowerInvariant()} shields",
+			MerchantCatalog.Kind.BuyFuel => $"Buy fuel ({StarMarketSeed.FuelPurchaseAmount})",
 			_ => throw new InvalidOperationException(
 				$"Unsupported healing service {offer.Offering.Kind}."),
 		};
@@ -297,6 +298,8 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 						0,
 						ship.Loadout.MaxShieldPoints[face]),
 					ship.Loadout.MaxShieldPoints[face]),
+			MerchantCatalog.Kind.BuyFuel =>
+				$"Purchase a {StarMarketSeed.FuelPurchaseAmount}-unit fuel bundle for the fleet.",
 			_ => throw new InvalidOperationException(
 				$"Unsupported healing service {offer.Offering.Kind}."),
 		};

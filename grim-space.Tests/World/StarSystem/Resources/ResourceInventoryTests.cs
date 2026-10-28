@@ -21,12 +21,14 @@ public sealed class ResourceInventoryTests
 		var change = ResourceBundle.Create(
 			(ResourceId.Credits, 100),
 			(ResourceId.ScrapAlloy, 25),
-			(ResourceId.IndustrialCore, 3));
+			(ResourceId.IndustrialCore, 3),
+			(ResourceId.Fuel, 40));
 
 		Assert.True(inventory.TryApply(change));
 		Assert.Equal(100, inventory.GetBalance(ResourceId.Credits));
 		Assert.Equal(25, inventory.GetBalance(ResourceId.ScrapAlloy));
 		Assert.Equal(3, inventory.GetBalance(ResourceId.IndustrialCore));
+		Assert.Equal(40, inventory.GetBalance(ResourceId.Fuel));
 	}
 
 	[Fact]

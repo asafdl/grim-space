@@ -4,6 +4,7 @@ using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Merchants;
@@ -66,12 +67,15 @@ public static class PilotRecruitment
 			var portraitId = Pilot.RollRecruitPortraitId(SlotRng(map.Seed, contractId, slot, "portrait"));
 			var backgroundId = backgrounds[
 				SlotRng(map.Seed, contractId, slot, "background").Next(backgrounds.Count)];
+			var baseSalary = StrategicEconomyConfig.RollBaseSalaryCredits(
+				SlotRng(map.Seed, contractId, slot, "salary"));
 			var profile = new PilotRecruitProfile(
 				name,
 				portraitId,
 				backgroundId,
 				experiencePoints: 0,
-				claimedLevel: PilotProgression.LevelFor(0));
+				claimedLevel: PilotProgression.LevelFor(0),
+				baseSalaryCredits: baseSalary);
 
 			var shipId = TypedIdGenerator.Format(
 				UnitTypeSlug.For(DefaultHireChassis),

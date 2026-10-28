@@ -16,6 +16,7 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Ids;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Units;
@@ -164,9 +165,12 @@ public sealed class State : IDisposable
 	private IDisposable? _engagementSubscription;
 	private IDisposable? _fleetSpawnSubscription;
 	private IDisposable? _merchantShipPurchaseSubscription;
+	private IDisposable? _travelStarvationSubscription;
 	private IDisposable? _playerShipEnlistedSubscription;
 	private IDisposable? _ownedShipPurchasedSubscription;
 	private IDisposable? _pilotHireCommittedSubscription;
+	private IDisposable? _pilotSalaryPayrollSubscription;
+	private IDisposable? _pilotHazardPayrollSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -455,8 +459,14 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = null;
 		_merchantShipPurchaseSubscription?.Dispose();
 		_merchantShipPurchaseSubscription = null;
+		_travelStarvationSubscription?.Dispose();
+		_travelStarvationSubscription = null;
 		_playerShipEnlistedSubscription?.Dispose();
 		_playerShipEnlistedSubscription = null;
+		_pilotSalaryPayrollSubscription?.Dispose();
+		_pilotSalaryPayrollSubscription = null;
+		_pilotHazardPayrollSubscription?.Dispose();
+		_pilotHazardPayrollSubscription = null;
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -470,12 +480,20 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = StarSystem.Subscribe<Record<FleetSpawned>>(OnCommittedFleetSpawned);
 		_merchantShipPurchaseSubscription =
 			StarSystem.Subscribe<Record<MerchantShipPurchase>>(OnMerchantShipPurchase);
+		_travelStarvationSubscription =
+			StarSystem.Subscribe<Record<TravelStarvationDamage>>(OnTravelStarvationDamage);
 		_playerShipEnlistedSubscription =
 			StarSystem.Subscribe<Record<PlayerShipEnlisted>>(OnPlayerShipEnlisted);
 		_ownedShipPurchasedSubscription =
 			StarSystem.Subscribe<Record<OwnedShipPurchased>>(OnOwnedShipPurchased);
 		_pilotHireCommittedSubscription =
 			StarSystem.Subscribe<Record<PilotHireCommitted>>(OnPilotHireCommitted);
+		_pilotSalaryPayrollSubscription =
+			StarSystem.Subscribe<Record<PilotSalaryPayroll>>(OnPilotSalaryPayroll);
+		_pilotHazardPayrollSubscription =
+			StarSystem.Subscribe<Record<HazardPayrollResult>>(OnPilotHazardPayroll);
+		StarSystem.BindSalaryPayrollRoster(SnapshotSalaryPayrollRoster);
+		StarSystem.Map.PilotRegistry = PilotRegistry;
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
@@ -486,12 +504,18 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = null;
 		_merchantShipPurchaseSubscription?.Dispose();
 		_merchantShipPurchaseSubscription = null;
+		_travelStarvationSubscription?.Dispose();
+		_travelStarvationSubscription = null;
 		_playerShipEnlistedSubscription?.Dispose();
 		_playerShipEnlistedSubscription = null;
 		_ownedShipPurchasedSubscription?.Dispose();
 		_ownedShipPurchasedSubscription = null;
 		_pilotHireCommittedSubscription?.Dispose();
 		_pilotHireCommittedSubscription = null;
+		_pilotSalaryPayrollSubscription?.Dispose();
+		_pilotSalaryPayrollSubscription = null;
+		_pilotHazardPayrollSubscription?.Dispose();
+		_pilotHazardPayrollSubscription = null;
 		StarSystem.Dispose();
 		BindStarSystem(orchestrator);
 	}
@@ -665,6 +689,159 @@ public sealed class State : IDisposable
 		ItemInventory.Update(purchase.After.Clone());
 	}
 
+	private IReadOnlyList<SalaryPayrollCandidate> SnapshotSalaryPayrollRoster()
+	{
+		var roster = new List<SalaryPayrollCandidate>(PilotRegistry.All.Count);
+		foreach (var pilot in PilotRegistry.All)
+		{
+			roster.Add(
+				new SalaryPayrollCandidate(
+					pilot.Id,
+					pilot.BaseSalaryCredits,
+					pilot.ClaimedLevel,
+					pilot.MissedSalaryPeriods));
+		}
+
+		return roster;
+	}
+
+	private void OnPilotHazardPayroll(Record<HazardPayrollResult> record)
+	{
+		var payroll = record.Value;
+		foreach (var pilotId in payroll.PaidPilotIds)
+		{
+			if (!PilotRegistry.TryGet(pilotId, out var pilot))
+				continue;
+
+			if (pilot.MissedHazardPeriods == 0)
+				continue;
+
+			PilotRegistry.Update(pilot.WithHazardMissedPeriods(0));
+		}
+
+		foreach (var miss in payroll.Misses)
+		{
+			if (!PilotRegistry.TryGet(miss.PilotId, out var pilot))
+				continue;
+
+			PilotRegistry.Update(pilot.WithHazardMissedPeriods(miss.MissedHazardPeriods));
+		}
+	}
+
+	private IReadOnlySet<string>? ShipIdsExcludedByRefusedPilots(IReadOnlyList<string>? refusedPilotIds)
+	{
+		if (refusedPilotIds is null || refusedPilotIds.Count == 0)
+			return null;
+
+		var excluded = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var pilotId in refusedPilotIds)
+		{
+			if (!PilotRegistry.TryGet(pilotId, out var pilot)
+				|| string.IsNullOrEmpty(pilot.AssignedShipId))
+				continue;
+
+			excluded.Add(pilot.AssignedShipId);
+			GameLog.Log($"Pilot '{pilot.Name}' refused this engagement.");
+		}
+
+		return excluded.Count == 0 ? null : excluded;
+	}
+
+	private void OnPilotSalaryPayroll(Record<PilotSalaryPayroll> record)
+	{
+		var payroll = record.Value;
+		var rosterChanged = false;
+
+		foreach (var pilotId in payroll.PaidPilotIds)
+		{
+			if (!PilotRegistry.TryGet(pilotId, out var pilot))
+				continue;
+
+			if (pilot.MissedSalaryPeriods == 0)
+				continue;
+
+			PilotRegistry.Update(pilot.WithSalaryPayroll(0));
+		}
+
+		foreach (var miss in payroll.Misses)
+		{
+			if (!PilotRegistry.TryGet(miss.PilotId, out var pilot))
+				continue;
+
+			if (miss.Departed)
+			{
+				PilotRegistry.Remove(miss.PilotId);
+				rosterChanged = true;
+				GameLog.Log(
+					$"Pilot '{pilot.Name}' departed after unpaid salary "
+					+ $"(missed periods={miss.MissedSalaryPeriods}).");
+				continue;
+			}
+
+			PilotRegistry.Update(pilot.WithSalaryPayroll(miss.MissedSalaryPeriods));
+		}
+
+		if (!rosterChanged)
+			return;
+
+		RefreshStrategicFleetProjection();
+		RefreshStrategicPilotCapabilities();
+		PlayerFleetSelection.EnsureSelectedMember(
+			StarSystem.Map,
+			StarSystem.RuntimeFor(PlayerFleetUnitId),
+			PlayerFleetUnitId,
+			GetFieldedShipIds());
+	}
+
+	private void OnTravelStarvationDamage(Record<TravelStarvationDamage> record)
+	{
+		var rosterChanged = false;
+		foreach (var shipDamage in record.Value.Ships)
+		{
+			if (!GetFieldedShipIds().Contains(shipDamage.ShipId, StringComparer.Ordinal))
+			{
+				GameLog.Log(
+					$"Ignoring travel starvation for '{shipDamage.ShipId}'; ship is not fielded.");
+				continue;
+			}
+
+			if (!ItemInventory.TryGet(shipDamage.ShipId, out _))
+			{
+				GameLog.Log(
+					$"Ignoring travel starvation for '{shipDamage.ShipId}'; ship is missing from the registry.");
+				continue;
+			}
+
+			if (!ItemInventory.Matches(shipDamage.ShipId, shipDamage.Before))
+			{
+				GameLog.Log(
+					$"Ignoring travel starvation for '{shipDamage.ShipId}'; registry no longer matches snapshot.");
+				continue;
+			}
+
+			if (shipDamage.After.HullPoints <= 0)
+			{
+				PilotRegistry.RemoveForShip(shipDamage.ShipId);
+				ItemInventory.Remove(shipDamage.ShipId);
+				rosterChanged = true;
+				continue;
+			}
+
+			ItemInventory.Update(shipDamage.After.Clone());
+		}
+
+		if (!rosterChanged)
+			return;
+
+		RefreshStrategicFleetProjection();
+		RefreshStrategicPilotCapabilities();
+		PlayerFleetSelection.EnsureSelectedMember(
+			StarSystem.Map,
+			StarSystem.RuntimeFor(PlayerFleetUnitId),
+			PlayerFleetUnitId,
+			GetFieldedShipIds());
+	}
+
 	private void OnCommittedEngagement(Record<EngagementCommitted> record)
 	{
 		var fact = record.Value;
@@ -704,14 +881,24 @@ public sealed class State : IDisposable
 				_tutorialState,
 				StarSystem.Map,
 				fact.ParticipantFleetIds);
+			var excludedShipIds = ShipIdsExcludedByRefusedPilots(fact.RefusedPilotIds);
+			IReadOnlySet<string>? playerDeployShipIds = null;
+			if (excludedShipIds is not null)
+			{
+				playerDeployShipIds = GetFieldedShipIds()
+					.Where(shipId => !excludedShipIds.Contains(shipId))
+					.ToHashSet(StringComparer.Ordinal);
+			}
+
 			ActiveBattle = EngagementBattleFactory.Create(
 				fleets,
 				ItemInventory,
 				seed,
 				fact.EngagementId,
 				fact.InitiatorFleetId,
-				BuildPilotBattleSnapshots(),
-				tutorialScriptedSpawn: tutorialScriptedSpawn);
+				BuildPilotBattleSnapshots(playerDeployShipIds),
+				tutorialScriptedSpawn: tutorialScriptedSpawn,
+				playerDeployShipIds: playerDeployShipIds);
 			_launchedEngagementIds.Add(fact.EngagementId);
 			BattleReady?.Invoke();
 		}
@@ -799,12 +986,16 @@ public sealed class State : IDisposable
 	private void SyncStarPlayerPipeline() =>
 		StarMapPilotCapabilityPipelineFactory.InstallPlayerPipeline(StarSystem, PilotRegistry);
 
-	private IReadOnlyDictionary<string, PilotBattleSnapshot> BuildPilotBattleSnapshots()
+	private IReadOnlyDictionary<string, PilotBattleSnapshot> BuildPilotBattleSnapshots(
+		IReadOnlySet<string>? playerDeployShipIds = null)
 	{
 		var map = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
 		foreach (var pilot in PilotRegistry.Active)
 		{
 			if (string.IsNullOrEmpty(pilot.AssignedShipId))
+				continue;
+			if (playerDeployShipIds is not null
+				&& !playerDeployShipIds.Contains(pilot.AssignedShipId))
 				continue;
 
 			var shipId = pilot.AssignedShipId;

@@ -20,7 +20,8 @@ public static class EngagementBattleFactory
 		string initiatorFleetId,
 		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null,
 		bool canonicalLayout = false,
-		bool tutorialScriptedSpawn = false)
+		bool tutorialScriptedSpawn = false,
+		IReadOnlySet<string>? playerDeployShipIds = null)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 
@@ -34,7 +35,8 @@ public static class EngagementBattleFactory
 			initiatorFleetId,
 			shipIdToPilotSnapshot,
 			canonicalLayout,
-			tutorialScriptedSpawn);
+			tutorialScriptedSpawn,
+			playerDeployShipIds);
 
 		BattleEngagementComposition.EnsurePlayable(spawns, id);
 

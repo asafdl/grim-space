@@ -14,4 +14,7 @@ public sealed record PilotPersistenceDto(
 	int ClaimedLevel = 0,
 	IReadOnlyList<EPilotSkillId>? LearnedSkills = null,
 	bool IsActive = false,
-	int ActiveOrder = -1);
+	int ActiveOrder = -1,
+	int BaseSalaryCredits = 0,
+	int MissedSalaryPeriods = 0,
+	int MissedHazardPeriods = 0);

@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Landmarks;
@@ -159,7 +160,7 @@ public static class StarSystemBuilder
 			fleetRegistry,
 			new ContractRegistry(),
 			new StoryObjectiveRegistry(),
-			new PlayerResources(),
+			CreateStartingPlayerResources(),
 			StarMarketSeed.Create(),
 			terrain,
 			itemInventory);
@@ -168,6 +169,14 @@ public static class StarSystemBuilder
 			WorkScheduler.ScheduleSpawnedWorker(map, fleet, poiId, remainingTicks);
 
 		return map;
+	}
+
+	private static PlayerResources CreateStartingPlayerResources()
+	{
+		var resources = new PlayerResources();
+		if (!resources.TryApply(StrategicEconomyConfig.StartingResources))
+			throw new InvalidOperationException("Failed to seed starting player resources.");
+		return resources;
 	}
 
 	private static Dictionary<string, PointOfInterest> PlacePois(StarSystemBlueprint blueprint, int layoutAttempt)

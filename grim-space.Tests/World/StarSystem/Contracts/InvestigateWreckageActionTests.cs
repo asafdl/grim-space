@@ -12,6 +12,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
@@ -43,13 +44,19 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
 
 		Assert.True(ContractFactory.IsWreckageObjectiveMet(contractId, engine.World, unitId));
-		Assert.Equal(SalvageScrap, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + SalvageScrap,
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 
 		ContractActionTestContext.ReevaluateAndComplete(engine, unitId);
 
 		Assert.True(engine.World.ContractRegistry.IsCompleted(contractId));
-		Assert.Equal(RewardCredits, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
-		Assert.Equal(SalvageScrap, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingCredits + RewardCredits,
+			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + SalvageScrap,
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	[Fact]
@@ -63,7 +70,9 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
 
-		Assert.Equal(5, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + 5,
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	[Fact]
@@ -78,7 +87,9 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 
 		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
 
-		Assert.Equal(5, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + 5,
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 		Assert.Equal(2, engine.World.PlayerResources.GetBalance(ResourceId.IndustrialCore));
 	}
 
@@ -94,12 +105,18 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		var simulation = engine.CreateSimulation();
 
 		Assert.True(simulation.TryEnqueue(action));
-		Assert.Equal(5, simulation.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + 5,
+			simulation.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 		simulation.Dequeue();
-		Assert.Equal(0, simulation.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy,
+			simulation.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 
 		engine.Commit(action);
-		Assert.Equal(5, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + 5,
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	[Fact]
@@ -127,7 +144,9 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 
 		Assert.True(ContractFactory.IsWreckageObjectiveMet(contractId, engine.World, unitId));
 		Assert.True(engine.World.ContractRegistry.IsCompleted(contractId));
-		Assert.Equal(0, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy,
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
 
 	[Fact]

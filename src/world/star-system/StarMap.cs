@@ -1,6 +1,7 @@
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run.Items;
+using RunPilotRegistry = GrimSpace.Run.RunPilotRegistry;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Generation;
@@ -40,6 +41,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		{
 			yield return StarSystemActorIds.Contracts;
 			yield return StarSystemActorIds.FleetSpawner;
+			yield return StarSystemActorIds.TravelEconomy;
+			yield return StarSystemActorIds.SalaryPayroll;
 			foreach (var id in FleetRegistry.Ids)
 				yield return id;
 		}
@@ -49,6 +52,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public PlayerResources PlayerResources { get; }
 	public StarMarket Market { get; }
 	public Inventory? ItemInventory { get; }
+	public RunPilotRegistry? PilotRegistry { get; set; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public bool WaitingForPlayerInput { get; internal set; }
@@ -154,6 +158,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			ActiveNarrativeId)
 		{
 			DebugAdditionalCompletedContracts = DebugAdditionalCompletedContracts,
+			PilotRegistry = PilotRegistry,
 		};
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)

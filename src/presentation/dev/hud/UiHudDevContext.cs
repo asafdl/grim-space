@@ -44,7 +44,8 @@ public sealed class UiHudDevContext
 		run.StarSystem.TryGrantDebugResources(ResourceBundle.Create(
 			(ResourceId.Credits, 50_000),
 			(ResourceId.ScrapAlloy, 50_000),
-			(ResourceId.IndustrialCore, 50_000)));
+			(ResourceId.IndustrialCore, 50_000),
+			(ResourceId.Fuel, 50_000)));
 		for (var index = 0; index < 4; index++)
 			run.StarSystem.TryBumpDebugDangerProgression();
 		PopulateContractBoard(run.StarSystem);

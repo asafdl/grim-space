@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Units;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
@@ -66,6 +67,21 @@ public sealed class PurchaseActionDef
 				purchase.Before,
 				out var after))
 			return [];
+
+		if (purchase.Offering.Kind == MerchantCatalog.Kind.BuyFuel)
+		{
+			var change = new Dictionary<ResourceId, int>();
+			foreach (var (id, amount) in offer.Cost.Negate())
+				change[id] = amount;
+			change[ResourceId.Fuel] = change.GetValueOrDefault(ResourceId.Fuel)
+				+ StrategicEconomyConfig.FuelPurchaseAmount;
+			return
+			[
+				new ChangeResourceEffect(
+					TransactionSource.FuelPurchase,
+					ResourceBundle.Create(change)),
+			];
+		}
 
 		var fact = new MerchantShipPurchase(
 			purchase.Before.Id,

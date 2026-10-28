@@ -1,4 +1,5 @@
 using GrimSpace.Core.Actions;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
@@ -17,7 +18,9 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 		new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Of(ResourceId.Credits, 100))
 			.Apply(map, runtime, "actor");
 
-		Assert.Equal(100, map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingCredits + 100,
+			map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	[Fact]
@@ -25,11 +28,14 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(7);
 		var runtime = new ActorRuntime();
+		var before = map.PlayerResources.GetBalance(ResourceId.Credits);
 
-		new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Of(ResourceId.Credits, -10))
+		new ChangeResourceEffect(
+				TransactionSource.BattleLoot,
+				ResourceBundle.Of(ResourceId.Credits, -(before + 1)))
 			.Apply(map, runtime, "actor");
 
-		Assert.Equal(0, map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(before, map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	[Fact]
@@ -44,14 +50,22 @@ public sealed class ResourceEffectTests(StarMapFixture maps)
 		var fork = map.Fork();
 
 		Assert.NotSame(map.PlayerResources, fork.PlayerResources);
-		Assert.Equal(75, fork.PlayerResources.GetBalance(ResourceId.Credits));
-		Assert.Equal(10, fork.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingCredits + 75,
+			fork.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + 10,
+			fork.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 
 		new ChangeResourceEffect(TransactionSource.BattleLoot, ResourceBundle.Of(ResourceId.Credits, 25))
 			.Apply(fork, runtime, "actor");
 
-		Assert.Equal(75, map.PlayerResources.GetBalance(ResourceId.Credits));
-		Assert.Equal(100, fork.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingCredits + 75,
+			map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingCredits + 100,
+			fork.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	[Fact]

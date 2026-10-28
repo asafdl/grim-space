@@ -2,6 +2,7 @@ using System.Globalization;
 using GrimSpace.Core.Ids;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
+using GrimSpace.World.StarSystem.Economy;
 using UniqueNameGenerator;
 
 namespace GrimSpace.Run;
@@ -41,6 +42,9 @@ public sealed class Pilot
 	public int ExperiencePoints { get; }
 	public int ClaimedLevel { get; }
 	public IReadOnlyList<EPilotSkillId> LearnedSkills { get; }
+	public int BaseSalaryCredits { get; }
+	public int MissedSalaryPeriods { get; }
+	public int MissedHazardPeriods { get; }
 
 	private Pilot(
 		string id,
@@ -53,7 +57,10 @@ public sealed class Pilot
 		bool isActive,
 		int experiencePoints,
 		int claimedLevel,
-		IReadOnlyList<EPilotSkillId> learnedSkills)
+		IReadOnlyList<EPilotSkillId> learnedSkills,
+		int baseSalaryCredits,
+		int missedSalaryPeriods,
+		int missedHazardPeriods)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(id);
 		ArgumentException.ThrowIfNullOrEmpty(name);
@@ -61,6 +68,9 @@ public sealed class Pilot
 		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
 		ArgumentNullException.ThrowIfNull(learnedSkills);
+		ArgumentOutOfRangeException.ThrowIfNegative(baseSalaryCredits);
+		ArgumentOutOfRangeException.ThrowIfNegative(missedSalaryPeriods);
+		ArgumentOutOfRangeException.ThrowIfNegative(missedHazardPeriods);
 		ValidateIdentity(backgroundId, positiveQuirkId, negativeQuirkId);
 
 		Id = id;
@@ -74,6 +84,9 @@ public sealed class Pilot
 		ExperiencePoints = experiencePoints;
 		ClaimedLevel = claimedLevel;
 		LearnedSkills = learnedSkills;
+		BaseSalaryCredits = baseSalaryCredits;
+		MissedSalaryPeriods = missedSalaryPeriods;
+		MissedHazardPeriods = missedHazardPeriods;
 	}
 
 	internal static string RollRecruitDisplayName(Random rng)
@@ -107,7 +120,10 @@ public sealed class Pilot
 			false,
 			0,
 			PilotProgression.LevelFor(0),
-			EmptySkills);
+			EmptySkills,
+			StrategicEconomyConfig.RollBaseSalaryCredits(rng),
+			0,
+			0);
 	}
 
 	public static Pilot FromRecruitProfile(string assignedShipId, PilotRecruitProfile profile)
@@ -126,7 +142,10 @@ public sealed class Pilot
 			false,
 			profile.ExperiencePoints,
 			profile.ClaimedLevel,
-			profile.LearnedSkills);
+			profile.LearnedSkills,
+			profile.BaseSalaryCredits,
+			0,
+			0);
 	}
 
 	public static Pilot CreateStarterForShip(string assignedShipId, Random? rng = null)
@@ -144,22 +163,14 @@ public sealed class Pilot
 			false,
 			0,
 			PilotProgression.LevelFor(0),
-			EmptySkills);
+			EmptySkills,
+			StrategicEconomyConfig.DefaultBaseSalaryCredits,
+			0,
+			0);
 	}
 
 	internal Pilot WithExperience(int experiencePoints) =>
-		new(
-			Id,
-			Name,
-			PortraitId,
-			BackgroundId,
-			PositiveQuirkId,
-			NegativeQuirkId,
-			AssignedShipId,
-			IsActive,
-			experiencePoints,
-			ClaimedLevel,
-			LearnedSkills);
+		Copy(experiencePoints: experiencePoints);
 
 	internal Pilot WithAssignment(string? assignedShipId, bool isActive) =>
 		new(
@@ -173,21 +184,19 @@ public sealed class Pilot
 			isActive,
 			ExperiencePoints,
 			ClaimedLevel,
-			LearnedSkills);
+			LearnedSkills,
+			BaseSalaryCredits,
+			MissedSalaryPeriods,
+			MissedHazardPeriods);
 
 	internal Pilot WithActive(bool isActive) =>
-		new(
-			Id,
-			Name,
-			PortraitId,
-			BackgroundId,
-			PositiveQuirkId,
-			NegativeQuirkId,
-			AssignedShipId,
-			isActive,
-			ExperiencePoints,
-			ClaimedLevel,
-			LearnedSkills);
+		Copy(isActive: isActive);
+
+	internal Pilot WithSalaryPayroll(int missedSalaryPeriods) =>
+		Copy(missedSalaryPeriods: missedSalaryPeriods);
+
+	internal Pilot WithHazardMissedPeriods(int missedHazardPeriods) =>
+		Copy(missedHazardPeriods: missedHazardPeriods);
 
 	public Pilot LearnPilotSkill(EPilotSkillId skillId)
 	{
@@ -204,39 +213,19 @@ public sealed class Pilot
 		for (var index = 0; index < LearnedSkills.Count; index++)
 			next[index] = LearnedSkills[index];
 		next[^1] = skillId;
-		return new(
-			Id,
-			Name,
-			PortraitId,
-			BackgroundId,
-			PositiveQuirkId,
-			NegativeQuirkId,
-			AssignedShipId,
-			IsActive,
-			ExperiencePoints,
-			ClaimedLevel + 1,
-			next);
+		return Copy(claimedLevel: ClaimedLevel + 1, learnedSkills: next);
 	}
 
-	internal Pilot Clone() =>
-		new(
-			Id,
-			Name,
-			PortraitId,
-			BackgroundId,
-			PositiveQuirkId,
-			NegativeQuirkId,
-			AssignedShipId,
-			IsActive,
-			ExperiencePoints,
-			ClaimedLevel,
-			LearnedSkills);
+	internal Pilot Clone() => Copy();
 
 	internal static Pilot FromPersistence(PilotPersistenceDto dto)
 	{
 		var claimedLevel = dto.ClaimedLevel > 0
 			? dto.ClaimedLevel
 			: PilotProgression.LevelFor(dto.ExperiencePoints);
+		var baseSalary = dto.BaseSalaryCredits > 0
+			? dto.BaseSalaryCredits
+			: StrategicEconomyConfig.DefaultBaseSalaryCredits;
 		return new(
 			dto.Id,
 			dto.Name,
@@ -248,7 +237,10 @@ public sealed class Pilot
 			dto.IsActive,
 			dto.ExperiencePoints,
 			claimedLevel,
-			dto.LearnedSkills ?? EmptySkills);
+			dto.LearnedSkills ?? EmptySkills,
+			baseSalary,
+			dto.MissedSalaryPeriods,
+			dto.MissedHazardPeriods);
 	}
 
 	internal PilotPersistenceDto ToPersistence(int activeOrder = -1) =>
@@ -264,7 +256,33 @@ public sealed class Pilot
 			ClaimedLevel,
 			LearnedSkills,
 			IsActive,
-			IsActive ? activeOrder : -1);
+			IsActive ? activeOrder : -1,
+			BaseSalaryCredits,
+			MissedSalaryPeriods,
+			MissedHazardPeriods);
+
+	private Pilot Copy(
+		bool? isActive = null,
+		int? experiencePoints = null,
+		int? claimedLevel = null,
+		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
+		int? missedSalaryPeriods = null,
+		int? missedHazardPeriods = null) =>
+		new(
+			Id,
+			Name,
+			PortraitId,
+			BackgroundId,
+			PositiveQuirkId,
+			NegativeQuirkId,
+			AssignedShipId,
+			isActive ?? IsActive,
+			experiencePoints ?? ExperiencePoints,
+			claimedLevel ?? ClaimedLevel,
+			learnedSkills ?? LearnedSkills,
+			BaseSalaryCredits,
+			missedSalaryPeriods ?? MissedSalaryPeriods,
+			missedHazardPeriods ?? MissedHazardPeriods);
 
 	private static void ValidateIdentity(
 		EPilotBackgroundId backgroundId,

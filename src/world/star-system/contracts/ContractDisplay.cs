@@ -78,6 +78,7 @@ public static class ContractDisplay
 			ResourceId.ScrapAlloy => $"{entry.Value} scrap alloy",
 			ResourceId.IndustrialCore =>
 				$"{entry.Value} {Pluralize(entry.Value, "industrial core", "industrial cores")}",
+			ResourceId.Fuel => $"{entry.Value} {Pluralize(entry.Value, "fuel", "fuel")}",
 			_ => throw new ArgumentOutOfRangeException(nameof(entry), entry.Key, null),
 		};
 

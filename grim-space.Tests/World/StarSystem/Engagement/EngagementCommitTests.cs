@@ -6,8 +6,10 @@ using GrimSpace.Units;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Narrative;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
@@ -193,6 +195,11 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 	private static EngagementCommitted CommitPlayerEngagement(RunState run)
 	{
 		DismissOpeningNarrative(run);
+		Assert.True(
+			run.StarSystem.Map.PlayerResources.TryApply(
+				ResourceBundle.Of(
+					ResourceId.Credits,
+					StrategicEconomyConfig.HazardPayCreditsPerPilot * 4)));
 		AddPirate(run.StarSystem.Map, "pirate-a");
 		PrepareAwaitingDecision(run.StarSystem.Map, "pirate-a");
 		run.StarSystem.PlayerAgent!.TryEnqueue([new EngageAction(RunState.PlayerFleetUnitId)]);

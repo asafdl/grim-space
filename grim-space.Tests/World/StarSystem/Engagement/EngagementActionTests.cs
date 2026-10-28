@@ -7,6 +7,7 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Units;
@@ -233,7 +234,9 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 				(ResourceId.ScrapAlloy, 8),
 				(ResourceId.IndustrialCore, 1))));
 
-		Assert.Equal(10, map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + 10,
+			map.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 		Assert.Equal(1, map.PlayerResources.GetBalance(ResourceId.IndustrialCore));
 	}
 }

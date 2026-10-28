@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
@@ -179,6 +180,35 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 		Assert.Equal(
 			before.Loadout.MaxShieldPoints[ESpatialOrientation.Forward],
 			after.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
+	}
+
+	[Fact]
+	public void Commit_BuyFuel_DebitsCreditsAndGrantsFuel()
+	{
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0);
+		SeedResources(engine.World, credits: 500, scrap: 0);
+		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
+		var initialFuel = engine.World.PlayerResources.GetBalance(ResourceId.Fuel);
+
+		var records = engine.Commit(CreateAction(
+			unitId,
+			engine.World,
+			EMerchantCatalog.Healing,
+			MerchantPurchaseTestHarness.BuyFuel,
+			default,
+			ship.Clone(),
+			engine));
+
+		Assert.DoesNotContain(records, entry => entry is Record<MerchantShipPurchase>);
+		var transaction = Assert.Single(records.OfType<Record<Transaction>>()).Value;
+		Assert.Equal(TransactionSource.FuelPurchase, transaction.Source);
+		Assert.Equal(
+			initialCredits - StrategicEconomyConfig.FuelPurchaseCreditCost,
+			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			initialFuel + StrategicEconomyConfig.FuelPurchaseAmount,
+			engine.World.PlayerResources.GetBalance(ResourceId.Fuel));
 	}
 
 	[Fact]

@@ -88,7 +88,8 @@ public static class DeploymentPlacement
 		string initiatorFleetId,
 		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot = null,
 		bool canonicalLayout = false,
-		bool tutorialScriptedSpawn = false)
+		bool tutorialScriptedSpawn = false,
+		IReadOnlySet<string>? playerDeployShipIds = null)
 	{
 		ArgumentNullException.ThrowIfNull(registry);
 		ArgumentNullException.ThrowIfNull(participantFleets);
@@ -103,10 +104,12 @@ public static class DeploymentPlacement
 		var attackerMembers = participantFleets
 			.Where(fleet => fleet.State.Id == initiatorFleetId)
 			.SelectMany(fleet => fleet.Members.Select(member => (fleet, member)))
+			.Where(entry => IncludesMember(entry.fleet, entry.member, playerDeployShipIds))
 			.ToList();
 		var interceptedMembers = participantFleets
 			.Where(fleet => fleet.State.Id != initiatorFleetId)
 			.SelectMany(fleet => fleet.Members.Select(member => (fleet, member)))
+			.Where(entry => IncludesMember(entry.fleet, entry.member, playerDeployShipIds))
 			.ToList();
 
 		var rng = new Random(seed);
@@ -175,6 +178,14 @@ public static class DeploymentPlacement
 			spawns);
 		return spawns;
 	}
+
+	private static bool IncludesMember(
+		Fleet fleet,
+		FleetMember member,
+		IReadOnlySet<string>? playerDeployShipIds) =>
+		playerDeployShipIds is null
+		|| fleet.State.Type != GrimSpace.World.StarSystem.Units.EType.PlayerFleet
+		|| playerDeployShipIds.Contains(member.Id);
 
 	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
 		ShipInstance playerShip,

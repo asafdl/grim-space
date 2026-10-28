@@ -39,6 +39,8 @@ internal static class MerchantPurchaseTestHarness
 	public static MerchantCatalog.Offering RechargeAllShields =>
 		new(MerchantCatalog.Kind.RechargeAllShields);
 
+	public static MerchantCatalog.Offering BuyFuel => new(MerchantCatalog.Kind.BuyFuel);
+
 	public static (Engine<StarMap, ActorRuntime> engine, string unitId, ShipInstance ship, Inventory registry) CreateEngine(
 		StarMapFixture maps,
 		int seed = 42,

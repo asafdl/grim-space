@@ -38,23 +38,39 @@ public sealed record HudTextLine(string Text, HudTextRole Role = HudTextRole.Bod
 
 public sealed record HudAction
 {
-	public HudAction(string label, HudActionKind kind, Action onPressed, bool enabled = true)
-		: this(label, kind, _ => onPressed(), enabled)
+	public HudAction(
+		string label,
+		HudActionKind kind,
+		Action onPressed,
+		bool enabled = true,
+		string? badgeIconPath = null,
+		int? badgeAmount = null)
+		: this(label, kind, _ => onPressed(), enabled, badgeIconPath, badgeAmount)
 	{
 	}
 
-	public HudAction(string label, HudActionKind kind, Action<BaseButton> onPressed, bool enabled = true)
+	public HudAction(
+		string label,
+		HudActionKind kind,
+		Action<BaseButton> onPressed,
+		bool enabled = true,
+		string? badgeIconPath = null,
+		int? badgeAmount = null)
 	{
 		Label = label;
 		Kind = kind;
 		OnPressed = onPressed;
 		Enabled = enabled;
+		BadgeIconPath = badgeIconPath;
+		BadgeAmount = badgeAmount;
 	}
 
 	public string Label { get; }
 	public HudActionKind Kind { get; }
 	public Action<BaseButton> OnPressed { get; }
 	public bool Enabled { get; }
+	public string? BadgeIconPath { get; }
+	public int? BadgeAmount { get; }
 }
 
 public readonly record struct HudBannerView(Control Root, Label Title, Label Subtitle);

@@ -261,7 +261,8 @@ public partial class Session : Node
 		Run.StarSystem.TryGrantDebugResources(ResourceBundle.Create(
 			(ResourceId.Credits, 1000),
 			(ResourceId.ScrapAlloy, 1000),
-			(ResourceId.IndustrialCore, 1000)));
+			(ResourceId.IndustrialCore, 1000),
+			(ResourceId.Fuel, 1000)));
 	}
 
 	private void BumpDebugDanger()

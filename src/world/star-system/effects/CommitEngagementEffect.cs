@@ -10,11 +10,16 @@ public sealed class CommitEngagementEffect : IEffect<StarMap, Runtime.ActorRunti
 {
 	private readonly string _firstUnitId;
 	private readonly string _secondUnitId;
+	private readonly IReadOnlyList<string> _refusedPilotIds;
 
-	public CommitEngagementEffect(string firstUnitId, string secondUnitId)
+	public CommitEngagementEffect(
+		string firstUnitId,
+		string secondUnitId,
+		IReadOnlyList<string>? refusedPilotIds = null)
 	{
 		_firstUnitId = firstUnitId;
 		_secondUnitId = secondUnitId;
+		_refusedPilotIds = refusedPilotIds ?? [];
 	}
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
@@ -45,7 +50,11 @@ public sealed class CommitEngagementEffect : IEffect<StarMap, Runtime.ActorRunti
 		var participantIds = new[] { _firstUnitId, _secondUnitId }
 			.OrderBy(id => id, StringComparer.Ordinal)
 			.ToArray();
-		var committed = new EngagementCommitted(engagementId, initiatorId, participantIds);
+		var committed = new EngagementCommitted(
+			engagementId,
+			initiatorId,
+			participantIds,
+			_refusedPilotIds.Count == 0 ? null : _refusedPilotIds);
 		return [new Record<EngagementCommitted>(committed)];
 	}
 

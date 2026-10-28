@@ -78,4 +78,39 @@ public sealed class PiecewiseRouteSamplerTests
 		Assert.Equal(0, midSecond.Route.TangentX, 3);
 		Assert.True(midSecond.Route.TangentZ > 0.9);
 	}
+
+	[Fact]
+	public void DistanceTraveledAtElapsed_MatchesElapsedAtConstantSpeed()
+	{
+		var segments = new[]
+		{
+			new RouteSegment(
+				[new Coord(0, 0, 0), new Coord(100, 0, 0)],
+				100,
+				1.0),
+		};
+
+		Assert.Equal(0, PiecewiseRouteSampler.DistanceTraveledAtElapsed(segments, 0, 2));
+		Assert.Equal(20, PiecewiseRouteSampler.DistanceTraveledAtElapsed(segments, 10, 2));
+		Assert.Equal(100, PiecewiseRouteSampler.DistanceTraveledAtElapsed(segments, 100, 2));
+	}
+
+	[Fact]
+	public void DistanceTraveledAtElapsed_RespectsSegmentSpeedMultipliers()
+	{
+		var segments = new[]
+		{
+			new RouteSegment(
+				[new Coord(0, 0, 0), new Coord(10, 0, 0)],
+				10,
+				1.0),
+			new RouteSegment(
+				[new Coord(10, 0, 0), new Coord(10, 0, 10)],
+				10,
+				2.0),
+		};
+
+		// First leg: 10 length @ speed 1 → 10 ticks. At t=15: full first + 5*2=10 into second.
+		Assert.Equal(20, PiecewiseRouteSampler.DistanceTraveledAtElapsed(segments, 15, 1));
+	}
 }

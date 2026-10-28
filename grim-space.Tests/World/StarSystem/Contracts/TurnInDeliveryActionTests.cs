@@ -9,6 +9,7 @@ using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -63,7 +64,7 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 			delivery.TurnInOperatorName,
 			out _));
 		Assert.Equal(
-			TutorialBeatContracts.BeatBDeliveryRewardCredits,
+			StrategicEconomyConfig.StartingCredits + TutorialBeatContracts.BeatBDeliveryRewardCredits,
 			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
 
 		var creditsAfterFirst = engine.World.PlayerResources.GetBalance(ResourceId.Credits);

@@ -26,6 +26,9 @@ public sealed class PersistenceAggressionTests
 		runtime.IgnoreUntilTickByTargetId["target"] = 30;
 
 		runtime.SelectedMemberShipId = "gunship";
+		runtime.FuelLedgerJourneyId = 9;
+		runtime.FuelChargedDistanceAlongCurrentJourney = 12.5;
+		runtime.FuelUnchargedDistance = 3.25;
 		var dto = SaveDtoMapper.CaptureRuntime("actor", runtime, registry);
 		var restoredDto = JsonSerializer.Deserialize<StarSystemRuntimeDto>(
 			JsonSerializer.Serialize(dto))!;
@@ -35,6 +38,9 @@ public sealed class PersistenceAggressionTests
 		Assert.Equal(20, restored.ActionCooldownUntilTick);
 		Assert.Equal(30, restored.IgnoreUntilTickByTargetId["target"]);
 		Assert.Equal("gunship", restored.SelectedMemberShipId);
+		Assert.Equal(9, restored.FuelLedgerJourneyId);
+		Assert.Equal(12.5, restored.FuelChargedDistanceAlongCurrentJourney);
+		Assert.Equal(3.25, restored.FuelUnchargedDistance);
 
 		var legacyDto = JsonSerializer.Deserialize<StarSystemRuntimeDto>(
 			"""{"ActorId":"actor","CachedPath":null,"PendingCompletion":null,"PendingCompletionTick":0,"JourneyIdSequence":0}""")!;
@@ -44,6 +50,8 @@ public sealed class PersistenceAggressionTests
 		Assert.Equal(0, legacyRuntime.ActionCooldownUntilTick);
 		Assert.Empty(legacyRuntime.IgnoreUntilTickByTargetId);
 		Assert.Null(legacyRuntime.SelectedMemberShipId);
+		Assert.Equal(0, legacyRuntime.FuelLedgerJourneyId);
+		Assert.Equal(0, legacyRuntime.FuelUnchargedDistance);
 	}
 
 	[Fact]

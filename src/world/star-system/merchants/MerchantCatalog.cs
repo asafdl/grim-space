@@ -18,6 +18,7 @@ public static class MerchantCatalog
 		RepairHull,
 		RechargeAllShields,
 		RechargeShieldFace,
+		BuyFuel,
 	}
 
 	public readonly record struct Offering(
@@ -116,6 +117,7 @@ public static class MerchantCatalog
 			Kind.UpgradeDamage or Kind.UpgradeRange or Kind.UpgradeMaxShields =>
 				TryCreateUpgradeOffer(offering, ship, listing.Pricing.FixedCost),
 			Kind.RepairHull => TryCreateRepairOffer(offering, ship, listing.Pricing.FixedCost),
+			Kind.BuyFuel => new Offer(offering, listing.Pricing.FixedCost, [default]),
 			_ => null,
 		};
 	}

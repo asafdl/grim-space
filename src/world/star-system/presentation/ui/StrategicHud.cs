@@ -8,8 +8,11 @@ using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Objectives;
+using GrimSpace.World.StarSystem.Resources;
+using FleetTravel = GrimSpace.World.StarSystem.Units.FleetTravel;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -84,6 +87,7 @@ public partial class StrategicHud : CanvasLayer
 	public override void _Process(double _)
 	{
 		SyncObjectives();
+		SyncTravelFuelStatus();
 		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator, _intents);
 	}
 
@@ -278,5 +282,23 @@ public partial class StrategicHud : CanvasLayer
 	{
 		var objectives = ObjectivesCollector.Collect(_orchestrator.Map, State.PlayerFleetUnitId);
 		_objectivesHud.Sync(objectives);
+	}
+
+	private void SyncTravelFuelStatus()
+	{
+		var map = _orchestrator.Map;
+		var playerId = State.PlayerFleetUnitId;
+		var runtime = _orchestrator.RuntimeFor(playerId);
+		var fuel = map.PlayerResources.GetBalance(ResourceId.Fuel);
+		var pendingPath = _orchestrator.PlayerAgent?.PendingCourse?.Path;
+		var estimate = TravelFuelEffects.EstimateRemainingFuelUnits(
+			map,
+			runtime,
+			playerId,
+			pendingPath);
+		var starving = fuel == 0
+			&& map.FleetRegistry.TryGet(playerId, out var fleet)
+			&& fleet.State.Travel is FleetTravel.Journey;
+		_resourceHud.PresentTravelFuelStatus(fuel, estimate, starving);
 	}
 }

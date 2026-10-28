@@ -44,11 +44,10 @@ public sealed class CompleteMoveDef
 		}
 
 		var destination = journey.Destination;
-		var effects = new List<IEffect<StarMap, ActorRuntime>>
-		{
-			ClearJourneyRuntimeEffect.Instance,
-			UpdateLocationEffect.StopAt(complete.UnitId, destination),
-		};
+		var effects = new List<IEffect<StarMap, ActorRuntime>>();
+		effects.AddRange(TravelFuelEffects.SettleBeforeStop(world, runtime, complete.UnitId));
+		effects.Add(ClearJourneyRuntimeEffect.Instance);
+		effects.Add(UpdateLocationEffect.StopAt(complete.UnitId, destination));
 
 		if (world.DocksByPosition.TryGetValue(destination, out var dock))
 		{

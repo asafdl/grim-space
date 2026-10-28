@@ -16,6 +16,7 @@ The UI kit provides reusable, asset-backed Godot controls for the game's sci-fi 
 | [`UiListItem`](../src/ui/components/UiListItem.cs) | Short, wide selectable rows for shops and other collections | `Tag`, `Bracket`, `Technical` |
 | [`UiCard`](../src/ui/components/UiCard.cs) | Rich content requiring title, subtitle, description, trailing value, and optional image | `Angled`, `Framed`, `Technical` |
 | [`UiReticle`](../src/ui/components/UiReticle.cs) | Decorative status/target reticle | `Blue`, `Cyan`, `Teal`, `White` |
+| [`HudTooltipCard`](../src/components/HudTooltipCard.cs) | Pointer-following world-object tooltip card | Blue-cyan |
 
 Each component type has its own file. Artwork variants share their component's behavior and are selected through `UiButtonVisual`, `UiContainerVisual`, `UiListItemVisual`, and `UiCardVisual`. These C# Godot controls do not require `.tscn` wrappers.
 
@@ -51,6 +52,8 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 - `PurpleRed`
 
 `BlueCyan` is the default for production kit components.
+
+Star-map world-object and HUD-control hovers use `HudTooltipCard` so they share one angled outline and blue-cyan palette.
 
 Call `SetPalette` on every kit component when the containing HUD changes palette. Components remap their runtime textures through [`palette_remap.gdshader`](../assets/ui/components/runtime/palette_remap.gdshader) or [`button_palette.gdshader`](../assets/ui/components/runtime/button_palette.gdshader); do not tint source textures directly.
 `UiToggle` uses blue-cyan source artwork and applies the active palette's primary color for non-default palettes; subtle hue differences may remain until matching source variants are added.

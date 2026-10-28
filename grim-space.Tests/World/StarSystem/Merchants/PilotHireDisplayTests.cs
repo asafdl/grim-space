@@ -1,5 +1,6 @@
 using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 
 namespace GrimSpace.Tests.World.StarSystem.Merchants;
@@ -28,6 +29,21 @@ public sealed class PilotHireDisplayTests
 			claimedLevel: 1);
 
 		Assert.Equal("Rin · Lv 1", PilotHireDisplay.CardSubtitle(profile));
+	}
+
+	[Fact]
+	public void SalaryAmount_UsesLevelAdjustedSalary()
+	{
+		var profile = new PilotRecruitProfile(
+			"Rin",
+			"pilot_01",
+			EPilotBackgroundId.PodRacer,
+			claimedLevel: 3,
+			baseSalaryCredits: 60);
+
+		Assert.Equal(
+			StrategicEconomyConfig.SalaryFor(60, 3),
+			PilotHireDisplay.SalaryAmount(profile));
 	}
 
 	[Fact]

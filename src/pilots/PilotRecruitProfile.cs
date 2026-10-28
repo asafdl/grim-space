@@ -13,6 +13,7 @@ public sealed class PilotRecruitProfile
 	public int ExperiencePoints { get; }
 	public int ClaimedLevel { get; }
 	public IReadOnlyList<EPilotSkillId> LearnedSkills { get; }
+	public int BaseSalaryCredits { get; }
 
 	public PilotRecruitProfile(
 		string name,
@@ -22,12 +23,14 @@ public sealed class PilotRecruitProfile
 		EPilotQuirkId? negativeQuirkId = null,
 		int experiencePoints = 0,
 		int claimedLevel = 1,
-		IReadOnlyList<EPilotSkillId>? learnedSkills = null)
+		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
+		int baseSalaryCredits = 10)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(name);
 		ArgumentException.ThrowIfNullOrEmpty(portraitId);
 		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
+		ArgumentOutOfRangeException.ThrowIfNegative(baseSalaryCredits);
 		learnedSkills ??= EmptySkills;
 
 		ValidateIdentity(backgroundId, positiveQuirkId, negativeQuirkId);
@@ -40,6 +43,7 @@ public sealed class PilotRecruitProfile
 		ExperiencePoints = experiencePoints;
 		ClaimedLevel = claimedLevel;
 		LearnedSkills = learnedSkills.Count == 0 ? EmptySkills : learnedSkills.ToArray();
+		BaseSalaryCredits = baseSalaryCredits;
 	}
 
 	private static void ValidateIdentity(

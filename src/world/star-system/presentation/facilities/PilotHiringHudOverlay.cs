@@ -5,6 +5,7 @@ using GrimSpace.Run;
 using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using GrimSpace.World.StarSystem.Resources;
@@ -123,13 +124,37 @@ public sealed partial class PilotHiringHudOverlay : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			TooltipText = background.Description,
 		};
-		item.SetTrailingContent(ResourceCostDisplay.CreateBundleInline(cost));
+		item.SetTrailingContent(BuildHireAndSalaryCost(cost, profile));
 		item.SetAffordable(canAfford);
 		item.SetEnabled(canAfford);
 		if (canAfford)
 			item.Pressed += () => HireRequested?.Invoke(candidate.Slot);
 
 		return item;
+	}
+
+	private static Control BuildHireAndSalaryCost(
+		ResourceBundle hireCost,
+		PilotRecruitProfile profile)
+	{
+		var row = new HBoxContainer
+		{
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		row.AddThemeConstantOverride("separation", 12);
+		row.AddChild(ResourceCostDisplay.CreateBundleInline(hireCost));
+
+		row.AddChild(ResourceCostDisplay.CreateAmountWithBadgeIcon(
+			PilotHireDisplay.SalaryAmount(profile),
+			EconomyIconCatalog.SalaryIconPath,
+			$"Salary paid every {StrategicEconomyConfig.SalaryCadenceMinutes} game minutes"));
+		row.AddChild(ResourceCostDisplay.CreateAmountWithBadgeIcon(
+			StrategicEconomyConfig.HazardPayCreditsPerPilot,
+			EconomyIconCatalog.HazardPayIconPath,
+			"Hazard pay per battle"));
+
+		return row;
 	}
 
 	private static IReadOnlyCollection<int> PurchasedSlots(StarMap map, string contractId)

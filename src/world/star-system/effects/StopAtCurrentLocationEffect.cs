@@ -16,9 +16,14 @@ public sealed class StopAtCurrentLocationEffect : IEffect<StarMap, ActorRuntime>
 		var unit = world.FleetRegistry.FleetOf(_unitId);
 		var position = unit.State.PositionAt(world, runtime.CachedPath, 0).Position;
 
+		var records = new List<IRecord>();
+		foreach (var effect in TravelFuelEffects.SettleBeforeStop(world, runtime, _unitId))
+			records.AddRange(effect.Apply(world, runtime, actorId));
+
 		CancelPendingMoveEffect.Instance.Apply(world, runtime, actorId);
 		ClearJourneyRuntimeEffect.Instance.Apply(world, runtime, actorId);
-		return UpdateLocationEffect.StopAt(_unitId, position).Apply(world, runtime, actorId);
+		records.AddRange(UpdateLocationEffect.StopAt(_unitId, position).Apply(world, runtime, actorId));
+		return records;
 	}
 
 	public void Undo(StarMap world, ActorRuntime runtime, string actorId) { }

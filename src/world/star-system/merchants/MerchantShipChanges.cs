@@ -81,6 +81,11 @@ internal static class MerchantShipChanges
 				next = upgraded;
 				break;
 
+			case MerchantCatalog.Kind.BuyFuel:
+				if (target != default || offering.TargetLevel != 0)
+					return false;
+				break;
+
 			default:
 				return false;
 		}

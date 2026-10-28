@@ -342,16 +342,7 @@ content_margin_top = 24
 content_margin_right = 24
 content_margin_bottom = 24
 
-[sub_resource type="StyleBoxFlat" id="StyleBox_tooltip"]
-bg_color = Color(0.02, 0.04, 0.07, 0.82)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-content_margin_left = 10
-content_margin_top = 6
-content_margin_right = 10
-content_margin_bottom = 6
+[sub_resource type="StyleBoxEmpty" id="StyleBox_tooltip"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_icon_normal"]
 bg_color = Color(0.02, 0.04, 0.07, 0)
@@ -407,6 +398,8 @@ StatusErrorPanelContainer/styles/panel = SubResource("StyleBox_status_error")
 WarningPanelContainer/styles/panel = SubResource("StyleBox_warning")
 BannerPanelContainer/styles/panel = SubResource("StyleBox_banner")
 StoryBarPanelContainer/styles/panel = SubResource("StyleBox_story_bar")
+TooltipPanel/base_type = &"PanelContainer"
+TooltipPanel/styles/panel = SubResource("StyleBox_tooltip")
 TooltipPanelContainer/styles/panel = SubResource("StyleBox_tooltip")
 SecondaryButton/styles/normal = SubResource("StyleBox_btn_secondary_normal")
 SecondaryButton/styles/hover = SubResource("StyleBox_btn_secondary_hover")
