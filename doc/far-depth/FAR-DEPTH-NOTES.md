@@ -64,6 +64,50 @@ notes. Targets were two stills in the ops folder (`target-overunder-arcs.png`,
 Heavy movies/stills for this round live under `/d/ops-work/fardepth/skypass-v3/`.
 Commits: `20cfa5e3` (item 1), `baf5f15d` (2), `d84f5564` (3), `6c78058b` (4).
 
+## Sky-pass black hole v3.1 (the "user eye" corrections round)
+
+The user eyeballed the v3 render and gave three plain corrections: too big;
+the bottom light cuts through the event horizon; the top arc should be rigid.
+One commit per correction, plus an evidence commit. Nothing else moved: squash
+0.55, doppler pin (screen-left), crop palette, opaque shadow with glow masked
+off it, broad falloff, zero parallax, one sky-pass draw — all preserved.
+
+1. **Scale (item S, `2720a5c3`).** The whole feature carried the same 0.60
+   factor — shadow radius, glow outer edge, ring thickness — so the internal
+   proportions are unchanged and only the on-screen size moves. Owner is the
+   live tuning surface `MapAtmosphereSettings` (the shader's own defaults are
+   just fallbacks — they had silently stopped being the values the renderer
+   uses; found by re-rendering and measuring identical bboxes before/after a
+   shader-edit). Measured at the standard mappose: the bright-limb envelope
+   went from ~53% of frame height (deep-red-falloff included; crisp limbs
+   46.8%) to ~34-36% (crisp 29.5%) — the eye-class read of the body lands in
+   the ruled ~40-45% band that the "too big (about 2/3)" verdict measured in.
+   Evidence: `evidence/skypass-v3p1/s_scale_before-after.png`.
+2. **Bottom arc (item B, `802f3908`).** The old "front band" that crossed the
+   lower half of the black disc — the pixel source of "cuts through the event
+   horizon" — is gone, and every arc term is multiplied by a rim mask that is
+   zero on the shadow face. The lower arc now crests at 1.22x the shadow
+   radius with a tight gaussian that has decayed to ~1% by the time it meets
+   the edge, so it hugs OUTSIDE and BELOW the silhouette and dies cleanly
+   instead of being truncated against the black. Proved with the zoom pair
+   `evidence/skypass-v3p1/bottom_zoom_before-after.png`: before = light
+   crossing the lower face; after = arc below the edge only.
+3. **Top arc rigid (item T, `edefca1f`).** The wobbly grain-modulated
+   gaussian crown is replaced by a rigid continuous band: a smoothstep slab
+   with crest 1.08-1.28x the shadow radius, few-pixel clean edges, and a
+   sin-taper so it stays one unbroken band across the whole upper silhouette.
+   The arc's energy no longer carries the TIME flicker/grain wobble factor
+   (the under arc keeps its soft alive hug). Steadiness check: the top-band
+   crop differs by ~0.87 mean abs RGB between t2 and t6 of the same movie
+   (v3 baseline at the same crop: ~1.99, dominated by the wobble it carried).
+   Evidence: `t_top_zoom_before-after.png` and the deeper zoom
+   `top_zoom_before-after.png` in the same folder.
+
+Heavy movies/stills for this round live under
+`/d/ops-work/fardepth/skypass-v3p1/` (before/after stills for every item,
+movies named `v3p1_*`). Render rig unchanged (`doc/far-depth/rig-kit1.sh`,
+standard mappose `62,25,42` / `62,25,72`, `--load-save`), runlogs untouched.
+
 ## Sky-pass black hole v2 (skypass round, after realism kit 1)
 
 User ruling: the far black hole moves from a world-space 3D object into the
