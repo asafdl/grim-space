@@ -82,13 +82,13 @@ public partial class MapTimeControls : MarginContainer
 		_pursuitWarning = CreatePursuitWarning();
 		stack.AddChild(_pursuitWarning);
 
-		_speedButton.TooltipText = SpeedTooltip();
+		HudTooltipCard.SetTooltip(_speedButton, SpeedTooltip());
 	}
 
 	public void Sync(bool paused, float speed)
 	{
 		_pauseButton.Icon = paused ? _playIcon : _pauseIcon;
-		_pauseButton.TooltipText = PauseTooltip(paused);
+		HudTooltipCard.SetTooltip(_pauseButton, PauseTooltip(paused));
 		_speedButton.Text = FormatSpeed(speed);
 		_pausedLabel.Visible = paused;
 	}
@@ -122,8 +122,8 @@ public partial class MapTimeControls : MarginContainer
 			CustomMinimumSize = new Vector2(ButtonMinSize, ButtonMinSize),
 			ExpandIcon = true,
 			Icon = _pauseIcon,
-			TooltipText = tooltip,
 		};
+		HudTooltipCard.SetTooltip(button, tooltip);
 		ApplyObjectiveAccentIconColors(button);
 		return button;
 	}

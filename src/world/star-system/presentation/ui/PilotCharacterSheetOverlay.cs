@@ -196,8 +196,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			VerticalIconAlignment = VerticalAlignment.Center,
 			FocusMode = FocusModeEnum.None,
 			MouseDefaultCursorShape = CursorShape.Arrow,
-			TooltipText = tooltip,
 		};
+		HudTooltipCard.SetTooltip(button, tooltip);
 		button.AddThemeStyleboxOverride("normal", IdentityIconStyle(borderColor, 0.08f, 2));
 		button.AddThemeStyleboxOverride("hover", IdentityIconStyle(borderColor, 0.16f, 3));
 		button.AddThemeStyleboxOverride("pressed", IdentityIconStyle(borderColor, 0.08f, 2));
@@ -229,8 +229,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			Visible = visible,
 			MouseFilter = MouseFilterEnum.Stop,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
-			TooltipText = direction < 0 ? "Previous pilot" : "Next pilot",
 		};
+		HudTooltipCard.SetTooltip(host, direction < 0 ? "Previous pilot" : "Next pilot");
 		var iconHost = new Control
 		{
 			CustomMinimumSize = new Vector2(cursorWidth, cursorHeight),
@@ -393,8 +393,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
-			TooltipText = $"{definition.Name}\n{definition.Description}",
 		};
+		HudTooltipCard.SetTooltip(button, $"{definition.Name}\n{definition.Description}");
 		button.AddThemeColorOverride("icon_disabled_color", Colors.White);
 		ApplyCircleStyle(button, color, isLearned);
 		if (canLearn)

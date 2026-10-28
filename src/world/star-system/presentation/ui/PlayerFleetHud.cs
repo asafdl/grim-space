@@ -33,9 +33,9 @@ public partial class PlayerFleetHud : MarginContainer
 
 		_fleetButton = new UiButton("", HudActionKind.Secondary)
 		{
-			TooltipText = "Manage owned ships and pilot assignments",
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
+		HudTooltipCard.SetTooltip(_fleetButton, "Manage owned ships and pilot assignments");
 		_fleetButton.SetVisual(UiButtonVisual.Technical);
 		_fleetButton.SizeOverride = new UiSizeOverride(Width: 200f);
 		_fleetButton.Pressed += () => FleetManagementRequested?.Invoke();

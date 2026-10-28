@@ -107,7 +107,7 @@ public partial class FacilityOperatorButtonView : TextureButton
 		};
 		_roleIndicator.Visible = indicator != EOperatorRoleIndicator.None;
 		if (_titleResolver is not null)
-			TooltipText = _titleResolver(role);
+			HudTooltipCard.SetTooltip(this, _titleResolver(role));
 	}
 
 	public void ConfigureRolePresentation(

@@ -345,7 +345,6 @@ public partial class MapController : Node3D
 		SyncDockedFacadePresentation();
 		_units.Sync(_orchestrator, tickFraction, IsPlayerFleetVisible, _hidePlayerBeacon);
 
-		CaptureUiTooltipTexts(this);
 		var hoveredControl = GetViewport().GuiGetHoveredControl();
 		if (!_director.EffectiveInputPolicy.AllowsStrategicHover
 			|| IsBlockingModalOpen()
@@ -385,6 +384,13 @@ public partial class MapController : Node3D
 
 	private void PresentUiTooltip(Control? hoveredControl)
 	{
+		// HudTooltipHost uses Godot's native _MakeCustomTooltip; leave those alone.
+		if (HoveredControlUsesGodotTooltip(hoveredControl))
+		{
+			_tooltip.Visible = false;
+			return;
+		}
+
 		var tooltipText = GetUiTooltipText(hoveredControl);
 		if (string.IsNullOrWhiteSpace(tooltipText))
 		{
@@ -395,22 +401,12 @@ public partial class MapController : Node3D
 		_tooltip.Present(tooltipText, GetViewport().GetMousePosition());
 	}
 
-	private static void CaptureUiTooltipTexts(Node node)
-	{
-		if (node is Control control && !string.IsNullOrEmpty(control.TooltipText))
-		{
-			control.SetMeta(HudTooltipCard.TooltipMetadataKey, control.TooltipText);
-			control.TooltipText = string.Empty;
-		}
-
-		foreach (var child in node.GetChildren())
-			CaptureUiTooltipTexts(child);
-	}
-
 	private static string? GetUiTooltipText(Control? hoveredControl)
 	{
 		for (var current = hoveredControl; current is not null; current = current.GetParent() as Control)
 		{
+			if (current is HudTooltipHost)
+				return null;
 			if (current.HasMeta(HudTooltipCard.TooltipMetadataKey))
 				return current.GetMeta(HudTooltipCard.TooltipMetadataKey).AsString();
 		}
@@ -418,21 +414,19 @@ public partial class MapController : Node3D
 		return null;
 	}
 
-	private static void RestoreUiTooltipTexts(Node node)
+	private static bool HoveredControlUsesGodotTooltip(Control? hoveredControl)
 	{
-		if (node is Control control && control.HasMeta(HudTooltipCard.TooltipMetadataKey))
+		for (var current = hoveredControl; current is not null; current = current.GetParent() as Control)
 		{
-			control.TooltipText = control.GetMeta(HudTooltipCard.TooltipMetadataKey).AsString();
-			control.RemoveMeta(HudTooltipCard.TooltipMetadataKey);
+			if (current is HudTooltipHost)
+				return true;
 		}
 
-		foreach (var child in node.GetChildren())
-			RestoreUiTooltipTexts(child);
+		return false;
 	}
 
 	public override void _ExitTree()
 	{
-		RestoreUiTooltipTexts(this);
 		Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
 		Session.Instance.ClearAutosaveContext();
 		Session.Instance.DevMenu.ClearMapActions();

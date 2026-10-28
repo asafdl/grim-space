@@ -1,3 +1,4 @@
+using GrimSpace.Components;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -12,6 +13,15 @@ public static class ResourceIconCatalog
 			ResourceId.IndustrialCore => "Industrial Core",
 			ResourceId.Fuel => "Fuel",
 			_ => throw new ArgumentOutOfRangeException(nameof(id), id, null),
+		};
+
+	public static HudTooltipContent Tooltip(ResourceId id) =>
+		id switch
+		{
+			ResourceId.Fuel => new HudTooltipContent(
+				"Fuel",
+				"When out of fuel, your ships will start taking damage, as they can no longer manuever properly."),
+			_ => new HudTooltipContent(DisplayName(id), ""),
 		};
 
 	public static string IconPath(ResourceId id) =>

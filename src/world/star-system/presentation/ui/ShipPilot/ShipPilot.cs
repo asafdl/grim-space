@@ -119,13 +119,13 @@ public partial class ShipPilot : PanelContainer
 
 		_levelUpButton = new LevelUpButton
 		{
-			TooltipText = "Choose a pilot skill",
 			OffsetLeft = PortraitSize - 29,
 			OffsetTop = PortraitSize - 31,
 			OffsetRight = PortraitSize - 1,
 			OffsetBottom = PortraitSize - 1,
 			Visible = false,
 		};
+		HudTooltipCard.SetTooltip(_levelUpButton, "Choose a pilot skill");
 		_levelUpButton.Pressed += OnLevelUpPressed;
 		portraitFrame.AddChild(_levelUpButton);
 

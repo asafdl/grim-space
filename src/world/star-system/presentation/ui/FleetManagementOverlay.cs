@@ -256,8 +256,8 @@ public sealed partial class FleetManagementOverlay : Control
 		{
 			Text = "Assign Pilot",
 			CustomMinimumSize = new Vector2(CarouselPilotPortraitSize, CarouselPilotPortraitSize),
-			TooltipText = "Choose a pilot",
 		};
+		HudTooltipCard.SetTooltip(unassigned, "Choose a pilot");
 		HudStyles.StyleButton(unassigned, HudActionKind.Secondary);
 		unassigned.Pressed += () => ShowPilotPopup(unassigned, ship);
 		return unassigned;
@@ -322,8 +322,8 @@ public sealed partial class FleetManagementOverlay : Control
 					IconAlignment = HorizontalAlignment.Center,
 					VerticalIconAlignment = VerticalAlignment.Center,
 					Alignment = HorizontalAlignment.Center,
-					TooltipText = ability.Name,
 				};
+				HudTooltipCard.SetTooltip(button, ability.Name);
 				button.AddThemeConstantOverride("h_separation", 0);
 				HudStyles.StyleButton(button, selected ? HudActionKind.Primary : HudActionKind.Secondary);
 				var kind = ability.Kind;
@@ -448,8 +448,8 @@ public sealed partial class FleetManagementOverlay : Control
 			SizeFlagsVertical = SizeFlags.ShrinkBegin,
 			MouseFilter = MouseFilterEnum.Stop,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
-			TooltipText = tooltip,
 		};
+		HudTooltipCard.SetTooltip(portrait, tooltip);
 		portrait.GuiInput += @event =>
 		{
 			if (@event is not InputEventMouseButton { Pressed: true } mouse)

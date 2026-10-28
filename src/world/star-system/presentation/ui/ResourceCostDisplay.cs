@@ -12,12 +12,20 @@ public static class ResourceCostDisplay
 
 	public static Control CreateAmountWithIcon(ResourceId id, int amount, HudTextRole role = HudTextRole.Metadata)
 	{
+		var host = new HudTooltipHost
+		{
+			MouseFilter = Control.MouseFilterEnum.Stop,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		host.SetTooltip(ResourceIconCatalog.Tooltip(id));
+
 		var row = new HBoxContainer
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
 		row.AddThemeConstantOverride("separation", 4);
+		host.AddChild(row);
 
 		var amountLabel = new Label
 		{
@@ -28,17 +36,24 @@ public static class ResourceCostDisplay
 		HudStyles.ApplyTextRole(amountLabel, role);
 		row.AddChild(amountLabel);
 		row.AddChild(CreateIcon(id));
-		return row;
+		return host;
 	}
 
 	public static Control CreateAmountWithBadgeIcon(
 		int amount,
 		string iconPath,
-		string tooltip,
+		HudTooltipContent tooltip,
 		HudTextRole role = HudTextRole.Metadata)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(iconPath);
-		ArgumentException.ThrowIfNullOrEmpty(tooltip);
+		ArgumentNullException.ThrowIfNull(tooltip);
+
+		var host = new HudTooltipHost
+		{
+			MouseFilter = Control.MouseFilterEnum.Stop,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		};
+		host.SetTooltip(tooltip);
 
 		var row = new HBoxContainer
 		{
@@ -46,6 +61,7 @@ public static class ResourceCostDisplay
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
 		row.AddThemeConstantOverride("separation", 4);
+		host.AddChild(row);
 
 		var amountLabel = new Label
 		{
@@ -55,8 +71,8 @@ public static class ResourceCostDisplay
 		};
 		HudStyles.ApplyTextRole(amountLabel, role);
 		row.AddChild(amountLabel);
-		row.AddChild(CreateBadgedIcon(iconPath, tooltip));
-		return row;
+		row.AddChild(CreateBadgedIcon(iconPath));
+		return host;
 	}
 
 	public static Control CreateBundleInline(ResourceBundle bundle, HudTextRole role = HudTextRole.Metadata)
@@ -224,16 +240,14 @@ public static class ResourceCostDisplay
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-			TooltipText = ResourceIconCatalog.DisplayName(id),
 		};
 
-	private static Control CreateBadgedIcon(string iconPath, string tooltip)
+	private static Control CreateBadgedIcon(string iconPath)
 	{
 		var composite = new Control
 		{
 			CustomMinimumSize = new Vector2(EconomyIconSize, EconomyIconSize),
 			MouseFilter = Control.MouseFilterEnum.Ignore,
-			TooltipText = tooltip,
 		};
 		var symbol = new TextureRect
 		{

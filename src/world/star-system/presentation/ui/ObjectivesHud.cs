@@ -281,11 +281,13 @@ public partial class ObjectivesHud : MarginContainer
 			var dismissButton = new Button
 			{
 				Text = "×",
-				TooltipText = ObjectivePresentationPolicy.DismissTooltip(objective.Source),
 				CustomMinimumSize = new Vector2(36, 36),
 				FocusMode = Control.FocusModeEnum.All,
 				ThemeTypeVariation = "MapIconButton",
 			};
+			HudTooltipCard.SetTooltip(
+				dismissButton,
+				ObjectivePresentationPolicy.DismissTooltip(objective.Source));
 			dismissButton.Pressed += () => RequestDismissConfirmation(objective.Id, dismissButton);
 			row.AddChild(dismissButton);
 		}

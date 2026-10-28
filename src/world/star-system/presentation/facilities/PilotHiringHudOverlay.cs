@@ -122,8 +122,8 @@ public sealed partial class PilotHiringHudOverlay : Control
 			ShipPilotPortraitCatalog.TextureFor(profile.PortraitId))
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			TooltipText = background.Description,
 		};
+		HudTooltipCard.SetTooltip(item, background.Description);
 		item.SetTrailingContent(BuildHireAndSalaryCost(cost, profile));
 		item.SetAffordable(canAfford);
 		item.SetEnabled(canAfford);
@@ -148,11 +148,11 @@ public sealed partial class PilotHiringHudOverlay : Control
 		row.AddChild(ResourceCostDisplay.CreateAmountWithBadgeIcon(
 			PilotHireDisplay.SalaryAmount(profile),
 			EconomyIconCatalog.SalaryIconPath,
-			$"Salary paid every {StrategicEconomyConfig.SalaryCadenceMinutes} game minutes"));
+			EconomyIconCatalog.SalaryTooltip));
 		row.AddChild(ResourceCostDisplay.CreateAmountWithBadgeIcon(
 			StrategicEconomyConfig.HazardPayCreditsPerPilot,
 			EconomyIconCatalog.HazardPayIconPath,
-			"Hazard pay per battle"));
+			EconomyIconCatalog.HazardPayTooltip));
 
 		return row;
 	}

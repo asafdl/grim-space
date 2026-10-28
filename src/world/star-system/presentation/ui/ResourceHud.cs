@@ -249,12 +249,12 @@ public partial class ResourceHud : MarginContainer
 
 	private Control CreateEntry(ResourceId id)
 	{
-		var root = new Control
+		var root = new HudTooltipHost
 		{
 			CustomMinimumSize = new Vector2(IconSize + 6 + AmountMinimumWidth, IconSize),
 			MouseFilter = MouseFilterEnum.Stop,
-			TooltipText = DisplayName(id),
 		};
+		root.SetTooltip(ResourceIconCatalog.Tooltip(id));
 
 		var entry = new HBoxContainer
 		{
@@ -313,9 +313,6 @@ public partial class ResourceHud : MarginContainer
 
 		return root;
 	}
-
-	private static string DisplayName(ResourceId id) =>
-		ResourceIconCatalog.DisplayName(id);
 
 	private static string IconPath(ResourceId id) =>
 		ResourceIconCatalog.IconPath(id);

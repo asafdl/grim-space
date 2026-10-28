@@ -1,3 +1,5 @@
+using GrimSpace.Components;
+
 namespace GrimSpace.Battle.Presentation.Ui;
 
 public enum Icon
@@ -13,6 +15,7 @@ public enum Icon
 	Cooldown,
 }
 
+// Battle copy keeps Icon.* token names; content model is shared.
 public sealed record BattleHudTooltipContent(
 	string? Title,
 	string Body,
@@ -22,4 +25,10 @@ public sealed record BattleHudTooltipContent(
 		new(null, text);
 
 	public string TriggerText => Title ?? Body;
+
+	public HudTooltipContent ToShared() =>
+		new(Title, Body, Details);
+
+	public static implicit operator HudTooltipContent(BattleHudTooltipContent content) =>
+		content.ToShared();
 }

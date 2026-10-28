@@ -107,7 +107,7 @@ public sealed partial class PoiContractOverlay : Control
 		foreach (var poiId in counts.Keys)
 		{
 			var badge = GetOrCreateBadge(badges, poiId, texture);
-			badge.TooltipText = tooltip(poiId);
+			HudTooltipCard.SetTooltip(badge, tooltip(poiId));
 		}
 	}
 

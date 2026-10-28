@@ -1,0 +1,8 @@
+[gd_resource type="Theme" format=3]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_tooltip"]
+
+[resource]
+TooltipPanel/base_type = &"PanelContainer"
+TooltipPanel/styles/panel = SubResource("StyleBoxEmpty_tooltip")
+TooltipPanelContainer/styles/panel = SubResource("StyleBoxEmpty_tooltip")

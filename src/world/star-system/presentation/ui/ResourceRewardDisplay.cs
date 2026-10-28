@@ -39,12 +39,20 @@ public static class ResourceRewardDisplay
 
 	private static Control CreateEntry(ResourceId id, int amount)
 	{
+		var host = new HudTooltipHost
+		{
+			MouseFilter = Control.MouseFilterEnum.Stop,
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd,
+		};
+		host.SetTooltip(ResourceIconCatalog.Tooltip(id));
+
 		var row = new HBoxContainer
 		{
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd,
 		};
 		row.AddThemeConstantOverride("separation", 4);
+		host.AddChild(row);
 
 		row.AddChild(new TextureRect
 		{
@@ -54,7 +62,6 @@ public static class ResourceRewardDisplay
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-			TooltipText = ResourceIconCatalog.DisplayName(id),
 		});
 
 		var amountLabel = new Label
@@ -68,7 +75,7 @@ public static class ResourceRewardDisplay
 		HudStyles.ApplyTextRole(amountLabel, HudTextRole.Success);
 		row.AddChild(amountLabel);
 
-		return row;
+		return host;
 	}
 
 }

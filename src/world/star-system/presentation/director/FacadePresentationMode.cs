@@ -238,7 +238,7 @@ public sealed class FacadePresentationMode : IPresentationMode
 		{
 			var callout = new FacilityFacadeCallout();
 			var button = callout.Button;
-			button.TooltipText = facility.DisplayName;
+			HudTooltipCard.SetTooltip(button, facility.DisplayName);
 			button.Visible = true;
 			button.Icon = LoadFacilityIcon(facility.PresentationAnchor);
 			button.AddThemeStyleboxOverride("normal", ButtonNormal);
@@ -331,10 +331,10 @@ public sealed class FacadePresentationMode : IPresentationMode
 				facility);
 			_facilityCallouts[i].SetContractIndicatorVisible(hasContracts);
 			_facilityCallouts[i].SetLeadIndicatorVisible(hasLeads);
-			_facilityCallouts[i].Button.TooltipText = TooltipForFacility(
+			HudTooltipCard.SetTooltip(_facilityCallouts[i].Button, TooltipForFacility(
 				facility.DisplayName,
 				hasContracts,
-				hasLeads);
+				hasLeads));
 			_facilityCallouts[i].UpdateLayout(
 				anchorScreens[i],
 				separatedCenters[i],
