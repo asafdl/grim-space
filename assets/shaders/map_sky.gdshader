@@ -19,6 +19,13 @@ uniform float bh_shadow_radius : hint_range(0.01, 1.2) = 0.10;
 // Outer edge of the glow. EHT/GMVA class: shadow diameter ~ half the glow
 // diameter (shadow small inside generous light).
 uniform float bh_glow_radius : hint_range(0.02, 1.6) = 0.19;
+// SKYPASS V3 ITEM 1 — inclination squash: the accretion light (ring band,
+// halo, grain field) is drawn on a squashed ellipse — major axis horizontal,
+// minor/major = this factor — so the feature reads as a semi-edge-on disc
+// instead of a pole-on bull's-eye. 1.0 = the old pole-on circle. The shadow
+// itself stays circular (it is the lensed silhouette, not the disc), and the
+// glow mask stays keyed to that circle so light can never bleed onto it.
+uniform float bh_disc_squash : hint_range(0.33, 1.0) = 0.55;
 // Photon-ring band gaussian sigma. Visible FWHM = 1.66 * this (= 0.174 rad),
 // >= 1/3 of the glow diameter (0.127 rad) — a broad soft band, never a knife line.
 uniform float bh_ring_thickness : hint_range(0.01, 0.8) = 0.105;
@@ -106,12 +113,20 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	vec3 right = normalize(cross(up_hint, center));
 	vec3 local_up = cross(center, right);
 	vec2 projected = vec2(dot(eyedir, right), dot(eyedir, local_up)) / mu;
+	// ITEM 1 — two metrics from one projection: `ang` stays the isotropic
+	// (circular) angular distance and keeps driving the shadow disc and the
+	// glow mask (verdict: pure-black disc, glow never on it); `ang_e` is the
+	// squashed accretion metric that the disc light (band, halo, texture,
+	// doppler) is drawn on, so the ellipse reads semi-edge-on. The squashed
+	// ellipse is strictly inside the circular glow radius, so the early-out
+	// below culls exactly the lightless region.
 	float ang = length(projected);
-	if (ang >= bh_glow_radius) {
+	float ang_e = length(vec2(projected.x, projected.y / bh_disc_squash));
+	if (ang_e >= bh_glow_radius) {
 		return base;
 	}
 	vec2 unit = projected / max(ang, 0.000001);
-	float t = clamp((ang - bh_shadow_radius) / max(bh_glow_radius - bh_shadow_radius, 0.001), 0.0, 1.0);
+	float t = clamp((ang_e - bh_shadow_radius) / max(bh_glow_radius - bh_shadow_radius, 0.001), 0.0, 1.0);
 	float ring_angle = atan(projected.y, projected.x);
 
 	// ITEM B — the shadow: a solid opaque pure-black disc with a clean edge.
@@ -127,9 +142,13 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// way out to the glow edge, so the shadow stays small inside generous light.
 	float ring_center = bh_shadow_radius + (bh_glow_radius - bh_shadow_radius) * 0.42;
 	float ring_width = bh_ring_thickness;
-	float ring_band = exp(-pow((ang - ring_center) / ring_width, 2.0));
+	// ITEM 1 — the band and halo ride the squashed metric: concentric
+	// circles become concentric ellipses, major axis horizontal. Same
+	// gaussians, same widths — the broad-band verdict carries over as long
+	// as the squash stays >= ~0.33 (it is 0.55).
+	float ring_band = exp(-pow((ang_e - ring_center) / ring_width, 2.0));
 	float halo = pow(max(1.0 - t, 0.0), 1.35)
-		* (1.0 - smoothstep(bh_glow_radius * 0.86, bh_glow_radius, ang));
+		* (1.0 - smoothstep(bh_glow_radius * 0.86, bh_glow_radius, ang_e));
 
 	// Differential swirl on TIME (inner laps outer), carried over.
 	float spiral = ring_angle * 1.5 - t * 7.5 + TIME * bh_swirl_speed * (1.45 - 0.95 * t);
