@@ -426,11 +426,23 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		button.AddThemeColorOverride("icon_disabled_color", Colors.White);
 		ApplyIconBorder(button, isLearned || canLearn ? 1f : 0.5f);
 		if (canLearn)
-			button.Pressed += () => SkillLearnRequested?.Invoke(pilot.Id, definition.Id);
+		{
+			host.MouseDefaultCursorShape = CursorShape.PointingHand;
+			host.GuiInput += @event =>
+			{
+				if (@event is InputEventMouseButton
+					{
+						Pressed: true,
+						ButtonIndex: MouseButton.Left,
+					})
+					SkillLearnRequested?.Invoke(pilot.Id, definition.Id);
+			};
+		}
 		host.AddChild(button);
 		return host;
 	}
