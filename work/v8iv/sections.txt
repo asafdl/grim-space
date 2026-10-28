@@ -1,0 +1,13 @@
+ 0.94s [FIGHT OPENS ] luma=24.140 cr=0.194 cg=0.299
+ 2.89s [CLAIM       ] luma=4.526 cr=0.050 cg=0.088  dLuma=19.614 dChroma=0.354
+ 5.65s [LOOP        ] luma=13.703 cr=0.278 cg=0.267  dLuma=9.177 dChroma=0.407
+ 8.54s [COST        ] luma=14.756 cr=0.301 cg=0.257  dLuma=1.053 dChroma=0.032
+11.50s [WRECK/PLAN  ] luma=18.066 cr=0.287 cg=0.254  dLuma=3.310 dChroma=0.016
+13.98s [GOOP FIELD  ] luma=10.226 cr=0.179 cg=0.295  dLuma=7.840 dChroma=0.149
+15.82s [PROGRESS    ] luma=3.888 cr=0.048 cg=0.079  dLuma=6.337 dChroma=0.347
+18.75s [THE MAP     ] luma=17.204 cr=0.266 cg=0.271  dLuma=13.316 dChroma=0.410
+22.01s [ESCALATION  ] luma=14.478 cr=0.139 cg=0.274  dLuma=2.725 dChroma=0.130
+24.75s [ODD NUMBERS ] luma=1.991 cr=0.034 cg=0.063  dLuma=12.487 dChroma=0.317
+26.69s [REACH/DOCK  ] luma=18.607 cr=0.192 cg=0.272  dLuma=16.616 dChroma=0.368
+29.05s [THREAT      ] luma=18.199 cr=0.275 cg=0.277  dLuma=0.408 dChroma=0.088
+32.66s [CARD        ] luma=11.034 cr=0.345 cg=0.234  dLuma=7.164 dChroma=0.113

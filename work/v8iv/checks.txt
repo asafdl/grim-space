@@ -1,0 +1,23 @@
+=== KEPT DIPS (section boundaries) — floor luma (0-1) ===
+  7.40: floor=0.278  OK
+  16.98: floor=0.278  OK
+  27.38: floor=0.278  OK
+
+=== PLAIN CUTS — max frame luma delta (0-255) < 30 ===
+  1.92: delta=20.3  OK
+  3.90: delta=27.8  OK
+  4.72: delta=7.1  OK
+  5.65: delta=4.1  OK
+  8.03: delta=1.4  OK
+  10.30: delta=11.8  OK
+  12.10: delta=24.8  OK
+  13.32: delta=27.6  OK
+  14.17: delta=8.1  OK
+  20.47: delta=17.6  OK
+  23.52: delta=13.9  OK
+  25.98: delta=14.8  OK
+  30.68: delta=8.1  OK
+  worst plain-cut delta = 27.8
+
+=== MOTION (mean per-frame luma |delta|, 0-255) ===
+  mean motion = 1.04  OK
