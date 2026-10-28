@@ -5,12 +5,14 @@ using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Economy;
+using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public sealed partial class EngagementHudOverlay : Control
 {
 	private readonly ModalShell _shell;
+	private PendingEngagement? _pending;
 	private bool _busy;
 
 	public event Action? EngageRequested;
@@ -34,6 +36,7 @@ public sealed partial class EngagementHudOverlay : Control
 
 	public void Sync(PendingEngagement pending)
 	{
+		_pending = pending;
 		_busy = false;
 		_shell.Open(
 			"Contact",
@@ -47,6 +50,14 @@ public sealed partial class EngagementHudOverlay : Control
 			body.AddChild(CreateContractCard(assignedContract));
 
 		body.AddChild(CreateFleetCard(pending.EncounterIntel));
+
+		if (!pending.CanFlee)
+		{
+			body.AddChild(CreateInfoCard(
+				title: "Insufficient fuel to flee",
+				description: $"Fleeing requires {pending.FleeFuelCost} fuel; you have {pending.AvailableFuel}. You must engage.",
+				visual: UiCardVisual.Technical));
+		}
 
 		if (pending.FleeFailsDelivery)
 		{
@@ -63,7 +74,17 @@ public sealed partial class EngagementHudOverlay : Control
 			new HudAction(
 				pending.FleeFailsDelivery ? "Abandon delivery and flee" : "Flee",
 				HudActionKind.Destructive,
-				RequestFlee),
+				RequestFlee,
+				enabled: pending.CanFlee,
+				badgeIconPath: pending.FleeFuelCost > 0
+					? ResourceIconCatalog.IconPath(ResourceId.Fuel)
+					: null,
+				badgeAmount: pending.FleeFuelCost > 0
+					? pending.FleeFuelCost
+					: null,
+				badgeTooltip: pending.FleeFuelCost > 0
+					? EconomyIconCatalog.FleeFuelTooltip
+					: null),
 			new HudAction(
 				"Engage",
 				HudActionKind.Primary,
@@ -73,11 +94,18 @@ public sealed partial class EngagementHudOverlay : Control
 					: null,
 				badgeAmount: pending.HazardPayCredits > 0
 					? pending.HazardPayCredits
+					: null,
+				badgeTooltip: pending.HazardPayCredits > 0
+					? EconomyIconCatalog.HazardPayTooltip
 					: null),
 		]);
 	}
 
-	public void Close() => _shell.Close();
+	public void Close()
+	{
+		_pending = null;
+		_shell.Close();
+	}
 
 	public void SetBusy(bool busy) => _busy = busy;
 
@@ -105,7 +133,7 @@ public sealed partial class EngagementHudOverlay : Control
 
 	private void RequestFlee()
 	{
-		if (_busy)
+		if (_busy || _pending is not { CanFlee: true })
 			return;
 
 		FleeRequested?.Invoke();

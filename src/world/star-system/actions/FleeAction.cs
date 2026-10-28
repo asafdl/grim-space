@@ -1,7 +1,10 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 
 namespace GrimSpace.World.StarSystem.Actions;
@@ -22,7 +25,15 @@ public sealed class FleeDef
 	public bool IsPossible(IAction action, StarMap world, ActorRuntime runtime) => true;
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
-		action is FleeAction flee && EngageDef.TryResolveCounterparty(world, flee.ActorId, out _);
+		action is FleeAction flee
+		&& EngageDef.TryResolveCounterparty(world, flee.ActorId, out _)
+		&& (flee.ActorId != State.PlayerFleetUnitId
+			|| world.PlayerResources.GetBalance(ResourceId.Fuel) >= FuelCost(world));
+
+	public static int FuelCost(StarMap world) =>
+		world.PilotRegistry?.All.Sum(pilot =>
+			StrategicEconomyConfig.FleeFuelForLevel(
+				PilotProgression.LevelFor(pilot.ExperiencePoints))) ?? 0;
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -33,13 +44,23 @@ public sealed class FleeDef
 		if (!EngageDef.TryResolveCounterparty(world, flee.ActorId, out var counterpartyId))
 			return [];
 
-		var effects = new List<IEffect<StarMap, ActorRuntime>>
+		var effects = new List<IEffect<StarMap, ActorRuntime>>();
+		if (flee.ActorId == State.PlayerFleetUnitId)
 		{
-			new StopAtCurrentLocationEffect(flee.ActorId),
-			new ClearPursueContactEffect(flee.ActorId),
-			new FleeEngagementEffect(flee.ActorId, counterpartyId),
-			new PlayerInputEffect(false),
-		};
+			var fuelCost = FuelCost(world);
+			if (fuelCost > 0)
+			{
+				// Pay before stopping settles travel fuel, so it cannot consume the escape budget.
+				effects.Add(new ChangeResourceEffect(
+					TransactionSource.FleeFuel,
+					ResourceBundle.Of(ResourceId.Fuel, -fuelCost)));
+			}
+		}
+
+		effects.Add(new StopAtCurrentLocationEffect(flee.ActorId));
+		effects.Add(new ClearPursueContactEffect(flee.ActorId));
+		effects.Add(new FleeEngagementEffect(flee.ActorId, counterpartyId));
+		effects.Add(new PlayerInputEffect(false));
 
 		if (TryResolveDeliveryInterception(world, flee.ActorId, counterpartyId, out var contractId))
 		{

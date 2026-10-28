@@ -29,6 +29,8 @@ public sealed partial class EngagementHudPreview : Control
 			"2 × Repurposed Miner (T1)\n1 × Fighter (T0)",
 			IncludeAssignedContract ? dev.SampleHuntContract() : null,
 			FleeFailsDelivery: false,
-			HazardPayCredits: StrategicEconomyConfig.HazardPayCreditsPerPilot * 2));
+			HazardPayCredits: StrategicEconomyConfig.HazardPayCreditsPerPilot * 2,
+			FleeFuelCost: StrategicEconomyConfig.FleeFuelForLevel(1) * 2,
+			AvailableFuel: StrategicEconomyConfig.StartingFuel));
 	}
 }

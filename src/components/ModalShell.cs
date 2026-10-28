@@ -535,18 +535,11 @@ public sealed partial class ModalShell : Control
 			|| amount <= 0)
 			return button;
 
-		var row = new HBoxContainer
-		{
-			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-			SizeFlagsVertical = SizeFlags.ShrinkCenter,
-		};
-		row.AddThemeConstantOverride("separation", 8);
-		row.AddChild(CreateFooterBadge(amount, iconPath));
-		row.AddChild(button);
-		return row;
+		button.SetTrailingContent(CreateFooterBadge(amount, iconPath, action.BadgeTooltip));
+		return button;
 	}
 
-	private static Control CreateFooterBadge(int amount, string iconPath)
+	private static Control CreateFooterBadge(int amount, string iconPath, HudTooltipContent? tooltip)
 	{
 		var row = new HBoxContainer
 		{
@@ -573,7 +566,18 @@ public sealed partial class ModalShell : Control
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		row.AddChild(icon);
-		return row;
+
+		if (tooltip is null)
+			return row;
+
+		var host = new HudTooltipHost
+		{
+			MouseFilter = MouseFilterEnum.Pass,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		host.SetTooltip(tooltip);
+		host.AddChild(row);
+		return host;
 	}
 
 	public override void _Notification(int what)

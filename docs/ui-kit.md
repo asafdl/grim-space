@@ -91,6 +91,7 @@ Production callers use overrides for deliberate frame sizes, portrait slots, ali
 
 - Image-list rows start at 110 px high and fit their parent's width. Portrait size and text insets stay fixed as text wraps and increases row height; rendered dimensions never feed back into minimum-size margins.
 - `UiButton` fills available horizontal space by default (`SizeFlagsHorizontal = ExpandFill`). Set `ShrinkCenter` (or another non-fill flag) when a screen needs intrinsic-width buttons, such as modal footers or component-gallery rows.
+- `ModalShell` renders `HudAction` cost amounts and icons inside the button, after its label, using `UiButton.SetTrailingContent`. Cost tooltips remain hoverable when the action is disabled; their hosts pass clicks through to the button.
 - Cards, list items, and nested/framed content containers derive their minimum size from content and padding. Set `SizeOverride` when a screen needs a different floor; wrapped text contributes its laid-out height instead of relying on estimated line counts.
 - Keep text inside the artwork's usable interior. List-item content uses 60 px left padding and is vertically centered.
 - Container variants own their content margins, header side slots, dismiss-button pocket, subtitle band height, and body start offset. `ModalShell` always reserves the subtitle band and applies `BodyMarginTop` from the active `UiContainer` visual; screens must not reposition titles or add per-screen body offsets.

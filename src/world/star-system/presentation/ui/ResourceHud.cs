@@ -60,6 +60,7 @@ public partial class ResourceHud : MarginContainer
 			return;
 
 		var isTravelFuel = transaction.Source == TransactionSource.TravelFuel;
+		var isHazardPay = transaction.Source == TransactionSource.HazardPay;
 		foreach (var (id, delta) in transaction.Change)
 		{
 			_displayedAmounts[id] = _targetAmounts[id];
@@ -73,6 +74,8 @@ public partial class ResourceHud : MarginContainer
 			return;
 
 		_transactionSfx.Play();
+		if (isHazardPay)
+			PresentFeedback("HAZARD PAY", hold: true, HudTextRole.Warning);
 	}
 
 	public void PresentInsufficientFunds() =>

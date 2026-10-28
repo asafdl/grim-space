@@ -40,6 +40,9 @@ public sealed partial class UiButton : BaseButton, IUiSized
 
 	private readonly TextureRect _background;
 	private readonly Label _label;
+	private readonly MarginContainer _contentMargin;
+	private readonly HBoxContainer _content;
+	private Control? _trailingContent;
 	private readonly ShaderMaterial _paletteMaterial;
 	private HudPalette _palette;
 	private HudActionKind _kind;
@@ -80,19 +83,30 @@ public sealed partial class UiButton : BaseButton, IUiSized
 		};
 		AddChild(_background);
 
-		_label = new Label
+		_contentMargin = new MarginContainer
 		{
-			Text = text,
 			AnchorsPreset = (int)LayoutPreset.FullRect,
 			AnchorRight = 1f,
 			AnchorBottom = 1f,
-			OffsetLeft = 16f,
-			OffsetRight = -16f,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		_contentMargin.AddThemeConstantOverride("margin_left", 16);
+		_contentMargin.AddThemeConstantOverride("margin_right", 16);
+		AddChild(_contentMargin);
+		var center = new CenterContainer { MouseFilter = MouseFilterEnum.Ignore };
+		_contentMargin.AddChild(center);
+		_content = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+		_content.AddThemeConstantOverride("separation", 8);
+		center.AddChild(_content);
+
+		_label = new Label
+		{
+			Text = text,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		AddChild(_label);
+		_content.AddChild(_label);
 
 		MouseEntered += RefreshVisualState;
 		MouseExited += RefreshVisualState;
@@ -116,9 +130,17 @@ public sealed partial class UiButton : BaseButton, IUiSized
 
 	public override Vector2 _GetMinimumSize()
 	{
-		var labelSize = _label.GetMinimumSize();
-		var paddingX = _label.OffsetLeft - _label.OffsetRight;
-		return new Vector2(labelSize.X + paddingX, labelSize.Y);
+		return _contentMargin.GetCombinedMinimumSize();
+	}
+
+	public void SetTrailingContent(Control content)
+	{
+		ArgumentNullException.ThrowIfNull(content);
+		_trailingContent?.QueueFree();
+		_trailingContent = content;
+		_content.AddChild(content);
+		UpdateMinimumSize();
+		RefreshVisualState();
 	}
 
 	public void SetPalette(HudPalette palette)
@@ -160,11 +182,8 @@ public sealed partial class UiButton : BaseButton, IUiSized
 			UiButtonVisual.WideBeveled => new UiSize(159f, 54f),
 			_ => new UiSize(145f, 44f),
 		});
-		(_label.OffsetLeft, _label.OffsetRight) = visual switch
-		{
-			UiButtonVisual.Back => (12f, -20f),
-			_ => (16f, -16f),
-		};
+		_contentMargin.AddThemeConstantOverride("margin_left", visual == UiButtonVisual.Back ? 12 : 16);
+		_contentMargin.AddThemeConstantOverride("margin_right", visual == UiButtonVisual.Back ? 20 : 16);
 		UpdateMinimumSize();
 		RefreshVisualState();
 	}
@@ -221,6 +240,8 @@ public sealed partial class UiButton : BaseButton, IUiSized
 			: _integrated && !IsHovered() && !HasFocus()
 				? edge.Lerp(Colors.White, 0.35f)
 				: Colors.White;
+		if (_trailingContent is not null)
+			_trailingContent.Modulate = _label.Modulate;
 	}
 
 	private static Texture2D LoadTexture(string path) =>

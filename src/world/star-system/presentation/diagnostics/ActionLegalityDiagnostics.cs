@@ -42,7 +42,7 @@ internal static class ActionLegalityDiagnostics
 			MoveAction move => DescribeMoveIllegality(move, world),
 			PursueContactAction pursue => DescribePursueIllegality(pursue, world),
 			EngageAction engage => DescribeEngageIllegality(engage, world),
-			FleeAction flee => DescribeEngageIllegality(flee, world),
+			FleeAction flee => DescribeFleeIllegality(flee, world),
 			AcceptContractAction accept => DescribeAcceptIllegality(accept, world),
 			DeclineContractAction decline => DescribeDeclineIllegality(decline, world),
 			PurchaseAction purchase => DescribePurchaseIllegality(purchase, world, runtime),
@@ -109,6 +109,20 @@ internal static class ActionLegalityDiagnostics
 			return "not_in_hunt_range";
 
 		return "illegal";
+	}
+
+	private static string DescribeFleeIllegality(FleeAction flee, StarMap world)
+	{
+		if (EngageDef.TryResolveCounterparty(world, flee.ActorId, out _)
+			&& flee.ActorId == GrimSpace.Run.State.PlayerFleetUnitId)
+		{
+			var required = FleeDef.FuelCost(world);
+			var available = world.PlayerResources.GetBalance(ResourceId.Fuel);
+			if (available < required)
+				return $"insufficient_fuel required={required} available={available}";
+		}
+
+		return DescribeEngageIllegality(flee, world);
 	}
 
 	private static string DescribeAcceptIllegality(AcceptContractAction accept, StarMap world)

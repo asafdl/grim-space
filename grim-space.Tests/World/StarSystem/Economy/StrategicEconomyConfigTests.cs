@@ -5,6 +5,22 @@ namespace GrimSpace.Tests.World.StarSystem.Economy;
 public sealed class StrategicEconomyConfigTests
 {
 	[Theory]
+	[InlineData(1, 10)]
+	[InlineData(2, 15)]
+	[InlineData(3, 23)]
+	[InlineData(4, 34)]
+	[InlineData(5, 51)]
+	[InlineData(6, 76)]
+	public void FleeFuelForLevel_CompoundsAndRoundsUpPerPilot(int level, int expected) =>
+		Assert.Equal(expected, StrategicEconomyConfig.FleeFuelForLevel(level));
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(-1)]
+	public void FleeFuelForLevel_RejectsInvalidLevels(int level) =>
+		Assert.Throws<ArgumentOutOfRangeException>(() => StrategicEconomyConfig.FleeFuelForLevel(level));
+
+	[Theory]
 	[InlineData(12, 1, 12)]
 	[InlineData(12, 2, 17)]
 	[InlineData(12, 3, 22)]

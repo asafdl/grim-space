@@ -1,8 +1,10 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.World.Factions;
+using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Contact;
@@ -14,7 +16,12 @@ public readonly record struct PendingEngagement(
 	string EncounterIntel,
 	Contract? AssignedContract,
 	bool FleeFailsDelivery,
-	int HazardPayCredits = 0);
+	int HazardPayCredits = 0,
+	int FleeFuelCost = 0,
+	int AvailableFuel = 0)
+{
+	public bool CanFlee => AvailableFuel >= FleeFuelCost;
+}
 
 public readonly record struct CommittedEngagement(
 	string EngagementId,
@@ -52,7 +59,9 @@ public static class EngagementQueries
 			EncounterIntelFormatter.FormatFleet(counterparty),
 			assignedContract,
 			IsAssignedDeliveryInterceptor(world, counterpartyId),
-			HazardPayrollAccounting.EstimateCredits(hazardCandidates.Count));
+			HazardPayrollAccounting.EstimateCredits(hazardCandidates.Count),
+			FleeDef.FuelCost(world),
+			world.PlayerResources.GetBalance(ResourceId.Fuel));
 		return true;
 	}
 

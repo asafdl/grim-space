@@ -28,6 +28,8 @@ public static class StrategicEconomyConfig
 	public const int BaseSalaryCreditsMax = 75;
 
 	public const int HazardPayCreditsPerPilot = 10;
+	public const int FleeFuelPerPilot = 10;
+	public const double FleeFuelLevelMultiplier = 1.5;
 
 	public const int RefuseChanceBasePercent = 35;
 	public const int RefuseChanceRisePercent = 25;
@@ -40,6 +42,13 @@ public static class StrategicEconomyConfig
 		ArgumentOutOfRangeException.ThrowIfNegative(baseSalaryCredits);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
 		return baseSalaryCredits + (claimedLevel - 1) * SalaryCreditsPerLevel;
+	}
+
+	public static int FleeFuelForLevel(int level)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(level, 1);
+		return checked((int)System.Math.Ceiling(
+			FleeFuelPerPilot * System.Math.Pow(FleeFuelLevelMultiplier, level - 1)));
 	}
 
 	public static int RollBaseSalaryCredits(Random rng)

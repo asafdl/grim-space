@@ -1,10 +1,12 @@
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Economy;
@@ -101,6 +103,110 @@ public sealed class EngageActionTests(StarMapFixture maps)
 [StarSystemTestSuite]
 public sealed class FleeActionTests(StarMapFixture maps)
 {
+	[Fact]
+	public void FuelCost_CountsAllOwnedPilotsUsingActualLevels()
+	{
+		using var orchestrator = CreateAwaitingDecisionScenario();
+		var map = orchestrator.Map;
+		map.PilotRegistry = new RunPilotRegistry();
+		var active = Pilot.CreateForShip("active", new Random(1)).WithAssignment("active", true);
+		var inactive = Pilot.CreateForShip("inactive", new Random(2)).WithExperience(100);
+		var unassigned = Pilot.CreateForShip("unassigned", new Random(3))
+			.WithExperience(250)
+			.WithAssignment(null, false);
+		map.PilotRegistry.Register(active);
+		map.PilotRegistry.Register(inactive);
+		map.PilotRegistry.Register(unassigned);
+
+		Assert.Equal(1, inactive.ClaimedLevel);
+		Assert.Equal(48, FleeDef.FuelCost(map));
+	}
+
+	[Theory]
+	[InlineData(9, false)]
+	[InlineData(10, true)]
+	[InlineData(11, true)]
+	public void Commit_RequiresFullFuelPayment(int availableFuel, bool canFlee)
+	{
+		using var orchestrator = CreateAwaitingDecisionScenario();
+		var map = orchestrator.Map;
+		map.PilotRegistry = new RunPilotRegistry();
+		map.PilotRegistry.Register(Pilot.CreateForShip("reserve", new Random(1)));
+		Assert.True(map.PlayerResources.TryApply(ResourceBundle.Of(
+			ResourceId.Fuel,
+			availableFuel - map.PlayerResources.GetBalance(ResourceId.Fuel))));
+		using var engine = new Engine<StarMap, ActorRuntime>(map, new ActorRuntimes<ActorRuntime>());
+		var action = new FleeAction(RunState.PlayerFleetUnitId);
+		var counterpartyEngagement = map.StateOf("pirate-a").CurrentEngagement;
+
+		Assert.Equal(canFlee, FleeDef.Instance.IsLegal(action, map, new ActorRuntime()));
+		Assert.True(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId), map, new ActorRuntime()));
+		var history = engine.Commit(action);
+
+		Assert.Equal(availableFuel - (canFlee ? 10 : 0), map.PlayerResources.GetBalance(ResourceId.Fuel));
+		Assert.Equal(
+			canFlee ? EEngagementPhase.None : EEngagementPhase.AwaitingDecision,
+			EngagementAssertions.Phase(map.StateOf(RunState.PlayerFleetUnitId)));
+		if (canFlee)
+			Assert.Null(map.StateOf("pirate-a").CurrentEngagement);
+		else
+			Assert.Same(counterpartyEngagement, map.StateOf("pirate-a").CurrentEngagement);
+		var transactions = history.OfType<Record<Transaction>>()
+			.Where(record => record.Value.Source == TransactionSource.FleeFuel)
+			.ToArray();
+		if (canFlee)
+			Assert.Equal(ResourceBundle.Of(ResourceId.Fuel, -10), Assert.Single(transactions).Value.Change);
+		else
+			Assert.Empty(transactions);
+	}
+
+	[Theory]
+	[InlineData(55, false)]
+	[InlineData(56, true)]
+	public void PendingEngagement_ProjectsCostAndAffordability(int availableFuel, bool canFlee)
+	{
+		using var orchestrator = CreateAwaitingDecisionScenario();
+		var map = orchestrator.Map;
+		map.PilotRegistry = new RunPilotRegistry();
+		map.PilotRegistry.Register(Pilot.CreateForShip("a", new Random(1)).WithExperience(250));
+		map.PilotRegistry.Register(Pilot.CreateForShip("b", new Random(2)).WithExperience(250));
+		map.PilotRegistry.Register(Pilot.CreateForShip("c", new Random(3)).WithExperience(0));
+		Assert.True(map.PlayerResources.TryApply(ResourceBundle.Of(
+			ResourceId.Fuel,
+			availableFuel - map.PlayerResources.GetBalance(ResourceId.Fuel))));
+
+		Assert.True(EngagementQueries.TryGetPendingPlayerEngagement(map, RunState.PlayerFleetUnitId, out var pending));
+		Assert.Equal(56, pending.FleeFuelCost);
+		Assert.Equal(availableFuel, pending.AvailableFuel);
+		Assert.Equal(canFlee, pending.CanFlee);
+	}
+
+	[Fact]
+	public void Simulation_FleeDoesNotChargeLiveResourcesOrClearLiveEngagement()
+	{
+		using var orchestrator = CreateAwaitingDecisionScenario();
+		var map = orchestrator.Map;
+		map.PilotRegistry = new RunPilotRegistry();
+		map.PilotRegistry.Register(Pilot.CreateForShip("reserve", new Random(1)));
+		var fuelBefore = map.PlayerResources.GetBalance(ResourceId.Fuel);
+		var sim = orchestrator.CreateSimulation();
+
+		Assert.True(sim.TryEnqueue(new FleeAction(RunState.PlayerFleetUnitId)));
+
+		Assert.Equal(fuelBefore, map.PlayerResources.GetBalance(ResourceId.Fuel));
+		Assert.Equal(EEngagementPhase.AwaitingDecision,
+			EngagementAssertions.Phase(map.StateOf(RunState.PlayerFleetUnitId)));
+	}
+
+	[Fact]
+	public void FuelCost_WithoutRoster_IsZero()
+	{
+		using var orchestrator = CreateAwaitingDecisionScenario();
+		orchestrator.Map.PilotRegistry = null;
+		Assert.Equal(0, FleeDef.FuelCost(orchestrator.Map));
+	}
+
 	[Fact]
 	public void Commit_ResolvesWithoutOutcome()
 	{

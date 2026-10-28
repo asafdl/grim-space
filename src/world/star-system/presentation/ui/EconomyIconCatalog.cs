@@ -9,9 +9,15 @@ public static class EconomyIconCatalog
 	public const string HazardPayIconPath = "res://assets/ui/economy/hazard-swords-symbol.png";
 
 	public static HudTooltipContent SalaryTooltip { get; } =
-		HudTooltipContent.Plain(
-			$"Salary paid every {StrategicEconomyConfig.SalaryCadenceMinutes} game minutes");
+		new HudTooltipContent(
+			"Salary",
+			$"Paid every day");
 
 	public static HudTooltipContent HazardPayTooltip { get; } =
-		HudTooltipContent.Plain("Hazard pay per battle");
+		new HudTooltipContent(
+			"Hazard pay",
+			"Mercs don't fight for free. Failure to pay might lead for pilots to refuse to fight.");
+
+	public static HudTooltipContent FleeFuelTooltip { get; } =
+		HudTooltipContent.Plain("Evasive manuevers");
 }

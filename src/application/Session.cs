@@ -361,7 +361,19 @@ public partial class Session : Node
 
 	private void OnBattleReady()
 	{
-		Callable.From(() => GetTree().ChangeSceneToFile(BattleScenePath)).CallDeferred();
+		var holdSeconds = Run.Transitions.ConsumeBattleEntryHoldSeconds();
+		Callable.From(() => EnterBattleAfterHold(holdSeconds)).CallDeferred();
+	}
+
+	private async void EnterBattleAfterHold(float holdSeconds)
+	{
+		if (holdSeconds > 0f)
+			await ToSignal(GetTree().CreateTimer(holdSeconds), SceneTreeTimer.SignalName.Timeout);
+
+		if (Run?.ActiveBattle is null)
+			return;
+
+		GetTree().ChangeSceneToFile(BattleScenePath);
 	}
 
 	private void BeginMapScenePreload()

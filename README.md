@@ -98,6 +98,14 @@ Presentation scenes stay thin. [`MapController`](src/world/star-system/presentat
 
 When replacing or regenerating a star-system, `Run.State` disposes old engine subscriptions and rebinds the inbox so listeners do not leak across maps. `Session` only unsubscribes from `BattleReady`, disposes the previous run, assigns the new run, and resubscribes—no special-case wiring for prepared runs.
 
+### Engagement costs
+
+Engaging charges hazard pay for fielded pilots (active pilots with assigned ships). Fleeing instead costs fuel for **all owned pilots**, including inactive and unassigned pilots. Each pilot costs `ceil(10 * 1.5^(level - 1))` fuel, using their XP-derived level, then the individual costs are summed: levels 1–6 cost 10, 15, 23, 34, 51, and 76 fuel respectively.
+
+[`FleeDef`](src/world/star-system/actions/FleeAction.cs) owns the total and affordability check; [`StrategicEconomyConfig`](src/world/star-system/economy/StrategicEconomyConfig.cs) owns the tuning values. Fleeing requires the full amount and records a `flee-fuel` resource transaction. Insufficient fuel leaves engagement pending and requires engaging instead. Escape cannot bypass this restriction. Flee payment precedes settlement of any outstanding travel fuel.
+
+The engagement HUD displays both costs inside their respective buttons, after the label, with hover tooltips. Its cost and available-fuel values are projections from [`EngagementQueries`](src/world/star-system/contact/EngagementQueries.cs), not UI-owned gameplay state.
+
 ### Rules for contributors and agents
 
 - **MUST** send user-originated gameplay actions through intent translation and an execution agent; never mutate world objects from UI code.

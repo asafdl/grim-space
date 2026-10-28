@@ -44,8 +44,9 @@ public sealed record HudAction
 		Action onPressed,
 		bool enabled = true,
 		string? badgeIconPath = null,
-		int? badgeAmount = null)
-		: this(label, kind, _ => onPressed(), enabled, badgeIconPath, badgeAmount)
+		int? badgeAmount = null,
+		HudTooltipContent? badgeTooltip = null)
+		: this(label, kind, _ => onPressed(), enabled, badgeIconPath, badgeAmount, badgeTooltip)
 	{
 	}
 
@@ -55,7 +56,8 @@ public sealed record HudAction
 		Action<BaseButton> onPressed,
 		bool enabled = true,
 		string? badgeIconPath = null,
-		int? badgeAmount = null)
+		int? badgeAmount = null,
+		HudTooltipContent? badgeTooltip = null)
 	{
 		Label = label;
 		Kind = kind;
@@ -63,6 +65,7 @@ public sealed record HudAction
 		Enabled = enabled;
 		BadgeIconPath = badgeIconPath;
 		BadgeAmount = badgeAmount;
+		BadgeTooltip = badgeTooltip;
 	}
 
 	public string Label { get; }
@@ -71,6 +74,7 @@ public sealed record HudAction
 	public bool Enabled { get; }
 	public string? BadgeIconPath { get; }
 	public int? BadgeAmount { get; }
+	public HudTooltipContent? BadgeTooltip { get; }
 }
 
 public readonly record struct HudBannerView(Control Root, Label Title, Label Subtitle);
