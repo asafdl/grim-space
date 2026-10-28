@@ -178,8 +178,8 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// ITEM 2 — the main light keeps the v2 envelope structure, now
 	// elliptical: brightness is bounded at the squashed glow edge (v2 had
 	// the same hard outer bound on the circle — it was the early-out). The
-	// gaussian band tail must not leak past it; only the lensed arcs below
-	// are allowed outside this envelope.
+	// gaussian band tail must not leak past it; the lensed arcs (below)
+	// ride INSIDE this envelope as of skypass v3.1 item B.
 	float glow_env = 1.0 - smoothstep(bh_glow_radius * 0.97, bh_glow_radius, ang_e);
 	float brightness = bh_energy * glow_mask * glow_env * alive
 		* (0.55 + grain * bh_grain * 0.35)
@@ -195,23 +195,29 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 		+ bh_hot_color * halo * 0.25;
 
 	// ITEM 2 — lensed over/under arcs (Gargantua class). The far-side disc
-	// light is bent OVER the top of the silhouette and back UNDER its bottom,
-	// and the near-side disc crosses IN FRONT of the silhouette as a thin
-	// band. These terms are added AFTER the shadow composite on purpose: the
-	// shadow mask must not clip them — that unclipped crossing is the trait
-	// the target crop shows. All three stay BROAD gaussians (widths of
-	// tenths of the shadow radius, never 1-px filaments — verdict C holds),
-	// all three ride the same alive grain and doppler factor as the ring so
-	// the whole disc reads as one moving body. Curvature: the over/under
-	// arcs hug the circular lensed silhouette; the front band follows the
-	// squashed disc ellipse.
+	// light is bent OVER the top of the silhouette and back UNDER its bottom.
+	// These terms are added AFTER the shadow composite so the glow mask order
+	// cannot cut them, BUT SKYPASS V3P1 ITEM B: no arc pixel may cross the
+	// shadow face — the user ruled the lower arc must hug OUTSIDE and BELOW
+	// the shadow edge like Gargantua's lower arc, so every arc term is
+	// multiplied by the shadow-face mask `outside_shadow` (zero inside the
+	// disc edge) and the old front band that crossed the lower half of the
+	// disc is REMOVED — it was the "bottom light cuts through the event
+	// horizon" read. Both arcs stay BROAD gaussians (widths of tenths of the
+	// shadow radius, never 1-px filaments — verdict C holds), and both ride
+	// the same alive grain and doppler factor as the ring so the whole disc
+	// reads as one moving body. Curvature: the over/under arcs hug the
+	// circular lensed silhouette; the under arc centre sits just outside the
+	// shadow edge (1.20x radius) so the hug is tight.
+	float outside_shadow = smoothstep(bh_shadow_radius * 0.99, bh_shadow_radius * 1.01, ang);
 	float arc_over = exp(-pow((ang - bh_shadow_radius * 1.16) / (bh_shadow_radius * 0.13), 2.0))
 		* exp(-pow((ring_angle - 1.5708) / 1.15, 2.0));
-	float arc_under = exp(-pow((ang - bh_shadow_radius * 1.45) / (bh_shadow_radius * 0.16), 2.0))
+	// Crest at 1.22x radius with a 0.10x sigma: at the shadow cut (1.01x) the
+	// gaussian is already exp(-(2.1)^2) ~= 1%, so the arc dies cleanly OUTSIDE
+	// the rim — the hug stays tight but never truncates against the black.
+	float arc_under = exp(-pow((ang - bh_shadow_radius * 1.22) / (bh_shadow_radius * 0.10), 2.0))
 		* exp(-pow((ring_angle + 1.5708) / 0.75, 2.0));
-	float front_band = exp(-pow((ang_e - bh_shadow_radius * 1.15) / (bh_shadow_radius * 0.11), 2.0))
-		* smoothstep(0.0, bh_shadow_radius * 0.30, -projected.y);
-	float arc_light = arc_over + arc_under * 0.7 + front_band * 0.85;
+	float arc_light = (arc_over + arc_under * 0.7) * outside_shadow;
 	// Doppler on the arcs uses the ring's scheme (a base level everywhere,
 	// boosted on the bright side) so the dim-side arc stays visible instead
 	// of being wiped out — the target crop shows both arcs on both sides.
