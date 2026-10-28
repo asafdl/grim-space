@@ -203,21 +203,32 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// multiplied by the shadow-face mask `outside_shadow` (zero inside the
 	// disc edge) and the old front band that crossed the lower half of the
 	// disc is REMOVED — it was the "bottom light cuts through the event
-	// horizon" read. Both arcs stay BROAD gaussians (widths of tenths of the
-	// shadow radius, never 1-px filaments — verdict C holds), and both ride
-	// the same alive grain and doppler factor as the ring so the whole disc
-	// reads as one moving body. Curvature: the over/under arcs hug the
-	// circular lensed silhouette; the under arc centre sits just outside the
-	// shadow edge (1.20x radius) so the hug is tight.
+	// horizon" read. The under arc stays a soft BROAD gaussian (width of a
+	// tenth of the shadow radius, never a 1-px filament — verdict C holds)
+	// riding the alive grain and doppler factor like the ring; the top band
+	// is rigid per ITEM T. Curvature: the over/under arcs hug the circular
+	// lensed silhouette; the under arc centre sits just outside the shadow
+	// edge (1.22x radius) so the hug is tight.
 	float outside_shadow = smoothstep(bh_shadow_radius * 0.99, bh_shadow_radius * 1.01, ang);
-	float arc_over = exp(-pow((ang - bh_shadow_radius * 1.16) / (bh_shadow_radius * 0.13), 2.0))
-		* exp(-pow((ring_angle - 1.5708) / 1.15, 2.0));
+	// SKYPASS V3P1 ITEM T — the top arc is RIGID: a crisp continuous band with
+	// clean edges and no wobble. A smoothstep slab (steady crest 1.08-1.28x
+	// radius, ~0.04x-radius edge transitions) replaces the old centred
+	// gaussian, and the TIME-driven flicker/grain factors are dropped from the
+	// arc energy: the user ruled the top arc must not wobble. It stays
+	// continuous across the whole upper silhouette via a sin-taper (full over
+	// the top dome, easing out at both sides), never a beaded stitch. The
+	// under arc keeps its soft gaussian hug — only the top band is rigid.
+	float top_mid = bh_shadow_radius * 1.18;
+	float top_half = bh_shadow_radius * 0.10;
+	float top_edge = bh_shadow_radius * 0.04;
+	float top_band = smoothstep(top_mid - top_half - top_edge, top_mid - top_half, ang)
+		* smoothstep(top_mid + top_half + top_edge, top_mid + top_half, ang)
+		* smoothstep(0.0, 0.30, unit.y);
 	// Crest at 1.22x radius with a 0.10x sigma: at the shadow cut (1.01x) the
 	// gaussian is already exp(-(2.1)^2) ~= 1%, so the arc dies cleanly OUTSIDE
 	// the rim — the hug stays tight but never truncates against the black.
 	float arc_under = exp(-pow((ang - bh_shadow_radius * 1.22) / (bh_shadow_radius * 0.10), 2.0))
 		* exp(-pow((ring_angle + 1.5708) / 0.75, 2.0));
-	float arc_light = (arc_over + arc_under * 0.7) * outside_shadow;
 	// Doppler on the arcs uses the ring's scheme (a base level everywhere,
 	// boosted on the bright side) so the dim-side arc stays visible instead
 	// of being wiped out — the target crop shows both arcs on both sides.
@@ -225,11 +236,14 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// squashed metric blows up over the shadow's top/bottom face, where the
 	// arcs live).
 	float arc_t = clamp((ang - bh_shadow_radius) / max(bh_glow_radius - bh_shadow_radius, 0.001), 0.0, 1.0);
-	float arc_energy = bh_energy * alive * (0.55 + grain * bh_grain * 0.35)
-		* (0.85 + 0.75 * max(doppler - 1.0, 0.0));
+	// ITEM T — steady arc energy for the rigid top band (no flicker, no grain
+	// — the wobble the user ruled out); the under arc keeps the alive grain.
+	float arc_energy_steady = bh_energy * (0.85 + 0.75 * max(doppler - 1.0, 0.0));
+	float arc_energy_alive = arc_energy_steady * alive * (0.55 + grain * bh_grain * 0.35);
 	vec3 arc_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.7, arc_t));
 
-	return base * (1.0 - shadow) + glow * brightness + arc_col * (arc_light * arc_energy);
+	return base * (1.0 - shadow) + glow * brightness
+		+ arc_col * ((top_band * arc_energy_steady + arc_under * 0.7 * arc_energy_alive) * outside_shadow);
 }
 
 void sky() {
