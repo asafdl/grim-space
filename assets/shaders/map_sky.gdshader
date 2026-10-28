@@ -35,7 +35,7 @@ uniform vec3 bh_warm_color : source_color = vec3(1.0, 0.47, 0.16);
 uniform vec3 bh_outer_color : source_color = vec3(0.45, 0.12, 0.04);
 // One side of the ring brighter. In a direction-locked sky pass the doppler
 // side is pinned to the ring the way a real photograph pins it.
-uniform float bh_doppler_amount : hint_range(0.0, 1.5) = 0.85;
+uniform float bh_doppler_amount : hint_range(0.0, 1.5) = 1.5;
 uniform float bh_doppler_sign : hint_range(-1.0, 1.0) = 1.0;
 // Alive grain + differential swirl on TIME, carried over from the old disk.
 uniform float bh_swirl_speed : hint_range(0.0, 2.0) = 0.30;
@@ -158,8 +158,13 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 		+ noise(vec2(TIME * bh_flicker_speed * 2.6, 8.7)) * 0.35;
 	float alive = 1.0 + bh_flicker * (pulse * 2.0 - 1.0) * 0.5;
 
-	// Doppler side: bright on one side of the ring.
-	float doppler = max(0.05, 1.0 + bh_doppler_amount * bh_doppler_sign * dot(unit, vec2(0.65, 0.75)));
+	// Doppler side: bright on one side of the ring. ITEM 3 — repinned to the
+	// target crop: the bright band sits screen LEFT at the evidence pose.
+	// Probe renders nailed the axis mapping: the sky-pass frame is
+	// left-handed on screen — local (1,0) boosts screen LEFT (it hid under
+	// the encounter UI panel in the load-save renders, which is what made
+	// the earlier probes look contradictory), (0,1) boosts screen up.
+	float doppler = max(0.05, 1.0 + bh_doppler_amount * bh_doppler_sign * dot(unit, vec2(1.0, 0.0)));
 
 	// ITEM 2 — the main light keeps the v2 envelope structure, now
 	// elliptical: brightness is bounded at the squashed glow edge (v2 had
