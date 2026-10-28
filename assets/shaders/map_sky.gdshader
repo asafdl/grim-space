@@ -122,7 +122,7 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// below culls exactly the lightless region.
 	float ang = length(projected);
 	float ang_e = length(vec2(projected.x, projected.y / bh_disc_squash));
-	if (ang_e >= bh_glow_radius) {
+	if (ang >= bh_glow_radius) {
 		return base;
 	}
 	vec2 unit = projected / max(ang, 0.000001);
@@ -161,7 +161,13 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// Doppler side: bright on one side of the ring.
 	float doppler = max(0.05, 1.0 + bh_doppler_amount * bh_doppler_sign * dot(unit, vec2(0.65, 0.75)));
 
-	float brightness = bh_energy * glow_mask * alive
+	// ITEM 2 — the main light keeps the v2 envelope structure, now
+	// elliptical: brightness is bounded at the squashed glow edge (v2 had
+	// the same hard outer bound on the circle — it was the early-out). The
+	// gaussian band tail must not leak past it; only the lensed arcs below
+	// are allowed outside this envelope.
+	float glow_env = 1.0 - smoothstep(bh_glow_radius * 0.97, bh_glow_radius, ang_e);
+	float brightness = bh_energy * glow_mask * glow_env * alive
 		* (0.55 + grain * bh_grain * 0.35)
 		* (ring_band * (0.85 + 1.25 * max(doppler - 1.0, 0.0)) + halo * 0.30 * doppler);
 	vec3 ring_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.45, t));
@@ -169,7 +175,36 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 		+ mix(bh_warm_color * 0.7, bh_outer_color, smoothstep(0.15, 0.8, t)) * (halo * 0.8)
 		+ bh_hot_color * halo * 0.25;
 
-	return base * (1.0 - shadow) + glow * brightness;
+	// ITEM 2 — lensed over/under arcs (Gargantua class). The far-side disc
+	// light is bent OVER the top of the silhouette and back UNDER its bottom,
+	// and the near-side disc crosses IN FRONT of the silhouette as a thin
+	// band. These terms are added AFTER the shadow composite on purpose: the
+	// shadow mask must not clip them — that unclipped crossing is the trait
+	// the target crop shows. All three stay BROAD gaussians (widths of
+	// tenths of the shadow radius, never 1-px filaments — verdict C holds),
+	// all three ride the same alive grain and doppler factor as the ring so
+	// the whole disc reads as one moving body. Curvature: the over/under
+	// arcs hug the circular lensed silhouette; the front band follows the
+	// squashed disc ellipse.
+	float arc_over = exp(-pow((ang - bh_shadow_radius * 1.16) / (bh_shadow_radius * 0.13), 2.0))
+		* exp(-pow((ring_angle - 1.5708) / 1.15, 2.0));
+	float arc_under = exp(-pow((ang - bh_shadow_radius * 1.45) / (bh_shadow_radius * 0.16), 2.0))
+		* exp(-pow((ring_angle + 1.5708) / 0.75, 2.0));
+	float front_band = exp(-pow((ang_e - bh_shadow_radius * 1.15) / (bh_shadow_radius * 0.11), 2.0))
+		* smoothstep(0.0, bh_shadow_radius * 0.30, -projected.y);
+	float arc_light = arc_over + arc_under * 0.7 + front_band * 0.85;
+	// Doppler on the arcs uses the ring's scheme (a base level everywhere,
+	// boosted on the bright side) so the dim-side arc stays visible instead
+	// of being wiped out — the target crop shows both arcs on both sides.
+	// Arc colour tracks the hug position on the CIRCULAR silhouette (the
+	// squashed metric blows up over the shadow's top/bottom face, where the
+	// arcs live).
+	float arc_t = clamp((ang - bh_shadow_radius) / max(bh_glow_radius - bh_shadow_radius, 0.001), 0.0, 1.0);
+	float arc_energy = bh_energy * alive * (0.55 + grain * bh_grain * 0.35)
+		* (0.85 + 1.25 * max(doppler - 1.0, 0.0));
+	vec3 arc_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.7, arc_t));
+
+	return base * (1.0 - shadow) + glow * brightness + arc_col * (arc_light * arc_energy);
 }
 
 void sky() {
