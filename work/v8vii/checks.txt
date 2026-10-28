@@ -1,0 +1,23 @@
+=== ALL BOUNDARIES — slow film-speed fade, floor <= 0.10, ramp 45-60f ===
+  1.92: floor=0.000  OK  ramp=50f (~0.83s) down=24f up=25f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.84  OK  (0.5-3.0)
+  3.90: floor=0.000  OK  ramp=43f (~0.72s) down=24f up=18f  FAIL  (law: 45-60f / 0.75-1.0s)  motion_out=1.47  OK  (0.5-3.0)
+  4.72: floor=0.000  OK  ramp=53f (~0.88s) down=27f up=25f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.85  OK  (0.5-3.0)
+  5.65: floor=0.000  OK  ramp=64f (~1.07s) down=24f up=39f  FAIL  (law: 45-60f / 0.75-1.0s)  motion_out=1.98  OK  (0.5-3.0)
+  7.40: floor=0.000  OK  ramp=43f (~0.72s) down=25f up=17f  FAIL  (law: 45-60f / 0.75-1.0s)  motion_out=0.71  OK  (0.5-3.0)
+  8.03: floor=0.000  OK  ramp=43f (~0.72s) down=17f up=25f  FAIL  (law: 45-60f / 0.75-1.0s)  motion_out=1.69  OK  (0.5-3.0)
+  10.30: floor=0.000  OK  ramp=62f (~1.03s) down=37f up=24f  FAIL  (law: 45-60f / 0.75-1.0s)  motion_out=0.61  OK  (0.5-3.0)
+  12.10: floor=0.000  OK  ramp=60f (~1.00s) down=24f up=35f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.39  FAIL  (0.5-3.0)
+  13.32: floor=0.000  OK  ramp=48f (~0.80s) down=23f up=24f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.54  OK  (0.5-3.0)
+  14.17: floor=0.000  OK  ramp=62f (~1.03s) down=22f up=39f  FAIL  (law: 45-60f / 0.75-1.0s)  motion_out=3.48  FAIL  (0.5-3.0)
+  16.98: floor=0.000  OK  ramp=49f (~0.82s) down=24f up=24f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=1.31  OK  (0.5-3.0)
+  20.47: floor=0.000  OK  ramp=56f (~0.93s) down=22f up=33f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.45  FAIL  (0.5-3.0)
+  23.52: floor=0.000  OK  ramp=50f (~0.83s) down=24f up=25f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=2.56  OK  (0.5-3.0)
+  25.98: floor=0.000  OK  ramp=49f (~0.82s) down=24f up=24f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.40  FAIL  (0.5-3.0)
+  27.38: floor=0.000  OK  ramp=49f (~0.82s) down=24f up=24f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.35  FAIL  (0.5-3.0)
+  30.68: floor=0.000  OK  ramp=50f (~0.83s) down=24f up=25f  OK  (law: 45-60f / 0.75-1.0s)  motion_out=0.31  FAIL  (0.5-3.0)
+  worst boundary floor = 0.000  OK
+  ramp law 45-60f all boundaries: FAIL
+  motion 0.5-3.0 all boundaries: FAIL
+
+=== WHOLE-FILE MOTION (mean per-frame luma |delta|, 0-255) ===
+  mean motion = 1.18  OK
