@@ -3,6 +3,67 @@
 Task: the black hole and the far backgrounds "looked weird / paper-flat".
 Branch `graphic/far-depth`, isolated to this worktree + `doc/far-depth` evidence.
 
+## Sky-pass black hole v3 (the "match the target crop" round)
+
+User ruling, six items, one commit each: (1) tip the accretion light into an
+inclination ellipse, (2) bent light arcs crossing over / under / in front of
+the silhouette like the target still, (3) bright side on the LEFT, (4) palette
+sampled from the target crop, (5) keep every v2 verdict intact, (6) evidence +
+notes. Targets were two stills in the ops folder (`target-overunder-arcs.png`,
+`target-doppler.png`), not repo files.
+
+1. **Inclination squash.** New shader knob `bh_disc_squash = 0.55`: the ring
+   band, halo and grain are computed on an ellipse squashed to 0.55 of full
+   height — a semi-edge-on disk — while the SHADOW stays a perfect circle,
+   because the silhouette is the lensed image of the horizon, not of the disk,
+   and the lens does not care which way the disk is tipped. The glow mask also
+   stays keyed to the circular radius so light still never bleeds onto the
+   black disc (v2 verdict B). Evidence:
+   `evidence/skypass-v3/squad_42_before-after.png` (top row = v2 before,
+   bottom = after).
+2. **Over/under arcs, unclipped.** Three bent-light bands are now drawn AFTER
+   the shadow composite, so the shadow mask can no longer cut them: an upper
+   arc hugging the top of the silhouette, a lower arc running beneath it, and
+   a front band computed in the squashed metric that crosses the lower half of
+   the black disc — the "light passes in front of the hole" look from the
+   target crop. First attempt had a bug found by render: an early-out on the
+   new elliptical angle silently culled both arcs; it is back to the circular
+   early-out with a separate elliptical envelope bounding the light.
+   Evidence: same strips, bottom rows.
+3. **Doppler repinned to screen-left.** One-sided-boost probe renders proved
+   the sky-pass frame is LEFT-handed on screen: boost direction `(1,0)`
+   brightens the LEFT side, `(0,1)` is screen-up. The repin is a plain axis
+   flip, and the bright side now sits left like the target. Two rig facts
+   worth keeping: the earlier "bright side was wrong" read was partly the
+   `--load-save` boot dropping a fixed semi-transparent encounter panel over
+   the ring's left half (it darkens exactly that half — brutal for doppler
+   evidence), so every v3 evidence render uses `--new-run`, which is panel-free
+   and pixel-deterministic; differing POI layouts between before/after stay
+   acceptable per the v2 precedent (the compared subject is the
+   layout-independent far layer). Evidence: bright side visible in both squad
+   strips; probe stills `v3_doppler_probe*.png` under the ops folder.
+4. **Palette from the target crop** — not NASA blue, not the old amber. Three
+   sample-compare iterations landed: hot (1.0, 0.45, 0.12), warm
+   (0.88, 0.16, 0.005), outer (0.62, 0, 0), with the old ring colour faded out
+   mid-annulus so it cannot grey the falloff. Render measures vs the crop's:
+   crest (245,209,65) vs (254,152,53) — the same orange-white class; mid
+   (219,79,17) vs (226,76,9) — near-exact; falloff (100,20,6) vs (135,3,1) —
+   deep red, no grey tail.
+5. **v2 verdicts preserved.** Shadow still opaque pure black with glow masked
+   off it; still one direction-locked sky-pass element with no far-clip
+   ceiling; falloff still broad and soft, no knife ring — it now ends in the
+   crop's pure red instead of grey. No double draw anywhere (still
+   `map_sky.gdshader` only).
+6. **Zero parallax re-proved after all changes.** Westward 4 u/s pan, frame
+   170 → 470 of the 480-frame movie: the pure-black disc's centroid moved
+   (1279.35, 457.39) → (1281.13, 458.17) px — ~1.9 px of drift while the
+   camera translated ~57 world units; the playfield slides visibly on the
+   same frames. Evidence:
+   `evidence/skypass-v3/zeroparallax_panmove_f170-f470.png`.
+
+Heavy movies/stills for this round live under `/d/ops-work/fardepth/skypass-v3/`.
+Commits: `20cfa5e3` (item 1), `baf5f15d` (2), `d84f5564` (3), `6c78058b` (4).
+
 ## Sky-pass black hole v2 (skypass round, after realism kit 1)
 
 User ruling: the far black hole moves from a world-space 3D object into the
