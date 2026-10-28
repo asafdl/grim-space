@@ -11,7 +11,7 @@ public sealed class PilotIdentityTests
 	[Fact]
 	public void CreateForShip_RollsBackgroundAndQuirksFromCatalog()
 	{
-		var pilot = Pilot.CreateForShip("fighter-a", new Random(42));
+		var pilot = Pilot.CreateForShip("fighter-a", rng: new Random(42));
 
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
 		Assert.Equal(

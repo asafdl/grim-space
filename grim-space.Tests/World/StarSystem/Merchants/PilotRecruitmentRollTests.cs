@@ -1,5 +1,6 @@
 using GrimSpace.Pilots;
 using GrimSpace.Run;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
@@ -26,6 +27,7 @@ public sealed class PilotRecruitmentRollTests
 			Assert.Equal(first[index].Profile.Name, second[index].Profile.Name);
 			Assert.Equal(first[index].Profile.PortraitId, second[index].Profile.PortraitId);
 			Assert.Equal(first[index].Profile.BackgroundId, second[index].Profile.BackgroundId);
+			Assert.Equal(first[index].Profile.ClassId, second[index].Profile.ClassId);
 			Assert.Equal(first[index].Profile.PositiveQuirkId, second[index].Profile.PositiveQuirkId);
 			Assert.Equal(first[index].Profile.NegativeQuirkId, second[index].Profile.NegativeQuirkId);
 		}
@@ -64,6 +66,34 @@ public sealed class PilotRecruitmentRollTests
 		Assert.Equal(0, candidate.Profile.ExperiencePoints);
 		Assert.Equal(PilotProgression.LevelFor(0), candidate.Profile.ClaimedLevel);
 		Assert.Equal(1, candidate.Profile.ClaimedLevel);
+	}
+
+	[Fact]
+	public void RollCandidates_AssignsRecruitableOperatorClass()
+	{
+		var map = StarMap.Create(19);
+		var candidates = PilotRecruitment.RollCandidates(map, "lead-contract-class");
+
+		Assert.All(
+			candidates,
+			candidate => Assert.Contains(
+				candidate.Profile.ClassId,
+				PilotRecruitment.RecruitableOperatorClassIds));
+	}
+
+	[Fact]
+	public void RollCandidates_CanProduceBothOperatorClasses()
+	{
+		var seen = new HashSet<EOperatorClassId>();
+		for (var seed = 0; seed < 200 && seen.Count < 2; seed++)
+		{
+			var map = StarMap.Create(seed);
+			foreach (var candidate in PilotRecruitment.RollCandidates(map, "class-mix"))
+				seen.Add(candidate.Profile.ClassId);
+		}
+
+		Assert.Contains(EOperatorClassId.SpaceRanger, seen);
+		Assert.Contains(EOperatorClassId.Support, seen);
 	}
 
 	[Fact]

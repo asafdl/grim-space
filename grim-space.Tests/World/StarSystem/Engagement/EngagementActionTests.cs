@@ -109,9 +109,9 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		using var orchestrator = CreateAwaitingDecisionScenario();
 		var map = orchestrator.Map;
 		map.PilotRegistry = new RunPilotRegistry();
-		var active = Pilot.CreateForShip("active", new Random(1));
-		var inactive = Pilot.CreateForShip("inactive", new Random(2)).WithExperience(100);
-		var unassigned = Pilot.CreateForShip("unassigned", new Random(3))
+		var active = Pilot.CreateForShip("active", rng: new Random(1));
+		var inactive = Pilot.CreateForShip("inactive", rng: new Random(2)).WithExperience(100);
+		var unassigned = Pilot.CreateForShip("unassigned", rng: new Random(3))
 			.WithExperience(250)
 			.WithAssignment(null, false);
 		map.PilotRegistry.Register(active);
@@ -131,7 +131,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		using var orchestrator = CreateAwaitingDecisionScenario();
 		var map = orchestrator.Map;
 		map.PilotRegistry = new RunPilotRegistry();
-		map.PilotRegistry.Register(Pilot.CreateForShip("reserve", new Random(1)));
+		map.PilotRegistry.Register(Pilot.CreateForShip("reserve", rng: new Random(1)));
 		Assert.True(map.PlayerResources.TryApply(ResourceBundle.Of(
 			ResourceId.Fuel,
 			availableFuel - map.PlayerResources.GetBalance(ResourceId.Fuel))));
@@ -169,9 +169,9 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		using var orchestrator = CreateAwaitingDecisionScenario();
 		var map = orchestrator.Map;
 		map.PilotRegistry = new RunPilotRegistry();
-		map.PilotRegistry.Register(Pilot.CreateForShip("a", new Random(1)).WithExperience(250));
-		map.PilotRegistry.Register(Pilot.CreateForShip("b", new Random(2)).WithExperience(250));
-		map.PilotRegistry.Register(Pilot.CreateForShip("c", new Random(3)).WithExperience(0));
+		map.PilotRegistry.Register(Pilot.CreateForShip("a", rng: new Random(1)).WithExperience(250));
+		map.PilotRegistry.Register(Pilot.CreateForShip("b", rng: new Random(2)).WithExperience(250));
+		map.PilotRegistry.Register(Pilot.CreateForShip("c", rng: new Random(3)).WithExperience(0));
 		Assert.True(map.PlayerResources.TryApply(ResourceBundle.Of(
 			ResourceId.Fuel,
 			availableFuel - map.PlayerResources.GetBalance(ResourceId.Fuel))));
@@ -188,7 +188,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		using var orchestrator = CreateAwaitingDecisionScenario();
 		var map = orchestrator.Map;
 		map.PilotRegistry = new RunPilotRegistry();
-		map.PilotRegistry.Register(Pilot.CreateForShip("reserve", new Random(1)));
+		map.PilotRegistry.Register(Pilot.CreateForShip("reserve", rng: new Random(1)));
 		var fuelBefore = map.PlayerResources.GetBalance(ResourceId.Fuel);
 		var sim = orchestrator.CreateSimulation();
 

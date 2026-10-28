@@ -48,13 +48,13 @@ public sealed class ShipCatalogLoadoutForTierTests
 	public void ShipSpecs_ExposeExplicitOperatorClass()
 	{
 		Assert.Equal(EOperatorClassId.SpaceRanger, ShipCatalog.SpecFor(EType.Fighter).ClassId);
+		Assert.Equal(EOperatorClassId.Support, ShipCatalog.SpecFor(EType.RepurposedMiner).ClassId);
 		Assert.All(
 			new[]
 			{
 				EType.Gunship,
 				EType.IndustrialGooper,
 				EType.Carrier,
-				EType.RepurposedMiner,
 				EType.VoidBomb,
 			},
 			chassis => Assert.Equal(

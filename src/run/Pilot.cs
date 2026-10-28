@@ -110,16 +110,20 @@ public sealed class Pilot
 		return PortraitPool[rng.Next(PortraitPool.Length)];
 	}
 
-	public static Pilot CreateForShip(string assignedShipId, Random? rng = null)
+	public static Pilot CreateForShip(
+		string assignedShipId,
+		EOperatorClassId classId = EOperatorClassId.SpaceRanger,
+		Random? rng = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
 		rng ??= Random.Shared;
+		ValidateClassId(classId);
 		return new Pilot(
 			TypedIdGenerator.NextId("pilot"),
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			PilotBackgroundCatalog.Roll(rng).Id,
-			EOperatorClassId.SpaceRanger,
+			classId,
 			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng),
 			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng),
 			assignedShipId,

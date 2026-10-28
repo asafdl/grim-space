@@ -80,9 +80,7 @@ public sealed class PlayerShipAcquireTests
 	public void TryAcquirePlayerShip_UnclassifiedChassisRemainsOwnedReserve()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var declaration = new ShipSpawnDeclaration(
-			"repurposed-miner-reserve",
-			BattleUnitType.RepurposedMiner);
+		var declaration = new ShipSpawnDeclaration("gunship-reserve", BattleUnitType.Gunship);
 		var pilotCountBefore = run.PilotRegistry.All.Count;
 		var fieldedBefore = run.GetFieldedShipIds().ToArray();
 
@@ -92,6 +90,25 @@ public sealed class PlayerShipAcquireTests
 		Assert.Equal(fieldedBefore, run.GetFieldedShipIds());
 		Assert.Equal(pilotCountBefore, run.PilotRegistry.All.Count);
 		Assert.False(run.PilotRegistry.TryGetForShip(declaration.ShipId, out _));
+	}
+
+	[Fact]
+	public void TryAcquirePlayerShip_SupportChassisEnlistsShipAndRegistersPilot()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var declaration = new ShipSpawnDeclaration(
+			"repurposed-miner-fielded",
+			BattleUnitType.RepurposedMiner);
+		var pilotCountBefore = run.PilotRegistry.All.Count;
+		var fieldedBefore = run.GetFieldedShipIds().ToArray();
+
+		Assert.True(run.TryAcquirePlayerShip(declaration));
+
+		Assert.True(run.ItemInventory.IsOwnedBy(declaration.ShipId, RunState.PlayerFleetUnitId));
+		Assert.Equal([.. fieldedBefore, declaration.ShipId], run.GetFieldedShipIds());
+		Assert.Equal(pilotCountBefore + 1, run.PilotRegistry.All.Count);
+		Assert.True(run.PilotRegistry.TryGetForShip(declaration.ShipId, out var pilot));
+		Assert.Equal(EOperatorClassId.Support, pilot.ClassId);
 	}
 
 	[Fact]

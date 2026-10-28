@@ -84,6 +84,23 @@ public sealed class PilotSkillTreeTests
 		Assert.Contains(pick, updated.LearnedSkills);
 	}
 
+	[Fact]
+	public void Tree_FiltersSupportClassSkills()
+	{
+		var supportPilot = Pilot.FromRecruitProfile(
+			"miner-a",
+			new PilotRecruitProfile(
+				"Support Test",
+				"pilot_01",
+				EPilotBackgroundId.CorporateSlave,
+				classId: EOperatorClassId.Support));
+
+		var tree = PilotSkillAvailability.TreeFor(supportPilot).Select(skill => skill.Id).ToArray();
+
+		Assert.Contains(EPilotSkillId.DefensiveManeuvers, tree);
+		Assert.DoesNotContain(EPilotSkillId.DodgeThis, tree);
+	}
+
 	private static Pilot PilotFromBackground(EPilotBackgroundId backgroundId) =>
 		Pilot.FromRecruitProfile(
 			"fighter-a",

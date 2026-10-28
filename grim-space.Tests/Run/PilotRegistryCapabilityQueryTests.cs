@@ -38,7 +38,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 		var registry = new RunPilotRegistry();
 		var pilot = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-a"), 450)
+				.AddExperience(Pilot.CreateForShip("fighter-a"), 1000)
 				.LearnPilotSkill(EPilotSkillId.ShieldsUp)
 				.LearnPilotSkill(EPilotSkillId.IonizedPayload)
 				.ToPersistence() with
@@ -67,7 +67,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 		var registry = new RunPilotRegistry();
 		var pilot = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-a"), 450)
+				.AddExperience(Pilot.CreateForShip("fighter-a"), 1000)
 				.LearnPilotSkill(EPilotSkillId.IonizedPayload)
 				.ToPersistence() with
 			{
@@ -136,7 +136,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 			});
 		var pilotB = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-b"), 450)
+				.AddExperience(Pilot.CreateForShip("fighter-b"), 1000)
 				.LearnPilotSkill(EPilotSkillId.IonizedPayload)
 				.ToPersistence() with
 			{

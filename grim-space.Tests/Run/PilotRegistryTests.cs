@@ -124,7 +124,7 @@ public sealed class PilotRegistryTests
 		using var run = State.CreateNewRun(42);
 		var pilot = Assert.Single(run.PilotRegistry.Active);
 		var shipId = "unclassified-reserve";
-		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration(shipId, BattleUnitType.RepurposedMiner)));
+		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Gunship)));
 		var fieldedBefore = run.GetFieldedShipIds().ToArray();
 		var activeBefore = run.PilotRegistry.Active.ToArray();
 
@@ -196,7 +196,7 @@ public sealed class PilotRegistryTests
 		inventory.Register(ShipInstance.FromCatalog("fighter-swap", EType.Fighter), playerFleet);
 		inventory.Register(ShipInstance.FromCatalog("miner-swap", EType.RepurposedMiner), playerFleet);
 		var fighterPilot = Pilot.CreateStarterForShip("fighter-swap");
-		var minerPilot = Pilot.CreateForShip("miner-swap");
+		var minerPilot = Pilot.CreateForShip("miner-swap", EOperatorClassId.Support);
 		registry.Register(fighterPilot);
 		registry.Register(minerPilot);
 		var before = registry.All

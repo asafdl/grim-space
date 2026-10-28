@@ -1,6 +1,7 @@
 using GrimSpace.Math;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -22,8 +23,17 @@ public static class PilotRecruitment
 		EPilotBackgroundId.SynthSinger,
 	];
 
+	private static readonly EOperatorClassId[] RecruitableOperatorClasses =
+	[
+		EOperatorClassId.SpaceRanger,
+		EOperatorClassId.Support,
+	];
+
 	public static IReadOnlyList<EPilotBackgroundId> RecruitableBackgroundIds { get; } =
 		RecruitableBackgrounds;
+
+	public static IReadOnlyList<EOperatorClassId> RecruitableOperatorClassIds { get; } =
+		RecruitableOperatorClasses;
 
 	public static bool IsRecruitableBackground(EPilotBackgroundId backgroundId) =>
 		RecruitableBackgrounds.Contains(backgroundId);
@@ -35,6 +45,8 @@ public static class PilotRecruitment
 
 		if (RecruitableBackgroundIds.Count == 0)
 			throw new InvalidOperationException("No pilot backgrounds are configured for recruitment.");
+		if (RecruitableOperatorClassIds.Count == 0)
+			throw new InvalidOperationException("No operator classes are configured for recruitment.");
 
 		var candidates = new PilotHireCandidate[CandidatesPerLead];
 		for (var slot = 0; slot < CandidatesPerLead; slot++)
@@ -43,6 +55,8 @@ public static class PilotRecruitment
 			var portraitId = Pilot.RollRecruitPortraitId(SlotRng(map.Seed, contractId, slot, "portrait"));
 			var backgroundId = RecruitableBackgrounds[
 				SlotRng(map.Seed, contractId, slot, "background").Next(RecruitableBackgrounds.Length)];
+			var classId = RecruitableOperatorClasses[
+				SlotRng(map.Seed, contractId, slot, "class").Next(RecruitableOperatorClasses.Length)];
 			var baseSalary = StrategicEconomyConfig.RollBaseSalaryCredits(
 				SlotRng(map.Seed, contractId, slot, "salary"));
 			var profile = new PilotRecruitProfile(
@@ -51,7 +65,8 @@ public static class PilotRecruitment
 				backgroundId,
 				experiencePoints: 0,
 				claimedLevel: PilotProgression.LevelFor(0),
-				baseSalaryCredits: baseSalary);
+				baseSalaryCredits: baseSalary,
+				classId: classId);
 
 			candidates[slot] = new PilotHireCandidate(slot, profile);
 		}

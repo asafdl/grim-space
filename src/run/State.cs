@@ -653,14 +653,13 @@ public sealed class State : IDisposable
 		bool createStarterPilot)
 	{
 		ItemInventory.Register(declaration, PlayerFleetUnitId);
-		if (!OperatorClassCompatibility.CanOperate(
-			EOperatorClassId.SpaceRanger,
-			ShipCatalog.SpecFor(declaration.Chassis).ClassId))
+		var shipClass = ShipCatalog.SpecFor(declaration.Chassis).ClassId;
+		if (shipClass == EOperatorClassId.Unclassified)
 			return;
 
 		var pilot = createStarterPilot
 			? Pilot.CreateStarterForShip(declaration.ShipId)
-			: Pilot.CreateForShip(declaration.ShipId);
+			: Pilot.CreateForShip(declaration.ShipId, shipClass);
 		PilotRegistry.Register(pilot);
 		if (PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
 			PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);

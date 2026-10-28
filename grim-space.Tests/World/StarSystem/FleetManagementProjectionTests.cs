@@ -70,6 +70,6 @@ public sealed class FleetManagementProjectionTests
 		var minerShip = Assert.Single(view.Ships, ship => ship.Id == minerShipId);
 		Assert.Equal(EOperatorClassId.SpaceRanger, pilot.ClassId);
 		Assert.Equal(EOperatorClassId.SpaceRanger, fighterShip.ClassId);
-		Assert.Equal(EOperatorClassId.Unclassified, minerShip.ClassId);
+		Assert.Equal(EOperatorClassId.Support, minerShip.ClassId);
 	}
 }

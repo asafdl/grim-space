@@ -1,4 +1,5 @@
 using GrimSpace.Pilots;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Merchants;
@@ -11,7 +12,7 @@ internal static class PilotHireDisplay
 		PilotBackgroundCatalog.Get(backgroundId).Name;
 
 	public static string CardSubtitle(PilotRecruitProfile profile) =>
-		$"{profile.Name} · Lv {profile.ClaimedLevel}";
+		$"{profile.Name} · Lv {profile.ClaimedLevel} · {profile.ClassId.DisplayName()}";
 
 	public static string ShipPackageLine(EType chassis, EShipGearTier gearTier) =>
 		$"{ShipChassisLabel(chassis)} ({gearTier})";

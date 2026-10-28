@@ -1,4 +1,5 @@
 using GrimSpace.Pilots;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -28,7 +29,19 @@ public sealed class PilotHireDisplayTests
 			experiencePoints: 0,
 			claimedLevel: 1);
 
-		Assert.Equal("Rin · Lv 1", PilotHireDisplay.CardSubtitle(profile));
+		Assert.Equal("Rin · Lv 1 · Space Ranger", PilotHireDisplay.CardSubtitle(profile));
+	}
+
+	[Fact]
+	public void CardSubtitle_IncludesOperatorClass()
+	{
+		var profile = new PilotRecruitProfile(
+			"Vera",
+			"pilot_02",
+			EPilotBackgroundId.CorporateSlave,
+			classId: EOperatorClassId.Support);
+
+		Assert.Equal("Vera · Lv 1 · Support", PilotHireDisplay.CardSubtitle(profile));
 	}
 
 	[Fact]
