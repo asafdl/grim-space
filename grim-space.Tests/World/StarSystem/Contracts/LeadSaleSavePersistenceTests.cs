@@ -40,7 +40,7 @@ public sealed class LeadSaleSavePersistenceTests
 				new ContractNarrative("Quiet Opportunity", "A seller is available."),
 				300,
 				SpaceMeetingChance: 0,
-				MerchantSubtype: EMerchantSubtype.Weapons));
+				MerchantSubtype: EMerchantSubtype.Ships));
 		Assert.True(map.ContractRegistry.TryAdd(contract));
 		var shipId = map.FleetRegistry.FleetOf(State.PlayerFleetUnitId).Members[0].Id;
 		runRegistry.Register(
@@ -70,47 +70,11 @@ public sealed class LeadSaleSavePersistenceTests
 				out var assignment));
 		Assert.Equal(EFacilityOperatorRole.Merchant, assignment.Role);
 		Assert.Contains(contract.Id, assignment.SourceIds);
-
-		MerchantCatalogTestBands.SetBand(restored, EMerchantAvailabilityBand.T1);
-		SeedResources(restored, credits: 5_000, scrap: 5_000);
-		var ship = runRegistry.Get(shipId);
-		var (catalog, offering, target) = FirstPurchasableOffer(sale.MerchantSubtype, ship);
-		var purchaseEngine = new Engine<StarMap, ActorRuntime>(
-			restored,
-			new ActorRuntimes<ActorRuntime>());
-		Assert.True(purchaseEngine.CreateSimulation().TryEnqueue(
-			MerchantPurchaseTestHarness.CreateQuotedPurchase(
-				purchaseEngine,
-				State.PlayerFleetUnitId,
-				new LeadSaleMerchantEndpoint(contract.Id),
-				catalog,
-				offering,
-				target,
-				ship.Clone())));
 	}
 
 	private static LeadContractState GetLeadState(StarMap map, string contractId)
 	{
 		Assert.True(map.ContractRegistry.TryGetState(contractId, out var state));
 		return Assert.IsType<LeadContractState>(state);
-	}
-
-	private static void SeedResources(StarMap map, int credits, int scrap)
-	{
-		var runtime = new ActorRuntime();
-		new ChangeResourceEffect(
-				TransactionSource.MerchantPurchase,
-				ResourceBundle.Create(
-					(ResourceId.Credits, credits),
-					(ResourceId.ScrapAlloy, scrap)))
-			.Apply(map, runtime, "seed");
-	}
-
-	private static (EMerchantCatalog Catalog, MerchantCatalog.Offering Offering, MerchantCatalog.Target Target)
-		FirstPurchasableOffer(EMerchantSubtype subtype, ShipInstance ship)
-	{
-		var catalog = MerchantSubtypeRouting.CatalogFor(subtype);
-		var offer = MerchantCatalog.ListFor(catalog, ship, EMerchantAvailabilityBand.T1).First();
-		return (catalog, offer.Offering, offer.Targets[0]);
 	}
 }

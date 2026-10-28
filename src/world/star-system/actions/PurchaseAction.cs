@@ -125,7 +125,7 @@ public sealed class PurchaseActionDef
 			.Offers
 			.FirstOrDefault(candidate =>
 				candidate.Offering == purchase.Offering
-				&& candidate.Targets.Contains(purchase.Target))!;
+				&& candidate.Target == purchase.Target)!;
 		if (offer is null)
 			return false;
 

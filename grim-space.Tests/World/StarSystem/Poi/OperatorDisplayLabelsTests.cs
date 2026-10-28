@@ -7,8 +7,6 @@ namespace GrimSpace.Tests.World.StarSystem.Poi;
 public sealed class OperatorDisplayLabelsTests
 {
 	[Theory]
-	[InlineData(EMerchantCatalog.Weapons, "Dockyard Shop")]
-	[InlineData(EMerchantCatalog.ShipSupport, "Ship Support")]
 	[InlineData(EMerchantCatalog.Ships, "Ship Broker")]
 	public void MerchantRole_LabelsEveryCatalog(EMerchantCatalog catalog, string expected)
 	{

@@ -40,8 +40,6 @@ public sealed class HirePilotActionTests
 			Assert.Single(history, entry => entry is Record<PilotHireCommitted>));
 		Assert.Equal(candidate.Profile.Name, committed.Value.Profile.Name);
 		Assert.Equal(candidate.Profile.BackgroundId, committed.Value.Profile.BackgroundId);
-		Assert.Equal(candidate.Ship.Chassis, committed.Value.Ship.Chassis);
-		Assert.Equal(candidate.Ship.GearTier, committed.Value.Ship.GearTier);
 	}
 
 	[Fact]

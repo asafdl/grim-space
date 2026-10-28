@@ -10,7 +10,6 @@ public static class StarMapPilotCapabilityPipelineFactory
 	public static bool Supports(EPilotCapabilityId capabilityId) =>
 		capabilityId is EPilotCapabilityId.MinorScrapRewardBonus
 			or EPilotCapabilityId.ScrapRewardBonus
-			or EPilotCapabilityId.ShipUpgradeDiscount
 			or EPilotCapabilityId.OptimalityContractCreditBonus;
 
 	public static ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Build(
@@ -18,8 +17,6 @@ public static class StarMapPilotCapabilityPipelineFactory
 	{
 		ArgumentNullException.ThrowIfNull(strategicGrants);
 		var modifiers = new List<IActionEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>>();
-		var shipUpgradeDiscountStacks = strategicGrants.Count(grant =>
-			grant.CapabilityId == EPilotCapabilityId.ShipUpgradeDiscount);
 		var scrapRewardBonusPercent =
 			strategicGrants.Count(grant =>
 				grant.CapabilityId == EPilotCapabilityId.MinorScrapRewardBonus)
@@ -29,12 +26,6 @@ public static class StarMapPilotCapabilityPipelineFactory
 			* PilotSkillPercents.DronesYearnForMines.ScrapRewardBonusPercent;
 		var optimalityContractCreditBonusStacks = strategicGrants.Count(grant =>
 			grant.CapabilityId == EPilotCapabilityId.OptimalityContractCreditBonus);
-		if (shipUpgradeDiscountStacks > 0)
-		{
-			modifiers.Add(new ActionTagEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>(
-				[StarMapActionTags.Fetch, StarMapActionTags.Merchant, StarMapActionTags.Catalog],
-				new ShipUpgradeDiscountModifier(shipUpgradeDiscountStacks)));
-		}
 		if (scrapRewardBonusPercent > 0)
 		{
 			modifiers.Add(new ActionTagEffectModifier<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>(

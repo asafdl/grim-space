@@ -17,7 +17,7 @@ public sealed class LeadContractDomainTests
 	{
 		ILeadObjective objective = new BlackMarketSaleObjective(
 			new BlackMarketFacilityDestination("poi-trade", "market"),
-			EMerchantSubtype.Weapons,
+			EMerchantSubtype.Ships,
 			300);
 
 		Assert.Equal(ELeadKind.BlackMarketSale, objective.LeadKind);
@@ -27,7 +27,7 @@ public sealed class LeadContractDomainTests
 		var destination = Assert.IsType<BlackMarketFacilityDestination>(sale.Destination);
 		Assert.Equal("poi-trade", destination.PoiId);
 		Assert.Equal("market", destination.FacilityId);
-		Assert.Equal(EMerchantSubtype.Weapons, sale.MerchantSubtype);
+		Assert.Equal(EMerchantSubtype.Ships, sale.MerchantSubtype);
 	}
 
 	[Fact]
@@ -36,7 +36,7 @@ public sealed class LeadContractDomainTests
 		Assert.Throws<ArgumentOutOfRangeException>(() =>
 			new BlackMarketSaleObjective(
 				new BlackMarketFacilityDestination("poi-trade", "market"),
-				EMerchantSubtype.Weapons,
+				EMerchantSubtype.Ships,
 				0));
 	}
 
@@ -71,7 +71,7 @@ public sealed class LeadContractDomainTests
 		var destination = Assert.IsType<BlackMarketFacilityDestination>(objective.Destination);
 		Assert.Equal("poi-trade", destination.PoiId);
 		Assert.Equal("market", destination.FacilityId);
-		Assert.Equal(EMerchantSubtype.Weapons, objective.MerchantSubtype);
+		Assert.Equal(EMerchantSubtype.Ships, objective.MerchantSubtype);
 		Assert.Equal(300, objective.DurationTicks);
 	}
 
@@ -200,7 +200,7 @@ public sealed class LeadContractDomainTests
 			"lead-1",
 			new BlackMarketSaleObjective(
 				new BlackMarketFacilityDestination("poi-trade", "market"),
-				EMerchantSubtype.Weapons,
+				EMerchantSubtype.Ships,
 				300),
 			EDangerLevel.VeryLow,
 			EFaction.TheOptimality,

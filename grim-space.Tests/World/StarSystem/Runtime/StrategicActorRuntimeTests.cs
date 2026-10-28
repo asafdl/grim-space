@@ -23,7 +23,7 @@ public sealed class StrategicActorRuntimeTests(StarMapFixture maps)
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, RunState.PlayerFleetUnitId);
 		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).ReplaceActionEffects(
 			StarMapPilotCapabilityPipelineFactory.Build(
-				StackGrants(EPilotCapabilityId.ShipUpgradeDiscount, 1)));
+				StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1)));
 
 		var npcRuntime = orchestrator.RuntimeFor(npcId);
 		Assert.True(npcRuntime.ActionEffects.IsEmpty);
@@ -37,7 +37,7 @@ public sealed class StrategicActorRuntimeTests(StarMapFixture maps)
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, RunState.PlayerFleetUnitId);
 		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).ReplaceActionEffects(
 			StarMapPilotCapabilityPipelineFactory.Build(
-				StackGrants(EPilotCapabilityId.ShipUpgradeDiscount, 1)));
+				StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1)));
 		var live = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 		var sim = orchestrator.CreateSimulation();
 		var preview = sim.RuntimeFor(RunState.PlayerFleetUnitId);
@@ -53,9 +53,7 @@ public sealed class StrategicActorRuntimeTests(StarMapFixture maps)
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, RunState.PlayerFleetUnitId);
 		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 		var before = runtime.ActionEffects;
-		var grants = StackGrants(EPilotCapabilityId.ShipUpgradeDiscount, 2)
-			.Concat(StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1))
-			.ToArray();
+		var grants = StackGrants(EPilotCapabilityId.ScrapRewardBonus, 2);
 
 		var effect = new ReplaceStrategicActionEffectPipelineEffect(grants);
 		effect.Apply(orchestrator.Map, runtime, RunState.PlayerFleetUnitId);
@@ -71,7 +69,7 @@ public sealed class StrategicActorRuntimeTests(StarMapFixture maps)
 	{
 		var runtime = new ActorRuntime();
 		var pipeline = StarMapPilotCapabilityPipelineFactory.Build(
-			StackGrants(EPilotCapabilityId.ShipUpgradeDiscount, 1));
+			StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1));
 		runtime.ReplaceActionEffects(pipeline);
 		runtime.CachedPath = new GrimSpace.World.StarSystem.Pathfinding.TransitPath(
 			System.Collections.Immutable.ImmutableArray<GrimSpace.World.StarSystem.Pathfinding.TransitLeg>.Empty);

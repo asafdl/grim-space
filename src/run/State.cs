@@ -619,7 +619,7 @@ public sealed class State : IDisposable
 		if (!TryAcquirePilotHire(record.Value))
 		{
 			GameLog.Log(
-				$"Ignoring pilot hire for ship '{record.Value.Ship.ShipId}'; "
+				$"Ignoring pilot hire for '{record.Value.Profile.Name}'; "
 				+ "run acquire validation failed after hire committed.");
 		}
 	}
@@ -637,30 +637,7 @@ public sealed class State : IDisposable
 	internal bool TryAcquirePilotHire(PilotHireCommitted hire)
 	{
 		ArgumentNullException.ThrowIfNull(hire);
-		var declaration = hire.Ship;
-		if (!CanCompletePlayerShipAcquire(declaration))
-			return false;
-
-		ItemInventory.Register(declaration, PlayerFleetUnitId);
-		var shipClass = ShipCatalog.SpecFor(declaration.Chassis).ClassId;
-		var assignedShipId = OperatorClassCompatibility.CanOperate(hire.Profile.ClassId, shipClass)
-			? declaration.ShipId
-			: null;
-		var pilot = Pilot.FromRecruitProfile(assignedShipId, hire.Profile);
-		PilotRegistry.Register(pilot);
-		if (assignedShipId is not null
-			&& PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
-		{
-			PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);
-			RefreshStrategicFleetProjection();
-			RefreshStrategicPilotCapabilities();
-			PlayerFleetSelection.EnsureSelectedMember(
-				StarSystem.Map,
-				StarSystem.RuntimeFor(PlayerFleetUnitId),
-				PlayerFleetUnitId,
-				GetFieldedShipIds());
-		}
-
+		PilotRegistry.Register(Pilot.FromRecruitProfile(null, hire.Profile));
 		return true;
 	}
 

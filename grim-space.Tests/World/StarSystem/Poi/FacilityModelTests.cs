@@ -246,12 +246,12 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 					OperatorNames.Cl4nk,
 					EFacilityOperatorRole.Merchant,
 					"Salesman",
-					EMerchantCatalog.Weapons),
+					EMerchantCatalog.Healing),
 				new FacilityOperator(
 					OperatorNames.Zorp,
 					EFacilityOperatorRole.Merchant,
 					"Salesman",
-					EMerchantCatalog.ShipSupport),
+					EMerchantCatalog.Healing),
 			]));
 	}
 
@@ -267,7 +267,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 				OperatorNames.Cl4nk,
 				EFacilityOperatorRole.Merchant,
 				"Salesman",
-				EMerchantCatalog.Weapons)]));
+				EMerchantCatalog.Healing)]));
 	}
 
 	[Fact]
@@ -278,7 +278,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			"Test",
 			EPresentationAnchor.Dockyard,
 			TradeHub.DockyardScenePath,
-			[new FacilityOperator("  ", EFacilityOperatorRole.Merchant, "Salesman", EMerchantCatalog.Weapons)]));
+			[new FacilityOperator("  ", EFacilityOperatorRole.Merchant, "Salesman", EMerchantCatalog.Healing)]));
 	}
 
 	[Fact]
@@ -289,7 +289,7 @@ public sealed class FacilityModelTests(StarMapFixture maps)
 			"Test",
 			EPresentationAnchor.Dockyard,
 			TradeHub.DockyardScenePath,
-			[new FacilityOperator(OperatorNames.Cl4nk, EFacilityOperatorRole.Merchant, "", EMerchantCatalog.Weapons)]));
+			[new FacilityOperator(OperatorNames.Cl4nk, EFacilityOperatorRole.Merchant, "", EMerchantCatalog.Healing)]));
 	}
 
 	[Fact]

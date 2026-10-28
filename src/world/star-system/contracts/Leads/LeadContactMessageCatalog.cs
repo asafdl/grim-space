@@ -45,8 +45,6 @@ public static class LeadContactMessageCatalog
 	private static string MerchandiseLabel(EMerchantSubtype subtype) =>
 		subtype switch
 		{
-			EMerchantSubtype.Weapons => "weapons",
-			EMerchantSubtype.ShipSupport => "shields",
 			EMerchantSubtype.Ships => "ships",
 			EMerchantSubtype.Pilots => "pilots",
 			_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),

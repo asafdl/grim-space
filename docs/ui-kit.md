@@ -31,8 +31,6 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 | [`contract_hud_preview.tscn`](../scenes/dev/contract_hud_preview.tscn) | Contract board |
 | [`pilot_hiring_hud_preview.tscn`](../scenes/dev/pilot_hiring_hud_preview.tscn) | Pilot broker |
 | [`ship_recruitment_hud_preview.tscn`](../scenes/dev/ship_recruitment_hud_preview.tscn) | Ship broker |
-| [`dockyard_ship_support_hud_preview.tscn`](../scenes/dev/dockyard_ship_support_hud_preview.tscn) | Ship upgrades shop |
-| [`dockyard_weapons_hud_preview.tscn`](../scenes/dev/dockyard_weapons_hud_preview.tscn) | Ability upgrades shop |
 | [`healing_station_hud_preview.tscn`](../scenes/dev/healing_station_hud_preview.tscn) | Healing station |
 | [`engagement_hud_preview.tscn`](../scenes/dev/engagement_hud_preview.tscn) | Engagement (with contract) |
 | [`engagement_hud_plain_preview.tscn`](../scenes/dev/engagement_hud_plain_preview.tscn) | Engagement (no contract) |

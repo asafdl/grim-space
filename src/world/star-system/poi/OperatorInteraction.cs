@@ -33,8 +33,6 @@ public sealed record OperatorInteraction
 
 		var subtype = catalog switch
 		{
-			EMerchantCatalog.Weapons => EMerchantSubtype.Weapons,
-			EMerchantCatalog.ShipSupport => EMerchantSubtype.ShipSupport,
 			EMerchantCatalog.Ships => EMerchantSubtype.Ships,
 			EMerchantCatalog.Healing => throw new ArgumentException(
 				"Merchant interactions cannot use the healing catalog.",

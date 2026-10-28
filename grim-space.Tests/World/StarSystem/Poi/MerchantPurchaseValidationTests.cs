@@ -29,13 +29,13 @@ public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 			hub.Id,
 			dockyard.Id,
 			merchantName,
-			EMerchantSubtype.Weapons));
+			EMerchantSubtype.Ships));
 		Assert.False(MerchantPurchaseValidation.OperatorServesMerchantSubtype(
 			map,
 			hub.Id,
 			dockyard.Id,
 			merchantName,
-			EMerchantSubtype.ShipSupport));
+			EMerchantSubtype.Pilots));
 	}
 
 	[Fact]
@@ -53,16 +53,16 @@ public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 			facilityOperator.Name,
 			new OperatorInteraction(
 				EFacilityOperatorRole.Merchant,
-				EMerchantSubtype.ShipSupport),
+				EMerchantSubtype.Ships),
 			EOperatorAssignmentPriority.Merchant,
-			"merchant-board:ship-support:0");
+			"merchant-board:ships:0");
 
 		Assert.True(MerchantPurchaseValidation.OperatorServesMerchantSubtype(
 			map,
 			poi.Id,
 			facility.Id,
 			facilityOperator.Name,
-			EMerchantSubtype.ShipSupport));
+			EMerchantSubtype.Ships));
 	}
 
 	[Fact]
@@ -85,7 +85,7 @@ public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 			hub.Id,
 			dockyard.Id,
 			merchantName,
-			EMerchantSubtype.Weapons));
+			EMerchantSubtype.Ships));
 	}
 
 	[Fact]
@@ -136,6 +136,6 @@ public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 			poi.Id,
 			facility.Id,
 			healingStation.Name,
-			EMerchantSubtype.ShipSupport));
+			EMerchantSubtype.Ships));
 	}
 }

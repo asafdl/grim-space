@@ -1,9 +1,6 @@
-using GrimSpace.Core.Ids;
 using GrimSpace.Math;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
-using GrimSpace.Units;
-using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -12,10 +9,6 @@ namespace GrimSpace.World.StarSystem.Merchants;
 public static class PilotRecruitment
 {
 	public const int CandidatesPerLead = 3;
-
-	public static EType DefaultHireChassis => EType.RepurposedMiner;
-
-	public static EShipGearTier DefaultHireGearTier => EShipGearTier.T0;
 
 	private const string HireRollScope = "pilot-hire";
 
@@ -77,12 +70,7 @@ public static class PilotRecruitment
 				claimedLevel: PilotProgression.LevelFor(0),
 				baseSalaryCredits: baseSalary);
 
-			var shipId = TypedIdGenerator.Format(
-				UnitTypeSlug.For(DefaultHireChassis),
-				$"hire-{SlotSeed(map.Seed, contractId, slot, "ship-id"):x}");
-			var ship = new ShipSpawnDeclaration(shipId, DefaultHireChassis, DefaultHireGearTier);
-
-			candidates[slot] = new PilotHireCandidate(slot, profile, ship);
+			candidates[slot] = new PilotHireCandidate(slot, profile);
 		}
 
 		return candidates;
@@ -123,7 +111,7 @@ public static class PilotRecruitment
 		return DefaultHirePrice(map);
 	}
 
-	/// <summary>Hire bundle price until pilot-specific pricing exists.</summary>
+	/// <summary>Hire price until pilot-specific pricing exists.</summary>
 	public static ResourceBundle DefaultHirePrice(StarMap map)
 	{
 		ArgumentNullException.ThrowIfNull(map);
@@ -148,10 +136,7 @@ public static class PilotRecruitment
 			.ToArray();
 	}
 
-	public sealed record PilotHireCandidate(
-		int Slot,
-		PilotRecruitProfile Profile,
-		ShipSpawnDeclaration Ship);
+	public sealed record PilotHireCandidate(int Slot, PilotRecruitProfile Profile);
 
 	private static Random SlotRng(int mapSeed, string contractId, int slot, string stream) =>
 		new(unchecked((int)SlotSeed(mapSeed, contractId, slot, stream)));

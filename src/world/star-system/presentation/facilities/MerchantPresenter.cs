@@ -151,17 +151,6 @@ public sealed class MerchantPresenter
 	{
 		switch (MerchantSubtypeRouting.PresentationFor(subtype))
 		{
-			case EMerchantPresentation.Upgrades:
-				_activeCatalog = MerchantSubtypeRouting.CatalogFor(subtype);
-				_catalogHud.Open(
-					Run,
-					Intents,
-					endpoint,
-					_activeCatalog.Value,
-					UpgradeTitle(subtype),
-					title,
-					subtype);
-				break;
 			case EMerchantPresentation.Recruitment:
 				_recruitmentHud.Open(Run, title);
 				break;
@@ -304,14 +293,6 @@ public sealed class MerchantPresenter
 		else
 			_map!.PresentSystemError(summary, technicalDetails);
 	}
-
-	private static string UpgradeTitle(EMerchantSubtype subtype) =>
-		subtype switch
-		{
-			EMerchantSubtype.Weapons => "Ability upgrades",
-			EMerchantSubtype.ShipSupport => "Ship upgrades",
-			_ => throw new InvalidOperationException($"Unsupported upgrade subtype '{subtype}'."),
-		};
 
 	private static bool TryResolveActiveLead(
 		StarMap map,

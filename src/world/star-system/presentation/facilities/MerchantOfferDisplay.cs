@@ -1,52 +1,10 @@
 using GrimSpace.Math.Grid;
-using GrimSpace.Units;
-using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Merchants;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 internal static class MerchantOfferDisplay
 {
-	public static string PackTitle(MerchantCatalog.Offering offering) =>
-		offering.Kind switch
-		{
-			MerchantCatalog.Kind.UpgradeDamage =>
-				$"Damage upgrade pack · Level {offering.TargetLevel}",
-			MerchantCatalog.Kind.UpgradeRange =>
-				$"Range upgrade pack · Level {offering.TargetLevel}",
-			MerchantCatalog.Kind.UpgradeMaxShields =>
-				$"Shield upgrade pack · Level {offering.TargetLevel}",
-			_ => throw new ArgumentOutOfRangeException(
-				nameof(offering),
-				offering,
-				"Offering is not an upgrade pack."),
-		};
-
-	public static string AbilityUpgradeBody(
-		MerchantCatalog.Offering offering,
-		InstalledAbility installed)
-	{
-		var currentTier = offering.Kind switch
-		{
-			MerchantCatalog.Kind.UpgradeDamage => installed.DamageUpgradeTier,
-			MerchantCatalog.Kind.UpgradeRange => installed.RangeUpgradeTier,
-			_ => throw new ArgumentOutOfRangeException(
-				nameof(offering),
-				offering,
-				"Offering is not an ability upgrade."),
-		};
-		return $"Upgrade level {currentTier} \u2192 {offering.TargetLevel}";
-	}
-
-	public static string ShieldUpgradeBody(
-		ShipInstance ship,
-		ESpatialOrientation face,
-		int targetMaxShieldPoints)
-	{
-		var currentMax = ship.Loadout.MaxShieldPoints[face];
-		return $"Max shields {currentMax} \u2192 {targetMaxShieldPoints}";
-	}
-
 	public static string HullRepairBody(int current, int max) =>
 		$"Hull integrity {current} \u2192 {max}";
 
@@ -77,16 +35,5 @@ internal static class MerchantOfferDisplay
 			ESpatialOrientation.Dorsal => "Dorsal",
 			ESpatialOrientation.Ventral => "Ventral",
 			_ => face.ToString(),
-		};
-
-	public static string KindLabel(EAbilityKind kind) =>
-		kind switch
-		{
-			EAbilityKind.ScrapDroneSwarm => "scrap drone swarm",
-			EAbilityKind.LightningCannon => "lightning cannon",
-			EAbilityKind.MinerBay => "repurposed Miner bay",
-			EAbilityKind.VoidBombLauncher => "VoidBomb launcher",
-			EAbilityKind.GoopGun => "goop gun",
-			_ => kind.ToString(),
 		};
 }

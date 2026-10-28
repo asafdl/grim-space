@@ -1,14 +1,12 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Core.Ids;
-using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Units;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
-using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
@@ -34,7 +32,7 @@ public sealed class HirePilotActionDef
 	{
 		if (action is not HirePilotAction hire)
 			return false;
-		if (!TryResolveHire(hire, world, out var contractId, out var candidate, out var cost, out _))
+		if (!TryResolveHire(hire, world, out var contractId, out var candidate, out var cost))
 			return false;
 		if (!MerchantPurchaseValidation.EndpointServesMerchantSubtype(
 				world,
@@ -56,11 +54,10 @@ public sealed class HirePilotActionDef
 	{
 		if (action is not HirePilotAction hire)
 			return [];
-		if (!TryResolveHire(hire, world, out var contractId, out var candidate, out var cost, out var shipId))
+		if (!TryResolveHire(hire, world, out var contractId, out var candidate, out var cost))
 			return [];
 
-		var ship = new ShipSpawnDeclaration(shipId, candidate.Ship.Chassis, candidate.Ship.GearTier);
-		var committed = new PilotHireCommitted(candidate.Profile, ship);
+		var committed = new PilotHireCommitted(candidate.Profile);
 
 		return
 		[
@@ -75,13 +72,11 @@ public sealed class HirePilotActionDef
 		StarMap world,
 		out string contractId,
 		out PilotRecruitment.PilotHireCandidate candidate,
-		out ResourceBundle cost,
-		out string shipId)
+		out ResourceBundle cost)
 	{
 		contractId = hire.Endpoint.ContractId;
 		candidate = null!;
 		cost = ResourceBundle.Empty;
-		shipId = "";
 		if (string.IsNullOrWhiteSpace(contractId))
 			return false;
 		if (!world.ContractRegistry.TryGetState(contractId, out var state)
@@ -93,10 +88,6 @@ public sealed class HirePilotActionDef
 			return false;
 
 		cost = PilotRecruitment.Price(world, candidate);
-		shipId = TypedIdGenerator.NextId(UnitTypeSlug.For(candidate.Ship.Chassis));
-		if (world.ItemInventory?.TryGet(shipId, out _) == true)
-			return false;
-
 		return true;
 	}
 }

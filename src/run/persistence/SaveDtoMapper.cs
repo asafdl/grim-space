@@ -535,7 +535,6 @@ public static class SaveDtoMapper
 				listing.Id,
 				listing.Catalog,
 				listing.Offering?.Kind,
-				listing.Offering?.TargetLevel ?? 0,
 				listing.AvailabilityBand,
 				listing.AlwaysAvailable,
 				listing.Pricing.Kind,
@@ -556,7 +555,7 @@ public static class SaveDtoMapper
 		var merchantListings = dto.MerchantListings.Select(saved =>
 		{
 			MerchantCatalog.Offering? offering = saved.OfferingKind is { } kind
-				? new MerchantCatalog.Offering(kind, saved.OfferingTargetLevel)
+				? new MerchantCatalog.Offering(kind)
 				: null;
 			var pricing = saved.PricingKind switch
 			{

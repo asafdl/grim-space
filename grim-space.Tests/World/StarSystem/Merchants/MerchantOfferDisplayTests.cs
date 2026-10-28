@@ -1,7 +1,3 @@
-using GrimSpace.Math.Grid;
-using GrimSpace.Units;
-using GrimSpace.Units.Enums;
-using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -10,46 +6,6 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 [StarSystemTestSuite]
 public sealed class MerchantOfferDisplayTests
 {
-	[Theory]
-	[InlineData(MerchantCatalog.Kind.UpgradeDamage, 1, "Damage upgrade pack · Level 1")]
-	[InlineData(MerchantCatalog.Kind.UpgradeRange, 2, "Range upgrade pack · Level 2")]
-	[InlineData(MerchantCatalog.Kind.UpgradeMaxShields, 3, "Shield upgrade pack · Level 3")]
-	public void PackTitle_SeparatesTargetLevelFromShopTier(
-		MerchantCatalog.Kind kind,
-		int targetTier,
-		string expected)
-	{
-		Assert.Equal(
-			expected,
-			MerchantOfferDisplay.PackTitle(new MerchantCatalog.Offering(kind, targetTier)));
-	}
-
-	[Fact]
-	public void AbilityUpgradeBody_ShowsCurrentAndTargetLevel()
-	{
-		var installed = new InstalledAbility(
-			EAbilityKind.LightningCannon,
-			ESpatialOrientation.Forward);
-
-		Assert.Equal(
-			"Upgrade level 0 \u2192 2",
-			MerchantOfferDisplay.AbilityUpgradeBody(
-				new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2),
-				installed));
-	}
-
-	[Fact]
-	public void ShieldUpgradeBody_ShowsResultingCapacity()
-	{
-		var ship = ShipInstance.FromCatalog("fighter", EType.Fighter);
-		var face = ESpatialOrientation.Retro;
-		var current = ship.Loadout.MaxShieldPoints[face];
-
-		Assert.Equal(
-			$"Max shields {current} \u2192 2",
-			MerchantOfferDisplay.ShieldUpgradeBody(ship, face, 2));
-	}
-
 	[Fact]
 	public void ServiceBodies_ShowResultingState()
 	{

@@ -38,7 +38,7 @@ public sealed class PilotSkillCatalogTests
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.DefensiveManeuvers);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.InTheFray);
 		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.DronesYearnForMines);
-		Assert.Contains(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.IKnowABot);
+		Assert.DoesNotContain(PilotSkillCatalog.All, skill => skill.Id == EPilotSkillId.IKnowABot);
 	}
 
 	[Fact]
@@ -126,12 +126,6 @@ public sealed class PilotSkillCatalogTests
 		"Gain 15% more Scrap Alloy from destroyed ships and successful wreckage investigations.",
 		1,
 		2)]
-	[InlineData(
-		EPilotSkillId.IKnowABot,
-		"I Know a Bot",
-		"Ship upgrades cost 10% fewer Credits and Scrap Alloy. Industrial Core costs are unchanged.",
-		3,
-		4)]
 	public void Get_ReturnsStrategicPassiveMetadata(
 		EPilotSkillId id,
 		string name,

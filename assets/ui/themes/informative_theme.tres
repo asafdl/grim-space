@@ -620,7 +620,6 @@ corner_radius_bottom_left = 6
 [resource]
 default_font = ExtResource("1_quantico_regular")
 default_font_size = 20
-Label/constants/line_spacing = 2
 AbilityAvailableLabel/base_type = &"Label"
 AbilityAvailableLabel/colors/font_color = Color(0.7, 0.86, 1, 1)
 AbilityAvailableLabel/font_sizes/font_size = 18
@@ -732,6 +731,7 @@ InformativeSectionTitleLabel/colors/font_color = Color(0.55, 0.78, 1, 1)
 InformativeSectionTitleLabel/font_sizes/font_size = 20
 InformativeSectionTitleLabel/fonts/font = ExtResource("2_quantico_bold")
 Label/colors/font_color = Color(0.82, 0.88, 0.92, 1)
+Label/constants/line_spacing = 2
 MapIcon/base_type = &"Button"
 MapIcon/styles/focus = SubResource("StyleBox_map_icon_hover")
 MapIcon/styles/hover = SubResource("StyleBox_map_icon_hover")

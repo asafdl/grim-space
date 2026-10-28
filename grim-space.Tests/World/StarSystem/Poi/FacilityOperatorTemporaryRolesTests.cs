@@ -57,7 +57,7 @@ public sealed class FacilityOperatorTemporaryRolesTests
 			"Operator",
 			new OperatorInteraction(
 				EFacilityOperatorRole.Merchant,
-				EMerchantSubtype.Weapons),
+				EMerchantSubtype.Ships),
 			EOperatorAssignmentPriority.Merchant,
 			"merchant-1");
 
@@ -67,7 +67,7 @@ public sealed class FacilityOperatorTemporaryRolesTests
 				"Operator",
 				new OperatorInteraction(
 					EFacilityOperatorRole.Merchant,
-					EMerchantSubtype.ShipSupport),
+					EMerchantSubtype.Pilots),
 				EOperatorAssignmentPriority.Merchant,
 				"merchant-2"));
 	}
@@ -81,7 +81,7 @@ public sealed class FacilityOperatorTemporaryRolesTests
 			"Operator",
 			new OperatorInteraction(
 				EFacilityOperatorRole.Merchant,
-				EMerchantSubtype.Weapons),
+				EMerchantSubtype.Ships),
 			EOperatorAssignmentPriority.Merchant,
 			"merchant-1",
 			acceptsSourcesUntilTick: 300);
@@ -95,13 +95,13 @@ public sealed class FacilityOperatorTemporaryRolesTests
 		Assert.Equal(EFacilityOperatorRole.DeliveryTurnIn, activeRole);
 		var suspended = Assert.Single(
 			roles.AssignmentsIncludingSuspended(EFacilityOperatorRole.Merchant));
-		Assert.Equal(EMerchantSubtype.Weapons, suspended.MerchantSubtype);
+		Assert.Equal(EMerchantSubtype.Ships, suspended.MerchantSubtype);
 
 		roles.RevokeBySource("delivery-1");
 
 		Assert.True(roles.TryGetAssignment("poi-a.facility", "Operator", out var restored));
 		Assert.Equal(EFacilityOperatorRole.Merchant, restored.Role);
-		Assert.Equal(EMerchantSubtype.Weapons, restored.MerchantSubtype);
+		Assert.Equal(EMerchantSubtype.Ships, restored.MerchantSubtype);
 		Assert.Equal(300, restored.AcceptsSourcesUntilTick);
 	}
 
@@ -142,7 +142,7 @@ public sealed class FacilityOperatorTemporaryRolesTests
 			"Operator",
 			new OperatorInteraction(
 				EFacilityOperatorRole.Merchant,
-				EMerchantSubtype.Weapons),
+				EMerchantSubtype.Ships),
 			EOperatorAssignmentPriority.Merchant,
 			"merchant-1");
 
@@ -151,7 +151,7 @@ public sealed class FacilityOperatorTemporaryRolesTests
 
 		Assert.False(clone.TryGetInteraction("poi-a.facility", "Operator", out _));
 		Assert.True(roles.TryGetInteraction("poi-a.facility", "Operator", out var original));
-		Assert.Equal(EMerchantSubtype.Weapons, original.MerchantSubtype);
+		Assert.Equal(EMerchantSubtype.Ships, original.MerchantSubtype);
 	}
 
 	[Fact]

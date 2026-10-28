@@ -256,28 +256,13 @@ Required direction:
 - Existing loadout/upgrade helpers may still be useful for constructing packages.
   Removing purchasable upgrades does not require deleting those internal tools.
 
-### Individual upgrades and maintenance currently share merchant plumbing
+### Merchants: upgrade purchases removed
 
-[MerchantCatalog](../src/world/star-system/merchants/MerchantCatalog.cs) and
-[MerchantShipChanges](../src/world/star-system/merchants/MerchantShipChanges.cs)
-support purchased weapon damage, weapon range, and maximum shields per face.
-The market seeds these upgrades alongside hull repair, shield recharge, and fuel.
-
-[ShipLoadout](../src/units/ShipLoadout.cs) and the tier roller also support
-maximum-hull increases, but the inspected merchant catalog does not expose a
-maximum-hull upgrade purchase. Hull repair is not a hull-capacity upgrade.
-
-Required direction:
-
-- Remove player-facing damage, range, and maximum-shield upgrade purchases from
-  the new loop; do not introduce a maximum-hull purchase equivalent.
-- Ensure old upgrade transactions cannot bypass the change through another
-  action path, not merely through a hidden menu.
-- Retain hull repair, shield recharge, and fuel services.
-- Update merchant stock detection, routing, and descriptions so removed offers
-  do not leave misleading or empty upgrade destinations.
-- Keep maintenance caps tied to the purchased ship's hardware, with any
-  temporary or pilot-derived modifiers handled by existing capability rules.
+Damage, range, and maximum-shield upgrade purchases are gone, along with the
+Weapons and Ship Support merchants. [MerchantCatalog](../src/world/star-system/merchants/MerchantCatalog.cs)
+now lists only hull repair, shield recharge, and fuel. The pilot merchant hires
+pilots only; ships are sold by the Ship Broker as Fighter tiers T0/T1/T2 from
+[StarMarketSeed](../src/world/star-system/merchants/StarMarketSeed.cs).
 
 ### Pilot progression exists, but content needs alignment
 
@@ -291,11 +276,9 @@ contain explicit TBD effects; do not count them as working differentiation.
 Use these existing systems to specialize pilots rather than replacing them
 wholesale. Class-specific eligibility and the actual choices remain TBD.
 
-The existing "I Know a Bot" skill discounts ship upgrades through
-[ShipUpgradeDiscountModifier](../src/world/star-system/pilot-capabilities/ShipUpgradeDiscountModifier.cs).
-It loses its intended target when upgrade purchases disappear. Replace,
-retarget, or remove that skill deliberately; do not silently turn it into a ship
-purchase discount or leave it selectable with no effect.
+The "I Know a Bot" skill was removed from the skill catalog because its
+ship-upgrade discount has no target. Its enum value, percent constants, and the
+`ShipUpgradeDiscount` capability remain for a possible rework.
 
 ### Assignment behavior needs special attention
 

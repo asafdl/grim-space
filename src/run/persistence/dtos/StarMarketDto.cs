@@ -12,7 +12,6 @@ public sealed record MerchantListingDto(
 	string Id,
 	EMerchantCatalog Catalog,
 	MerchantCatalog.Kind? OfferingKind,
-	int OfferingTargetLevel,
 	EMerchantAvailabilityBand AvailabilityBand,
 	bool AlwaysAvailable,
 	MerchantListingPricingKind PricingKind,

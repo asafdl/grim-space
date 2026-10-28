@@ -101,14 +101,6 @@ public sealed class FetchMerchantCatalogActionDef
 		StarMap world) =>
 		catalog switch
 		{
-			EMerchantCatalog.Weapons => MerchantPurchaseValidation.EndpointServesMerchantSubtype(
-				world,
-				endpoint,
-				EMerchantSubtype.Weapons),
-			EMerchantCatalog.ShipSupport => MerchantPurchaseValidation.EndpointServesMerchantSubtype(
-				world,
-				endpoint,
-				EMerchantSubtype.ShipSupport),
 			EMerchantCatalog.Healing => MerchantPurchaseValidation.EndpointServesHealingStation(
 				world,
 				endpoint),

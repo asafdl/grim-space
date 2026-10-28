@@ -172,7 +172,7 @@ public sealed class ContractNarrativePickerTests(StarMapFixture maps)
 			"lead-existing",
 			new BlackMarketSaleObjective(
 				new BlackMarketFacilityDestination("poi-a", "facility-a"),
-				EMerchantSubtype.Weapons,
+				EMerchantSubtype.Ships,
 				durationTicks: 10),
 			EDangerLevel.VeryLow,
 			map.ControllingFaction,

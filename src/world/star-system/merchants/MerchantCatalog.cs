@@ -1,6 +1,5 @@
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
-using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Merchants;
@@ -12,27 +11,20 @@ public static class MerchantCatalog
 
 	public enum Kind
 	{
-		UpgradeDamage,
-		UpgradeRange,
-		UpgradeMaxShields,
 		RepairHull,
 		RechargeAllShields,
 		RechargeShieldFace,
 		BuyFuel,
 	}
 
-	public readonly record struct Offering(
-		Kind Kind,
-		int TargetLevel = 0);
+	public readonly record struct Offering(Kind Kind);
 
-	public readonly record struct Target(
-		AbilityMount? Mount = null,
-		ESpatialOrientation? Face = null);
+	public readonly record struct Target(ESpatialOrientation? Face = null);
 
 	public sealed record Offer(
 		Offering Offering,
 		ResourceBundle Cost,
-		IReadOnlyList<Target> Targets);
+		Target Target);
 
 	public static IReadOnlyList<Offer> ListFor(
 		EMerchantCatalog catalog,
@@ -58,7 +50,7 @@ public static class MerchantCatalog
 		out Offer offer)
 	{
 		offer = ListFor(catalog, ship, tier).FirstOrDefault(candidate =>
-			candidate.Offering == key && candidate.Targets.Contains(target))!;
+			candidate.Offering == key && candidate.Target == target)!;
 		return offer is not null;
 	}
 
@@ -72,7 +64,7 @@ public static class MerchantCatalog
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		offer = ListFor(catalog, ship, map).FirstOrDefault(candidate =>
-			candidate.Offering == key && candidate.Targets.Contains(target))!;
+			candidate.Offering == key && candidate.Target == target)!;
 		return offer is not null;
 	}
 
@@ -114,24 +106,10 @@ public static class MerchantCatalog
 
 		return offering.Kind switch
 		{
-			Kind.UpgradeDamage or Kind.UpgradeRange or Kind.UpgradeMaxShields =>
-				TryCreateUpgradeOffer(offering, ship, listing.Pricing.FixedCost),
 			Kind.RepairHull => TryCreateRepairOffer(offering, ship, listing.Pricing.FixedCost),
-			Kind.BuyFuel => new Offer(offering, listing.Pricing.FixedCost, [default]),
+			Kind.BuyFuel => new Offer(offering, listing.Pricing.FixedCost, default),
 			_ => null,
 		};
-	}
-
-	private static Offer? TryCreateUpgradeOffer(
-		Offering offering,
-		ShipInstance ship,
-		ResourceBundle cost)
-	{
-		var targets = TargetsFor(offering, ship);
-		if (targets.Length == 0)
-			return null;
-
-		return new Offer(offering, cost, targets);
 	}
 
 	private static Offer? TryCreateRepairOffer(
@@ -142,7 +120,7 @@ public static class MerchantCatalog
 		if (!MerchantShipChanges.TryPrepareAfter(offering, default, ship, out _))
 			return null;
 
-		return new Offer(offering, cost, [default]);
+		return new Offer(offering, cost, default);
 	}
 
 	private static IReadOnlyList<Offer> ShieldRechargeOffers(ShipInstance ship, StarMarket market)
@@ -158,7 +136,7 @@ public static class MerchantCatalog
 				ResourceBundle.Of(
 					ResourceId.Credits,
 					ship.MissingShieldPoints * rate / 100),
-				[default]));
+				default));
 		}
 
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
@@ -173,7 +151,7 @@ public static class MerchantCatalog
 				ResourceBundle.Of(
 					ResourceId.Credits,
 					ship.MissingShieldPointsOnFace(face) * rate / 100),
-				[target]));
+				target));
 		}
 
 		return offers;
@@ -184,22 +162,6 @@ public static class MerchantCatalog
 			.Single(listing =>
 				listing.Pricing.Kind == MerchantListingPricingKind.ShieldRechargePerPoint)
 			.Pricing.ShieldRechargeCreditsPerPoint;
-
-	private static Target[] TargetsFor(Offering offering, ShipInstance ship)
-	{
-		var candidates = offering.Kind switch
-		{
-			Kind.UpgradeDamage or Kind.UpgradeRange =>
-				ship.Loadout.InstalledAbilities.Select(ability => new Target(ability.Mount)),
-			Kind.UpgradeMaxShields =>
-				Enum.GetValues<ESpatialOrientation>().Select(face => new Target(Face: face)),
-			_ => [],
-		};
-
-		return candidates
-			.Where(target => MerchantShipChanges.TryPrepareAfter(offering, target, ship, out _))
-			.ToArray();
-	}
 
 	public static bool IncludesSheet(
 		EMerchantAvailabilityBand current,

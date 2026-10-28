@@ -28,26 +28,16 @@ public sealed class PilotRecruitmentRollTests
 			Assert.Equal(first[index].Profile.BackgroundId, second[index].Profile.BackgroundId);
 			Assert.Equal(first[index].Profile.PositiveQuirkId, second[index].Profile.PositiveQuirkId);
 			Assert.Equal(first[index].Profile.NegativeQuirkId, second[index].Profile.NegativeQuirkId);
-			Assert.Equal(first[index].Ship.Chassis, second[index].Ship.Chassis);
-			Assert.Equal(first[index].Ship.GearTier, second[index].Ship.GearTier);
-			Assert.Equal(first[index].Ship.ShipId, second[index].Ship.ShipId);
 		}
 	}
 
 	[Fact]
-	public void RollCandidates_BundlesRepurposedMinerForEverySlot()
+	public void RollCandidates_ProducesConfiguredCandidateCount()
 	{
 		var map = StarMap.Create(7);
 		var candidates = PilotRecruitment.RollCandidates(map, "lead-contract-2");
 
 		Assert.Equal(PilotRecruitment.CandidatesPerLead, candidates.Count);
-		Assert.All(
-			candidates,
-			candidate =>
-			{
-				Assert.Equal(PilotRecruitment.DefaultHireChassis, candidate.Ship.Chassis);
-				Assert.Equal(PilotRecruitment.DefaultHireGearTier, candidate.Ship.GearTier);
-			});
 	}
 
 	[Fact]
@@ -90,7 +80,7 @@ public sealed class PilotRecruitmentRollTests
 	[Fact]
 	public void DefaultHirePrice_UsesPilotHireSeedCost()
 	{
-		var map = PilotRecruitmentRollTestHarness.CreateMapWithRepurposedMinerListing(42);
+		var map = StarMap.Create(42);
 
 		Assert.Equal(
 			ResourceBundle.Of(ResourceId.Credits, StarMarketSeed.PilotHireCreditCost),

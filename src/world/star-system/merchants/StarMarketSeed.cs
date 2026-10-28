@@ -9,92 +9,17 @@ public static class StarMarketSeed
 	public const int HullRepairCreditCost = 10;
 	public const int HullRepairScrapCost = 10;
 	public const int ShieldRechargeCreditsPerPoint = 5;
-	public const int RepurposedMinerCreditCost = 150;
 	public const int PilotHireCreditCost = 75;
-	public const int GunshipCreditCost = 400;
-	public const int GunshipIndustrialCoreCost = 1;
+	public const int FighterT0CreditCost = 150;
+	public const int FighterT1CreditCost = 300;
+	public const int FighterT2CreditCost = 600;
+	public const int FighterT2IndustrialCoreCost = 1;
 	public const int FuelPurchaseCreditCost = StrategicEconomyConfig.FuelPurchaseCreditCost;
 	public const int FuelPurchaseAmount = StrategicEconomyConfig.FuelPurchaseAmount;
-
-	private static readonly (int Credits, int Scrap, int Cores)[] WeaponDamage =
-	[
-		(60, 140, 0),
-		(330, 770, 1),
-		(1360, 3170, 2),
-	];
-
-	private static readonly (int Credits, int Scrap, int Cores)[] WeaponRange =
-	[
-		(30, 70, 0),
-		(165, 385, 1),
-		(680, 1590, 2),
-	];
-
-	private static readonly (int Credits, int Scrap, int Cores)[] ShieldMaxPerFace =
-	[
-		(15, 35, 0),
-		(83, 193, 1),
-		(340, 795, 2),
-	];
-
-	private static readonly SheetEntry[] TieredUpgradeInventory =
-	[
-		new(
-			"upgrade.ship_support.shields.1",
-			EMerchantAvailabilityBand.T0,
-			EMerchantCatalog.ShipSupport,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, 1)),
-		new(
-			"upgrade.weapons.damage.1",
-			EMerchantAvailabilityBand.T0_5,
-			EMerchantCatalog.Weapons,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 1)),
-		new(
-			"upgrade.ship_support.shields.2",
-			EMerchantAvailabilityBand.T1,
-			EMerchantCatalog.ShipSupport,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, 2)),
-		new(
-			"upgrade.weapons.range.1",
-			EMerchantAvailabilityBand.T1,
-			EMerchantCatalog.Weapons,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeRange, 1)),
-		new(
-			"upgrade.weapons.damage.2",
-			EMerchantAvailabilityBand.T1,
-			EMerchantCatalog.Weapons,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2)),
-		new(
-			"upgrade.weapons.range.2",
-			EMerchantAvailabilityBand.T2,
-			EMerchantCatalog.Weapons,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeRange, 2)),
-		new(
-			"upgrade.weapons.damage.3",
-			EMerchantAvailabilityBand.T2,
-			EMerchantCatalog.Weapons,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 3)),
-		new(
-			"upgrade.ship_support.shields.3",
-			EMerchantAvailabilityBand.T2,
-			EMerchantCatalog.ShipSupport,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeMaxShields, 3)),
-	];
 
 	public static StarMarket Create()
 	{
 		var merchantListings = new List<MerchantListing>();
-		foreach (var entry in TieredUpgradeInventory)
-		{
-			merchantListings.Add(new MerchantListing(
-				entry.Id,
-				entry.Catalog,
-				entry.Offering,
-				entry.Sheet,
-				alwaysAvailable: false,
-				MerchantListingPricing.Fixed(UpgradeCost(entry.Offering))));
-		}
-
 		merchantListings.Add(new MerchantListing(
 			"healing.repair_hull",
 			EMerchantCatalog.Healing,
@@ -126,57 +51,27 @@ public static class StarMarketSeed
 		var recruitmentListings = new List<RecruitmentListing>
 		{
 			new(
-				"recruitment.repurposed_miner.t1",
-				EType.RepurposedMiner,
+				"recruitment.fighter.t0",
+				EType.Fighter,
 				EShipGearTier.T0,
-				EMerchantAvailabilityBand.T1,
-				ResourceBundle.Of(ResourceId.Credits, RepurposedMinerCreditCost)),
+				EMerchantAvailabilityBand.T0,
+				ResourceBundle.Of(ResourceId.Credits, FighterT0CreditCost)),
 			new(
-				"recruitment.gunship.t2",
-				EType.Gunship,
-				EShipGearTier.T0,
+				"recruitment.fighter.t1",
+				EType.Fighter,
+				EShipGearTier.T1,
+				EMerchantAvailabilityBand.T1,
+				ResourceBundle.Of(ResourceId.Credits, FighterT1CreditCost)),
+			new(
+				"recruitment.fighter.t2",
+				EType.Fighter,
+				EShipGearTier.T2,
 				EMerchantAvailabilityBand.T2,
 				ResourceBundle.Create(
-					(ResourceId.Credits, GunshipCreditCost),
-					(ResourceId.IndustrialCore, GunshipIndustrialCoreCost))),
+					(ResourceId.Credits, FighterT2CreditCost),
+					(ResourceId.IndustrialCore, FighterT2IndustrialCoreCost))),
 		};
 
 		return new StarMarket(merchantListings, recruitmentListings);
 	}
-
-	private static ResourceBundle UpgradeCost(MerchantCatalog.Offering offering) =>
-		offering.Kind switch
-		{
-			MerchantCatalog.Kind.UpgradeDamage =>
-				UpgradeBundle(WeaponDamage, offering.TargetLevel),
-			MerchantCatalog.Kind.UpgradeRange =>
-				UpgradeBundle(WeaponRange, offering.TargetLevel),
-			MerchantCatalog.Kind.UpgradeMaxShields =>
-				UpgradeBundle(ShieldMaxPerFace, offering.TargetLevel),
-			_ => throw new InvalidOperationException(
-				$"Tiered merchant inventory cannot contain {offering.Kind}."),
-		};
-
-	private static ResourceBundle UpgradeBundle(
-		(int Credits, int Scrap, int Cores)[] table,
-		int targetTier)
-	{
-		if (targetTier <= 0 || targetTier > table.Length)
-			throw new ArgumentOutOfRangeException(
-				nameof(targetTier),
-				targetTier,
-				$"Upgrade tier must be between 1 and {table.Length}.");
-
-		var price = table[targetTier - 1];
-		return ResourceBundle.Create(
-			(ResourceId.Credits, price.Credits),
-			(ResourceId.ScrapAlloy, price.Scrap),
-			(ResourceId.IndustrialCore, price.Cores));
-	}
-
-	private readonly record struct SheetEntry(
-		string Id,
-		EMerchantAvailabilityBand Sheet,
-		EMerchantCatalog Catalog,
-		MerchantCatalog.Offering Offering);
 }

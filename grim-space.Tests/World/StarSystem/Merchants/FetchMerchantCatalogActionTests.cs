@@ -32,99 +32,27 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
 		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		var before = ship.Clone();
-		var endpoint = CreateEndpoint(engine.World, EMerchantCatalog.Weapons);
+		var endpoint = CreateEndpoint(engine.World, EMerchantCatalog.Healing);
 
 		var records = engine.Commit(new FetchMerchantCatalogAction(
 			unitId,
 			endpoint,
-			EMerchantCatalog.Weapons,
+			EMerchantCatalog.Healing,
 			before));
 
 		var quote = Assert.Single(records.OfType<Record<MerchantCatalogQuote>>()).Value;
 		Assert.Equal(before.Id, quote.ShipId);
 		Assert.Equal(endpoint, quote.Endpoint);
-		Assert.Equal(EMerchantCatalog.Weapons, quote.Catalog);
+		Assert.Equal(EMerchantCatalog.Healing, quote.Catalog);
 
 		var baseOffers = MerchantCatalog.ListFor(
-			EMerchantCatalog.Weapons,
+			EMerchantCatalog.Healing,
 			before,
 			engine.World);
 		Assert.Equal(baseOffers.Count, quote.Offers.Count);
 		Assert.Equal(
 			baseOffers[0].Cost,
 			quote.Offers[0].Cost);
-	}
-
-	[Fact]
-	public void Commit_AppliesIKnowABotDiscountThroughPipeline()
-	{
-		var pilots = new RunPilotRegistry();
-		for (var index = 0; index < 2; index++)
-		{
-			var pilot = PilotProgression
-				.AddExperience(Pilot.CreateForShip($"fighter-{index}"), 450)
-				.LearnPilotSkill(EPilotSkillId.IKnowABot);
-			pilots.Register(pilot);
-		}
-
-		var grants = pilots.QueryCapabilities(StarMapPilotCapabilityPipelineFactory.Supports);
-
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(
-			maps,
-			strategicGrants: grants);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
-		var before = ship.Clone();
-		var offering = MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade;
-		var target = MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget;
-
-		var records = engine.Commit(new FetchMerchantCatalogAction(
-			unitId,
-			CreateEndpoint(engine.World, EMerchantCatalog.Weapons),
-			EMerchantCatalog.Weapons,
-			before));
-
-		var quote = Assert.Single(records.OfType<Record<MerchantCatalogQuote>>()).Value;
-		var baseOffer = MerchantCatalog.ListFor(
-				EMerchantCatalog.Weapons,
-				before,
-				engine.World)
-			.First(offer => offer.Offering == offering && offer.Targets.Contains(target));
-		var discounted = quote.Offers.First(offer =>
-			offer.Offering == offering && offer.Targets.Contains(target));
-
-		Assert.Equal(48, Amount(discounted.Cost, ResourceId.Credits));
-		Assert.Equal(112, Amount(discounted.Cost, ResourceId.ScrapAlloy));
-		Assert.NotEqual(baseOffer.Cost, discounted.Cost);
-	}
-
-	[Fact]
-	public void Commit_AfterStrategicRefresh_UsesRebuiltPipeline()
-	{
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
-		var endpoint = CreateEndpoint(engine.World, EMerchantCatalog.Weapons);
-		var before = ship.Clone();
-
-		engine.Commit(new RefreshStrategicPilotCapabilitiesAction(
-			unitId,
-			[new PilotCapabilityGrant(
-				EPilotCapabilityId.ShipUpgradeDiscount,
-				"pilot-1",
-				new PilotCapabilitySource(
-					EPilotCapabilitySourceKind.Skill,
-					EPilotSkillId.IKnowABot.ToString()))]));
-		var records = engine.Commit(new FetchMerchantCatalogAction(
-			unitId,
-			endpoint,
-			EMerchantCatalog.Weapons,
-			before));
-
-		var quote = Assert.Single(records.OfType<Record<MerchantCatalogQuote>>()).Value;
-		var discounted = quote.Offers.First(offer =>
-			offer.Offering == MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade
-			&& offer.Targets.Contains(MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget));
-		Assert.Equal(54, Amount(discounted.Cost, ResourceId.Credits));
-		Assert.Equal(126, Amount(discounted.Cost, ResourceId.ScrapAlloy));
 	}
 
 	[Fact]
@@ -150,13 +78,13 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		using var subscription = orchestrator.Subscribe<Record<MerchantCatalogQuote>>(
 			record => quote = record.Value);
 		var tick = orchestrator.Tick;
-		var endpoint = CreateEndpoint(orchestrator.Map, EMerchantCatalog.Weapons);
+		var endpoint = CreateEndpoint(orchestrator.Map, EMerchantCatalog.Healing);
 
 		Assert.True(sink.TryEnqueue([
 			new FetchMerchantCatalogAction(
 				unitId,
 				endpoint,
-				EMerchantCatalog.Weapons,
+				EMerchantCatalog.Healing,
 				ship.Clone()),
 		]));
 		Assert.True(sink.CommitImmediately());
@@ -172,14 +100,15 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
 		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
+		ship.HullPoints = 100;
 		var before = ship.Clone();
 		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
 			engine,
 			unitId,
-			CreateEndpoint(engine.World, EMerchantCatalog.Weapons),
-			EMerchantCatalog.Weapons,
-			MerchantPurchaseTestHarness.ScrapDroneSwarmPortDamageUpgrade,
-			MerchantPurchaseTestHarness.ScrapDroneSwarmPortTarget,
+			CreateEndpoint(engine.World, EMerchantCatalog.Healing),
+			EMerchantCatalog.Healing,
+			MerchantPurchaseTestHarness.RepairHull,
+			default,
 			before);
 		var stale = action with
 		{
@@ -202,13 +131,7 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 		new(
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			DockyardFacilityId,
-			catalog switch
-			{
-				EMerchantCatalog.Weapons => MapFacilityOperators.ShopOperatorName(map),
-				EMerchantCatalog.ShipSupport => MapFacilityOperators.ShieldOperatorName(map),
-				EMerchantCatalog.Healing => FacilityOperator.HealingStationName,
-				_ => throw new ArgumentOutOfRangeException(nameof(catalog), catalog, null),
-			});
+			FacilityOperator.HealingStationName);
 
 	private static void SeedResources(StarMap map, int credits, int scrap, int cores = 0)
 	{

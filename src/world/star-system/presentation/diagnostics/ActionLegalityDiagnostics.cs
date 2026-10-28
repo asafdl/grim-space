@@ -239,7 +239,6 @@ internal static class ActionLegalityDiagnostics
 	private static string FormatTarget(MerchantCatalog.Target target) =>
 		target switch
 		{
-			{ Mount: { } mount } => $"{mount.Kind}/{mount.Facet}",
 			{ Face: { } face } => face.ToString(),
 			_ => "none",
 		};

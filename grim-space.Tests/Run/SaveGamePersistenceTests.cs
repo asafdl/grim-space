@@ -312,10 +312,9 @@ public sealed class SaveGamePersistenceTests
 		var action = new PurchaseAction(
 			"player",
 			new FacilityMerchantEndpoint("trade-hub", "dockyard", "merchant"),
-			EMerchantCatalog.Weapons,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 2),
-			new MerchantCatalog.Target(
-				new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
+			EMerchantCatalog.Healing,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull),
+			default,
 			before,
 			quotedCost);
 
@@ -341,10 +340,9 @@ public sealed class SaveGamePersistenceTests
 		var action = new PurchaseAction(
 			"player",
 			new LeadSaleMerchantEndpoint("lead-contract-1"),
-			EMerchantCatalog.Weapons,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.UpgradeDamage, 1),
-			new MerchantCatalog.Target(
-				new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
+			EMerchantCatalog.Healing,
+			new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull),
+			default,
 			before,
 			ResourceBundle.Of(ResourceId.Credits, 50));
 
@@ -352,31 +350,6 @@ public sealed class SaveGamePersistenceTests
 
 		var endpoint = Assert.IsType<LeadSaleMerchantEndpoint>(restored.Endpoint);
 		Assert.Equal("lead-contract-1", endpoint.ContractId);
-	}
-
-	[Fact]
-	public void DefaultRegistry_LegacyMerchantServiceDefaultsMissingLevelAndTarget()
-	{
-		var registry = PersistenceRegistry.CreateDefault();
-		var before = ShipInstance.FromCatalog("ship-1", EType.Fighter);
-		var action = new PurchaseAction(
-			"player",
-			new FacilityMerchantEndpoint("trade-hub", "dockyard", "merchant"),
-			EMerchantCatalog.ShipSupport,
-			new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull),
-			default,
-			before,
-			ResourceBundle.Empty);
-		var payload = JsonNode.Parse(registry.Write(action).GetRawText())!.AsObject();
-		var actionPayload = payload["payload"]!.AsObject();
-		actionPayload.Remove("target");
-		actionPayload["offering"]!.AsObject().Remove("targetLevel");
-
-		var restored = Assert.IsType<PurchaseAction>(
-			registry.Read(JsonSerializer.SerializeToElement(payload)));
-
-		Assert.Equal(default, restored.Target);
-		Assert.Equal(0, restored.Offering.TargetLevel);
 	}
 
 	[Fact]
@@ -638,7 +611,7 @@ public sealed class SaveGamePersistenceTests
 	{
 		var map = StarMap.Create(42);
 		var listing = map.Market.MerchantListings.First(candidate =>
-			candidate.Id == "upgrade.weapons.damage.1");
+			candidate.Id == "healing.repair_hull");
 		listing.SetPricing(MerchantListingPricing.Fixed(
 			ResourceBundle.Of(ResourceId.Credits, 999)));
 		var registry = PersistenceRegistry.CreateDefault();
@@ -647,7 +620,7 @@ public sealed class SaveGamePersistenceTests
 			SaveDtoMapper.CaptureStarMap(map, registry),
 			registry);
 		var restoredListing = restored.Market.MerchantListings.First(candidate =>
-			candidate.Id == "upgrade.weapons.damage.1");
+			candidate.Id == "healing.repair_hull");
 
 		Assert.True(restoredListing.Pricing.FixedCost.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(999, credits);
@@ -666,7 +639,7 @@ public sealed class SaveGamePersistenceTests
 		MerchantCatalogTestBands.SetBand(restored, EMerchantAvailabilityBand.T1);
 
 		Assert.True(MerchantCatalog.ListFor(
-			EMerchantCatalog.Weapons,
+			EMerchantCatalog.Healing,
 			ship,
 			restored).Count > 0);
 	}

@@ -47,17 +47,8 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		MerchantEndpoint endpoint,
 		EMerchantCatalog catalog,
 		string title,
-		string subtitle,
-		EMerchantSubtype? upgradeSubtype = null)
+		string subtitle)
 	{
-		if (catalog is EMerchantCatalog.Weapons or EMerchantCatalog.ShipSupport
-			&& upgradeSubtype is not (EMerchantSubtype.Weapons or EMerchantSubtype.ShipSupport))
-		{
-			throw new ArgumentException(
-				"Upgrade merchants require a weapon or ship-support subtype.",
-				nameof(upgradeSubtype));
-		}
-
 		_run = run;
 		_intents = intents;
 		_endpoint = endpoint;
@@ -165,10 +156,7 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 			return;
 		}
 
-		if (_catalog == EMerchantCatalog.Healing)
-			PopulateHealingOffers(body, ship);
-		else
-			PopulateUpgradeOffers(body, ship);
+		PopulateHealingOffers(body, ship);
 
 		_shell.SetBody(body);
 	}
@@ -179,7 +167,7 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		foreach (var offer in offers)
 		{
 			var captured = offer;
-			var target = captured.Targets.Single();
+			var target = captured.Target;
 			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
 			body.AddChild(MerchantUiListItem.Create(
 				HealingTitle(captured, target),
@@ -193,74 +181,6 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
 				"No support services are currently needed."));
-	}
-
-	private void PopulateUpgradeOffers(VBoxContainer body, ShipInstance ship)
-	{
-		var offers = _catalogQuote!.Offers;
-		if (offers.Count == 0)
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"No upgrade packs are available at this shop tier."));
-
-		foreach (var offer in offers)
-		{
-			var captured = offer;
-			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
-			body.AddChild(MerchantUiListItem.Create(
-				MerchantOfferDisplay.PackTitle(captured.Offering),
-				$"{captured.Targets.Count} eligible targets.",
-				captured.Cost,
-				canAfford,
-				() => ShowTargets(captured, ship)));
-		}
-	}
-
-	private void ShowTargets(MerchantCatalog.Offer offer, ShipInstance ship)
-	{
-		if (_catalogQuote is null)
-			return;
-
-		_shell.SetTitle(MerchantOfferDisplay.PackTitle(offer.Offering));
-		_shell.SetSubtitle("Choose a target");
-		_shell.SetHeader(HudHeaderMode.Back, ShowMain);
-		_shell.SetBackHandler(ShowMain);
-		_shell.SetFooter([]);
-
-		var body = HudWidgets.CreateCardList();
-		foreach (var target in offer.Targets)
-		{
-			var captured = target;
-			if (target.Mount is { } mount)
-			{
-				var installed = ship.Loadout.InstalledAbilities.Single(
-					ability => ability.Mount == mount);
-				var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(offer.Cost.Negate());
-				body.AddChild(MerchantUiListItem.Create(
-					$"{MerchantOfferDisplay.FaceLabel(mount.Facet)} {MerchantOfferDisplay.KindLabel(mount.Kind)}",
-					MerchantOfferDisplay.AbilityUpgradeBody(offer.Offering, installed),
-					offer.Cost,
-					canAfford,
-					() => PurchaseRequested?.Invoke(offer, captured, ship.Id)));
-				continue;
-			}
-
-			if (target.Face is { } face)
-			{
-				var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(offer.Cost.Negate());
-				body.AddChild(MerchantUiListItem.Create(
-					MerchantOfferDisplay.FaceLabel(face),
-					MerchantOfferDisplay.ShieldUpgradeBody(
-						ship,
-						face,
-						offer.Offering.TargetLevel),
-					offer.Cost,
-					canAfford,
-					() => PurchaseRequested?.Invoke(offer, captured, ship.Id)));
-			}
-		}
-
-		_shell.SetBody(body);
 	}
 
 	private static string HealingTitle(

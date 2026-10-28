@@ -19,21 +19,6 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 
 internal static class MerchantPurchaseTestHarness
 {
-	public static MerchantCatalog.Offering ScrapDroneSwarmPortDamageUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeDamage, 1);
-
-	public static MerchantCatalog.Offering LightningCannonForwardDamageUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeDamage, 1);
-
-	public static MerchantCatalog.Offering ScrapDroneSwarmPortRangeUpgrade =>
-		new(MerchantCatalog.Kind.UpgradeRange, 1);
-
-	public static MerchantCatalog.Target ScrapDroneSwarmPortTarget =>
-		new(new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
-
-	public static MerchantCatalog.Target LightningCannonForwardTarget =>
-		new(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));
-
 	public static MerchantCatalog.Offering RepairHull => new(MerchantCatalog.Kind.RepairHull);
 
 	public static MerchantCatalog.Offering RechargeAllShields =>
@@ -128,7 +113,7 @@ internal static class MerchantPurchaseTestHarness
 			.Quote
 			.Offers
 			.FirstOrDefault(candidate =>
-				candidate.Offering == offering && candidate.Targets.Contains(target));
+				candidate.Offering == offering && candidate.Target == target);
 		if (offer is null)
 			throw new InvalidOperationException("Merchant offer is not available for quoted purchase.");
 

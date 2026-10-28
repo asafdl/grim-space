@@ -36,8 +36,6 @@ public static class OperatorDisplayLabels
 
 	public static string MerchantRole(EMerchantCatalog catalog) => catalog switch
 	{
-		EMerchantCatalog.Weapons => "Dockyard Shop",
-		EMerchantCatalog.ShipSupport => "Ship Support",
 		EMerchantCatalog.Ships => "Ship Broker",
 		EMerchantCatalog.Healing => throw new ArgumentException(
 			"Healing stations do not use merchant role labels.",
@@ -47,8 +45,6 @@ public static class OperatorDisplayLabels
 
 	public static string MerchantRole(EMerchantSubtype subtype) => subtype switch
 	{
-		EMerchantSubtype.Weapons => "Dockyard Shop",
-		EMerchantSubtype.ShipSupport => "Ship Support",
 		EMerchantSubtype.Ships => "Ship Broker",
 		EMerchantSubtype.Pilots => "Pilot Broker",
 		_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),

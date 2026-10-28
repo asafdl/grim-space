@@ -102,12 +102,6 @@ public sealed class PilotSkillRulesTests
 		Assert.Empty(PilotBattleSnapshot
 			.FromSkills(pilot.Id, pilot.LearnedSkills)
 			.CapabilityGrants);
-
-		pilot = PilotProgression.AddExperience(pilot, 350);
-
-		Assert.Contains(
-			EPilotSkillId.IKnowABot,
-			PilotSkillAvailability.AvailableToLearn(pilot));
 	}
 
 	[Fact]

@@ -276,7 +276,7 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 			contractId,
 			new BlackMarketSaleObjective(
 				new BlackMarketFacilityDestination("poi-trade", "market"),
-				EMerchantSubtype.Weapons,
+				EMerchantSubtype.Ships,
 				300),
 			EDangerLevel.VeryLow,
 			EFaction.TheOptimality,

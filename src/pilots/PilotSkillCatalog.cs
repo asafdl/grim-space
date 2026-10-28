@@ -47,13 +47,6 @@ public static class PilotSkillCatalog
 				$"Gain {PilotSkillPercents.DronesYearnForMines.ScrapRewardBonusPercent}% more Scrap Alloy from destroyed ships and successful wreckage investigations.",
 				tier: 1,
 				minimumEarnedLevel: 2),
-			[EPilotSkillId.IKnowABot] = new(
-				EPilotSkillId.IKnowABot,
-				[EPilotCapabilityId.ShipUpgradeDiscount],
-				"I Know a Bot",
-				$"Ship upgrades cost {PilotSkillPercents.IKnowABot.ShipUpgradeDiscountPercent}% fewer Credits and Scrap Alloy. Industrial Core costs are unchanged.",
-				tier: 3,
-				minimumEarnedLevel: 4),
 		};
 
 	public static PilotSkillDefinition Get(EPilotSkillId id) =>

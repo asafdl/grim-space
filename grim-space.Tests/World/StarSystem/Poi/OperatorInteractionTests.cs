@@ -9,8 +9,7 @@ namespace GrimSpace.Tests.World.StarSystem.Poi;
 public sealed class OperatorInteractionTests
 {
 	[Theory]
-	[InlineData(EMerchantSubtype.Weapons)]
-	[InlineData(EMerchantSubtype.ShipSupport)]
+	[InlineData(EMerchantSubtype.Pilots)]
 	[InlineData(EMerchantSubtype.Ships)]
 	public void Merchant_RequiresAndPreservesSubtype(EMerchantSubtype subtype)
 	{
@@ -33,12 +32,10 @@ public sealed class OperatorInteractionTests
 		Assert.Throws<ArgumentException>(() =>
 			new OperatorInteraction(
 				EFacilityOperatorRole.HealingStation,
-				EMerchantSubtype.ShipSupport));
+				EMerchantSubtype.Ships));
 	}
 
 	[Theory]
-	[InlineData(EMerchantCatalog.Weapons, EMerchantSubtype.Weapons)]
-	[InlineData(EMerchantCatalog.ShipSupport, EMerchantSubtype.ShipSupport)]
 	[InlineData(EMerchantCatalog.Ships, EMerchantSubtype.Ships)]
 	public void LegacyMerchantTemplate_MapsCatalogToSubtype(
 		EMerchantCatalog catalog,
@@ -59,7 +56,7 @@ public sealed class OperatorInteractionTests
 		var poi = new TestPointOfInterest();
 		var baseInteraction = new OperatorInteraction(
 			EFacilityOperatorRole.Merchant,
-			EMerchantSubtype.Weapons);
+			EMerchantSubtype.Ships);
 		poi.OperatorTemporaryRoles.Grant(
 			"facility",
 			"Rook",

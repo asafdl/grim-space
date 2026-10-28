@@ -12,15 +12,13 @@ namespace GrimSpace.Tests.World.StarSystem.Presentation;
 public sealed class LeadConversationPresentationTests(StarMapFixture maps)
 {
 	[Theory]
-	[InlineData(EMerchantSubtype.Weapons, "weapons")]
-	[InlineData(EMerchantSubtype.ShipSupport, "shields")]
+	[InlineData(EMerchantSubtype.Pilots, "pilots")]
 	[InlineData(EMerchantSubtype.Ships, "ships")]
 	public void FacilityLeadConversation_ResolvesDestinationAndMerchandise(
 		EMerchantSubtype subtype,
 		string merchandise)
 	{
 		var map = maps.Fresh(42);
-		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		var contract = BuildLead(
 			map,
 			$"lead-{subtype}",
@@ -43,17 +41,16 @@ public sealed class LeadConversationPresentationTests(StarMapFixture maps)
 	public void SpaceLeadConversation_DescribesRendezvous()
 	{
 		var map = maps.Fresh(42);
-		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		var contract = BuildLead(
 			map,
 			"lead-space-conversation",
-			EMerchantSubtype.Weapons,
+			EMerchantSubtype.Ships,
 			spaceMeetingChance: 1);
 
 		var line = LeadContactMessageCatalog.Pick(contract, map);
 
 		Assert.Contains("a rendezvous point:", line);
-		Assert.Contains("for weapons", line);
+		Assert.Contains("for ships", line);
 	}
 
 	[Fact]

@@ -16,26 +16,12 @@ internal static class MapFacilityOperators
 			map,
 			TradeHub.DockyardFacilitySlug,
 			TradeHub.ShopOperatorSceneSlotId,
-			EMerchantSubtype.Weapons);
+			EMerchantSubtype.Ships);
 		return OperatorNameBySceneSlot(
 			map,
 			SupplySystemPlan.Copper.TradeHubPoiId,
 			TradeHub.DockyardFacilitySlug,
 			TradeHub.ShopOperatorSceneSlotId);
-	}
-
-	public static string ShieldOperatorName(StarMap map)
-	{
-		EnsureTradeHubMerchant(
-			map,
-			TradeHub.DockyardFacilitySlug,
-			TradeHub.ShieldOperatorSceneSlotId,
-			EMerchantSubtype.ShipSupport);
-		return OperatorNameBySceneSlot(
-			map,
-			SupplySystemPlan.Copper.TradeHubPoiId,
-			TradeHub.DockyardFacilitySlug,
-			TradeHub.ShieldOperatorSceneSlotId);
 	}
 
 	public static string ShipMerchantOperatorName(StarMap map)

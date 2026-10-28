@@ -157,30 +157,6 @@ internal static class PoiRestore
 		out LegacyTradeHubGraceMerchant grace)
 	{
 		grace = null!;
-		if (facilityId == Facility.ScopedId(plan.TradeHubPoiId, TradeHub.DockyardFacilitySlug))
-		{
-			if (facilityOperator.SceneSlotId == TradeHub.ShopOperatorSceneSlotId
-				&& facilityOperator.Role == EFacilityOperatorRole.Merchant)
-			{
-				grace = new LegacyTradeHubGraceMerchant(
-					facilityId,
-					facilityOperator.Name,
-					EMerchantSubtype.Weapons);
-				return true;
-			}
-
-			if (facilityOperator.SceneSlotId == TradeHub.ShieldOperatorSceneSlotId
-				&& (facilityOperator.Role == EFacilityOperatorRole.Merchant
-					|| facilityOperator.MerchantCatalog == EMerchantCatalog.ShipSupport))
-			{
-				grace = new LegacyTradeHubGraceMerchant(
-					facilityId,
-					facilityOperator.Name,
-					EMerchantSubtype.ShipSupport);
-				return true;
-			}
-		}
-
 		if (facilityId == Facility.ScopedId(plan.TradeHubPoiId, TradeHub.MarketFacilitySlug)
 			&& facilityOperator.SceneSlotId == TradeHub.ShipMerchantSceneSlotId
 			&& facilityOperator.Role == EFacilityOperatorRole.Merchant)

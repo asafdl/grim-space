@@ -113,8 +113,7 @@ public sealed partial class PilotHiringHudOverlay : Control
 	{
 		var profile = candidate.Profile;
 		var background = PilotBackgroundCatalog.Get(profile.BackgroundId);
-		var metadata = $"{PilotHireDisplay.CardTitle(profile.BackgroundId)}\n"
-			+ PilotHireDisplay.ShipPackageLine(candidate.Ship.Chassis, candidate.Ship.GearTier);
+		var metadata = PilotHireDisplay.CardTitle(profile.BackgroundId);
 		var item = new UiImageListItem(
 			profile.Name,
 			metadata,
