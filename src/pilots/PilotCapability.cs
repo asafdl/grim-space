@@ -7,7 +7,7 @@ public enum EPilotCapabilityId
 	LightningShieldDamageBonus,
 	ScrapDroneSwarmDamageBonus,
 	StationaryDamageDeflection,
-	AlliedDamageReduction,
+	InTheFray,
 	MinorScrapRewardBonus,
 	ScrapRewardBonus,
 	ShipUpgradeDiscount,

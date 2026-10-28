@@ -46,7 +46,7 @@ public static class PilotSkillCatalog
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
 			[EPilotSkillId.InTheFray] = new(
 				EPilotSkillId.InTheFray,
-				[EPilotCapabilityId.AlliedDamageReduction],
+				[EPilotCapabilityId.InTheFray],
 				new HudTooltipContent(
 					"In The Fray",
 					$"If at least {PilotSkillPercents.InTheFray.MinimumDistanceCells} km from at least {PilotSkillPercents.InTheFray.MinimumEnemyCount} enemies, take {100 - PilotSkillPercents.InTheFray.DamageTakenPercent}% less damage from hits."),
