@@ -1,0 +1,24 @@
+=== KEPT DIPS (section boundaries) — floor luma (0-1), law <= 0.10 ===
+  7.40: floor=0.000  OK  (law: <= 0.10 near-black)
+  16.98: floor=0.000  OK  (law: <= 0.10 near-black)
+  27.38: floor=0.000  OK  (law: <= 0.10 near-black)
+  worst dip floor = 0.000  OK
+
+=== PLAIN CUTS — luma step across cut (0-255) < 30 ===
+  1.92: delta=5.1  OK
+  3.90: delta=10.6  OK
+  4.72: delta=1.3  OK
+  5.65: delta=0.4  OK
+  8.03: delta=7.1  OK
+  10.30: delta=0.2  OK
+  12.10: delta=1.0  OK
+  13.32: delta=2.1  OK
+  14.17: delta=0.8  OK
+  20.47: delta=4.4  OK
+  23.52: delta=8.7  OK
+  25.98: delta=6.3  OK
+  30.68: delta=4.4  OK
+  worst plain-cut delta = 10.6
+
+=== MOTION (mean per-frame luma |delta|, 0-255) ===
+  mean motion = 1.40  OK
