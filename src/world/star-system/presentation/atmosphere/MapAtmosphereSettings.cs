@@ -15,9 +15,15 @@ public sealed record MapAtmosphereSettings(
 	// The black hole lives in the map SKY SHADER as a direction-locked
 	// sky-pass feature, so its numbers are angular (radians), not world units:
 	// old world-space tuning was horizon 26 / disk 50 at distance 260 => atan
-	// 0.0996 / 0.190 rad.
-	float BlackHoleShadowAngularRadius = 0.10f,
-	float BlackHoleGlowAngularRadius = 0.19f,
+	// 0.0996 / 0.190 rad. SKYPASS V3P1 ITEM S — whole-feature scale down by
+	// 0.60: the rendered envelope measured ~71% of frame height at the
+	// standard mappose and the user ruled 40-45%; every BH length carries the
+	// same factor (shadow 0.10 -> 0.06, glow 0.19 -> 0.114, plus the ring
+	// thickness uniform in map_sky.gdshader 0.105 -> 0.063) so the internal
+	// proportions are unchanged — only the on-screen size moves. The shader's
+	// own uniform defaults are kept in sync as fallbacks.
+	float BlackHoleShadowAngularRadius = 0.06f,
+	float BlackHoleGlowAngularRadius = 0.114f,
 	float SunGlowEnergy = 0.78f,
 	float AmbientEnergy = 0.44f,
 	float FillLightEnergy = 0.17f)

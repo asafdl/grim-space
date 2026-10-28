@@ -14,11 +14,15 @@ uniform float nebula_aspect : hint_range(0.5, 2.5) = 1.071;
 // sizes are angular (radians).
 uniform vec3 bh_center = vec3(-0.62, -0.38, -0.52);
 // Opaque black shadow disc radius. Old tuning preserved: horizon 26 units at
-// 260 far => atan = 0.0996 rad.
-uniform float bh_shadow_radius : hint_range(0.01, 1.2) = 0.10;
+// 260 far => atan = 0.0996 rad. SKYPASS V3P1 ITEM S — whole-feature scale down
+// by 0.60: the rendered envelope measured ~71% of frame height at the
+// standard mappose and the user ruled 40-45%; every BH length (shadow radius,
+// glow outer edge, ring sigma) carries the same factor so the internal
+// proportions are bit-identical — only the on-screen size moves.
+uniform float bh_shadow_radius : hint_range(0.01, 1.2) = 0.06;
 // Outer edge of the glow. EHT/GMVA class: shadow diameter ~ half the glow
 // diameter (shadow small inside generous light).
-uniform float bh_glow_radius : hint_range(0.02, 1.6) = 0.19;
+uniform float bh_glow_radius : hint_range(0.02, 1.6) = 0.114;
 // SKYPASS V3 ITEM 1 — inclination squash: the accretion light (ring band,
 // halo, grain field) is drawn on a squashed ellipse — major axis horizontal,
 // minor/major = this factor — so the feature reads as a semi-edge-on disc
@@ -28,7 +32,7 @@ uniform float bh_glow_radius : hint_range(0.02, 1.6) = 0.19;
 uniform float bh_disc_squash : hint_range(0.33, 1.0) = 0.55;
 // Photon-ring band gaussian sigma. Visible FWHM = 1.66 * this (= 0.174 rad),
 // >= 1/3 of the glow diameter (0.127 rad) — a broad soft band, never a knife line.
-uniform float bh_ring_thickness : hint_range(0.01, 0.8) = 0.105;
+uniform float bh_ring_thickness : hint_range(0.01, 0.8) = 0.063;
 uniform float bh_energy : hint_range(0.0, 4.0) = 1.55;
 // SKYPASS V3 ITEM 4 — palette pinned to the over/under-arcs target crop
 // (D:/ops-work/bh-yt/rely-v2/target-overunder-arcs.png): fully saturated
