@@ -1,0 +1,31 @@
+=== KEPT DIPS (section boundaries) — film-speed fade, floor <= 0.10, ramp 45-60f ===
+  7.40: floor=0.000  OK  ramp=48f (~0.80s) down=24f up=23f  OK  (law: 45-60f / 0.75-1.0s)
+  16.98: floor=0.000  OK  ramp=45f (~0.75s) down=22f up=22f  OK  (law: 45-60f / 0.75-1.0s)
+  27.38: floor=0.000  OK  ramp=46f (~0.77s) down=22f up=23f  OK  (law: 45-60f / 0.75-1.0s)
+  worst dip floor = 0.000  OK
+  ramp law 45-60f: OK
+
+=== PLAIN CUTS — luma step across cut (0-255) < 30 ===
+  1.92: delta=5.0  OK
+  3.90: delta=10.6  OK
+  4.72: delta=1.4  OK
+  5.65: delta=0.5  OK
+  8.03: delta=7.2  OK
+  10.30: delta=0.2  OK
+  12.10: delta=1.0  OK
+  13.32: delta=2.1  OK
+  14.17: delta=0.8  OK
+  20.47: delta=3.7  OK
+  23.52: delta=8.8  OK
+  25.98: delta=6.3  OK
+  30.68: delta=4.4  OK
+  worst plain-cut delta = 10.6
+
+=== MOTION (mean per-frame luma |delta|, 0-255) ===
+  mean motion = 1.38  OK
+
+=== MOTION AROUND DIPS (continuity gate 0.5-3.0, ±2.0s window @160x90 gray) ===
+  7.40: win mean=1.88  fade(±0.45s)=0.74  outside-fade mean=2.27  OK
+  16.98: win mean=2.05  fade(±0.45s)=1.27  outside-fade mean=2.32  OK
+  27.38: win mean=0.63  fade(±0.45s)=0.72  outside-fade mean=0.62  OK
+  all three windows inside 0.5-3.0: OK
