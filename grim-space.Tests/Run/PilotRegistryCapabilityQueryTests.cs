@@ -21,7 +21,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
 			});
 		var pilot = PilotProgression
-			.AddExperience(basePilot, 100)
+			.AddExperience(basePilot, 250)
 			.LearnPilotSkill(EPilotSkillId.ShieldsUp);
 		registry.Register(pilot);
 
@@ -38,7 +38,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 		var registry = new RunPilotRegistry();
 		var pilot = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-a"), 250)
+				.AddExperience(Pilot.CreateForShip("fighter-a"), 450)
 				.LearnPilotSkill(EPilotSkillId.ShieldsUp)
 				.LearnPilotSkill(EPilotSkillId.IonizedPayload)
 				.ToPersistence() with
@@ -67,7 +67,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 		var registry = new RunPilotRegistry();
 		var pilot = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-a"), 250)
+				.AddExperience(Pilot.CreateForShip("fighter-a"), 450)
 				.LearnPilotSkill(EPilotSkillId.IonizedPayload)
 				.ToPersistence() with
 			{
@@ -89,7 +89,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 		var registry = new RunPilotRegistry();
 		var activePilot = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-active"), 100)
+				.AddExperience(Pilot.CreateForShip("fighter-active"), 250)
 				.LearnPilotSkill(EPilotSkillId.ShieldsUp)
 				.ToPersistence() with
 			{
@@ -126,7 +126,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 		var registry = new RunPilotRegistry();
 		var pilotA = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-a"), 100)
+				.AddExperience(Pilot.CreateForShip("fighter-a"), 250)
 				.LearnPilotSkill(EPilotSkillId.ShieldsUp)
 				.ToPersistence() with
 			{
@@ -136,7 +136,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 			});
 		var pilotB = Pilot.FromPersistence(
 			PilotProgression
-				.AddExperience(Pilot.CreateForShip("fighter-b"), 250)
+				.AddExperience(Pilot.CreateForShip("fighter-b"), 450)
 				.LearnPilotSkill(EPilotSkillId.IonizedPayload)
 				.ToPersistence() with
 			{

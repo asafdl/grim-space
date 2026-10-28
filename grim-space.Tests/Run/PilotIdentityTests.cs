@@ -85,7 +85,7 @@ public sealed class PilotIdentityTests
 	{
 		var original = Pilot.CreateForShip("fighter-a");
 		var pilot = PilotProgression
-			.AddExperience(original, 100)
+			.AddExperience(original, 250)
 			.LearnPilotSkill(EPilotSkillId.ShieldsUp);
 
 		Assert.Equal(original.PositiveQuirkId, pilot.PositiveQuirkId);

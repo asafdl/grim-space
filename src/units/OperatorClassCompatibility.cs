@@ -7,6 +7,7 @@ public static class OperatorClassCompatibility
 	public static string DisplayName(this EOperatorClassId operatorClass) => operatorClass switch
 	{
 		EOperatorClassId.SpaceRanger => "Space Ranger",
+		EOperatorClassId.Support => "Support",
 		EOperatorClassId.Unclassified => "Unclassified",
 		_ => throw new ArgumentOutOfRangeException(nameof(operatorClass), operatorClass, null),
 	};

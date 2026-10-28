@@ -244,7 +244,14 @@ public sealed class PilotRegistryTests
 		for (var index = 0; index < 2; index++)
 		{
 			var pilot = PilotProgression
-				.AddExperience(Pilot.CreateForShip($"fighter-{index}"), 100)
+				.AddExperience(
+					Pilot.FromRecruitProfile(
+						$"fighter-{index}",
+						new PilotRecruitProfile(
+							"Test",
+							"pilot_01",
+							EPilotBackgroundId.ScrapDrone)),
+					100)
 				.LearnPilotSkill(EPilotSkillId.DronesYearnForMines);
 			registry.Register(pilot);
 		}

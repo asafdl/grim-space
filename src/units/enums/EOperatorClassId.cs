@@ -4,4 +4,5 @@ public enum EOperatorClassId
 {
 	Unclassified,
 	SpaceRanger,
+	Support,
 }

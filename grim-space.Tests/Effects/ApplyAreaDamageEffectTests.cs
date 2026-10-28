@@ -147,7 +147,7 @@ public sealed class ApplyAreaDamageEffectTests
 	}
 
 	[Fact]
-	public void Apply_AdjacentDamageBonusAppliesPerTargetAndUndoRestoresBoth()
+	public void Apply_RangeHitDamageBonusAppliesPerTargetAndUndoRestoresBoth()
 	{
 		var player = Factory.Create(
 			ShipInstance.FromCatalog("attacker", EType.Fighter),
@@ -174,13 +174,13 @@ public sealed class ApplyAreaDamageEffectTests
 				new HashSet<Coord> { adjacent.State.Position, distant.State.Position },
 				2,
 				player.State.Position)
-			.WithAdjacentHitDamagePercent(200);
+			.WithAdjacentHitDamagePercent(200, rangeCells: 2);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(2, adjacent.State.ShieldPoints[adjacentFace]);
-		Assert.Equal(4, distant.State.ShieldPoints[distantFace]);
+		Assert.Equal(4, adjacent.State.ShieldPoints[adjacentFace]);
+		Assert.Equal(2, distant.State.ShieldPoints[distantFace]);
 		Assert.Equal(adjacentHullBefore, adjacent.State.HullPoints);
 		Assert.Equal(distantHullBefore, distant.State.HullPoints);
 

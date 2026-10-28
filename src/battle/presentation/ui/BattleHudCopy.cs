@@ -137,10 +137,15 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent ShieldsUpTooltipFor(UnitDisplayState unit)
 	{
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.ShieldsUp);
+		var mechanics =
+			$"[icon: {Icon.ActionPoints}, text: -{ShieldsUpDef.NextTickApPenalty} next turn]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]";
+		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
+			? mechanics
+			: $"{definition.Tooltip.Details}\n{mechanics}";
 		return new BattleHudTooltipContent(
-			definition.Name,
-			definition.Description,
-			$"[icon: {Icon.ActionPoints}, text: -{ShieldsUpDef.NextTickApPenalty} next turn]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
+			definition.Tooltip.Title,
+			definition.Tooltip.Body,
+			details);
 	}
 
 	public static BattleHudTooltipContent SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>

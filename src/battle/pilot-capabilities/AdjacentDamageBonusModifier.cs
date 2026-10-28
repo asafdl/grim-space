@@ -17,6 +17,8 @@ public sealed class AdjacentDamageBonusModifier
 		ActorRuntime runtime,
 		IEffect<BattleWorld, ActorRuntime> effect) =>
 		effect is ApplyAreaDamageEffect area
-			? area.WithAdjacentHitDamagePercent(PilotSkillPercents.DodgeThis.AdjacentHitDamagePercent)
+			? area.WithAdjacentHitDamagePercent(
+				PilotSkillPercents.DodgeThis.BonusHitDamagePercent,
+				PilotSkillPercents.DodgeThis.BonusRangeCells)
 			: effect;
 }

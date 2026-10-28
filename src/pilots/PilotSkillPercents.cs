@@ -11,7 +11,10 @@ public static class PilotSkillPercents
 	{
 		public const int AdditionalDamagePercent = 50;
 
-		public static int AdjacentHitDamagePercent => 100 + AdditionalDamagePercent;
+		/// <summary>Manhattan cell distance at which the bonus applies (1 cell = 1 km).</summary>
+		public const int BonusRangeCells = 2;
+
+		public static int BonusHitDamagePercent => 100 + AdditionalDamagePercent;
 	}
 
 	public static class IonizedPayload

@@ -71,10 +71,19 @@ public sealed class InTheFrayTests
 	[Fact]
 	public void Apply_DodgeThisBonusIsAddedBeforeReduction()
 	{
-		var (source, target, battle, hitFace) = CreateBattle(ETeam.Player, ETeam.Player);
+		var (source, target, battle, hitFace) = CreateBattle(
+			ETeam.Player,
+			ETeam.Player,
+			targetPosition: new Coord(7, 5, 5));
 		target.State.ShieldPoints[hitFace] = 6;
 
-		ApplyDamage(source, target, battle, damage: 2, adjacentHitDamagePercent: 200);
+		ApplyDamage(
+			source,
+			target,
+			battle,
+			damage: 2,
+			adjacentHitDamagePercent: 200,
+			adjacentHitDamageRangeCells: 2);
 
 		Assert.Equal(4, target.State.ShieldPoints[hitFace]);
 	}
@@ -111,7 +120,8 @@ public sealed class InTheFrayTests
 		int damage,
 		int shieldDamageBonus = 0,
 		int shieldDamageBonusPercent = 0,
-		int adjacentHitDamagePercent = 100)
+		int adjacentHitDamagePercent = 100,
+		int adjacentHitDamageRangeCells = 1)
 	{
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -120,7 +130,8 @@ public sealed class InTheFrayTests
 			source.State.Position,
 			shieldDamageBonus,
 			shieldDamageBonusPercent,
-			adjacentHitDamagePercent);
+			adjacentHitDamagePercent,
+			adjacentHitDamageRangeCells);
 		effect.Apply(
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(source.State.Id),
@@ -134,7 +145,8 @@ public sealed class InTheFrayTests
 		ESpatialOrientation HitFace) CreateBattle(
 			ETeam sourceTeam,
 			ETeam targetTeam,
-			string targetId = "target")
+			string targetId = "target",
+			Coord? targetPosition = null)
 	{
 		var source = Factory.Create(
 			ShipInstance.FromCatalog("source", EType.Fighter),
@@ -144,7 +156,7 @@ public sealed class InTheFrayTests
 		var target = Factory.Create(
 			ShipInstance.FromCatalog(targetId, EType.Fighter),
 			targetTeam,
-			new Coord(6, 5, 5),
+			targetPosition ?? new Coord(6, 5, 5),
 			BattleAgentFactory.Create(EBattleAgentKind.Ai));
 		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
 		{

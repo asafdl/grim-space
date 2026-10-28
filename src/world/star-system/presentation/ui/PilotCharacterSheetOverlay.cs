@@ -18,6 +18,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
 	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
 	private const string SpaceRangerClassIconPath = "res://assets/ui/classes/space-ranger.png";
+	private const string SupportClassIconPath = "res://assets/ui/classes/support.png";
 	private const string IconBorderPath = "res://assets/ui/components/runtime/icon_border_blue.png";
 	private const string OptimalityEnforcerIconPath = "res://assets/ui/pilots/optimality-enforcer.png";
 	private const string CorporateSlaveIconPath = "res://assets/ui/pilots/corporate-slave.png";
@@ -198,6 +199,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		var iconPath = pilot.ClassId switch
 		{
 			GrimSpace.Units.Enums.EOperatorClassId.SpaceRanger => SpaceRangerClassIconPath,
+			GrimSpace.Units.Enums.EOperatorClassId.Support => SupportClassIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(pilot), pilot.ClassId, null),
 		};
 		return BuildIdentityIcon(iconPath, IdentityIconColor, $"Class: {pilot.ClassId.DisplayName()}");
@@ -368,7 +370,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		HudStyles.ApplyTextRole(levelLabel, HudTextRole.Metadata);
 		row.AddChild(levelLabel);
 
-		var definitions = PilotSkillCatalog.All
+		var definitions = PilotSkillAvailability.TreeFor(pilot)
 			.Where(definition => definition.Tier + 1 == level)
 			.ToArray();
 		if (definitions.Length == 0)
@@ -407,21 +409,30 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		var canLearn = available.Contains(definition.Id);
 		var color = isLearned ? LearnedColor : canLearn ? AvailableColor : LockedColor;
 
+		var host = new HudTooltipHost
+		{
+			CustomMinimumSize = new Vector2(SkillNodeSize, SkillNodeSize),
+			MouseFilter = MouseFilterEnum.Stop,
+		};
+		host.SetTooltip(definition.Tooltip);
+
 		var button = new Button
 		{
 			CustomMinimumSize = new Vector2(SkillNodeSize, SkillNodeSize),
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
 			Disabled = !canLearn,
 			Icon = SvgIconLoader.Load(IconPathFor(definition.Id), color, 34),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
 		};
-		HudTooltipCard.SetTooltip(button, $"{definition.Name}\n{definition.Description}");
 		button.AddThemeColorOverride("icon_disabled_color", Colors.White);
 		ApplyIconBorder(button, isLearned || canLearn ? 1f : 0.5f);
 		if (canLearn)
 			button.Pressed += () => SkillLearnRequested?.Invoke(pilot.Id, definition.Id);
-		return button;
+		host.AddChild(button);
+		return host;
 	}
 
 	private static string IconPathFor(EPilotSkillId skillId) =>

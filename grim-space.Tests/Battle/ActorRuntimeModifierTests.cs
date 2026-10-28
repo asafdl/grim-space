@@ -82,8 +82,11 @@ public sealed class ActorRuntimeModifierTests
 			SampleEffects());
 
 		Assert.Equal(
-			PilotSkillPercents.DodgeThis.AdjacentHitDamagePercent,
+			PilotSkillPercents.DodgeThis.BonusHitDamagePercent,
 			((ApplyAreaDamageEffect)modified[0]).AdjacentHitDamagePercent);
+		Assert.Equal(
+			PilotSkillPercents.DodgeThis.BonusRangeCells,
+			((ApplyAreaDamageEffect)modified[0]).AdjacentHitDamageRangeCells);
 		Assert.IsType<MountUsesChangeEffect>(modified[1]);
 	}
 
@@ -102,7 +105,8 @@ public sealed class ActorRuntimeModifierTests
 			SampleEffects());
 
 		var damage = Assert.IsType<ApplyAreaDamageEffect>(modified[0]);
-		Assert.Equal(PilotSkillPercents.DodgeThis.AdjacentHitDamagePercent, damage.AdjacentHitDamagePercent);
+		Assert.Equal(PilotSkillPercents.DodgeThis.BonusHitDamagePercent, damage.AdjacentHitDamagePercent);
+		Assert.Equal(PilotSkillPercents.DodgeThis.BonusRangeCells, damage.AdjacentHitDamageRangeCells);
 		Assert.Equal(PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent, damage.ShieldDamageBonusPercent);
 	}
 
