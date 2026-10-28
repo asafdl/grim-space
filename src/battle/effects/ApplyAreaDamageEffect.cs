@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -102,7 +103,6 @@ public sealed class ApplyAreaDamageEffect(
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		_snapshots = new Dictionary<string, UnitCombatSnapshot>();
-		var source = UnitRegistry.For(world).UnitOf(actorId);
 		var records = new List<IRecord>
 		{
 			new Record<AreaDamageFacts>(new AreaDamageFacts(actorId, cause, origin, cells)),
@@ -113,11 +113,10 @@ public sealed class ApplyAreaDamageEffect(
 				continue;
 
 			_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
-			var isAlliedSource = source.RelationTo(unit) == EUnitRelation.Ally;
 			if (ApplyTo(
-				unit.State,
+				world,
+				unit,
 				actorId,
-				isAlliedSource,
 				destroySource && unit.State.Id == actorId) is { } impact)
 				records.Add(new Record<ImpactFacts>(impact));
 		}
@@ -132,11 +131,12 @@ public sealed class ApplyAreaDamageEffect(
 	}
 
 	private ImpactFacts? ApplyTo(
-		State unit,
+		BattleWorld world,
+		Unit targetUnit,
 		string actorId,
-		bool isAlliedSource,
 		bool forceDestroy)
 	{
+		var unit = targetUnit.State;
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
@@ -151,13 +151,8 @@ public sealed class ApplyAreaDamageEffect(
 		if (shieldDamageBonusPercent > 0)
 			appliedShieldDamageBonus += PortionOf(appliedDamage, shieldDamageBonusPercent);
 
-		if (isAlliedSource && unit.InTheFrayActive)
-		{
-			var retained = PilotSkillPercents.InTheFray.AlliedDamageTakenPercent;
-			var reducedShieldDamage = ScalePercent(appliedDamage + appliedShieldDamageBonus, retained);
-			appliedDamage = ScalePercent(appliedDamage, retained);
-			appliedShieldDamageBonus = reducedShieldDamage - appliedDamage;
-		}
+		if (InTheFrayRules.AppliesDamageReduction(world, targetUnit))
+			InTheFrayRules.ReduceIncomingDamage(ref appliedDamage, ref appliedShieldDamageBonus);
 
 		if (damage > 0
 			&& unit.DefensiveManeuversMpSpentLastTurn == 0

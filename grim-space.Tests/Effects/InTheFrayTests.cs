@@ -14,67 +14,102 @@ namespace GrimSpace.Tests.Effects;
 public sealed class InTheFrayTests
 {
 	[Fact]
-	public void Apply_AlliedDamageIsHalvedAndRoundedUp()
+	public void Apply_ReducesDamageWhenTwoEnemiesAreAtLeastFourKmAway()
 	{
-		var (source, target, battle, hitFace) = CreateBattle(ETeam.Player, ETeam.Player);
+		var target = BattleTestFixture.Player(new Coord(5, 5, 5));
+		var shooter = BattleTestFixture.RepurposedMiner(new Coord(9, 5, 5), "shooter");
+		var distantEnemyA = BattleTestFixture.RepurposedMiner(new Coord(0, 5, 5), "distant-a");
+		var distantEnemyB = BattleTestFixture.RepurposedMiner(new Coord(10, 5, 5), "distant-b");
+		var battle = BeginBattle(
+			target,
+			[shooter, distantEnemyA, distantEnemyB],
+			[target.State.Id]);
+		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
 		target.State.ShieldPoints[hitFace] = 6;
 
-		ApplyDamage(source, target, battle, damage: 3);
+		ApplyDamage(shooter, target, battle, damage: 3);
 
-		Assert.True(target.State.InTheFrayActive);
 		Assert.Equal(4, target.State.ShieldPoints[hitFace]);
 	}
 
 	[Fact]
-	public void Apply_EnemyDamageIsNotReduced()
+	public void Apply_DoesNotReduceDamageWhenOnlyOneEnemyIsFarEnoughAway()
 	{
-		var (source, target, battle, hitFace) = CreateBattle(ETeam.Enemy, ETeam.Player);
+		var target = BattleTestFixture.Player(new Coord(5, 5, 5));
+		var shooter = BattleTestFixture.RepurposedMiner(new Coord(8, 5, 5), "shooter");
+		var closeEnemy = BattleTestFixture.RepurposedMiner(new Coord(6, 5, 5), "close");
+		var distantEnemy = BattleTestFixture.RepurposedMiner(new Coord(0, 5, 5), "distant");
+		var battle = BeginBattle(
+			target,
+			[shooter, closeEnemy, distantEnemy],
+			[target.State.Id]);
+		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
 		target.State.ShieldPoints[hitFace] = 6;
 
-		ApplyDamage(source, target, battle, damage: 3);
+		ApplyDamage(shooter, target, battle, damage: 3);
 
 		Assert.Equal(3, target.State.ShieldPoints[hitFace]);
 	}
 
 	[Fact]
-	public void Apply_SelfDamageIsNotReduced()
+	public void Apply_ReducesSelfDamageWhenConditionIsMet()
 	{
 		var source = BattleTestFixture.Player(new Coord(5, 5, 5));
-		var bystander = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
-		{
-			[source.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.InTheFray]),
-		};
-		var battle = BattleTestFixture.BeginSimulation(
+		var distantEnemyA = BattleTestFixture.RepurposedMiner(new Coord(0, 5, 5), "distant-a");
+		var distantEnemyB = BattleTestFixture.RepurposedMiner(new Coord(10, 5, 5), "distant-b");
+		var battle = BeginBattle(
 			source,
-			bystander,
-			pilotsByActorId: pilots);
+			[distantEnemyA, distantEnemyB],
+			[source.State.Id]);
 		var hitFace = BodyFrame.From(source.State).HitFaceFrom(source.State.Position);
 		source.State.ShieldPoints[hitFace] = 6;
 
 		ApplyDamage(source, source, battle, damage: 3);
 
-		Assert.Equal(3, source.State.ShieldPoints[hitFace]);
+		Assert.Equal(4, source.State.ShieldPoints[hitFace]);
 	}
 
 	[Fact]
 	public void Apply_ShieldDamageBonusIsIncludedInReduction()
 	{
-		var (source, target, battle, hitFace) = CreateBattle(ETeam.Player, ETeam.Player);
+		var target = BattleTestFixture.Player(new Coord(5, 5, 5));
+		var shooter = BattleTestFixture.RepurposedMiner(new Coord(9, 5, 5), "shooter");
+		var distantEnemyA = BattleTestFixture.RepurposedMiner(new Coord(0, 5, 5), "distant-a");
+		var distantEnemyB = BattleTestFixture.RepurposedMiner(new Coord(10, 5, 5), "distant-b");
+		var battle = BeginBattle(
+			target,
+			[shooter, distantEnemyA, distantEnemyB],
+			[target.State.Id]);
+		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
 		target.State.ShieldPoints[hitFace] = 6;
 
-		ApplyDamage(source, target, battle, damage: 3, shieldDamageBonus: 1);
+		ApplyDamage(shooter, target, battle, damage: 3, shieldDamageBonus: 1);
 
-		Assert.Equal(4, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(3, target.State.ShieldPoints[hitFace]);
 	}
 
 	[Fact]
 	public void Apply_DodgeThisBonusIsAddedBeforeReduction()
 	{
-		var (source, target, battle, hitFace) = CreateBattle(
+		var source = BattleTestFixture.Player(new Coord(5, 5, 5));
+		var target = Factory.Create(
+			ShipInstance.FromCatalog("ally", EType.Fighter),
 			ETeam.Player,
-			ETeam.Player,
-			targetPosition: new Coord(7, 5, 5));
+			new Coord(7, 5, 5),
+			BattleAgentFactory.Create(EBattleAgentKind.Player));
+		var distantEnemyA = BattleTestFixture.RepurposedMiner(new Coord(0, 5, 5), "distant-a");
+		var distantEnemyB = BattleTestFixture.RepurposedMiner(new Coord(0, 1, 5), "distant-b");
+		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
+		{
+			[source.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis]),
+			[target.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.InTheFray]),
+		};
+		var battle = BeginBattle(
+			source,
+			[target, distantEnemyA, distantEnemyB],
+			[target.State.Id],
+			pilots);
+		var hitFace = BodyFrame.From(target.State).HitFaceFrom(source.State.Position);
 		target.State.ShieldPoints[hitFace] = 6;
 
 		ApplyDamage(
@@ -85,21 +120,33 @@ public sealed class InTheFrayTests
 			adjacentHitDamagePercent: 200,
 			adjacentHitDamageRangeCells: 2);
 
-		Assert.Equal(4, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(3, target.State.ShieldPoints[hitFace]);
 	}
 
 	[Fact]
-	public void Apply_DeflectionRunsAfterFriendlyFireReduction()
+	public void Apply_DeflectionRunsAfterInTheFrayReduction()
 	{
-		var (source, target, battle, hitFace) = CreateBattle(
-			ETeam.Enemy,
-			ETeam.Enemy,
-			targetId: "enemy");
+		var target = BattleTestFixture.Player(new Coord(5, 5, 5));
+		var shooter = BattleTestFixture.RepurposedMiner(new Coord(9, 5, 5), "shooter");
+		var distantEnemyA = BattleTestFixture.RepurposedMiner(new Coord(0, 5, 5), "distant-a");
+		var distantEnemyB = BattleTestFixture.RepurposedMiner(new Coord(10, 5, 5), "distant-b");
+		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
+		{
+			[target.State.Id] = PilotBattleSnapshot.FromSkills(
+				"pilot",
+				[EPilotSkillId.InTheFray, EPilotSkillId.DefensiveManeuvers]),
+		};
+		var battle = BeginBattle(
+			target,
+			[shooter, distantEnemyA, distantEnemyB],
+			[target.State.Id],
+			pilots);
+		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
 		target.State.ShieldPoints[hitFace] = 6;
 		target.State.DefensiveManeuversMpSpentLastTurn = 0;
 		target.State.DefensiveManeuversRollIndex = 6;
 
-		ApplyDamage(source, target, battle, damage: 4);
+		ApplyDamage(shooter, target, battle, damage: 3);
 
 		Assert.Equal(5, target.State.ShieldPoints[hitFace]);
 	}
@@ -111,6 +158,21 @@ public sealed class InTheFrayTests
 		state.InTheFrayActive = true;
 
 		Assert.True(state.Clone().InTheFrayActive);
+	}
+
+	private static BattleOrchestrator BeginBattle(
+		Unit player,
+		IReadOnlyList<Unit> enemies,
+		IReadOnlyList<string> skilledUnitIds,
+		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null)
+	{
+		pilotsByActorId ??= skilledUnitIds.ToDictionary(
+			id => id,
+			_ => (PilotBattleSnapshot?)PilotBattleSnapshot.FromSkills(
+				"pilot",
+				[EPilotSkillId.InTheFray]),
+			StringComparer.Ordinal);
+		return BattleTestFixture.BeginSimulation(player, enemies, pilotsByActorId: pilotsByActorId);
 	}
 
 	private static void ApplyDamage(
@@ -136,37 +198,5 @@ public sealed class InTheFrayTests
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(source.State.Id),
 			source.State.Id);
-	}
-
-	private static (
-		Unit Source,
-		Unit Target,
-		BattleOrchestrator Battle,
-		ESpatialOrientation HitFace) CreateBattle(
-			ETeam sourceTeam,
-			ETeam targetTeam,
-			string targetId = "target",
-			Coord? targetPosition = null)
-	{
-		var source = Factory.Create(
-			ShipInstance.FromCatalog("source", EType.Fighter),
-			sourceTeam,
-			new Coord(5, 5, 5),
-			BattleAgentFactory.Create(EBattleAgentKind.Player));
-		var target = Factory.Create(
-			ShipInstance.FromCatalog(targetId, EType.Fighter),
-			targetTeam,
-			targetPosition ?? new Coord(6, 5, 5),
-			BattleAgentFactory.Create(EBattleAgentKind.Ai));
-		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
-		{
-			[target.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.InTheFray]),
-		};
-		var battle = BattleTestFixture.BeginSimulation(
-			source,
-			target,
-			pilotsByActorId: pilots);
-		var hitFace = BodyFrame.From(target.State).HitFaceFrom(source.State.Position);
-		return (source, target, battle, hitFace);
 	}
 }

@@ -32,8 +32,8 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Ionized Payload",
 					$"Lightning weapons deal {PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent}% additional damage to shields."),
-				tier: 3,
-				minimumEarnedLevel: 4,
+				tier: 5,
+				minimumEarnedLevel: 6,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
 			[EPilotSkillId.DefensiveManeuvers] = new(
 				EPilotSkillId.DefensiveManeuvers,
@@ -49,9 +49,10 @@ public static class PilotSkillCatalog
 				[EPilotCapabilityId.AlliedDamageReduction],
 				new HudTooltipContent(
 					"In The Fray",
-					$"Take {100 - PilotSkillPercents.InTheFray.AlliedDamageTakenPercent}% less damage from allied units. Self-damage is unaffected."),
-				tier: 3,
-				minimumEarnedLevel: 4),
+					$"If at least {PilotSkillPercents.InTheFray.MinimumDistanceCells} km from at least {PilotSkillPercents.InTheFray.MinimumEnemyCount} enemies, take {100 - PilotSkillPercents.InTheFray.DamageTakenPercent}% less damage from hits."),
+				tier: 4,
+				minimumEarnedLevel: 5,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
 			[EPilotSkillId.DronesYearnForMines] = new(
 				EPilotSkillId.DronesYearnForMines,
 				[EPilotCapabilityId.ScrapRewardBonus],
