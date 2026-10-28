@@ -1,0 +1,17 @@
+STORY-V2 PER-BOUNDARY MEASUREMENT (3 x 2.0s dips, straight cuts elsewhere)
+duration = 89.97s (target ~90, 1.5x of the 62s plan; card section DROPPED - no added text)
+DIPS (each exactly 2.0s total = 120f, eased down+up, bottom near-black):
+  dip1 @ 12.75: floor=0.024 OK (<=0.10)  diplen 120/120f
+  dip2 @ 27.25: floor=0.024 OK (<=0.10)  diplen 120/120f
+  dip3 @ 56.25: floor=0.024 OK (<=0.10)  diplen 120/120f
+STRAIGHT CUTS: 42.75 (SNARE->WEB), 71.00 (RIPPER->STILLS), 77.00 (STILLS->UNPAID f3 console)
+per-boundary motion (mean |dluma| 160x90):
+  dip1 12.75: 0.23    dip2 27.25: 0.20    dip3 56.25: 0.29
+  cut 42.75: 1.52     cut 71.00: 0.74     cut 77.00: 2.58
+whole-file mean motion = 0.521 OK (law 0.5-3.0)
+loudness integrated = -14.00 LUFS (~-13.9 class, corrected -1.60dB)
+silence runs: 0 (single final-tail fade allowed; last 2s audio fades down to silence)
+WHY each dip is a chapter break:
+  dip1 12.75 - from being IN the fight to the contract that explains it: the job before, the why (THE CHART) after.
+  dip2 27.25 - Act I closes: the promise read, travel burned; Act II opens: the snare-field belt as one continuous breath.
+  dip3 56.25 - Act II closes: the web has been named (Industrial Ripper); Act III opens: the price - Ripper, stillness, unpaid plan.
