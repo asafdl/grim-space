@@ -30,9 +30,14 @@ uniform float bh_disc_squash : hint_range(0.33, 1.0) = 0.55;
 // >= 1/3 of the glow diameter (0.127 rad) — a broad soft band, never a knife line.
 uniform float bh_ring_thickness : hint_range(0.01, 0.8) = 0.105;
 uniform float bh_energy : hint_range(0.0, 4.0) = 1.55;
-uniform vec3 bh_hot_color : source_color = vec3(1.0, 0.93, 0.70);
-uniform vec3 bh_warm_color : source_color = vec3(1.0, 0.47, 0.16);
-uniform vec3 bh_outer_color : source_color = vec3(0.45, 0.12, 0.04);
+// SKYPASS V3 ITEM 4 — palette pinned to the over/under-arcs target crop
+// (D:/ops-work/bh-yt/rely-v2/target-overunder-arcs.png): fully saturated
+// deep orange/red — crest sRGB (254,152,53), mid band (209,50,2), outer
+// falloff (125,1,0). Deliberately NOT the washed amber of v2 and NOT the
+// NASA blue variant the user ruled out.
+uniform vec3 bh_hot_color : source_color = vec3(1.0, 0.45, 0.12);
+uniform vec3 bh_warm_color : source_color = vec3(0.88, 0.16, 0.005);
+uniform vec3 bh_outer_color : source_color = vec3(0.62, 0.0, 0.0);
 // One side of the ring brighter. In a direction-locked sky pass the doppler
 // side is pinned to the ring the way a real photograph pins it.
 uniform float bh_doppler_amount : hint_range(0.0, 1.5) = 1.5;
@@ -174,10 +179,15 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	float glow_env = 1.0 - smoothstep(bh_glow_radius * 0.97, bh_glow_radius, ang_e);
 	float brightness = bh_energy * glow_mask * glow_env * alive
 		* (0.55 + grain * bh_grain * 0.35)
-		* (ring_band * (0.85 + 1.25 * max(doppler - 1.0, 0.0)) + halo * 0.30 * doppler);
+		* (ring_band * (0.85 + 0.75 * max(doppler - 1.0, 0.0)) + halo * 0.30 * doppler);
 	vec3 ring_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.45, t));
+	// ITEM 4 — the outer falloff must land on the pure deep red the crop
+	// shows (sRGB 135,3,1 — no green), so the band colour itself is routed
+	// to bh_outer_color at high t (the huge band sigma would otherwise keep
+	// the warmer mix alive out to the glow edge and grey the falloff down).
+	ring_col = mix(ring_col, bh_outer_color, smoothstep(0.42, 0.58, t));
 	vec3 glow = ring_col * ring_band
-		+ mix(bh_warm_color * 0.7, bh_outer_color, smoothstep(0.15, 0.8, t)) * (halo * 0.8)
+		+ mix(bh_warm_color * 0.85, bh_outer_color, smoothstep(0.10, 0.55, t)) * (halo * 1.0)
 		+ bh_hot_color * halo * 0.25;
 
 	// ITEM 2 — lensed over/under arcs (Gargantua class). The far-side disc
@@ -206,7 +216,7 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// arcs live).
 	float arc_t = clamp((ang - bh_shadow_radius) / max(bh_glow_radius - bh_shadow_radius, 0.001), 0.0, 1.0);
 	float arc_energy = bh_energy * alive * (0.55 + grain * bh_grain * 0.35)
-		* (0.85 + 1.25 * max(doppler - 1.0, 0.0));
+		* (0.85 + 0.75 * max(doppler - 1.0, 0.0));
 	vec3 arc_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.7, arc_t));
 
 	return base * (1.0 - shadow) + glow * brightness + arc_col * (arc_light * arc_energy);
