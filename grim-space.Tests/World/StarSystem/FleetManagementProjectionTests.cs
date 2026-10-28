@@ -1,4 +1,5 @@
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using RunState = GrimSpace.Run.State;
 
@@ -49,5 +50,26 @@ public sealed class FleetManagementProjectionTests
 			&& ability.Stats.Select(stat => (stat.Label, stat.Value)).SequenceEqual(
 				[("BLAST DAMAGE", "100"), ("BLAST RADIUS", "3"), ("FUEL TURNS", "2"), ("COOLDOWN", "3")]));
 		Assert.Equal(pilot.Id, Assert.Single(view.Pilots).Id);
+		Assert.Equal(EOperatorClassId.SpaceRanger, pilot.ClassId);
+		Assert.Equal(EOperatorClassId.SpaceRanger, ship.ClassId);
+	}
+
+	[Fact]
+	public void Collect_ProjectsPilotAndShipClasses()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var fighterShipId = Assert.Single(run.GetFieldedShipIds());
+		var pilot = Assert.Single(run.PilotRegistry.All);
+		const string minerShipId = "projection-unclassified-miner";
+		Assert.True(run.TryAcquireOwnedShip(
+			new ShipSpawnDeclaration(minerShipId, EType.RepurposedMiner)));
+
+		var view = FleetManagementProjection.Collect(run);
+
+		var fighterShip = Assert.Single(view.Ships, ship => ship.Id == fighterShipId);
+		var minerShip = Assert.Single(view.Ships, ship => ship.Id == minerShipId);
+		Assert.Equal(EOperatorClassId.SpaceRanger, pilot.ClassId);
+		Assert.Equal(EOperatorClassId.SpaceRanger, fighterShip.ClassId);
+		Assert.Equal(EOperatorClassId.Unclassified, minerShip.ClassId);
 	}
 }

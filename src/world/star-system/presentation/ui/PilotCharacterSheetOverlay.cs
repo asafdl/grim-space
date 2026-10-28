@@ -17,6 +17,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
 	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
+	private const string SpaceRangerClassIconPath = "res://assets/ui/classes/space-ranger.png";
+	private const string IconBorderPath = "res://assets/ui/components/runtime/icon_border_blue.png";
 	private const string OptimalityEnforcerIconPath = "res://assets/ui/pilots/optimality-enforcer.png";
 	private const string CorporateSlaveIconPath = "res://assets/ui/pilots/corporate-slave.png";
 	private const string PodRacerIconPath = "res://assets/ui/pilots/pod-racer.png";
@@ -36,7 +38,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private static readonly Color LearnedColor = new(0.42f, 0.88f, 0.58f);
 	private static readonly Color LockedColor = new(0.32f, 0.38f, 0.46f);
 	private static readonly Color IdentityIconColor = HudStyles.TextColor(HudTextRole.Body);
-	private static readonly Color BackgroundBorderColor = LockedColor;
+	private static readonly Texture2D IconBorder = GD.Load<Texture2D>(IconBorderPath);
 	private static readonly Color PositiveQuirkColor = HudPalettes.Gold.Primary;
 	private static readonly Color NegativeQuirkColor = HudStyles.TextColor(HudTextRole.Danger);
 
@@ -142,8 +144,9 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		identityIcons.AddThemeConstantOverride("separation", 8);
 		identityIcons.AddChild(BuildIdentityIcon(
 			BackgroundIconPathFor(background.Id),
-			BackgroundBorderColor,
+			IdentityIconColor,
 			$"Background: {background.Name}\n{background.Description}"));
+		identityIcons.AddChild(BuildPilotClassIcon(pilot));
 		if (pilot.PositiveQuirkId is { } positiveQuirkId)
 		{
 			var positiveQuirk = PilotQuirkCatalog.Get(positiveQuirkId);
@@ -185,38 +188,52 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		return rail;
 	}
 
-	private static Button BuildIdentityIcon(string iconPath, Color borderColor, string tooltip)
+	private static Button BuildPilotClassIcon(Pilot pilot)
+	{
+		var iconPath = pilot.ClassId switch
+		{
+			GrimSpace.Units.Enums.EOperatorClassId.SpaceRanger => SpaceRangerClassIconPath,
+			_ => throw new ArgumentOutOfRangeException(nameof(pilot), pilot.ClassId, null),
+		};
+		return BuildIdentityIcon(iconPath, IdentityIconColor, $"Class: {pilot.ClassId.DisplayName()}");
+	}
+
+	private static Button BuildIdentityIcon(
+		string iconPath,
+		Color iconColor,
+		string? tooltip,
+		int size = IdentityIconSize,
+		int iconSize = 24)
 	{
 		var button = new Button
 		{
-			CustomMinimumSize = new Vector2(IdentityIconSize, IdentityIconSize),
-			Icon = SvgIconLoader.Load(iconPath, IdentityIconColor, 24),
+			CustomMinimumSize = new Vector2(size, size),
+			Icon = SvgIconLoader.Load(iconPath, iconColor, iconSize),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
 			FocusMode = FocusModeEnum.None,
 			MouseDefaultCursorShape = CursorShape.Arrow,
 		};
-		HudTooltipCard.SetTooltip(button, tooltip);
-		button.AddThemeStyleboxOverride("normal", IdentityIconStyle(borderColor, 0.08f, 2));
-		button.AddThemeStyleboxOverride("hover", IdentityIconStyle(borderColor, 0.16f, 3));
-		button.AddThemeStyleboxOverride("pressed", IdentityIconStyle(borderColor, 0.08f, 2));
+		if (!string.IsNullOrEmpty(tooltip))
+			HudTooltipCard.SetTooltip(button, tooltip);
+		ApplyIconBorder(button, 1f);
 		return button;
 	}
 
-	private static StyleBoxFlat IdentityIconStyle(Color color, float backgroundAlpha, int borderWidth) =>
+	private static void ApplyIconBorder(Button button, float brightness)
+	{
+		button.AddThemeStyleboxOverride("normal", IconBorderStyle(brightness));
+		button.AddThemeStyleboxOverride("hover", IconBorderStyle(brightness * 1.25f));
+		button.AddThemeStyleboxOverride("pressed", IconBorderStyle(brightness));
+		button.AddThemeStyleboxOverride("disabled", IconBorderStyle(brightness));
+	}
+
+	private static StyleBoxTexture IconBorderStyle(float brightness) =>
 		new()
 		{
-			BgColor = new Color(color.R, color.G, color.B, backgroundAlpha),
-			BorderColor = color,
-			BorderWidthLeft = borderWidth,
-			BorderWidthTop = borderWidth,
-			BorderWidthRight = borderWidth,
-			BorderWidthBottom = borderWidth,
-			CornerRadiusTopLeft = IdentityIconSize / 2,
-			CornerRadiusTopRight = IdentityIconSize / 2,
-			CornerRadiusBottomLeft = IdentityIconSize / 2,
-			CornerRadiusBottomRight = IdentityIconSize / 2,
+			Texture = IconBorder,
+			ModulateColor = new Color(brightness, brightness, brightness),
 		};
 
 	private Control BuildPilotCursor(int direction, bool visible)
@@ -396,7 +413,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		};
 		HudTooltipCard.SetTooltip(button, $"{definition.Name}\n{definition.Description}");
 		button.AddThemeColorOverride("icon_disabled_color", Colors.White);
-		ApplyCircleStyle(button, color, isLearned);
+		ApplyIconBorder(button, isLearned || canLearn ? 1f : 0.5f);
 		if (canLearn)
 			button.Pressed += () => SkillLearnRequested?.Invoke(pilot.Id, definition.Id);
 		return button;
@@ -433,28 +450,5 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			EPilotQuirkId.Charismatic => CharismaticIconPath,
 			EPilotQuirkId.NeuroDrugAddict => NeuroDrugAddictIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(quirkId), quirkId, null),
-		};
-
-	private static void ApplyCircleStyle(Button button, Color color, bool learned)
-	{
-		button.AddThemeStyleboxOverride("normal", CircleStyle(color, learned ? 0.28f : 0.12f, 2));
-		button.AddThemeStyleboxOverride("hover", CircleStyle(color, 0.22f, 3));
-		button.AddThemeStyleboxOverride("pressed", CircleStyle(color, 0.34f, 3));
-		button.AddThemeStyleboxOverride("disabled", CircleStyle(color, learned ? 0.24f : 0.08f, 2));
-	}
-
-	private static StyleBoxFlat CircleStyle(Color color, float backgroundAlpha, int borderWidth) =>
-		new()
-		{
-			BgColor = new Color(color.R, color.G, color.B, backgroundAlpha),
-			BorderColor = color,
-			BorderWidthLeft = borderWidth,
-			BorderWidthTop = borderWidth,
-			BorderWidthRight = borderWidth,
-			BorderWidthBottom = borderWidth,
-			CornerRadiusTopLeft = SkillNodeSize / 2,
-			CornerRadiusTopRight = SkillNodeSize / 2,
-			CornerRadiusBottomLeft = SkillNodeSize / 2,
-			CornerRadiusBottomRight = SkillNodeSize / 2,
 		};
 }

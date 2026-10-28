@@ -1,6 +1,9 @@
 using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
+using GrimSpace.Run.Items;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.PilotCapabilities;
 
 namespace GrimSpace.Tests.Run;
@@ -93,7 +96,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
 				PositiveQuirkId = null,
 				NegativeQuirkId = null,
-				IsActive = true,
+				IsActive = false,
 			});
 		var inactivePilot = Pilot.FromPersistence(
 			Pilot.CreateForShip("fighter-inactive").ToPersistence() with
@@ -105,6 +108,11 @@ public sealed class PilotRegistryCapabilityQueryTests
 			});
 		registry.Register(activePilot);
 		registry.Register(inactivePilot);
+		var inventory = new Inventory();
+		inventory.Register(
+			ShipInstance.FromCatalog("fighter-active", EType.Fighter),
+			State.PlayerFleetUnitId);
+		registry.Activate(activePilot.Id, inventory, State.PlayerFleetUnitId);
 
 		var grants = registry.QueryCapabilitiesForActive(BattlePilotCapabilityPipelineFactory.Supports);
 

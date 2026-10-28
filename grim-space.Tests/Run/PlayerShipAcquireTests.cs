@@ -39,8 +39,8 @@ public sealed class PlayerShipAcquireTests
 	public void TryEnlistPlayerShip_SyncsWorldFleetMembersToFieldedShips()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var secondId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
+		var secondId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
 
 		var worldFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(run.GetFieldedShipIds(), worldFleet.Members.Select(member => member.Id).ToArray());
@@ -55,12 +55,12 @@ public sealed class PlayerShipAcquireTests
 		using var run = RunState.CreateNewRun(42);
 		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
 		{
-			var shipId = TypedIdGenerator.NextId("gunship");
-			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Gunship)));
+			var shipId = TypedIdGenerator.NextId("fighter");
+			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)));
 		}
 
-		var blockedId = TypedIdGenerator.NextId("gunship");
-		Assert.False(run.CanAcquirePlayerShip(new ShipSpawnDeclaration(blockedId, BattleUnitType.Gunship)));
+		var blockedId = TypedIdGenerator.NextId("fighter");
+		Assert.False(run.CanAcquirePlayerShip(new ShipSpawnDeclaration(blockedId, BattleUnitType.Fighter)));
 	}
 
 	[Fact]
@@ -72,6 +72,24 @@ public sealed class PlayerShipAcquireTests
 
 		Assert.True(run.TryAcquireOwnedShip(declaration));
 		Assert.True(run.ItemInventory.TryGet(declaration.ShipId, out _));
+		Assert.Equal(pilotCountBefore, run.PilotRegistry.All.Count);
+		Assert.False(run.PilotRegistry.TryGetForShip(declaration.ShipId, out _));
+	}
+
+	[Fact]
+	public void TryAcquirePlayerShip_UnclassifiedChassisRemainsOwnedReserve()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var declaration = new ShipSpawnDeclaration(
+			"repurposed-miner-reserve",
+			BattleUnitType.RepurposedMiner);
+		var pilotCountBefore = run.PilotRegistry.All.Count;
+		var fieldedBefore = run.GetFieldedShipIds().ToArray();
+
+		Assert.True(run.TryAcquirePlayerShip(declaration));
+
+		Assert.True(run.ItemInventory.IsOwnedBy(declaration.ShipId, RunState.PlayerFleetUnitId));
+		Assert.Equal(fieldedBefore, run.GetFieldedShipIds());
 		Assert.Equal(pilotCountBefore, run.PilotRegistry.All.Count);
 		Assert.False(run.PilotRegistry.TryGetForShip(declaration.ShipId, out _));
 	}
@@ -98,8 +116,8 @@ public sealed class PlayerShipAcquireTests
 		MerchantCatalogTestBands.SetBand(run.StarSystem.Map, EMerchantAvailabilityBand.T1);
 		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
 		{
-			var shipId = TypedIdGenerator.NextId("gunship");
-			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Gunship)));
+			var shipId = TypedIdGenerator.NextId("fighter");
+			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)));
 		}
 
 		var offer = run.StarSystem.Map.Market.ListRecruitmentOffers(EMerchantAvailabilityBand.T1).First();

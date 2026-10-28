@@ -3,6 +3,7 @@ using GrimSpace.Core.Ids;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
 using GrimSpace.World.StarSystem.Economy;
+using GrimSpace.Units.Enums;
 using UniqueNameGenerator;
 
 namespace GrimSpace.Run;
@@ -35,6 +36,7 @@ public sealed class Pilot
 	public string Name { get; }
 	public string PortraitId { get; }
 	public EPilotBackgroundId BackgroundId { get; }
+	public EOperatorClassId ClassId { get; }
 	public EPilotQuirkId? PositiveQuirkId { get; }
 	public EPilotQuirkId? NegativeQuirkId { get; }
 	public string? AssignedShipId { get; }
@@ -51,6 +53,7 @@ public sealed class Pilot
 		string name,
 		string portraitId,
 		EPilotBackgroundId backgroundId,
+		EOperatorClassId classId,
 		EPilotQuirkId? positiveQuirkId,
 		EPilotQuirkId? negativeQuirkId,
 		string? assignedShipId,
@@ -72,11 +75,13 @@ public sealed class Pilot
 		ArgumentOutOfRangeException.ThrowIfNegative(missedSalaryPeriods);
 		ArgumentOutOfRangeException.ThrowIfNegative(missedHazardPeriods);
 		ValidateIdentity(backgroundId, positiveQuirkId, negativeQuirkId);
+		ValidateClassId(classId);
 
 		Id = id;
 		Name = name;
 		PortraitId = portraitId;
 		BackgroundId = backgroundId;
+		ClassId = classId;
 		PositiveQuirkId = positiveQuirkId;
 		NegativeQuirkId = negativeQuirkId;
 		AssignedShipId = assignedShipId;
@@ -114,6 +119,7 @@ public sealed class Pilot
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			PilotBackgroundCatalog.Roll(rng).Id,
+			EOperatorClassId.SpaceRanger,
 			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng),
 			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng),
 			assignedShipId,
@@ -126,9 +132,10 @@ public sealed class Pilot
 			0);
 	}
 
-	public static Pilot FromRecruitProfile(string assignedShipId, PilotRecruitProfile profile)
+	public static Pilot FromRecruitProfile(string? assignedShipId, PilotRecruitProfile profile)
 	{
-		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
+		if (assignedShipId is not null)
+			ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
 		ArgumentNullException.ThrowIfNull(profile);
 
 		return new Pilot(
@@ -136,6 +143,7 @@ public sealed class Pilot
 			profile.Name,
 			profile.PortraitId,
 			profile.BackgroundId,
+			profile.ClassId,
 			profile.PositiveQuirkId,
 			profile.NegativeQuirkId,
 			assignedShipId,
@@ -157,6 +165,7 @@ public sealed class Pilot
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			EPilotBackgroundId.ScrapDrone,
+			EOperatorClassId.SpaceRanger,
 			EPilotQuirkId.Charismatic,
 			EPilotQuirkId.NeuroDrugAddict,
 			assignedShipId,
@@ -178,6 +187,7 @@ public sealed class Pilot
 			Name,
 			PortraitId,
 			BackgroundId,
+			ClassId,
 			PositiveQuirkId,
 			NegativeQuirkId,
 			assignedShipId,
@@ -231,6 +241,7 @@ public sealed class Pilot
 			dto.Name,
 			dto.PortraitId,
 			dto.BackgroundId,
+			dto.ClassId,
 			dto.PositiveQuirkId,
 			dto.NegativeQuirkId,
 			dto.AssignedShipId,
@@ -259,7 +270,8 @@ public sealed class Pilot
 			IsActive ? activeOrder : -1,
 			BaseSalaryCredits,
 			MissedSalaryPeriods,
-			MissedHazardPeriods);
+			MissedHazardPeriods,
+			ClassId);
 
 	private Pilot Copy(
 		bool? isActive = null,
@@ -273,6 +285,7 @@ public sealed class Pilot
 			Name,
 			PortraitId,
 			BackgroundId,
+			ClassId,
 			PositiveQuirkId,
 			NegativeQuirkId,
 			AssignedShipId,
@@ -308,5 +321,12 @@ public sealed class Pilot
 					$"Pilot negative quirk '{negative}' has polarity '{negativeQuirk.Polarity}'.",
 					nameof(negativeQuirkId));
 		}
+	}
+
+	private static void ValidateClassId(EOperatorClassId classId)
+	{
+		if (!Enum.IsDefined(classId) || classId == EOperatorClassId.Unclassified)
+			throw new InvalidDataException(
+				$"Pilot class '{classId}' is not a valid pilot qualification.");
 	}
 }

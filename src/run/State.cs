@@ -347,18 +347,62 @@ public sealed class State : IDisposable
 		return true;
 	}
 
-	public bool TryAssignPilotToShip(string pilotId, string shipId)
+	public bool TryAssignPilotToShip(string pilotId, string shipId) =>
+		TryAssignPilotToShip(pilotId, shipId, out _);
+
+	private EPilotAssignmentFailureReason GetPilotAssignmentFailureReason(
+		string pilotId,
+		string shipId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);
 		ArgumentException.ThrowIfNullOrEmpty(shipId);
-		if (ActiveBattle is not null
-			|| !PilotRegistry.TryGet(pilotId, out var pilot)
-			|| !ItemInventory.IsOwnedBy(shipId, PlayerFleetUnitId))
+		if (ActiveBattle is not null)
+			return EPilotAssignmentFailureReason.BattleLocked;
+		if (!PilotRegistry.TryGet(pilotId, out var pilot))
+			return EPilotAssignmentFailureReason.PilotNotFound;
+		if (!ItemInventory.IsOwnedBy(shipId, PlayerFleetUnitId))
+			return EPilotAssignmentFailureReason.ShipNotOwned;
+		if (!OperatorClassCompatibility.CanOperate(
+			pilot.ClassId,
+			ItemInventory.Get(shipId).Spec.ClassId))
+			return EPilotAssignmentFailureReason.IncompatibleClass;
+		if (!string.IsNullOrEmpty(pilot.AssignedShipId)
+			&& !ItemInventory.IsOwnedBy(pilot.AssignedShipId, PlayerFleetUnitId))
+			return EPilotAssignmentFailureReason.ShipNotOwned;
+		if (PilotRegistry.TryGetForShip(shipId, out var occupant)
+			&& occupant.Id != pilotId
+			&& !string.IsNullOrEmpty(pilot.AssignedShipId)
+			&& !OperatorClassCompatibility.CanOperate(
+				occupant.ClassId,
+				ItemInventory.Get(pilot.AssignedShipId).Spec.ClassId))
+			return EPilotAssignmentFailureReason.IncompatibleClass;
+
+		return EPilotAssignmentFailureReason.None;
+	}
+
+	public bool TryAssignPilotToShip(
+		string pilotId,
+		string shipId,
+		out EPilotAssignmentFailureReason failureReason)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		ArgumentException.ThrowIfNullOrEmpty(shipId);
+		failureReason = GetPilotAssignmentFailureReason(pilotId, shipId);
+		if (failureReason != EPilotAssignmentFailureReason.None)
 			return false;
+		if (!PilotRegistry.TryGet(pilotId, out var pilot))
+		{
+			failureReason = EPilotAssignmentFailureReason.PilotNotFound;
+			return false;
+		}
 		if (string.Equals(pilot.AssignedShipId, shipId, StringComparison.Ordinal))
 			return true;
 
-		PilotRegistry.AssignPilotToShip(pilotId, shipId);
+		PilotRegistry.AssignPilotToShip(
+			pilotId,
+			shipId,
+			ItemInventory,
+			PlayerFleetUnitId);
 		RefreshStrategicFleetProjection();
 		RefreshStrategicPilotCapabilities();
 		PlayerFleetSelection.EnsureSelectedMember(
@@ -598,9 +642,14 @@ public sealed class State : IDisposable
 			return false;
 
 		ItemInventory.Register(declaration, PlayerFleetUnitId);
-		var pilot = Pilot.FromRecruitProfile(declaration.ShipId, hire.Profile);
+		var shipClass = ShipCatalog.SpecFor(declaration.Chassis).ClassId;
+		var assignedShipId = OperatorClassCompatibility.CanOperate(hire.Profile.ClassId, shipClass)
+			? declaration.ShipId
+			: null;
+		var pilot = Pilot.FromRecruitProfile(assignedShipId, hire.Profile);
 		PilotRegistry.Register(pilot);
-		if (PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
+		if (assignedShipId is not null
+			&& PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
 		{
 			PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);
 			RefreshStrategicFleetProjection();
@@ -627,6 +676,11 @@ public sealed class State : IDisposable
 		bool createStarterPilot)
 	{
 		ItemInventory.Register(declaration, PlayerFleetUnitId);
+		if (!OperatorClassCompatibility.CanOperate(
+			EOperatorClassId.SpaceRanger,
+			ShipCatalog.SpecFor(declaration.Chassis).ClassId))
+			return;
+
 		var pilot = createStarterPilot
 			? Pilot.CreateStarterForShip(declaration.ShipId)
 			: Pilot.CreateForShip(declaration.ShipId);
@@ -1022,16 +1076,25 @@ public sealed class State : IDisposable
 			if (!assignedShips.Add(pilot.AssignedShipId))
 				throw new InvalidDataException(
 					$"Ship '{pilot.AssignedShipId}' is assigned to multiple pilots.");
+
+			if (!ItemInventory.TryGet(pilot.AssignedShipId, out var ship))
+				throw new InvalidDataException(
+					$"Pilot '{pilot.Id}' is assigned to missing ship '{pilot.AssignedShipId}'.");
+
+			if (!ItemInventory.IsPlayerOwned(pilot.AssignedShipId))
+				throw new InvalidDataException(
+					$"Pilot '{pilot.Id}' is assigned to non-player ship '{pilot.AssignedShipId}'.");
+
+			if (!OperatorClassCompatibility.CanOperate(pilot.ClassId, ship.Spec.ClassId))
+				throw new InvalidDataException(
+					$"Pilot '{pilot.Id}' with class '{pilot.ClassId}' cannot operate ship "
+					+ $"'{pilot.AssignedShipId}' with class '{ship.Spec.ClassId}'.");
 		}
 
 		foreach (var pilot in PilotRegistry.Active)
 		{
 			if (string.IsNullOrEmpty(pilot.AssignedShipId))
 				throw new InvalidDataException($"Active pilot '{pilot.Id}' has no assigned ship.");
-
-			if (!ItemInventory.TryGet(pilot.AssignedShipId, out _))
-				throw new InvalidDataException(
-					$"Active pilot '{pilot.Id}' is assigned to missing ship '{pilot.AssignedShipId}'.");
 
 			if (!ItemInventory.IsPlayerOwned(pilot.AssignedShipId))
 				throw new InvalidDataException(

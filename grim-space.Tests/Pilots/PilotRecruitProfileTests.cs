@@ -1,4 +1,5 @@
 using GrimSpace.Pilots;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Pilots;
 
@@ -15,6 +16,18 @@ public sealed class PilotRecruitProfileTests
 
 		Assert.Null(profile.PositiveQuirkId);
 		Assert.Null(profile.NegativeQuirkId);
+		Assert.Equal(EOperatorClassId.SpaceRanger, profile.ClassId);
+	}
+
+	[Fact]
+	public void Constructor_RejectsUnclassifiedPilot()
+	{
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+			new PilotRecruitProfile(
+				"Unclassified",
+				"pilot_01",
+				EPilotBackgroundId.ScrapDrone,
+				classId: EOperatorClassId.Unclassified));
 	}
 
 	[Fact]

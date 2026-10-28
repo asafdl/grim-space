@@ -38,8 +38,8 @@ public sealed class PlayerPartyMultiShipTests
 	public void Snapshot_RestoresSelectedFleetMember()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var secondId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
+		var secondId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
 		Assert.True(SelectActiveShip(run, secondId));
 
 		var registry = PersistenceRegistry.CreateDefault();
@@ -56,8 +56,8 @@ public sealed class PlayerPartyMultiShipTests
 	{
 		using var run = RunState.CreateNewRun(42);
 		var first = run.GetFieldedShipIds()[0];
-		var secondId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
+		var secondId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
 		Assert.True(SelectActiveShip(run, secondId));
 
 		var encounter = new BattleEncounter
@@ -104,8 +104,8 @@ public sealed class PlayerPartyMultiShipTests
 	{
 		using var run = RunState.CreateNewRun(42);
 		var first = run.GetFieldedShipIds()[0];
-		var secondId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
+		var secondId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
 		Assert.True(SelectActiveShip(run, secondId));
 
 		var selected = run.ItemInventory.Get(secondId);
@@ -172,8 +172,8 @@ public sealed class PlayerPartyMultiShipTests
 	public void EngagementFactory_SpawnsEveryPartyShipInPlayerFleet()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var secondId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
+		var secondId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
 
 		var enemyFleet = CreateEnemyFleet(run);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);

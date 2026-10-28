@@ -1,4 +1,5 @@
 using GrimSpace.Pilots;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Run.Persistence;
 
@@ -17,4 +18,5 @@ public sealed record PilotPersistenceDto(
 	int ActiveOrder = -1,
 	int BaseSalaryCredits = 0,
 	int MissedSalaryPeriods = 0,
-	int MissedHazardPeriods = 0);
+	int MissedHazardPeriods = 0,
+	EOperatorClassId ClassId = EOperatorClassId.Unclassified);

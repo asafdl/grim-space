@@ -1,6 +1,7 @@
 using GrimSpace.Pilots;
 using GrimSpace.Run.Items;
 using GrimSpace.Run.Persistence;
+using GrimSpace.Units;
 
 namespace GrimSpace.Run;
 
@@ -35,7 +36,7 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		_activePilotIds.Clear();
 		var restored = pilots.ToArray();
 		foreach (var dto in restored)
-			Register(Pilot.FromPersistence(dto));
+			RegisterCore(Pilot.FromPersistence(dto));
 
 		foreach (var dto in restored
 			.Where(candidate => candidate.IsActive)
@@ -51,6 +52,14 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 	public void Register(Pilot pilot)
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
+		if (pilot.IsActive)
+			throw new InvalidOperationException("A pilot must be activated through the roster.");
+
+		RegisterCore(pilot);
+	}
+
+	private void RegisterCore(Pilot pilot)
+	{
 		if (_pilotsById.ContainsKey(pilot.Id))
 			return;
 
@@ -62,6 +71,14 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		ArgumentNullException.ThrowIfNull(pilot);
 		if (!_pilotsById.ContainsKey(pilot.Id))
 			throw new KeyNotFoundException($"Pilot '{pilot.Id}' is not registered.");
+		var current = _pilotsById[pilot.Id];
+		if (pilot.IsActive != current.IsActive
+			|| !string.Equals(
+				pilot.AssignedShipId,
+				current.AssignedShipId,
+				StringComparison.Ordinal))
+			throw new InvalidOperationException(
+				"Pilot activation and ship assignment must use roster operations.");
 
 		_pilotsById[pilot.Id] = pilot;
 	}
@@ -83,8 +100,14 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		if (!itemInventory.IsOwnedBy(pilot.AssignedShipId, playerFleetUnitId))
 			throw new InvalidOperationException(
 				$"Pilot '{pilotId}' is assigned to ship '{pilot.AssignedShipId}' that is not player-owned.");
+		EnsureAssignmentCompatible(
+			pilot,
+			pilot.AssignedShipId,
+			isActive: true,
+			itemInventory,
+			playerFleetUnitId);
 
-		Update(pilot.WithActive(true));
+		Replace(pilot.WithActive(true));
 		_activePilotIds.Add(pilotId);
 	}
 
@@ -96,7 +119,7 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 			return;
 
 		_activePilotIds.Remove(pilotId);
-		Update(pilot.WithActive(false));
+		Replace(pilot.WithActive(false));
 	}
 
 	public void AssignShip(
@@ -116,7 +139,8 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 			throw new InvalidOperationException($"Ship '{shipId}' is already assigned to pilot '{occupant.Id}'.");
 
 		var pilot = GetRequired(pilotId);
-		Update(pilot.WithAssignment(shipId, pilot.IsActive));
+		EnsureAssignmentCompatible(pilot, shipId, pilot.IsActive, itemInventory, playerFleetUnitId);
+		Replace(pilot.WithAssignment(shipId, pilot.IsActive));
 	}
 
 	public void Unassign(string pilotId)
@@ -126,37 +150,77 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		if (pilot.IsActive)
 			Deactivate(pilotId);
 
-		Update(pilot.WithAssignment(null, false));
+		Replace(pilot.WithAssignment(null, false));
 	}
 
-	public void SwapAssignments(string pilotIdA, string pilotIdB)
+	public void SwapAssignments(
+		string pilotIdA,
+		string pilotIdB,
+		Inventory itemInventory,
+		string playerFleetUnitId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotIdA);
 		ArgumentException.ThrowIfNullOrEmpty(pilotIdB);
+		ArgumentNullException.ThrowIfNull(itemInventory);
+		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
 		var pilotA = GetRequired(pilotIdA);
 		var pilotB = GetRequired(pilotIdB);
 		var shipA = pilotA.AssignedShipId;
 		var shipB = pilotB.AssignedShipId;
-		Update(pilotA.WithAssignment(shipB, pilotA.IsActive));
-		Update(pilotB.WithAssignment(shipA, pilotB.IsActive));
+		EnsureAssignmentCompatible(pilotA, shipB, pilotA.IsActive, itemInventory, playerFleetUnitId);
+		EnsureAssignmentCompatible(pilotB, shipA, pilotB.IsActive, itemInventory, playerFleetUnitId);
+		Replace(pilotA.WithAssignment(shipB, pilotA.IsActive));
+		Replace(pilotB.WithAssignment(shipA, pilotB.IsActive));
 	}
 
-	internal void AssignPilotToShip(string pilotId, string shipId)
+	internal void AssignPilotToShip(
+		string pilotId,
+		string shipId,
+		Inventory itemInventory,
+		string playerFleetUnitId)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);
 		ArgumentException.ThrowIfNullOrEmpty(shipId);
+		ArgumentNullException.ThrowIfNull(itemInventory);
+		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
 		var pilot = GetRequired(pilotId);
-		if (string.Equals(pilot.AssignedShipId, shipId, StringComparison.Ordinal))
-			return;
-
 		var hasOccupant = TryGetForShip(shipId, out var occupant);
+		if (hasOccupant && occupant.Id == pilotId)
+		{
+			EnsureAssignmentCompatible(
+				pilot,
+				shipId,
+				pilot.IsActive,
+				itemInventory,
+				playerFleetUnitId);
+			return;
+		}
+
 		var pilotActiveIndex = _activePilotIds.IndexOf(pilot.Id);
 		var occupantActiveIndex = hasOccupant ? _activePilotIds.IndexOf(occupant.Id) : -1;
 		var pilotShipId = pilot.AssignedShipId;
+		var pilotIsActiveAfter = occupantActiveIndex >= 0;
+		var occupantIsActiveAfter = pilotActiveIndex >= 0;
 
-		Update(pilot.WithAssignment(shipId, occupantActiveIndex >= 0));
+		if (!itemInventory.IsOwnedBy(shipId, playerFleetUnitId))
+			throw new InvalidOperationException($"Ship '{shipId}' is not owned by '{playerFleetUnitId}'.");
+		EnsureAssignmentCompatible(
+			pilot,
+			shipId,
+			pilotIsActiveAfter,
+			itemInventory,
+			playerFleetUnitId);
 		if (hasOccupant)
-			Update(occupant.WithAssignment(pilotShipId, pilotActiveIndex >= 0));
+			EnsureAssignmentCompatible(
+				occupant,
+				pilotShipId,
+				occupantIsActiveAfter,
+				itemInventory,
+				playerFleetUnitId);
+
+		Replace(pilot.WithAssignment(shipId, pilotIsActiveAfter));
+		if (hasOccupant)
+			Replace(occupant.WithAssignment(pilotShipId, occupantIsActiveAfter));
 
 		if (pilotActiveIndex >= 0)
 		{
@@ -269,4 +333,31 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		TryGet(pilotId, out var pilot)
 			? pilot
 			: throw new KeyNotFoundException($"Pilot '{pilotId}' is not registered.");
+
+	private void Replace(Pilot pilot) =>
+		_pilotsById[pilot.Id] = pilot;
+
+	private static void EnsureAssignmentCompatible(
+		Pilot pilot,
+		string? shipId,
+		bool isActive,
+		Inventory itemInventory,
+		string playerFleetUnitId)
+	{
+		if (string.IsNullOrEmpty(shipId))
+		{
+			if (isActive)
+				throw new InvalidOperationException($"Active pilot '{pilot.Id}' must have an assigned ship.");
+			return;
+		}
+
+		if (!itemInventory.IsOwnedBy(shipId, playerFleetUnitId))
+			throw new InvalidOperationException(
+				$"Pilot '{pilot.Id}' is assigned to ship '{shipId}' that is not player-owned.");
+
+		var shipClass = itemInventory.Get(shipId).Spec.ClassId;
+		if (!OperatorClassCompatibility.CanOperate(pilot.ClassId, shipClass))
+			throw new InvalidOperationException(
+				$"Pilot '{pilot.Id}' with class '{pilot.ClassId}' cannot operate ship '{shipId}' with class '{shipClass}'.");
+	}
 }

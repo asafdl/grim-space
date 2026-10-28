@@ -83,8 +83,8 @@ public sealed class BattleSpawnPilotTests
 	public void MultiShipEngagement_EachPlayerSpawnGetsDistinctPilotSnapshot()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var secondId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Gunship)));
+		var secondId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);

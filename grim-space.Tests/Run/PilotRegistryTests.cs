@@ -41,8 +41,8 @@ public sealed class PilotRegistryTests
 	{
 		using var run = State.CreateNewRun(42);
 		var firstShipId = run.GetFieldedShipIds()[0];
-		var secondShipId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Gunship)));
+		var secondShipId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Fighter)));
 
 		Assert.Equal([firstShipId, secondShipId], run.GetFieldedShipIds());
 		Assert.True(run.PilotRegistry.TryGetForShip(firstShipId, out var firstPilot));
@@ -55,8 +55,8 @@ public sealed class PilotRegistryTests
 	{
 		using var run = State.CreateNewRun(42);
 		var firstShipId = run.GetFieldedShipIds()[0];
-		var secondShipId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Gunship)));
+		var secondShipId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Fighter)));
 		Assert.True(run.PilotRegistry.TryGetForShip(firstShipId, out var firstPilot));
 		Assert.True(run.PilotRegistry.TryGetForShip(secondShipId, out var secondPilot));
 
@@ -106,6 +106,112 @@ public sealed class PilotRegistryTests
 
 		Assert.False(run.TryAssignPilotToShip("missing-pilot", pilot.AssignedShipId!));
 		Assert.False(run.TryAssignPilotToShip(pilot.Id, "missing-ship"));
+		Assert.False(run.TryAssignPilotToShip(
+			"missing-pilot",
+			pilot.AssignedShipId!,
+			out var missingPilotReason));
+		Assert.Equal(EPilotAssignmentFailureReason.PilotNotFound, missingPilotReason);
+		Assert.False(run.TryAssignPilotToShip(
+			pilot.Id,
+			"missing-ship",
+			out var unownedShipReason));
+		Assert.Equal(EPilotAssignmentFailureReason.ShipNotOwned, unownedShipReason);
+	}
+
+	[Fact]
+	public void TryAssignPilotToShip_RejectsUnclassifiedShipWithoutChangingRoster()
+	{
+		using var run = State.CreateNewRun(42);
+		var pilot = Assert.Single(run.PilotRegistry.Active);
+		var shipId = "unclassified-reserve";
+		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration(shipId, BattleUnitType.RepurposedMiner)));
+		var fieldedBefore = run.GetFieldedShipIds().ToArray();
+		var activeBefore = run.PilotRegistry.Active.ToArray();
+
+		Assert.False(run.TryAssignPilotToShip(
+			pilot.Id,
+			shipId,
+			out var failureReason));
+
+		Assert.Equal(EPilotAssignmentFailureReason.IncompatibleClass, failureReason);
+		Assert.Equal(fieldedBefore, run.GetFieldedShipIds());
+		Assert.Equal(activeBefore, run.PilotRegistry.Active);
+		Assert.Equal(run.ItemInventory.Get(shipId).Id, shipId);
+		Assert.Equal(run.ItemInventory.Get(fieldedBefore[0]).Id, pilot.AssignedShipId);
+	}
+
+	[Fact]
+	public void TryAssignPilotToShip_RejectsSwapWhenEitherResultingPairingIsIncompatible()
+	{
+		using var run = State.CreateNewRun(42);
+		var fighterShipId = run.GetFieldedShipIds()[0];
+		var minerShipId = "unclassified-swap";
+		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration(minerShipId, BattleUnitType.RepurposedMiner)));
+		var pilot = Assert.Single(run.PilotRegistry.Active);
+		var reservePilot = Pilot.CreateForShip("reserve-id");
+		run.PilotRegistry.Register(reservePilot);
+		run.PilotRegistry.Unassign(reservePilot.Id);
+		var assignmentsBefore = run.PilotRegistry.All
+			.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
+			.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+			.ToArray();
+
+		Assert.False(run.TryAssignPilotToShip(pilot.Id, minerShipId));
+		Assert.Equal(
+			assignmentsBefore,
+			run.PilotRegistry.All
+				.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
+				.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+				.ToArray());
+		Assert.Equal(fighterShipId, pilot.AssignedShipId);
+	}
+
+	[Fact]
+	public void RegistryDirectAssignmentAndActivationRejectIncompatibleShip()
+	{
+		var registry = new RunPilotRegistry();
+		var inventory = new GrimSpace.Run.Items.Inventory();
+		const string playerFleet = State.PlayerFleetUnitId;
+		var pilot = Pilot.CreateForShip("unclassified-ship");
+		inventory.Register(
+			ShipInstance.FromCatalog("unclassified-ship", EType.RepurposedMiner),
+			playerFleet);
+		registry.Register(pilot);
+
+		Assert.Throws<InvalidOperationException>(() =>
+			registry.Activate(pilot.Id, inventory, playerFleet));
+		Assert.Throws<InvalidOperationException>(() =>
+			registry.AssignShip(pilot.Id, "unclassified-ship", inventory, playerFleet));
+		Assert.Empty(registry.Active);
+		Assert.True(registry.TryGet(pilot.Id, out var unchanged));
+		Assert.False(unchanged.IsActive);
+	}
+
+	[Fact]
+	public void RegistrySwapAssignmentsValidatesBothPairingsBeforeMutation()
+	{
+		var registry = new RunPilotRegistry();
+		var inventory = new GrimSpace.Run.Items.Inventory();
+		const string playerFleet = State.PlayerFleetUnitId;
+		inventory.Register(ShipInstance.FromCatalog("fighter-swap", EType.Fighter), playerFleet);
+		inventory.Register(ShipInstance.FromCatalog("miner-swap", EType.RepurposedMiner), playerFleet);
+		var fighterPilot = Pilot.CreateStarterForShip("fighter-swap");
+		var minerPilot = Pilot.CreateForShip("miner-swap");
+		registry.Register(fighterPilot);
+		registry.Register(minerPilot);
+		var before = registry.All
+			.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
+			.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+			.ToArray();
+
+		Assert.Throws<InvalidOperationException>(() =>
+			registry.SwapAssignments(fighterPilot.Id, minerPilot.Id, inventory, playerFleet));
+		Assert.Equal(
+			before,
+			registry.All
+				.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
+				.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+				.ToArray());
 	}
 
 	[Fact]
@@ -164,8 +270,8 @@ public sealed class PilotRegistryTests
 	public void Snapshot_RoundTripsPartyPilotsAndAssignments()
 	{
 		using var run = State.CreateNewRun(42);
-		var secondShipId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Gunship)));
+		var secondShipId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Fighter)));
 		var registry = PersistenceRegistry.CreateDefault();
 
 		var snapshot = run.CaptureSnapshot(registry);
@@ -241,8 +347,8 @@ public sealed class PilotRegistryTests
 	public void RegenerateMap_PreservesPartyAndPilots()
 	{
 		using var run = State.CreateNewRun(42);
-		var secondShipId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Gunship)));
+		var secondShipId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Fighter)));
 		var pilotsBefore = run.GetFieldedShipIds()
 			.Select(shipId =>
 			{
@@ -282,6 +388,26 @@ public sealed class PilotRegistryTests
 		};
 
 		Assert.Throws<InvalidDataException>(() => State.FromSnapshot(snapshot, registry));
+	}
+
+	[Fact]
+	public void FromSnapshot_RejectsIncompatiblePilotShipPairing()
+	{
+		using var run = State.CreateNewRun(42);
+		var minerId = "restored-unclassified-ship";
+		Assert.True(run.TryAcquireOwnedShip(
+			new ShipSpawnDeclaration(minerId, BattleUnitType.RepurposedMiner)));
+		var registry = PersistenceRegistry.CreateDefault();
+		var pilot = Assert.Single(run.PilotRegistry.CaptureSnapshot());
+		var snapshot = run.CaptureSnapshot(registry) with
+		{
+			Pilots = [pilot with { AssignedShipId = minerId }],
+		};
+
+		var exception = Assert.Throws<InvalidDataException>(() =>
+			State.FromSnapshot(snapshot, registry));
+
+		Assert.Contains("cannot operate ship", exception.Message, StringComparison.Ordinal);
 	}
 
 	[Fact]

@@ -109,7 +109,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		using var orchestrator = CreateAwaitingDecisionScenario();
 		var map = orchestrator.Map;
 		map.PilotRegistry = new RunPilotRegistry();
-		var active = Pilot.CreateForShip("active", new Random(1)).WithAssignment("active", true);
+		var active = Pilot.CreateForShip("active", new Random(1));
 		var inactive = Pilot.CreateForShip("inactive", new Random(2)).WithExperience(100);
 		var unassigned = Pilot.CreateForShip("unassigned", new Random(3))
 			.WithExperience(250)

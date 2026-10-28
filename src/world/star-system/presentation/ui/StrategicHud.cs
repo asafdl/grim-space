@@ -6,6 +6,7 @@ using GrimSpace.Pilots;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Run;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Effects;
@@ -203,10 +204,7 @@ public partial class StrategicHud : CanvasLayer
 
 	private void OnPilotAssignmentRequested(string pilotId, string shipId)
 	{
-		if (Session.Instance.Run.TryAssignPilotToShip(pilotId, shipId))
-			return;
-
-		GD.PushWarning($"Unable to assign pilot '{pilotId}' to ship '{shipId}'.");
+		Session.Instance.Run.TryAssignPilotToShip(pilotId, shipId);
 	}
 
 	private bool TryOpenPilotSheet(string pilotId)

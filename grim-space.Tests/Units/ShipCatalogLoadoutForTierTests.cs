@@ -44,6 +44,24 @@ public sealed class ShipCatalogLoadoutForTierTests
 		AssertLoadoutEquivalent(expected, t0);
 	}
 
+	[Fact]
+	public void ShipSpecs_ExposeExplicitOperatorClass()
+	{
+		Assert.Equal(EOperatorClassId.SpaceRanger, ShipCatalog.SpecFor(EType.Fighter).ClassId);
+		Assert.All(
+			new[]
+			{
+				EType.Gunship,
+				EType.IndustrialGooper,
+				EType.Carrier,
+				EType.RepurposedMiner,
+				EType.VoidBomb,
+			},
+			chassis => Assert.Equal(
+				EOperatorClassId.Unclassified,
+				ShipCatalog.SpecFor(chassis).ClassId));
+	}
+
 	private static void AssertLoadoutEquivalent(ShipLoadout expected, ShipLoadout actual)
 	{
 		Assert.Equal(expected.MaxHullPoints, actual.MaxHullPoints);

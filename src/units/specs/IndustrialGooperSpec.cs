@@ -15,6 +15,7 @@ public sealed class IndustrialGooperSpec : ShipSpec
 	}
 
 	public override EType Chassis => EType.IndustrialGooper;
+	public override EOperatorClassId ClassId => EOperatorClassId.Unclassified;
 	public override int Initiative => 25;
 	public override int DefaultMaxHullPoints => 300;
 	public override ManeuverabilitySpec Maneuverability { get; } =

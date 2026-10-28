@@ -15,8 +15,8 @@ public sealed class PlayerFleetSelectionTests
 	{
 		using var run = State.CreateNewRun(42);
 		var first = run.GetFieldedShipIds()[0];
-		var secondId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, EType.Gunship)));
+		var secondId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, EType.Fighter)));
 
 		var runtime = run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
 		Assert.Equal(first, runtime.SelectedMemberShipId);

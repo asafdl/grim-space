@@ -1,6 +1,7 @@
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Run;
 
@@ -8,15 +9,20 @@ namespace GrimSpace.Tests.Run;
 public sealed class SaveGameMigratorTests
 {
 	[Fact]
-	public void MigrateFromV4_BumpsFormatVersion()
+	public void LegacyFormatsRemainUnsupportedWithoutClassMigration()
 	{
-		var document = SaveGameDocument.Create("0.1.0", "map", new { marker = "v4" })
-			with { FormatVersion = 4 };
+		foreach (var legacyVersion in new[] { 3, 4, 6 })
+		{
+			var document = SaveGameDocument.Create("0.1.0", "map", new { marker = "legacy" })
+				with { FormatVersion = legacyVersion };
 
-		var migrated = SaveGameMigrator.MigrateToCurrent(document);
+			var unchanged = SaveGameMigrator.MigrateToCurrent(document);
 
-		Assert.Equal(SaveGameDocument.CurrentFormatVersion, migrated.FormatVersion);
-		Assert.Equal("v4", migrated.Payload.GetProperty("marker").GetString());
+			Assert.Equal(legacyVersion, unchanged.FormatVersion);
+			Assert.Equal(
+				LoadResult.UnsupportedFormat,
+				SaveLoadResult.Classify(SaveStorageResult.Success, unchanged));
+		}
 	}
 
 	[Fact]
@@ -30,7 +36,8 @@ public sealed class SaveGameMigratorTests
 			EPilotQuirkId.Charismatic,
 			EPilotQuirkId.NeuroDrugAddict,
 			"ship-1",
-			ExperiencePoints: 175);
+			ExperiencePoints: 175,
+			ClassId: EOperatorClassId.SpaceRanger);
 
 		var restored = Pilot.FromPersistence(dto);
 
@@ -39,5 +46,6 @@ public sealed class SaveGameMigratorTests
 		Assert.Equal(EPilotBackgroundId.ScrapDrone, restored.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, restored.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, restored.NegativeQuirkId);
+		Assert.Equal(EOperatorClassId.SpaceRanger, restored.ClassId);
 	}
 }

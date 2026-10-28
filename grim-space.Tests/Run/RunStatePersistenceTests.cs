@@ -111,6 +111,7 @@ public sealed class RunStatePersistenceTests
 		Assert.True(restored.PilotRegistry.TryGetForShip(shipId, out var restoredPilot));
 		Assert.Equal(pilot.Id, restoredPilot.Id);
 		Assert.Equal(pilot.PortraitId, restoredPilot.PortraitId);
+		Assert.Equal(pilot.ClassId, restoredPilot.ClassId);
 		Assert.Equal(2, restored.TutorialState!.ActiveStepIndex);
 		Assert.True(restored.Tutorials is not null);
 		Assert.Equal(run.ActiveBattle!.Id, restored.ActiveBattle!.Id);

@@ -9,6 +9,7 @@ internal sealed record FleetPilotView(
 	string Id,
 	string Name,
 	string PortraitId,
+	EOperatorClassId ClassId,
 	string? AssignedShipId,
 	bool IsActive);
 
@@ -25,6 +26,7 @@ internal sealed record FleetAbilityView(
 internal sealed record FleetShipView(
 	string Id,
 	string Chassis,
+	EOperatorClassId ClassId,
 	int Hull,
 	int MaxHull,
 	int Shields,
@@ -51,6 +53,7 @@ internal static class FleetManagementProjection
 				pilot.Id,
 				pilot.Name,
 				pilot.PortraitId,
+				pilot.ClassId,
 				pilot.AssignedShipId,
 				pilot.IsActive))
 			.ToArray();
@@ -64,6 +67,7 @@ internal static class FleetManagementProjection
 			.Select(ship => new FleetShipView(
 				ship.Id,
 				ChassisName(ship.Spec.Chassis),
+				ship.Spec.ClassId,
 				ship.HullPoints,
 				ship.Loadout.MaxHullPoints,
 				ship.TotalCurrentShieldPoints,

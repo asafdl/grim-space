@@ -15,6 +15,7 @@ public sealed class GunshipSpec : ShipSpec
 	}
 
 	public override EType Chassis => EType.Gunship;
+	public override EOperatorClassId ClassId => EOperatorClassId.Unclassified;
 	public override int Initiative => 20;
 	public override int DefaultMaxHullPoints => 200;
 	public override ManeuverabilitySpec Maneuverability { get; } =

@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -237,19 +238,27 @@ public sealed partial class FleetManagementOverlay : Control
 
 	private Control BuildPilotControl(FleetShipView ship)
 	{
+		var control = new VBoxContainer
+		{
+			CustomMinimumSize = new Vector2(CarouselPilotPortraitSize, 0),
+			Alignment = BoxContainer.AlignmentMode.Center,
+		};
+		control.AddThemeConstantOverride("separation", 4);
 		if (ship.Pilot is { } pilot)
 		{
 			Control portrait = null!;
 			portrait = BuildCarouselPilotPortrait(
 				pilot,
-				"Left-click to change pilot\nRight-click to open character sheet",
+				tooltip: null,
 				() => ShowPilotPopup(portrait, ship),
 				() =>
 				{
 					HidePilotPopup();
 					PilotSheetRequested?.Invoke(pilot.Id);
 				});
-			return portrait;
+			control.AddChild(portrait);
+			control.AddChild(CaptionLabel($"{pilot.ClassId.DisplayName().ToUpperInvariant()} PILOT"));
+			return control;
 		}
 
 		var unassigned = new Button
@@ -257,10 +266,11 @@ public sealed partial class FleetManagementOverlay : Control
 			Text = "Assign Pilot",
 			CustomMinimumSize = new Vector2(CarouselPilotPortraitSize, CarouselPilotPortraitSize),
 		};
-		HudTooltipCard.SetTooltip(unassigned, "Choose a pilot");
 		HudStyles.StyleButton(unassigned, HudActionKind.Secondary);
 		unassigned.Pressed += () => ShowPilotPopup(unassigned, ship);
-		return unassigned;
+		control.AddChild(unassigned);
+		control.AddChild(CaptionLabel("NO PILOT ASSIGNED"));
+		return control;
 	}
 
 	private static UiNestedContainer BuildStatsCard(FleetShipView ship)
@@ -272,6 +282,7 @@ public sealed partial class FleetManagementOverlay : Control
 		};
 		rows.AddThemeConstantOverride("separation", 8);
 		rows.AddChild(SummaryRow("CHASSIS", ship.Chassis));
+		rows.AddChild(SummaryRow("SHIP CLASS", ship.ClassId.DisplayName()));
 		rows.AddChild(SummaryRow("HULL", $"{ship.Hull} / {ship.MaxHull}", HullColor));
 		rows.AddChild(SummaryRow("SHIELDS", $"{ship.Shields} / {ship.MaxShields}", ShieldColor));
 		rows.AddChild(SummaryRow("ACTION POINTS", ship.ActionPoints.ToString(), ActionPointColor));
@@ -386,16 +397,9 @@ public sealed partial class FleetManagementOverlay : Control
 		foreach (var pilot in _view.Pilots)
 		{
 			var candidate = pilot;
-			var status = string.Equals(pilot.AssignedShipId, ship.Id, StringComparison.Ordinal)
-				? "CURRENT"
-				: pilot.AssignedShipId is null
-					? "RESERVE"
-					: pilot.IsActive
-						? "ACTIVE"
-						: "ASSIGNED";
 			grid.AddChild(BuildPopupPilotPortrait(
 				pilot,
-				$"{pilot.Name} · {status}",
+				$"{pilot.Name} · {PilotStatus(pilot, ship)}",
 				() => AssignPilot(candidate.Id, ship.Id)));
 		}
 
@@ -412,7 +416,7 @@ public sealed partial class FleetManagementOverlay : Control
 
 	private static Control BuildCarouselPilotPortrait(
 		FleetPilotView pilot,
-		string tooltip,
+		string? tooltip,
 		Action onLeftClick,
 		Action? onRightClick = null) =>
 		CreateFramedPilotPortrait(
@@ -434,10 +438,19 @@ public sealed partial class FleetManagementOverlay : Control
 				onLeftClick),
 			PopupPilotPortraitSize);
 
+	private static string PilotStatus(FleetPilotView pilot, FleetShipView ship) =>
+		string.Equals(pilot.AssignedShipId, ship.Id, StringComparison.Ordinal)
+			? "CURRENT"
+			: pilot.AssignedShipId is null
+				? "RESERVE"
+				: pilot.IsActive
+					? "ACTIVE"
+					: "ASSIGNED";
+
 	private static UiFramedPortrait CreateFramedPilotPortrait(
 		FleetPilotView pilot,
 		int size,
-		string tooltip,
+		string? tooltip,
 		Action onLeftClick,
 		Action? onRightClick = null)
 	{
@@ -449,7 +462,8 @@ public sealed partial class FleetManagementOverlay : Control
 			MouseFilter = MouseFilterEnum.Stop,
 			MouseDefaultCursorShape = CursorShape.PointingHand,
 		};
-		HudTooltipCard.SetTooltip(portrait, tooltip);
+		if (!string.IsNullOrEmpty(tooltip))
+			HudTooltipCard.SetTooltip(portrait, tooltip);
 		portrait.GuiInput += @event =>
 		{
 			if (@event is not InputEventMouseButton { Pressed: true } mouse)
@@ -464,6 +478,18 @@ public sealed partial class FleetManagementOverlay : Control
 			portrait.AcceptEvent();
 		};
 		return portrait;
+	}
+
+	private static Label CaptionLabel(string text)
+	{
+		var label = new Label
+		{
+			Text = text,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+		};
+		HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
+		return label;
 	}
 
 	private static Control WrapPortraitSlot(UiFramedPortrait portrait, int size)

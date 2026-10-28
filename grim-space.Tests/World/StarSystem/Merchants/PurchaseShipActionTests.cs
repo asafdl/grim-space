@@ -64,8 +64,8 @@ public sealed class PurchaseShipActionTests
 		MerchantCatalogTestBands.SetBand(run.StarSystem.Map, EMerchantAvailabilityBand.T1);
 		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
 		{
-			var shipId = TypedIdGenerator.NextId("gunship");
-			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Gunship)));
+			var shipId = TypedIdGenerator.NextId("fighter");
+			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)));
 		}
 
 		Assert.Equal(RunPilotRegistry.MaxActivePilots, run.PilotRegistry.Active.Count);

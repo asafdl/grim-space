@@ -21,8 +21,8 @@ public sealed class PlayerShipDestructionTests
 	{
 		using var run = RunState.CreateNewRun(42);
 		var survivorId = run.GetFieldedShipIds()[0];
-		var doomedId = TypedIdGenerator.NextId("gunship");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(doomedId, BattleUnitType.Gunship)));
+		var doomedId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(doomedId, BattleUnitType.Fighter)));
 		Assert.True(run.PilotRegistry.TryGetForShip(doomedId, out var doomedPilot));
 
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -54,7 +54,7 @@ public sealed class PlayerShipDestructionTests
 					survivorId,
 					run.ItemInventory.Get(survivorId).Spec.Chassis,
 					1),
-				OutcomeTestKit.Handoff(doomedId, BattleUnitType.Gunship, 0),
+				OutcomeTestKit.Handoff(doomedId, BattleUnitType.Fighter, 0),
 				OutcomeTestKit.Handoff(
 					pirateFleet.Members[0].Id,
 					OutcomeTestKit.ChassisFromShipId(pirateFleet.Members[0].Id),

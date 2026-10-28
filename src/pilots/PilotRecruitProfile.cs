@@ -1,3 +1,5 @@
+using GrimSpace.Units.Enums;
+
 namespace GrimSpace.Pilots;
 
 /// <summary>Rolled pilot identity for a hire slot. Built by <c>PilotRecruitment</c> rolls, materialized via <see cref="Run.Pilot.FromRecruitProfile"/>.</summary>
@@ -8,6 +10,7 @@ public sealed class PilotRecruitProfile
 	public string Name { get; }
 	public string PortraitId { get; }
 	public EPilotBackgroundId BackgroundId { get; }
+	public EOperatorClassId ClassId { get; }
 	public EPilotQuirkId? PositiveQuirkId { get; }
 	public EPilotQuirkId? NegativeQuirkId { get; }
 	public int ExperiencePoints { get; }
@@ -24,13 +27,19 @@ public sealed class PilotRecruitProfile
 		int experiencePoints = 0,
 		int claimedLevel = 1,
 		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
-		int baseSalaryCredits = 10)
+		int baseSalaryCredits = 10,
+		EOperatorClassId classId = EOperatorClassId.SpaceRanger)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(name);
 		ArgumentException.ThrowIfNullOrEmpty(portraitId);
 		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
 		ArgumentOutOfRangeException.ThrowIfNegative(baseSalaryCredits);
+		if (!Enum.IsDefined(classId) || classId == EOperatorClassId.Unclassified)
+			throw new ArgumentOutOfRangeException(
+				nameof(classId),
+				classId,
+				"A pilot must have a playable operator class.");
 		learnedSkills ??= EmptySkills;
 
 		ValidateIdentity(backgroundId, positiveQuirkId, negativeQuirkId);
@@ -38,6 +47,7 @@ public sealed class PilotRecruitProfile
 		Name = name;
 		PortraitId = portraitId;
 		BackgroundId = backgroundId;
+		ClassId = classId;
 		PositiveQuirkId = positiveQuirkId;
 		NegativeQuirkId = negativeQuirkId;
 		ExperiencePoints = experiencePoints;
