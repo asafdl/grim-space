@@ -16,8 +16,7 @@ public static class DevPilotRecruitmentLeadSpawner
 
 		if (!MerchantSubtypeStock.HasOffers(map, EMerchantSubtype.Pilots))
 		{
-			failureReason =
-				"Pilot recruitment is unavailable at the current market tier (need unlocked backgrounds).";
+			failureReason = "Pilot recruitment is unavailable (no recruitable backgrounds configured).";
 			return false;
 		}
 

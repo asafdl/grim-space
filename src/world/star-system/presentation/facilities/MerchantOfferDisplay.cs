@@ -14,17 +14,6 @@ internal static class MerchantOfferDisplay
 	public static string RechargeAllBody(int current, int max) =>
 		$"Total shields {current} \u2192 {max}";
 
-	public static string BandLabel(EMerchantAvailabilityBand band) =>
-		band switch
-		{
-			EMerchantAvailabilityBand.T0 => "Shop tier T0",
-			EMerchantAvailabilityBand.T0_5 => "Shop tier T0.5",
-			EMerchantAvailabilityBand.T1 => "Shop tier T1",
-			EMerchantAvailabilityBand.T1_5 => "Shop tier T1.5",
-			EMerchantAvailabilityBand.T2 => "Shop tier T2",
-			_ => throw new ArgumentOutOfRangeException(nameof(band), band, null),
-		};
-
 	public static string FaceLabel(ESpatialOrientation face) =>
 		face switch
 		{

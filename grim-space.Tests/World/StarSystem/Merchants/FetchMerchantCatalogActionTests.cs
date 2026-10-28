@@ -30,7 +30,6 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 	public void Commit_PublishesQuoteWithBaseMarketOffers()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		var before = ship.Clone();
 		var endpoint = CreateEndpoint(engine.World, EMerchantCatalog.Healing);
 
@@ -59,7 +58,6 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 	public void ImmediateFetch_WhileWaitingForPlayerInput_CommitsQuoteWithoutAdvancingTick()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		var pirateId = AddPirate(engine.World, new Coord(4, 0, 0));
 		new SetEngagementIntentEffect(unitId, pirateId)
 			.Apply(engine.World, new ActorRuntime(), unitId);
@@ -98,7 +96,6 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 	public void TryEnqueue_Purchase_RejectsStaleQuotedCost()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0_5);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		ship.HullPoints = 100;
 		var before = ship.Clone();

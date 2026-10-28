@@ -19,7 +19,7 @@ public sealed class HealingCatalogTests
 		var offers = MerchantCatalog.ListFor(
 			EMerchantCatalog.Healing,
 			ship,
-			EMerchantAvailabilityBand.T2);
+			StarMarketSeed.Create());
 
 		var repair = offers.Single(offer => offer.Offering.Kind == MerchantCatalog.Kind.RepairHull);
 		Assert.Equal(default, repair.Target);

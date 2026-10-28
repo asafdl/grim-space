@@ -325,7 +325,7 @@ Trade-hub commerce is split so market configuration lives on [`StarMap.Market`](
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Market inventory | [`StarMarket`](src/world/star-system/merchants/StarMarket.cs) + [`MerchantCatalog`](src/world/star-system/merchants/MerchantCatalog.cs) | The map owns persisted merchant and recruitment listings. Catalog construction derives currently applicable offers for a ship and availability band without applying pilot discounts. |
+| Market inventory | [`StarMarket`](src/world/star-system/merchants/StarMarket.cs) + [`MerchantCatalog`](src/world/star-system/merchants/MerchantCatalog.cs) | The map owns persisted merchant and recruitment listings. Catalog construction derives applicable offers for a ship without applying pilot discounts. |
 | Damage / range packs | [`MerchantShipChanges`](src/world/star-system/merchants/MerchantShipChanges.cs) | Pack level X sets the selected weapon's upgrade level to X, so its effective stat is its ability baseline plus X. Targets already at X or above are omitted. |
 | Shield packs | [`MerchantShipChanges`](src/world/star-system/merchants/MerchantShipChanges.cs) | Pack level X sets the selected face's raw maximum shields to X. Faces already at X or above are omitted. |
 | Repair / recharge | [`MerchantCatalog`](src/world/star-system/merchants/MerchantCatalog.cs) | Untiered market listings produce services only when the selected ship needs them. |

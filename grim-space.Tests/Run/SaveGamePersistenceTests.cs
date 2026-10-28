@@ -636,7 +636,6 @@ public sealed class SaveGamePersistenceTests
 
 		var restored = SaveDtoMapper.RestoreStarMap(legacySave, registry);
 		var ship = ShipInstance.FromCatalog("legacy-merchant", EType.Fighter);
-		MerchantCatalogTestBands.SetBand(restored, EMerchantAvailabilityBand.T1);
 
 		Assert.True(MerchantCatalog.ListFor(
 			EMerchantCatalog.Healing,

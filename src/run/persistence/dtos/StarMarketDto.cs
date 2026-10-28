@@ -12,8 +12,6 @@ public sealed record MerchantListingDto(
 	string Id,
 	EMerchantCatalog Catalog,
 	MerchantCatalog.Kind? OfferingKind,
-	EMerchantAvailabilityBand AvailabilityBand,
-	bool AlwaysAvailable,
 	MerchantListingPricingKind PricingKind,
 	ResourceBundle FixedCost,
 	int ShieldRechargeCreditsPerPoint);
@@ -22,5 +20,4 @@ public sealed record RecruitmentListingDto(
 	string Id,
 	EType Chassis,
 	EShipGearTier GearTier,
-	EMerchantAvailabilityBand AvailabilityBand,
 	ResourceBundle Cost);

@@ -27,7 +27,6 @@ public sealed class PurchaseShipActionTests
 	{
 		var registry = new Inventory();
 		var map = StarMap.Create(42, registry);
-		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		var shipId = map.FleetRegistry.FleetOf(State.PlayerFleetUnitId).Members[0].Id;
 		registry.Register(
@@ -35,7 +34,8 @@ public sealed class PurchaseShipActionTests
 			State.PlayerFleetUnitId);
 		SeedResources(map, credits: 10_000, scrap: 10_000);
 
-		var offer = map.Market.ListRecruitmentOffers(EMerchantAvailabilityBand.T1).First();
+		var offer = map.Market.ListRecruitmentOffers()
+			.First(candidate => candidate.GearTier == EShipGearTier.T1);
 		var purchasedId = TypedIdGenerator.NextId(UnitTypeSlug.For(offer.Chassis));
 		var endpoint = new FacilityMerchantEndpoint(
 			SupplySystemPlan.Copper.TradeHubPoiId,
@@ -61,7 +61,6 @@ public sealed class PurchaseShipActionTests
 	public void CommitSetup_WithRun_RegistersOwnedShipWithoutPilotWhenActiveRosterFull()
 	{
 		using var run = State.CreateNewRun(42);
-		MerchantCatalogTestBands.SetBand(run.StarSystem.Map, EMerchantAvailabilityBand.T1);
 		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
 		{
 			var shipId = TypedIdGenerator.NextId("fighter");
@@ -72,7 +71,8 @@ public sealed class PurchaseShipActionTests
 		var pilotCountBefore = run.PilotRegistry.All.Count;
 		var ownedBefore = run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId).Count();
 
-		var offer = run.StarSystem.Map.Market.ListRecruitmentOffers(EMerchantAvailabilityBand.T1).First();
+		var offer = run.StarSystem.Map.Market.ListRecruitmentOffers()
+			.First(candidate => candidate.GearTier == EShipGearTier.T1);
 		var purchasedId = TypedIdGenerator.NextId(UnitTypeSlug.For(offer.Chassis));
 		SeedResources(run.StarSystem.Map, credits: 10_000, scrap: 10_000);
 		var action = new PurchaseShipAction(

@@ -8,28 +8,25 @@ public sealed class RecruitmentListing
 	public string Id { get; }
 	public EType Chassis { get; }
 	public EShipGearTier GearTier { get; }
-	public EMerchantAvailabilityBand AvailabilityBand { get; }
 	public ResourceBundle Cost { get; private set; }
 
 	internal RecruitmentListing(
 		string id,
 		EType chassis,
 		EShipGearTier gearTier,
-		EMerchantAvailabilityBand availabilityBand,
 		ResourceBundle cost)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(id);
 		Id = id;
 		Chassis = chassis;
 		GearTier = gearTier;
-		AvailabilityBand = availabilityBand;
 		Cost = cost;
 	}
 
 	public RecruitmentOffer ToOffer() => new(Chassis, GearTier, Cost);
 
 	internal RecruitmentListing ForkClone() =>
-		new(Id, Chassis, GearTier, AvailabilityBand, CloneBundle(Cost));
+		new(Id, Chassis, GearTier, CloneBundle(Cost));
 
 	public void SetCost(ResourceBundle cost) => Cost = cost;
 

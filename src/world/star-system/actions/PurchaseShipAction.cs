@@ -40,7 +40,6 @@ public sealed class PurchaseShipActionDef
 		if (!world.Market.TryFindRecruitmentOffer(
 				purchase.Declaration.Chassis,
 				purchase.Declaration.GearTier,
-				MerchantCatalog.Tier(world),
 				out var offer))
 			return false;
 
@@ -66,7 +65,6 @@ public sealed class PurchaseShipActionDef
 		if (!world.Market.TryFindRecruitmentOffer(
 				purchase.Declaration.Chassis,
 				purchase.Declaration.GearTier,
-				MerchantCatalog.Tier(world),
 				out var offer))
 			return [];
 

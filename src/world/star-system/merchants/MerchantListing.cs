@@ -7,16 +7,12 @@ public sealed class MerchantListing
 	public string Id { get; }
 	public EMerchantCatalog Catalog { get; }
 	public MerchantCatalog.Offering? Offering { get; }
-	public EMerchantAvailabilityBand AvailabilityBand { get; }
-	public bool AlwaysAvailable { get; }
 	public MerchantListingPricing Pricing { get; private set; }
 
 	internal MerchantListing(
 		string id,
 		EMerchantCatalog catalog,
 		MerchantCatalog.Offering? offering,
-		EMerchantAvailabilityBand availabilityBand,
-		bool alwaysAvailable,
 		MerchantListingPricing pricing)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(id);
@@ -28,8 +24,6 @@ public sealed class MerchantListing
 		Id = id;
 		Catalog = catalog;
 		Offering = offering;
-		AvailabilityBand = availabilityBand;
-		AlwaysAvailable = alwaysAvailable;
 		Pricing = pricing;
 	}
 
@@ -38,8 +32,6 @@ public sealed class MerchantListing
 			Id,
 			Catalog,
 			Offering,
-			AvailabilityBand,
-			AlwaysAvailable,
 			Pricing.Kind == MerchantListingPricingKind.FixedBundle
 				? MerchantListingPricing.Fixed(CloneBundle(Pricing.FixedCost))
 				: MerchantListingPricing.ShieldRecharge(Pricing.ShieldRechargeCreditsPerPoint));

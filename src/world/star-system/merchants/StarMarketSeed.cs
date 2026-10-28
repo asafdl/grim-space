@@ -24,8 +24,6 @@ public static class StarMarketSeed
 			"healing.repair_hull",
 			EMerchantCatalog.Healing,
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.RepairHull),
-			EMerchantAvailabilityBand.T0,
-			alwaysAvailable: true,
 			MerchantListingPricing.Fixed(ResourceBundle.Create(
 				(ResourceId.Credits, HullRepairCreditCost),
 				(ResourceId.ScrapAlloy, HullRepairScrapCost)))));
@@ -34,16 +32,12 @@ public static class StarMarketSeed
 			"healing.shield_recharge_per_point",
 			EMerchantCatalog.Healing,
 			offering: null,
-			EMerchantAvailabilityBand.T0,
-			alwaysAvailable: true,
 			MerchantListingPricing.ShieldRecharge(ShieldRechargeCreditsPerPoint)));
 
 		merchantListings.Add(new MerchantListing(
 			"healing.buy_fuel",
 			EMerchantCatalog.Healing,
 			new MerchantCatalog.Offering(MerchantCatalog.Kind.BuyFuel),
-			EMerchantAvailabilityBand.T0,
-			alwaysAvailable: true,
 			MerchantListingPricing.Fixed(ResourceBundle.Of(
 				ResourceId.Credits,
 				FuelPurchaseCreditCost))));
@@ -54,19 +48,16 @@ public static class StarMarketSeed
 				"recruitment.fighter.t0",
 				EType.Fighter,
 				EShipGearTier.T0,
-				EMerchantAvailabilityBand.T0,
 				ResourceBundle.Of(ResourceId.Credits, FighterT0CreditCost)),
 			new(
 				"recruitment.fighter.t1",
 				EType.Fighter,
 				EShipGearTier.T1,
-				EMerchantAvailabilityBand.T1,
 				ResourceBundle.Of(ResourceId.Credits, FighterT1CreditCost)),
 			new(
 				"recruitment.fighter.t2",
 				EType.Fighter,
 				EShipGearTier.T2,
-				EMerchantAvailabilityBand.T2,
 				ResourceBundle.Create(
 					(ResourceId.Credits, FighterT2CreditCost),
 					(ResourceId.IndustrialCore, FighterT2IndustrialCoreCost))),

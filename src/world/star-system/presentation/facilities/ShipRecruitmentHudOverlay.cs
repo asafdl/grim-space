@@ -51,9 +51,8 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 
 	private void ShowMain()
 	{
-		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
 		_shell.SetTitle("Ship broker");
-		_shell.SetSubtitle($"{_facilityTitle} · {MerchantOfferDisplay.BandLabel(tier)}");
+		_shell.SetSubtitle(_facilityTitle);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -61,11 +60,11 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 		var body = HudWidgets.CreateCardList();
 		body.AddThemeConstantOverride("separation", 18);
 
-		var offers = _run.StarSystem.Map.Market.ListRecruitmentOffers(tier);
+		var offers = _run.StarSystem.Map.Market.ListRecruitmentOffers();
 		if (offers.Count == 0)
 			body.AddChild(HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
-				"No ships are available at this shop tier."));
+				"No ships are available."));
 
 		foreach (var offer in offers)
 		{

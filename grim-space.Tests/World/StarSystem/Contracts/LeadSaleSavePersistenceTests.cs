@@ -29,7 +29,6 @@ public sealed class LeadSaleSavePersistenceTests
 		var registry = PersistenceRegistry.CreateDefault();
 		var runRegistry = new Inventory();
 		var map = StarMap.Create(42, runRegistry);
-		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 		StarSystemTestHarness.AddPlayerFleet(map, State.PlayerFleetUnitId);
 		var contract = ContractFactory.Build(
 			map,

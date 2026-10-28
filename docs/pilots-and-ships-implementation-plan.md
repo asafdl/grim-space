@@ -32,7 +32,9 @@ and their generation remain available.
 3. Ship operation requires the assigned pilot's own earned level, derived from
    XP, not claimed level or the best pilot in the roster.
 4. Purchasing does not require a qualified pilot and does not assign equipment.
-5. Player equipment tiers have no run progression-band gate.
+5. Player equipment tiers have no run progression gate. Merchant stock is not
+   gated by contract-completion shop tiers; ship brokers list every configured
+   equipment tier and pilot brokers draw from the full recruitable background pool.
 6. Pilot capabilities remain derived and follow the pilot, without being baked
    into a ship's permanent hardware.
 7. Existing maintenance, payroll, battle loss rules, and squad-size limit remain
@@ -51,7 +53,7 @@ Prepare a concrete proposal for approval covering:
 | Level requirements | Approve the minimum earned level for each tier; baseline equipment must support a new pilot |
 | Tier identity | Decide how purchased package/tier identity is retained on an owned ship and through save/load |
 | Prices | Approve ship costs and resource types; current individual-upgrade prices are not automatically new ship prices |
-| Stock | Define which existing ship-selling endpoints offer the ladder, without progression-band unlocks |
+| Stock | Ship brokers list all approved Fighter tiers at once; pilot hire uses the full recruitable background pool |
 | Hiring | Confirm pilot-only hire price now that the bundled ship is removed |
 | Obsolete perk | Decide whether to retire or redesign "I Know a Bot"; no implicit purchase-discount conversion |
 | Save policy | Choose explicit incompatibility or a defined migration for old classes, ships, and learned obsolete perks |
@@ -142,8 +144,8 @@ fielding independently of merchant work.
 ### 4. Replace player hardware-upgrade commerce with ship purchases
 
 - Change player ship listings to the approved Fighter packages and prices.
-- Remove progression-band restrictions from these equipment offers and purchase
-  validation, not from unrelated merchant content.
+- List every approved Fighter package on ship brokers; remove legacy merchant
+  availability-band filtering from listings, purchase validation, and UI subtitles.
 - Retain endpoint/access, ownership/duplicate identity, engagement, affordability,
   and existing transaction checks.
 - Keep buying legal without any qualified pilot, and register purchases as
@@ -165,8 +167,7 @@ Primary surfaces: [StarMarketSeed](../src/world/star-system/merchants/StarMarket
 generic purchase validation, merchant stock/routing, and upgrade-capability code.
 Internal loadout-construction helpers can remain where still useful.
 
-Tests: exact stock/costs, offers available independently of progression band,
-buying with no pilots, exact purchased package, insufficient funds, stale/invalid
+Tests: exact stock/costs, all tiers visible from run start, buying with no pilots, exact purchased package, insufficient funds, stale/invalid
 offers, duplicate IDs, rejected direct upgrade requests, maintenance preserving
 maximum hardware values, and unaffected unrelated offers.
 
@@ -223,7 +224,7 @@ Run a repeatable scenario:
 1. Start a run with a qualified Fighter pilot and baseline Fighter.
 2. Buy a better Fighter before the pilot reaches its requirement; see the warning.
 3. Confirm purchase succeeds but assignment/use is rejected.
-4. Earn enough XP; confirm the same pilot now qualifies without any band unlock.
+4. Earn enough XP; confirm the same pilot now qualifies without any merchant unlock.
 5. Equip the new ship; retain pilot progression, active position, and old reserve
    ship, and confirm the next battle uses the correct package and capabilities.
 6. Hire another Fighter pilot without receiving hardware; equip a legal reserve

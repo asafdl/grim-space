@@ -535,8 +535,6 @@ public static class SaveDtoMapper
 				listing.Id,
 				listing.Catalog,
 				listing.Offering?.Kind,
-				listing.AvailabilityBand,
-				listing.AlwaysAvailable,
 				listing.Pricing.Kind,
 				listing.Pricing.FixedCost,
 				listing.Pricing.ShieldRechargeCreditsPerPoint)).ToArray(),
@@ -544,7 +542,6 @@ public static class SaveDtoMapper
 				listing.Id,
 				listing.Chassis,
 				listing.GearTier,
-				listing.AvailabilityBand,
 				listing.Cost)).ToArray());
 
 	private static StarMarket RestoreMarket(StarMarketDto? dto)
@@ -570,8 +567,6 @@ public static class SaveDtoMapper
 				saved.Id,
 				saved.Catalog,
 				offering,
-				saved.AvailabilityBand,
-				saved.AlwaysAvailable,
 				pricing);
 		}).ToArray();
 
@@ -580,7 +575,6 @@ public static class SaveDtoMapper
 				saved.Id,
 				saved.Chassis,
 				saved.GearTier,
-				saved.AvailabilityBand,
 				saved.Cost)).ToArray();
 
 		return new StarMarket(merchantListings, recruitmentListings);

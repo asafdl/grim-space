@@ -67,17 +67,6 @@ public sealed class PilotRecruitmentRollTests
 	}
 
 	[Fact]
-	public void RollCandidates_ThrowsWhenNoBackgroundsUnlockedAtTier()
-	{
-		var map = StarMap.Create(42);
-		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
-
-		var error = Assert.Throws<InvalidOperationException>(() =>
-			PilotRecruitment.RollCandidates(map, "lead-contract-5"));
-		Assert.Contains("backgrounds", error.Message, StringComparison.Ordinal);
-	}
-
-	[Fact]
 	public void DefaultHirePrice_UsesPilotHireSeedCost()
 	{
 		var map = StarMap.Create(42);
@@ -100,11 +89,5 @@ public sealed class PilotRecruitmentRollTests
 		Assert.Equal(PilotRecruitment.CandidatesPerLead, all.Count);
 		Assert.Equal(2, available.Count);
 		Assert.DoesNotContain(available, candidate => candidate.Slot == 1);
-	}
-
-	[Fact]
-	public void ListUnlockedBackgrounds_AtT1_IsEmptyWhileMinimumBandsAreT0()
-	{
-		Assert.Empty(PilotRecruitment.ListUnlockedBackgrounds(EMerchantAvailabilityBand.T1));
 	}
 }

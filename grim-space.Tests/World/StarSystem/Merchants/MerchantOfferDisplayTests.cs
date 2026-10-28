@@ -13,15 +13,4 @@ public sealed class MerchantOfferDisplayTests
 		Assert.Equal("Shield charge 1 \u2192 3", MerchantOfferDisplay.ShieldRechargeBody(1, 3));
 		Assert.Equal("Total shields 10 \u2192 18", MerchantOfferDisplay.RechargeAllBody(10, 18));
 	}
-
-	[Theory]
-	[InlineData(EMerchantAvailabilityBand.T0, "Shop tier T0")]
-	[InlineData(EMerchantAvailabilityBand.T0_5, "Shop tier T0.5")]
-	[InlineData(EMerchantAvailabilityBand.T1, "Shop tier T1")]
-	public void BandLabel_UsesShopTierTerminology(
-		EMerchantAvailabilityBand band,
-		string expected)
-	{
-		Assert.Equal(expected, MerchantOfferDisplay.BandLabel(band));
-	}
 }

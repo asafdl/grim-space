@@ -8,7 +8,7 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 public sealed class MerchantSubtypeStockTests(StarMapFixture maps)
 {
 	[Fact]
-	public void HasOffers_AtT0_ShipsAndPilotsHaveStock()
+	public void HasOffers_ShipsAndPilotsHaveStockOnFreshMap()
 	{
 		var map = maps.Fresh(42);
 
@@ -17,11 +17,11 @@ public sealed class MerchantSubtypeStockTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void HasOffers_AtT1_ShipsHaveStock()
+	public void HasOffers_ShipsListEveryRecruitmentTier()
 	{
 		var map = maps.Fresh(42);
-		MerchantCatalogTestBands.SetBand(map, EMerchantAvailabilityBand.T1);
 
+		Assert.Equal(3, map.Market.ListRecruitmentOffers().Count);
 		Assert.True(MerchantSubtypeStock.HasOffers(map, EMerchantSubtype.Ships));
 	}
 }

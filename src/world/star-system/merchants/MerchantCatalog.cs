@@ -6,9 +6,6 @@ namespace GrimSpace.World.StarSystem.Merchants;
 
 public static class MerchantCatalog
 {
-	public static EMerchantAvailabilityBand Tier(StarMap map) =>
-		MerchantAvailability.CurrentBand(map);
-
 	public enum Kind
 	{
 		RepairHull,
@@ -29,29 +26,10 @@ public static class MerchantCatalog
 	public static IReadOnlyList<Offer> ListFor(
 		EMerchantCatalog catalog,
 		ShipInstance ship,
-		EMerchantAvailabilityBand tier) =>
-		ListFor(catalog, ship, StarMarketSeed.Create(), tier);
-
-	public static IReadOnlyList<Offer> ListFor(
-		EMerchantCatalog catalog,
-		ShipInstance ship,
 		StarMap map)
 	{
 		ArgumentNullException.ThrowIfNull(map);
-		return ListFor(catalog, ship, map.Market, Tier(map));
-	}
-
-	public static bool TryFind(
-		EMerchantCatalog catalog,
-		Offering key,
-		Target target,
-		ShipInstance ship,
-		EMerchantAvailabilityBand tier,
-		out Offer offer)
-	{
-		offer = ListFor(catalog, ship, tier).FirstOrDefault(candidate =>
-			candidate.Offering == key && candidate.Target == target)!;
-		return offer is not null;
+		return ListFor(catalog, ship, map.Market);
 	}
 
 	public static bool TryFind(
@@ -71,13 +49,12 @@ public static class MerchantCatalog
 	internal static IReadOnlyList<Offer> ListFor(
 		EMerchantCatalog catalog,
 		ShipInstance ship,
-		StarMarket market,
-		EMerchantAvailabilityBand tier)
+		StarMarket market)
 	{
 		ArgumentNullException.ThrowIfNull(ship);
 		ArgumentNullException.ThrowIfNull(market);
 		var offers = market.MerchantListings
-			.Where(listing => ListingAvailableAtTier(catalog, listing, tier))
+			.Where(listing => listing.Catalog == catalog)
 			.Where(listing =>
 				listing.Pricing.Kind != MerchantListingPricingKind.ShieldRechargePerPoint)
 			.Select(listing => TryCreateOffer(listing, ship))
@@ -91,13 +68,6 @@ public static class MerchantCatalog
 
 		return offers;
 	}
-
-	private static bool ListingAvailableAtTier(
-		EMerchantCatalog catalog,
-		MerchantListing listing,
-		EMerchantAvailabilityBand tier) =>
-		listing.Catalog == catalog
-		&& (listing.AlwaysAvailable || IncludesSheet(tier, listing.AvailabilityBand));
 
 	private static Offer? TryCreateOffer(MerchantListing listing, ShipInstance ship)
 	{
@@ -162,19 +132,4 @@ public static class MerchantCatalog
 			.Single(listing =>
 				listing.Pricing.Kind == MerchantListingPricingKind.ShieldRechargePerPoint)
 			.Pricing.ShieldRechargeCreditsPerPoint;
-
-	public static bool IncludesSheet(
-		EMerchantAvailabilityBand current,
-		EMerchantAvailabilityBand sheet) =>
-		current switch
-		{
-			EMerchantAvailabilityBand.T0 => sheet == EMerchantAvailabilityBand.T0,
-			EMerchantAvailabilityBand.T0_5 =>
-				sheet is EMerchantAvailabilityBand.T0 or EMerchantAvailabilityBand.T0_5,
-			EMerchantAvailabilityBand.T1 => sheet == EMerchantAvailabilityBand.T1,
-			EMerchantAvailabilityBand.T1_5 =>
-				sheet is EMerchantAvailabilityBand.T1 or EMerchantAvailabilityBand.T1_5,
-			EMerchantAvailabilityBand.T2 => sheet == EMerchantAvailabilityBand.T2,
-			_ => throw new ArgumentOutOfRangeException(nameof(current), current, null),
-		};
 }

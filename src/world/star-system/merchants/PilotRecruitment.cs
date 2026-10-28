@@ -12,54 +12,37 @@ public static class PilotRecruitment
 
 	private const string HireRollScope = "pilot-hire";
 
-	private static readonly (EPilotBackgroundId BackgroundId, EMerchantAvailabilityBand MinimumBand)[]
-		BackgroundBands =
-		[
-			(EPilotBackgroundId.ScrapDrone, EMerchantAvailabilityBand.T0),
-			(EPilotBackgroundId.OptimalityEnforcer, EMerchantAvailabilityBand.T0),
-			(EPilotBackgroundId.CorporateSlave, EMerchantAvailabilityBand.T0),
-			(EPilotBackgroundId.PodRacer, EMerchantAvailabilityBand.T0),
-			(EPilotBackgroundId.AsteroidSurfer, EMerchantAvailabilityBand.T0),
-			(EPilotBackgroundId.SynthSinger, EMerchantAvailabilityBand.T0),
-		];
+	private static readonly EPilotBackgroundId[] RecruitableBackgrounds =
+	[
+		EPilotBackgroundId.ScrapDrone,
+		EPilotBackgroundId.OptimalityEnforcer,
+		EPilotBackgroundId.CorporateSlave,
+		EPilotBackgroundId.PodRacer,
+		EPilotBackgroundId.AsteroidSurfer,
+		EPilotBackgroundId.SynthSinger,
+	];
 
 	public static IReadOnlyList<EPilotBackgroundId> RecruitableBackgroundIds { get; } =
-		BackgroundBands.Select(entry => entry.BackgroundId).ToArray();
+		RecruitableBackgrounds;
 
 	public static bool IsRecruitableBackground(EPilotBackgroundId backgroundId) =>
-		BackgroundBands.Any(entry => entry.BackgroundId == backgroundId);
-
-	public static IReadOnlyList<EPilotBackgroundId> ListUnlockedBackgrounds(
-		EMerchantAvailabilityBand marketTier)
-	{
-		var results = new List<EPilotBackgroundId>(BackgroundBands.Length);
-		foreach (var (backgroundId, minimumBand) in BackgroundBands)
-		{
-			if (MerchantCatalog.IncludesSheet(marketTier, minimumBand))
-				results.Add(backgroundId);
-		}
-
-		return results;
-	}
+		RecruitableBackgrounds.Contains(backgroundId);
 
 	public static IReadOnlyList<PilotHireCandidate> RollCandidates(StarMap map, string contractId)
 	{
 		ArgumentNullException.ThrowIfNull(map);
 		ArgumentException.ThrowIfNullOrEmpty(contractId);
 
-		var tier = MerchantCatalog.Tier(map);
-		var backgrounds = ListUnlockedBackgrounds(tier);
-		if (backgrounds.Count == 0)
-			throw new InvalidOperationException(
-				"No pilot backgrounds are unlocked for recruitment at the current market tier.");
+		if (RecruitableBackgroundIds.Count == 0)
+			throw new InvalidOperationException("No pilot backgrounds are configured for recruitment.");
 
 		var candidates = new PilotHireCandidate[CandidatesPerLead];
 		for (var slot = 0; slot < CandidatesPerLead; slot++)
 		{
 			var name = Pilot.RollRecruitDisplayName(SlotRng(map.Seed, contractId, slot, "name"));
 			var portraitId = Pilot.RollRecruitPortraitId(SlotRng(map.Seed, contractId, slot, "portrait"));
-			var backgroundId = backgrounds[
-				SlotRng(map.Seed, contractId, slot, "background").Next(backgrounds.Count)];
+			var backgroundId = RecruitableBackgrounds[
+				SlotRng(map.Seed, contractId, slot, "background").Next(RecruitableBackgrounds.Length)];
 			var baseSalary = StrategicEconomyConfig.RollBaseSalaryCredits(
 				SlotRng(map.Seed, contractId, slot, "salary"));
 			var profile = new PilotRecruitProfile(

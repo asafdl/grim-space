@@ -10,7 +10,6 @@ public static class StarSystemDangerProgression
 	/// </summary>
 	public const double TierShiftPerCompletion = 0.8;
 
-	/// <summary>Contracts per merchant availability band step (T2 unlocks at four times this).</summary>
 	public const int CompletionsPerTier = 4;
 
 	/// <summary>Triangular falloff radius: tiers within this distance of the center keep non-zero weight.</summary>

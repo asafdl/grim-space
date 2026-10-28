@@ -51,24 +51,30 @@ public sealed class StarMarketTests
 	}
 
 	[Theory]
-	[InlineData(EMerchantAvailabilityBand.T0, EShipGearTier.T0, StarMarketSeed.FighterT0CreditCost)]
-	[InlineData(EMerchantAvailabilityBand.T1, EShipGearTier.T1, StarMarketSeed.FighterT1CreditCost)]
-	[InlineData(EMerchantAvailabilityBand.T2, EShipGearTier.T2, StarMarketSeed.FighterT2CreditCost)]
-	public void Broker_OffersOnlyBandFighterWithTieredPrice(
-		EMerchantAvailabilityBand band,
+	[InlineData(EShipGearTier.T0, StarMarketSeed.FighterT0CreditCost)]
+	[InlineData(EShipGearTier.T1, StarMarketSeed.FighterT1CreditCost)]
+	[InlineData(EShipGearTier.T2, StarMarketSeed.FighterT2CreditCost)]
+	public void Broker_ListsEveryFighterTierWithTieredPrice(
 		EShipGearTier expectedTier,
 		int expectedCredits)
 	{
-		var offers = StarMarketSeed.Create().ListRecruitmentOffers(band);
-		var offer = Assert.Single(offers);
+		var offers = StarMarketSeed.Create().ListRecruitmentOffers();
+		var offer = Assert.Single(offers, candidate => candidate.GearTier == expectedTier);
 
 		Assert.Equal(EType.Fighter, offer.Chassis);
-		Assert.Equal(expectedTier, offer.GearTier);
 		Assert.Equal(expectedCredits, Credits(offer.Cost));
-		if (band == EMerchantAvailabilityBand.T2)
+		if (expectedTier == EShipGearTier.T2)
 			Assert.Equal(StarMarketSeed.FighterT2IndustrialCoreCost, Amount(offer.Cost, ResourceId.IndustrialCore));
 		else
 			Assert.False(offer.Cost.TryGet(ResourceId.IndustrialCore, out _));
+	}
+
+	[Fact]
+	public void Broker_ListsAllConfiguredFighterTiersAtOnce()
+	{
+		var offers = StarMarketSeed.Create().ListRecruitmentOffers();
+
+		Assert.Equal(3, offers.Count);
 		Assert.All(offers, candidate => Assert.Equal(EType.Fighter, candidate.Chassis));
 	}
 

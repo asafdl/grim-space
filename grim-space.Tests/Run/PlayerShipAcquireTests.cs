@@ -113,14 +113,14 @@ public sealed class PlayerShipAcquireTests
 	public void PurchaseShipAction_RemainsLegalWhenActivePilotCapIsFull()
 	{
 		using var run = RunState.CreateNewRun(42);
-		MerchantCatalogTestBands.SetBand(run.StarSystem.Map, EMerchantAvailabilityBand.T1);
 		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
 		{
 			var shipId = TypedIdGenerator.NextId("fighter");
 			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)));
 		}
 
-		var offer = run.StarSystem.Map.Market.ListRecruitmentOffers(EMerchantAvailabilityBand.T1).First();
+		var offer = run.StarSystem.Map.Market.ListRecruitmentOffers()
+			.First(candidate => candidate.GearTier == EShipGearTier.T1);
 		var purchasedId = TypedIdGenerator.NextId(UnitTypeSlug.For(offer.Chassis));
 		SeedResources(run.StarSystem.Map, credits: 10_000, scrap: 10_000);
 		var action = new PurchaseShipAction(

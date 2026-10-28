@@ -63,9 +63,8 @@ public sealed partial class PilotHiringHudOverlay : Control
 	private void ShowMain()
 	{
 		var map = _run.StarSystem.Map;
-		var tier = MerchantCatalog.Tier(map);
 		_shell.SetTitle("Pilot broker");
-		_shell.SetSubtitle($"{_facilityTitle} · {MerchantOfferDisplay.BandLabel(tier)}");
+		_shell.SetSubtitle(_facilityTitle);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);

@@ -125,12 +125,8 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 
 	private void ShowMain()
 	{
-		var tier = MerchantCatalog.Tier(_run.StarSystem.Map);
 		_shell.SetTitle(_title);
-		_shell.SetSubtitle(
-			_catalog == EMerchantCatalog.Healing
-				? _subtitle
-				: $"{_subtitle} · {MerchantOfferDisplay.BandLabel(tier)}");
+		_shell.SetSubtitle(_subtitle);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);

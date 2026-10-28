@@ -25,19 +25,15 @@ public sealed class StarMarket
 			_merchantListings.Select(listing => listing.ForkClone()).ToArray(),
 			_recruitmentListings.Select(listing => listing.ForkClone()).ToArray());
 
-	public IReadOnlyList<RecruitmentOffer> ListRecruitmentOffers(EMerchantAvailabilityBand tier) =>
-		_recruitmentListings
-			.Where(listing => MerchantCatalog.IncludesSheet(tier, listing.AvailabilityBand))
-			.Select(listing => listing.ToOffer())
-			.ToArray();
+	public IReadOnlyList<RecruitmentOffer> ListRecruitmentOffers() =>
+		_recruitmentListings.Select(listing => listing.ToOffer()).ToArray();
 
 	public bool TryFindRecruitmentOffer(
 		EType chassis,
 		EShipGearTier gearTier,
-		EMerchantAvailabilityBand tier,
 		out RecruitmentOffer offer)
 	{
-		offer = ListRecruitmentOffers(tier).FirstOrDefault(candidate =>
+		offer = ListRecruitmentOffers().FirstOrDefault(candidate =>
 			candidate.Chassis == chassis && candidate.GearTier == gearTier)!;
 		return offer is not null;
 	}

@@ -29,7 +29,6 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void Commit_BuyFuel_DebitsCreditsAndGrantsFuel()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T0);
 		SeedResources(engine.World, credits: 500, scrap: 0);
 		var initialCredits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
 		var initialFuel = engine.World.PlayerResources.GetBalance(ResourceId.Fuel);
@@ -55,10 +54,9 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Commit_Repair_RemainsAvailableAtT2()
+	public void Commit_Repair_RemainsAvailable()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T2);
 		ship.HullPoints = 1;
 		SeedResources(engine.World, credits: 500, scrap: 500);
 
@@ -76,10 +74,9 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Commit_RechargeAll_RemainsAvailableAtT2()
+	public void Commit_RechargeAll_RemainsAvailable()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		MerchantCatalogTestBands.SetBand(engine.World, EMerchantAvailabilityBand.T2);
 		ship.ShieldPoints.Fill(0);
 		SeedResources(engine.World, credits: 5_000, scrap: 0);
 
