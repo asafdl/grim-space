@@ -41,7 +41,7 @@ public sealed class PilotHireDisplayTests
 			EPilotBackgroundId.CorporateSlave,
 			classId: EOperatorClassId.Support);
 
-		Assert.Equal("Vera · Lv 1 · Support", PilotHireDisplay.CardSubtitle(profile));
+		Assert.Equal("Vera · Lv 1 · Forward Deployed Engineer", PilotHireDisplay.CardSubtitle(profile));
 	}
 
 	[Fact]

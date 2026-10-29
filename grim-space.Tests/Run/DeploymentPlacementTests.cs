@@ -281,24 +281,25 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void DevDefault_UpgradesGunshipAndIndustrialGooperWeapons()
+	public void DevDefault_UpgradesRepurposedMinerAndIndustrialGooperWeapons()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
 		var ships = encounter.Spawns.Select(spawn => spawn.Ship).ToArray();
-		var gunship = ships.Single(ship => ship.Spec.Chassis == BattleUnitType.Gunship);
+		var repurposedMiner = ships.Single(ship => ship.Spec.Chassis == BattleUnitType.RepurposedMiner);
 		var gooper = ships.Single(ship => ship.Spec.Chassis == BattleUnitType.IndustrialGooper);
 
 		Assert.All(
-			gunship.Loadout.InstalledAbilities,
-			ability =>
+			repurposedMiner.Loadout.InstalledAbilities.Where(
+				ability => ability.Kind == EAbilityKind.ScrapDroneSwarm),
+			swarm =>
 			{
-				Assert.Equal(1, ability.DamageUpgradeTier);
-				Assert.Equal(1, ability.RangeUpgradeTier);
+				Assert.Equal(1, swarm.DamageUpgradeTier);
+				Assert.Equal(1, swarm.RangeUpgradeTier);
 			});
-		var swarm = gooper.Loadout.InstalledAbilities.Single(
+		var gooperSwarm = gooper.Loadout.InstalledAbilities.Single(
 			ability => ability.Kind == EAbilityKind.ScrapDroneSwarm);
-		Assert.Equal(1, swarm.DamageUpgradeTier);
-		Assert.Equal(1, swarm.RangeUpgradeTier);
+		Assert.Equal(1, gooperSwarm.DamageUpgradeTier);
+		Assert.Equal(1, gooperSwarm.RangeUpgradeTier);
 	}
 
 	[Fact]

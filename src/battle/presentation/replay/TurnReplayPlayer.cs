@@ -211,6 +211,10 @@ public partial class TurnReplayPlayer : Node3D
 					}
 					_impactWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
 					break;
+				case Record<HealFacts> { Value: var heal }:
+					BeginPhase(ReplayActorPhase.Classify(heal.SourceId, _participants));
+					ApplyHeal(heal);
+					break;
 				case Record<HeatChangedFacts> { Value: var heat }:
 					ApplyHeatChanged(heat);
 					break;
@@ -272,6 +276,21 @@ public partial class TurnReplayPlayer : Node3D
 			return;
 
 		view.RefreshHeat(_clipContext.ReplayState.StateOf(heat.ActorId));
+	}
+
+	private void ApplyHeal(HealFacts heal)
+	{
+		_clipContext.ReplayState.ApplyHeal(heal);
+		if (!_clipContext.ReplayState.Contains(heal.TargetId))
+			return;
+
+		var state = _clipContext.ReplayState.StateOf(heal.TargetId);
+		_stateChanged(state);
+		if (_clipContext.UnitViews.TryGetValue(heal.TargetId, out var view))
+		{
+			view.Sync(state);
+			view.PlayHealPopup(heal.ShieldRestored, heal.HullRestored);
+		}
 	}
 
 	private bool PlayImpact(ImpactFacts impact)

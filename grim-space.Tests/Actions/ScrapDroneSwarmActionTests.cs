@@ -1,12 +1,14 @@
 using GrimSpace.Battle;
 using GrimSpace.Units.Maneuvering;
-using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units;
+using GrimSpace.Battle.Player;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -93,5 +95,30 @@ public sealed class ScrapDroneSwarmActionTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
 		Assert.Equal(shieldsBefore - CatalogExpectations.ScrapDroneSwarmDamage(), TotalShieldPoints(enemy.State));
+	}
+
+	[Fact]
+	public void ScrapDroneSwarmHealsAlliesInBurst()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin);
+		var ally = Factory.Create(
+			ShipInstance.FromCatalog("ally", EType.Fighter),
+			ETeam.Player,
+			origin + Coord.Forward * 4,
+			new UserExecutionAgent());
+		var distantEnemy = BattleTestFixture.Enemy(origin + Coord.Forward * 8);
+		var battle = BattleTestFixture.BeginSimulation(player, [ally, distantEnemy]);
+		var world = battle.PlayerAgent.Sim.World;
+		var allyUnit = UnitRegistry.For(world).All.First(unit => unit.State.Id == "ally");
+		var burstCell = BodyFrame.From(world.StateOf(PlayerId)).ToWorld(0, -1, 0);
+		allyUnit.State.HullPoints = 100;
+		allyUnit.State.Position = burstCell;
+		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
+		Assert.Contains(burstCell, ScrapDroneSwarmDef.Instance.AffectedCells(action, world));
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
+
+		Assert.Equal(200, allyUnit.State.HullPoints);
 	}
 }

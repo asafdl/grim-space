@@ -30,10 +30,10 @@ public sealed class BattleEncounter
 			gridSize,
 			$"fighter-dev-{seed}",
 			$"carrier-dev-{seed}");
-		var gunshipSpawn = new BattleSpawn
+		var repurposedMinerSpawn = new BattleSpawn
 		{
 			Ship = DeploymentPlacement.UpgradeDevShip(
-				ShipInstance.FromCatalog($"gunship-dev-{seed}", EType.Gunship)),
+				ShipInstance.FromCatalog($"repurposed-miner-dev-{seed}", EType.RepurposedMiner)),
 			Team = ETeam.Player,
 			Position = playerSpawn.Position + new Coord(0, 4, 0),
 			Fore = playerSpawn.Fore,
@@ -50,7 +50,7 @@ public sealed class BattleEncounter
 			Dorsal = enemySpawn.Dorsal,
 			ExecutionAgent = new AiController(),
 		};
-		var spawns = new[] { playerSpawn, gunshipSpawn, enemySpawn, gooperSpawn };
+		var spawns = new[] { playerSpawn, repurposedMinerSpawn, enemySpawn, gooperSpawn };
 		var fieldMargin = 2;
 		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
 

@@ -184,7 +184,8 @@ public sealed partial class HudTooltipCard : PanelContainer
 			var icon = HudTooltipIconCatalog.Resolve(iconName);
 			var texture = GD.Load<Texture2D>(icon.Path)
 				?? throw new InvalidOperationException($"Could not load tooltip icon '{icon.Path}'.");
-			label.AddImage(texture, TooltipIconSize, TooltipIconSize, icon.Color);
+			var iconModulate = icon.TintIcon ? icon.Color : Colors.White;
+			label.AddImage(texture, TooltipIconSize, TooltipIconSize, iconModulate);
 
 			if (textSeparator >= 0)
 				AddColoredText(label, token[(textSeparator + 7)..].TrimStart(), icon.Color);

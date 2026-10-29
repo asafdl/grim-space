@@ -136,6 +136,7 @@ internal static class FleetManagementProjection
 			ScrapDroneSwarmSpec swarm =>
 			[
 				new("DAMAGE", swarm.Damage.ToString()),
+				new("ALLY HEAL", swarm.Heal.ToString()),
 				new("RANGE", AbilityReach.MaxManhattanFromFirer(swarm).ToString()),
 				new("USES PER TURN", swarm.UsesPerTurn.ToString()),
 			],

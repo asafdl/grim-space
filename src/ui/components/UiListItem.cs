@@ -256,7 +256,7 @@ public partial class UiListItem : BaseButton, IUiSized
 		ClearCustomDetail();
 		_detailRichText.Visible = false;
 		_customDetail = content;
-		content.MouseFilter = MouseFilterEnum.Ignore;
+		content.MouseFilter = MouseFilterEnum.Pass;
 		_detailHost.AddChild(content);
 		_detailHost.Visible = true;
 		UpdateMinimumSize();

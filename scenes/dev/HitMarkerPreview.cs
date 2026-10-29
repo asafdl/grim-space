@@ -29,6 +29,7 @@ public partial class HitMarkerPreview : Node3D
 	private int _faceIndex;
 	private int _damage = 12;
 	private bool _shieldDamage;
+	private bool _healPopup;
 	private bool _lightningHit;
 	private bool _frozen;
 	private Label _status = null!;
@@ -70,6 +71,10 @@ public partial class HitMarkerPreview : Node3D
 				break;
 			case Key.L:
 				_lightningHit = !_lightningHit;
+				break;
+			case Key.H:
+				_healPopup = !_healPopup;
+				PlayHit();
 				break;
 			case Key.C:
 				_shieldDamage = !_shieldDamage;
@@ -123,14 +128,23 @@ public partial class HitMarkerPreview : Node3D
 		if (_view is null)
 			return;
 
-		_view.PlayImpactSparks(
-			_shieldDamage ? _damage : 0,
-			_shieldDamage ? 0 : _damage,
-			lightning: _lightningHit,
-			HitFaces[_faceIndex]);
-		_view.PlayDamagePopup(
-			_shieldDamage ? _damage : 0,
-			_shieldDamage ? 0 : _damage);
+		if (_healPopup)
+		{
+			_view.PlayHealPopup(
+				_shieldDamage ? _damage : 0,
+				_shieldDamage ? 0 : _damage);
+		}
+		else
+		{
+			_view.PlayImpactSparks(
+				_shieldDamage ? _damage : 0,
+				_shieldDamage ? 0 : _damage,
+				lightning: _lightningHit,
+				HitFaces[_faceIndex]);
+			_view.PlayDamagePopup(
+				_shieldDamage ? _damage : 0,
+				_shieldDamage ? 0 : _damage);
+		}
 		_autoTimer.Start();
 		UpdateStatus();
 	}
@@ -161,7 +175,7 @@ public partial class HitMarkerPreview : Node3D
 		var type = ShipTypes[_typeIndex];
 		var hitFace = HitFaces[_faceIndex];
 		_status.Text =
-			$"Hit feedback preview  |  {type}  |  Hit from: {BattleHudCopy.FaceName(hitFace)}  |  Damage: {_damage}  |  Layer: {(_shieldDamage ? "Shield" : "Hull + fragments")}  |  {(_lightningHit ? "Lightning" : "Sparks")}  |  {(_frozen ? "Frozen" : "Looping")}\n" +
-			"Space: hit   F: cycle hit face   C: shield/hull layer   L: lightning/sparks   P: freeze loop   Up/Down: damage   Left/Right: ship type";
+			$"Hit feedback preview  |  {type}  |  {(_healPopup ? "Heal popup" : $"Hit from: {BattleHudCopy.FaceName(hitFace)}  |  Layer: {(_shieldDamage ? "Shield" : "Hull + fragments")}  |  {(_lightningHit ? "Lightning" : "Sparks")}")}  |  Amount: {_damage}  |  {(_frozen ? "Frozen" : "Looping")}\n" +
+			"Space: hit   H: heal/damage   F: cycle hit face   C: shield/hull split   L: lightning/sparks (damage)   P: freeze loop   Up/Down: amount   Left/Right: ship type";
 	}
 }

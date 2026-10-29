@@ -25,6 +25,51 @@ public static class Defense
 		return amount - remaining;
 	}
 
+	public static int RestoreShieldsOnFace(State unit, ESpatialOrientation face, int amount)
+	{
+		if (amount <= 0)
+			return 0;
+
+		var missing = unit.Loadout.MaxShieldPoints[face] - unit.ShieldPoints[face];
+		if (missing <= 0)
+			return 0;
+
+		var applied = System.Math.Min(amount, missing);
+		unit.ShieldPoints[face] += applied;
+		return applied;
+	}
+
+	public static int RestoreHull(State unit, int amount)
+	{
+		if (amount <= 0)
+			return 0;
+
+		var missing = unit.Loadout.MaxHullPoints - unit.HullPoints;
+		if (missing <= 0)
+			return 0;
+
+		var applied = System.Math.Min(amount, missing);
+		unit.HullPoints += applied;
+		return applied;
+	}
+
+	public static ESpatialOrientation MostMissingShieldFace(State unit)
+	{
+		var bestFace = ESpatialOrientation.Forward;
+		var bestMissing = -1;
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+		{
+			var missing = unit.Loadout.MaxShieldPoints[face] - unit.ShieldPoints[face];
+			if (missing <= bestMissing)
+				continue;
+
+			bestMissing = missing;
+			bestFace = face;
+		}
+
+		return bestFace;
+	}
+
 	public static void ApplyDamage(
 		State unit,
 		int damage,

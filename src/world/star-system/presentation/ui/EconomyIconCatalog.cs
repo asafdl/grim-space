@@ -15,7 +15,7 @@ public static class EconomyIconCatalog
 
 	public static HudTooltipContent HazardPayTooltip { get; } =
 		new HudTooltipContent(
-			"Hazard pay",
+			"Hazard Pay",
 			"Mercs don't fight for free. Failure to pay might lead for pilots to refuse to fight.");
 
 	public static HudTooltipContent FleeFuelTooltip { get; } =

@@ -18,32 +18,16 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
 	private const string VoidBombIconPath = "res://assets/ui/abilities/void_bomb.svg";
-	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
-	private const string SpaceRangerClassIconPath = "res://assets/ui/classes/space-ranger.png";
-	private const string SupportClassIconPath = "res://assets/ui/classes/support.png";
 	private const string IconBorderPath = "res://assets/ui/components/runtime/icon_border_blue.png";
-	private const string OptimalityEnforcerIconPath = "res://assets/ui/pilots/optimality-enforcer.png";
-	private const string CorporateSlaveIconPath = "res://assets/ui/pilots/corporate-slave.png";
-	private const string PodRacerIconPath = "res://assets/ui/pilots/pod-racer.png";
-	private const string AsteroidSurferIconPath = "res://assets/ui/pilots/asteroid-surfer.png";
-	private const string SynthSingerIconPath = "res://assets/ui/pilots/synth-singer.png";
-	private const string PositiveQuirkIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
-	private const string NegativeQuirkIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
-	private const string CharismaticIconPath = "res://assets/ui/pilots/charismatic.png";
-	private const string NeuroDrugAddictIconPath = "res://assets/ui/pilots/neuro-drug-addict.png";
 	private const string PilotCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 	private const int SkillNodeSize = 60;
-	private const int IdentityIconSize = 42;
 	private const int PortraitSize = 144;
 	private const int IdentityRailWidth = 204;
 
 	private static readonly Color AvailableColor = HudPalettes.PurpleRed.Primary;
 	private static readonly Color LearnedColor = new(0.42f, 0.88f, 0.58f);
 	private static readonly Color LockedColor = new(0.32f, 0.38f, 0.46f);
-	private static readonly Color IdentityIconColor = HudStyles.TextColor(HudTextRole.Body);
 	private static readonly Texture2D IconBorder = GD.Load<Texture2D>(IconBorderPath);
-	private static readonly Color PositiveQuirkColor = HudPalettes.Gold.Primary;
-	private static readonly Color NegativeQuirkColor = HudStyles.TextColor(HudTextRole.Danger);
 
 	private readonly ModalShell _shell;
 	private string? _pilotId;
@@ -138,36 +122,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		HudStyles.ApplyTextRole(level, HudTextRole.Metadata);
 		rail.AddChild(level);
 
-		var background = PilotBackgroundCatalog.Get(pilot.BackgroundId);
-		var identityIcons = new HBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.Begin,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-		};
-		identityIcons.AddThemeConstantOverride("separation", 8);
-		identityIcons.AddChild(BuildIdentityIcon(
-			BackgroundIconPathFor(background.Id),
-			IdentityIconColor,
-			$"Background: {background.Name}\n{background.Description}"));
-		identityIcons.AddChild(BuildPilotClassIcon(pilot));
-		if (pilot.PositiveQuirkId is { } positiveQuirkId)
-		{
-			var positiveQuirk = PilotQuirkCatalog.Get(positiveQuirkId);
-			identityIcons.AddChild(BuildIdentityIcon(
-				QuirkIconPathFor(positiveQuirk.Id),
-				PositiveQuirkColor,
-				$"Positive Quirk: {positiveQuirk.Name}\n{positiveQuirk.Description}"));
-		}
-
-		if (pilot.NegativeQuirkId is { } negativeQuirkId)
-		{
-			var negativeQuirk = PilotQuirkCatalog.Get(negativeQuirkId);
-			identityIcons.AddChild(BuildIdentityIcon(
-				QuirkIconPathFor(negativeQuirk.Id),
-				NegativeQuirkColor,
-				$"Negative Quirk: {negativeQuirk.Name}\n{negativeQuirk.Description}"));
-		}
-
+		var identityIcons = PilotIdentityIconRail.BuildFor(pilot);
 		rail.AddChild(identityIcons);
 
 		if (assignedShip is not null)
@@ -194,40 +149,6 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			HudPalettes.PurpleRed.Secondary,
 			requiredXp > 0 ? $"{currentXp} / {requiredXp}" : "MAX"));
 		return rail;
-	}
-
-	private static Button BuildPilotClassIcon(Pilot pilot)
-	{
-		var iconPath = pilot.ClassId switch
-		{
-			GrimSpace.Units.Enums.EOperatorClassId.SpaceRanger => SpaceRangerClassIconPath,
-			GrimSpace.Units.Enums.EOperatorClassId.Support => SupportClassIconPath,
-			_ => throw new ArgumentOutOfRangeException(nameof(pilot), pilot.ClassId, null),
-		};
-		return BuildIdentityIcon(iconPath, IdentityIconColor, $"Class: {pilot.ClassId.DisplayName()}");
-	}
-
-	private static Button BuildIdentityIcon(
-		string iconPath,
-		Color iconColor,
-		string? tooltip,
-		int size = IdentityIconSize,
-		int iconSize = 24)
-	{
-		var button = new Button
-		{
-			CustomMinimumSize = new Vector2(size, size),
-			Icon = SvgIconLoader.Load(iconPath, iconColor, iconSize),
-			ExpandIcon = false,
-			IconAlignment = HorizontalAlignment.Center,
-			VerticalIconAlignment = VerticalAlignment.Center,
-			FocusMode = FocusModeEnum.None,
-			MouseDefaultCursorShape = CursorShape.Arrow,
-		};
-		if (!string.IsNullOrEmpty(tooltip))
-			HudTooltipCard.SetTooltip(button, tooltip);
-		ApplyIconBorder(button, 1f);
-		return button;
 	}
 
 	private static void ApplyIconBorder(Button button, float brightness)
@@ -462,25 +383,5 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			EPilotSkillId.DronesYearnForMines => SalvageIconPath,
 			EPilotSkillId.IKnowABot => BotIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(skillId), skillId, null),
-		};
-
-	private static string BackgroundIconPathFor(EPilotBackgroundId backgroundId) =>
-		backgroundId switch
-		{
-			EPilotBackgroundId.ScrapDrone => ScrapDroneBackgroundIconPath,
-			EPilotBackgroundId.OptimalityEnforcer => OptimalityEnforcerIconPath,
-			EPilotBackgroundId.CorporateSlave => CorporateSlaveIconPath,
-			EPilotBackgroundId.PodRacer => PodRacerIconPath,
-			EPilotBackgroundId.AsteroidSurfer => AsteroidSurferIconPath,
-			EPilotBackgroundId.SynthSinger => SynthSingerIconPath,
-			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
-		};
-
-	private static string QuirkIconPathFor(EPilotQuirkId quirkId) =>
-		quirkId switch
-		{
-			EPilotQuirkId.Charismatic => CharismaticIconPath,
-			EPilotQuirkId.NeuroDrugAddict => NeuroDrugAddictIconPath,
-			_ => throw new ArgumentOutOfRangeException(nameof(quirkId), quirkId, null),
 		};
 }

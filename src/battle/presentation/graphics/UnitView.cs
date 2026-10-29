@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Units;
+using GrimSpace.Components;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
@@ -17,6 +18,9 @@ public partial class UnitView : Node3D
 	private static readonly Texture2D ShieldDamageIcon = GD.Load<Texture2D>(
 		"res://assets/ui/battle/shield.png")
 		?? throw new InvalidOperationException("Could not load the shield damage icon.");
+	private static readonly HudTooltipIconDef HealPopupIcon = HudTooltipIconCatalog.Resolve("Heal");
+	private static readonly Texture2D HealPopupIconTexture = GD.Load<Texture2D>(HealPopupIcon.Path)
+		?? throw new InvalidOperationException("Could not load the heal popup icon.");
 	private static readonly Color ShieldDamageColor = new(0.04f, 0.72f, 1f);
 	private static readonly Color HullDamageColor = new(1f, 0.06f, 0.015f);
 	private static readonly ESpatialOrientation[] Faces = Enum.GetValues<ESpatialOrientation>();
@@ -383,33 +387,58 @@ public partial class UnitView : Node3D
 		var hasHullDamage = hullDamage > 0;
 		var splitPopups = hasShieldDamage && hasHullDamage;
 		if (hasShieldDamage)
-			AddDamagePopup(
-				shieldDamage,
+			AddFloatingStatPopup(
+				$"-{shieldDamage}",
 				ShieldDamageColor,
 				ShieldDamageIcon,
+				tintIcon: true,
 				splitPopups ? -0.62f : 0f);
 		if (hasHullDamage)
-			AddDamagePopup(
-				hullDamage,
+			AddFloatingStatPopup(
+				$"-{hullDamage}",
 				HullDamageColor,
 				HullDamageIcon,
+				tintIcon: true,
 				splitPopups ? 0.62f : 0f);
 	}
 
-	private void AddDamagePopup(
-		int damage,
+	public void PlayHealPopup(int shieldRestored, int hullRestored)
+	{
+		var hasShieldHeal = shieldRestored > 0;
+		var hasHullHeal = hullRestored > 0;
+		var splitPopups = hasShieldHeal && hasHullHeal;
+		if (hasShieldHeal)
+			AddFloatingStatPopup(
+				$"+{shieldRestored}",
+				HealPopupIcon.Color,
+				HealPopupIconTexture,
+				HealPopupIcon.TintIcon,
+				splitPopups ? -0.62f : 0f);
+		if (hasHullHeal)
+			AddFloatingStatPopup(
+				$"+{hullRestored}",
+				HealPopupIcon.Color,
+				HealPopupIconTexture,
+				HealPopupIcon.TintIcon,
+				splitPopups ? 0.62f : 0f);
+	}
+
+	private void AddFloatingStatPopup(
+		string text,
 		Color color,
 		Texture2D iconTexture,
+		bool tintIcon,
 		float horizontalOffset)
 	{
-		var tiltDirection = damage % 2 == 0 ? -1f : 1f;
+		var amountDigits = text.TrimStart('+', '-');
+		var tiltDirection = int.TryParse(amountDigits, out var amount) && amount % 2 == 0 ? -1f : 1f;
 		var fontSize = _type == EType.VoidBomb ? 104 : 132;
 		var popup = new Node3D
 		{
-			Name = "DamagePopup",
+			Name = "StatPopup",
 			Position = new Vector3(horizontalOffset, PopupLabelHeight(_type) + 0.45f, 0f),
 		};
-		var viewport = CreateDamagePopupViewport($"-{damage}", color, iconTexture, fontSize);
+		var viewport = CreateStatPopupViewport(text, color, iconTexture, tintIcon, fontSize);
 		var label = new Sprite3D
 		{
 			Name = "Label",
@@ -459,10 +488,11 @@ public partial class UnitView : Node3D
 			.SetEase(Tween.EaseType.Out);
 	}
 
-	private static SubViewport CreateDamagePopupViewport(
+	private static SubViewport CreateStatPopupViewport(
 		string text,
 		Color color,
 		Texture2D iconTexture,
+		bool tintIcon,
 		int fontSize)
 	{
 		const int outlineSize = 20;
@@ -475,7 +505,7 @@ public partial class UnitView : Node3D
 
 		var viewport = new SubViewport
 		{
-			Name = "DamagePopupViewport",
+			Name = "StatPopupViewport",
 			Size = new Vector2I(width, height),
 			TransparentBg = true,
 			Disable3D = true,
@@ -509,7 +539,7 @@ public partial class UnitView : Node3D
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			Modulate = color,
+			Modulate = tintIcon ? color : Colors.White,
 		};
 
 		row.AddChild(label);

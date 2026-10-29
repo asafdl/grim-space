@@ -50,6 +50,17 @@ public sealed class ReplayState
 		state.HullPoints = System.Math.Max(0, state.HullPoints - impact.HullDamage);
 	}
 
+	public void ApplyHeal(HealFacts heal)
+	{
+		if (!_states.TryGetValue(heal.TargetId, out var state))
+			return;
+
+		if (heal.ShieldRestored > 0)
+			Defense.RestoreShieldsOnFace(state, heal.ShieldFace, heal.ShieldRestored);
+		if (heal.HullRestored > 0)
+			Defense.RestoreHull(state, heal.HullRestored);
+	}
+
 	public void ApplyHeat(HeatChangedFacts heat)
 	{
 		if (!_states.TryGetValue(heat.ActorId, out var state))

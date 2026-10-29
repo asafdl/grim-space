@@ -179,8 +179,8 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
 		new(
 			"Scrap Drone Swarm",
-			$"Short-range {BattleDistance.ApproximateCells(swarm.BurstRange + 1)} homing drones.",
-			$"[icon: {Icon.Damage}, text: {swarm.Damage}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
+			$"Short-range {BattleDistance.ApproximateCells(swarm.BurstRange + 1)} homing drones. Damages enemies and heals allies in the burst.",
+			$"[icon: {Icon.Damage}, text: {swarm.Damage}] [icon: {Icon.Heal}, text: {swarm.Heal}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 
 	public static BattleHudTooltipContent LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
 		new(

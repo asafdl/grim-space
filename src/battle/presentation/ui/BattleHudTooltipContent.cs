@@ -5,6 +5,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 public enum Icon
 {
 	Damage,
+	Heal,
 	Hull,
 	Shield,
 	Heat,

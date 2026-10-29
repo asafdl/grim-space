@@ -79,6 +79,7 @@ public abstract record AbilitySpec
 public sealed record ScrapDroneSwarmSpec(
 	int UsesPerTurn,
 	int Damage,
+	int Heal,
 	int BurstRange) : AbilitySpec, IAreaDamage, IPerTurnAbility
 {
 	public const int MaxDamageUpgradeTier = 3;
@@ -86,6 +87,7 @@ public sealed record ScrapDroneSwarmSpec(
 	public static ScrapDroneSwarmSpec Baseline { get; } = new(
 		UsesPerTurn: 1,
 		Damage: 100,
+		Heal: 100,
 		BurstRange: 2);
 
 	public override EAbilityKind Kind => EAbilityKind.ScrapDroneSwarm;

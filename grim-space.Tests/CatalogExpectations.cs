@@ -20,6 +20,9 @@ internal static class CatalogExpectations
 	public static int ScrapDroneSwarmDamage(EType chassis = EType.Fighter) =>
 		DefaultScrapDroneSwarmSpec(chassis).Damage;
 
+	public static int ScrapDroneSwarmHeal(EType chassis = EType.Fighter) =>
+		DefaultScrapDroneSwarmSpec(chassis).Heal;
+
 	public static int LightningCannonMaxReach(EType chassis = EType.Fighter) =>
 		AbilityReach.MaxManhattanFromFirer(
 			DefaultLightningCannonSpec(chassis));

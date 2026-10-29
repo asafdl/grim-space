@@ -89,7 +89,9 @@ public sealed class ScrapDroneSwarmDef
 		var state = world.StateOf(action.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn)
 			?? throw new InvalidOperationException("Scrap drone swarm ability not installed for actor.");
-		var damage = installed.Spec is IAreaDamage area ? area.Damage : throw new InvalidOperationException("Scrap drone swarm spec missing area damage.");
+		var swarm = installed.Spec as ScrapDroneSwarmSpec
+			?? throw new InvalidOperationException("Scrap drone swarm spec missing.");
+		var damage = ((IAreaDamage)swarm).Damage;
 		IEffect<BattleWorld, ActorRuntime>[] effects =
 		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
@@ -97,7 +99,9 @@ public sealed class ScrapDroneSwarmDef
 				EImpactCause.ScrapDroneSwarmBurst,
 				cells,
 				damage,
-				state.Position),
+				state.Position,
+				alliesTakeDamage: false),
+			new ApplyAreaAllyHealEffect(EImpactCause.ScrapDroneSwarmBurst, cells, swarm.Heal),
 			new MountUsesChangeEffect(installed.Mount, -1),
 		];
 		return runtime.ActionEffects.Apply(action, world, runtime, effects);

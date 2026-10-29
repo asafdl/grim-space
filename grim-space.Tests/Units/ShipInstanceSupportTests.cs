@@ -118,6 +118,7 @@ public sealed class ShipInstanceSupportTests
 		var port = after.Loadout.InstalledAbilities.First(a => a.MountedOn == ESpatialOrientation.Port);
 		Assert.IsType<ScrapDroneSwarmSpec>(port.Spec);
 		Assert.Equal((2 * 100), ((ScrapDroneSwarmSpec)port.Spec).Damage);
+		Assert.Equal(ScrapDroneSwarmSpec.Baseline.Heal, ((ScrapDroneSwarmSpec)port.Spec).Heal);
 		Assert.Equal(1, ((ScrapDroneSwarmSpec)port.Spec).DamageUpgradeTier);
 
 		var starboard = after.Loadout.InstalledAbilities.First(a => a.MountedOn == ESpatialOrientation.Starboard);

@@ -73,7 +73,8 @@ public static class ActionLog
 			{
 				i++;
 				var impacts = TakeFollowingImpacts(history, ref i, actorIdWeapon);
-				if (impacts.Count == 0)
+				var heals = TakeFollowingHeals(history, ref i, actorIdWeapon);
+				if (impacts.Count == 0 && heals.Count == 0)
 				{
 					Emit(
 						$"{weapon} · Miss",
@@ -89,6 +90,16 @@ public static class ActionLog
 							$"{displayName(actorIdWeapon)} → {displayName(impact.TargetId)}",
 							mount),
 							FormatImpactDetail(impact)]);
+				}
+
+				foreach (var heal in heals)
+				{
+					Emit(
+						$"{weapon} · Heal",
+						[.. ActorMetadata(
+							$"{displayName(actorIdWeapon)} → {displayName(heal.TargetId)}",
+							mount),
+							FormatHealDetail(heal)]);
 				}
 				continue;
 			}
@@ -190,6 +201,23 @@ public static class ActionLog
 		return impacts;
 	}
 
+	private static List<HealFacts> TakeFollowingHeals(
+		IReadOnlyList<ITimelineEntry> history,
+		ref int i,
+		string sourceId)
+	{
+		var heals = new List<HealFacts>();
+		while (i < history.Count
+			&& history[i] is Record<HealFacts> { Value: var heal }
+			&& heal.SourceId == sourceId)
+		{
+			heals.Add(heal);
+			i++;
+		}
+
+		return heals;
+	}
+
 	private static string ResolveSpawnedRepurposedMinerId(
 		SpawnRepurposedMinerAction deploy,
 		IReadOnlyList<ITimelineEntry> history,
@@ -226,6 +254,13 @@ public static class ActionLog
 						$"{displayName(impact.SourceId)} → {displayName(impact.TargetId)}",
 						FormatImpactDetail(impact),
 					]),
+			Record<HealFacts> { Value: var heal } =>
+				new Entry(
+					$"Heal · {ImpactCauseLabel(heal.Cause)}",
+					[
+						$"{displayName(heal.SourceId)} → {displayName(heal.TargetId)}",
+						FormatHealDetail(heal),
+					]),
 			EndOfPhaseAction => null,
 			RoundUpkeepAction => null,
 			ExpireTemporaryShieldGrantAction => null,
@@ -245,6 +280,16 @@ public static class ActionLog
 			parts.Add($"{impact.ShieldDamage} shield");
 		if (impact.HullDamage > 0)
 			parts.Add($"{impact.HullDamage} hull");
+		return string.Join(" · ", parts);
+	}
+
+	private static string FormatHealDetail(HealFacts heal)
+	{
+		var parts = new List<string>(4) { FormatEnum(heal.ShieldFace) };
+		if (heal.ShieldRestored > 0)
+			parts.Add($"{heal.ShieldRestored} shield");
+		if (heal.HullRestored > 0)
+			parts.Add($"{heal.HullRestored} hull");
 		return string.Join(" · ", parts);
 	}
 

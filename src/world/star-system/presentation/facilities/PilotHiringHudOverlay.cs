@@ -111,17 +111,15 @@ public sealed partial class PilotHiringHudOverlay : Control
 		bool canAfford)
 	{
 		var profile = candidate.Profile;
-		var background = PilotBackgroundCatalog.Get(profile.BackgroundId);
-		var metadata = PilotHireDisplay.CardTitle(profile.BackgroundId);
 		var item = new UiImageListItem(
 			profile.Name,
-			metadata,
+			"",
 			"",
 			ShipPilotPortraitCatalog.TextureFor(profile.PortraitId))
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 		};
-		HudTooltipCard.SetTooltip(item, background.Description);
+		item.SetDetailContent(PilotIdentityIconRail.BuildFor(profile));
 		item.SetTrailingContent(BuildHireAndSalaryCost(cost, profile));
 		item.SetAffordable(canAfford);
 		item.SetEnabled(canAfford);

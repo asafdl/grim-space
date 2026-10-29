@@ -20,7 +20,8 @@ public sealed class ApplyAreaDamageEffect(
 	int adjacentHitDamagePercent = 100,
 	int adjacentHitDamageRangeCells = 1,
 	int damageBonusPercent = 0,
-	bool destroySource = false) : IEffect<BattleWorld, ActorRuntime>
+	bool destroySource = false,
+	bool alliesTakeDamage = true) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> Cells => cells;
@@ -43,7 +44,8 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamagePercent,
 			adjacentHitDamageRangeCells,
 			damageBonusPercent,
-			destroySource);
+			destroySource,
+			alliesTakeDamage);
 
 	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
@@ -56,7 +58,8 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamagePercent,
 			adjacentHitDamageRangeCells,
 			damageBonusPercent,
-			destroySource);
+			destroySource,
+			alliesTakeDamage);
 
 	public ApplyAreaDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
@@ -69,7 +72,8 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamagePercent,
 			adjacentHitDamageRangeCells,
 			damageBonusPercent,
-			destroySource);
+			destroySource,
+			alliesTakeDamage);
 
 	public ApplyAreaDamageEffect WithAdjacentHitDamagePercent(int percent, int rangeCells = 1) =>
 		new(
@@ -82,7 +86,8 @@ public sealed class ApplyAreaDamageEffect(
 			percent,
 			rangeCells,
 			damageBonusPercent,
-			destroySource);
+			destroySource,
+			alliesTakeDamage);
 
 	public ApplyAreaDamageEffect WithDamageBonusPercent(int percent) =>
 		new(
@@ -95,7 +100,8 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamagePercent,
 			adjacentHitDamageRangeCells,
 			percent,
-			destroySource);
+			destroySource,
+			alliesTakeDamage);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -113,6 +119,13 @@ public sealed class ApplyAreaDamageEffect(
 		{
 			if (!unit.State.IsAlive || !cells.Contains(unit.State.Position))
 				continue;
+
+			if (!alliesTakeDamage)
+			{
+				var relation = detonator.RelationTo(unit);
+				if (relation is EUnitRelation.Ally or EUnitRelation.Self)
+					continue;
+			}
 
 			if (voidBombFriendlyImmunity
 				&& detonator.RelationTo(unit) != EUnitRelation.Opponent)
