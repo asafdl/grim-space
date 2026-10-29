@@ -60,6 +60,21 @@ internal static class BattleTestFixture
 		var units = new List<Unit> { player };
 		units.AddRange(enemies);
 		var engagedShipIds = units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);
+		if (pilotsByActorId is not null)
+		{
+			foreach (var unit in units)
+			{
+				pilotsByActorId.TryGetValue(unit.State.Id, out var pilot);
+				var runtime = ActorRuntime.From(pilot);
+				unit.State.InTheFrayActive = runtime.PilotCapabilities.Contains(
+					GrimSpace.Pilots.EPilotCapabilityId.InTheFray);
+				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
+					GrimSpace.Pilots.EPilotCapabilityId.OneWithTheVoid);
+				unit.State.DefensiveManeuversActive = runtime.PilotCapabilities.Contains(
+					GrimSpace.Pilots.EPilotCapabilityId.StationaryDamageDeflection);
+			}
+		}
+
 		var world = BattleWorld.FromLive(
 			units,
 			nonUnits,
@@ -77,13 +92,6 @@ internal static class BattleTestFixture
 			PilotBattleSnapshot? pilot = null;
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
-			if (pilotsByActorId is not null)
-			{
-				unit.State.InTheFrayActive = runtime.PilotCapabilities.Contains(
-					GrimSpace.Pilots.EPilotCapabilityId.InTheFray);
-				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
-					GrimSpace.Pilots.EPilotCapabilityId.OneWithTheVoid);
-			}
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
 
@@ -100,6 +108,7 @@ internal static class BattleTestFixture
 				battle.WriterFor(unit.State.Id));
 		}
 
+		battle.InitializeRoundExecutionAgent();
 		battle.EnterPlayerTurn();
 		return battle;
 	}

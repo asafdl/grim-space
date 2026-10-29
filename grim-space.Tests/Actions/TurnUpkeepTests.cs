@@ -14,12 +14,12 @@ using GrimSpace.Units.Loadouts.Abilities;
 namespace GrimSpace.Tests.Actions;
 
 [BattleTestSuite]
-public sealed class RoundUpkeepTests
+public sealed class TurnUpkeepTests
 {
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RoundUpkeepActionRefillsResourcesAndScrapDroneSwarm()
+	public void TurnUpkeepActionRefillsResourcesAndScrapDroneSwarm()
 	{
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		player.State.ActionPoints = 0;
@@ -27,7 +27,7 @@ public sealed class RoundUpkeepTests
 		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.ScrapDroneSwarm, 0);
 		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon, 0);
 
-		ApplyRoundUpkeep(player);
+		ApplyTurnUpkeep(player);
 
 		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
 		Assert.Equal(3, player.State.ManeuverPoints);
@@ -36,7 +36,7 @@ public sealed class RoundUpkeepTests
 	}
 
 	[Fact]
-	public void ResolveTurnRunsRoundUpkeepOnTimeline()
+	public void ResolveTurnRunsTurnUpkeepOnTimeline()
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var playerState = battle.Engine.World.StateOf(battle.PlayerId);
@@ -54,13 +54,13 @@ public sealed class RoundUpkeepTests
 	}
 
 	[Fact]
-	public void RoundUpkeepUndoRestoresBothResourcePools()
+	public void TurnUpkeepUndoRestoresBothResourcePools()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.ActionPoints = 1;
 		state.ManeuverPoints = 0;
-		var effect = new RoundUpkeepEffect();
+		var effect = new TurnUpkeepEffect();
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		effect.Apply(battle.Engine.World, runtime, PlayerId);
@@ -85,7 +85,7 @@ public sealed class RoundUpkeepTests
 		Assert.Equal(3, state.ManeuverPoints);
 	}
 
-	private static void ApplyRoundUpkeep(GrimSpace.Battle.Units.Unit unit)
+	private static void ApplyTurnUpkeep(GrimSpace.Battle.Units.Unit unit)
 	{
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var nonUnits = new Dictionary<string, NonUnit>();
@@ -100,7 +100,7 @@ public sealed class RoundUpkeepTests
 			engagedShipIds);
 		var runtime = new ActorRuntime();
 		BattleTestApply.TryApplyOne(
-			new RoundUpkeepAction(unit.State.Id),
+			new TurnUpkeepAction(unit.State.Id),
 			board,
 			runtime,
 			unit.State.Id);

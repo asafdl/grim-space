@@ -112,7 +112,8 @@ public sealed class PlanningPreview
 			actions.Any(action => action is SpawnRepurposedMinerAction),
 			actions.Any(action => action is DetonateAction),
 			actions.Any(action => action is ShieldsUpAction),
-			actions.Any(action => action is OverchargeEnginesAction));
+			actions.Any(action => action is OverchargeEnginesAction),
+			actions.Any(action => action is BraceAction));
 
 	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
 	{
@@ -292,11 +293,7 @@ public sealed class PlanningPreview
 		_envelopeCache.Clear();
 	}
 
-	private static BattleWorld PreviewWorld(BattleSimulation sim, string playerId)
-	{
-		var peek = sim.Peek(EndOfPhaseDef.Instance.Bind(playerId));
-		return peek?.World ?? sim.World;
-	}
+	private static BattleWorld PreviewWorld(BattleSimulation sim, string playerId) => sim.World;
 
 	private static Dictionary<string, UnitDisplayState> CaptureUnits(BattleSimulation sim, BattleWorld world) =>
 		UnitRegistry.For(world).All.ToDictionary(

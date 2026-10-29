@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Godot;
+using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.World;
@@ -152,9 +154,11 @@ public partial class TurnReplayPlayer : Node3D
 			var entryStart = Stopwatch.GetTimestamp();
 			switch (entry)
 			{
-				case EndOfPhaseAction endOfPhase:
+				case Record<UnitActivationRoundPhase> { Value.Phase: EUnitActivationPhase.End }:
 					_flowCompletedCount++;
 					EmitTurnFlowIndexChanged();
+					break;
+				case Record<UnitActivationRoundPhase>:
 					break;
 				case IAction action:
 				{

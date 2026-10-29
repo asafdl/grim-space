@@ -185,7 +185,8 @@ public sealed class ApplyAreaDamageEffect(
 			ref appliedShieldDamageBonus);
 
 		if (damage > 0
-			&& unit.DefensiveManeuversMpSpentLastTurn == 0
+			&& unit.DefensiveManeuversActive
+			&& unit.DefensiveManeuversMpUsed == 0
 			&& RollsDeflection(unit))
 		{
 			var retained = PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent;

@@ -12,13 +12,13 @@ public sealed class HeatScheduleTransitionTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void RoundUpkeep_CoolsByClearPerTurnWhenNotOverdriveOrOverheat()
+	public void TurnUpkeep_CoolsByClearPerTurnWhenNotOverdriveOrOverheat()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 55;
 
-		battle.Engine.Commit(new RoundUpkeepAction(PlayerId));
+		battle.Engine.Commit(new TurnUpkeepAction(PlayerId));
 
 		Assert.Equal(35, state.Heat);
 		Assert.False(state.Overdrive);
@@ -26,28 +26,28 @@ public sealed class HeatScheduleTransitionTests
 	}
 
 	[Fact]
-	public void RoundUpkeep_DoesNotCoolDuringOverdrive()
+	public void TurnUpkeep_DoesNotCoolDuringOverdrive()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overdrive = true;
 
-		battle.Engine.Commit(new RoundUpkeepAction(PlayerId));
+		battle.Engine.Commit(new TurnUpkeepAction(PlayerId));
 
 		Assert.Equal(100, state.Heat);
 		Assert.True(state.Overdrive);
 	}
 
 	[Fact]
-	public void RoundUpkeep_DoesNotCoolDuringOverheat()
+	public void TurnUpkeep_DoesNotCoolDuringOverheat()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
 
-		battle.Engine.Commit(new RoundUpkeepAction(PlayerId));
+		battle.Engine.Commit(new TurnUpkeepAction(PlayerId));
 
 		Assert.Equal(100, state.Heat);
 		Assert.True(state.Overheat);
@@ -69,7 +69,7 @@ public sealed class HeatScheduleTransitionTests
 		Assert.True(battle.Engine.World.Timeline.ContainsPending(
 			action => action is EnterOverheatAction enter && enter.ActorId == PlayerId));
 
-		battle.Engine.Commit(new RoundUpkeepAction(PlayerId));
+		battle.Engine.Commit(new TurnUpkeepAction(PlayerId));
 		Assert.Equal(100, state.Heat);
 		Assert.True(state.Overdrive);
 
@@ -81,7 +81,7 @@ public sealed class HeatScheduleTransitionTests
 		Assert.True(battle.Engine.World.Timeline.ContainsPending(
 			action => action is ClearOverheatAction clear && clear.ActorId == PlayerId));
 
-		battle.Engine.Commit(new RoundUpkeepAction(PlayerId));
+		battle.Engine.Commit(new TurnUpkeepAction(PlayerId));
 		Assert.Equal(100, state.Heat);
 		Assert.True(state.Overheat);
 
@@ -112,28 +112,16 @@ public sealed class HeatScheduleTransitionTests
 	}
 
 	[Fact]
-	public void RoundUpkeep_WithoutHeatProfileDoesNotCool()
+	public void TurnUpkeep_WithoutHeatProfileDoesNotCool()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.HeatProfile = HeatSpec.None;
 		state.Heat = 40;
 
-		battle.Engine.Commit(new RoundUpkeepAction(PlayerId));
+		battle.Engine.Commit(new TurnUpkeepAction(PlayerId));
 
 		Assert.Equal(40, state.Heat);
 	}
 
-	[Fact]
-	public void EndOfPhase_DoesNotEmitHeatTransition()
-	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
-		var effects = EndOfPhaseDef.Instance.Resolve(
-			new EndOfPhaseAction(PlayerId),
-			battle.Engine.World,
-			runtime);
-
-		Assert.Empty(effects);
-	}
 }

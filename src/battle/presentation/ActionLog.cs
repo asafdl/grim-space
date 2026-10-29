@@ -1,4 +1,6 @@
 using System.Text;
+using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Units;
@@ -261,11 +263,15 @@ public static class ActionLog
 						$"{displayName(heal.SourceId)} → {displayName(heal.TargetId)}",
 						FormatHealDetail(heal),
 					]),
-			EndOfPhaseAction => null,
-			RoundUpkeepAction => null,
+			ProcessActivationRoundAction => null,
+			SyncDefensiveManeuversMpUsedAction => null,
+			Record<UnitActivationRoundPhase> => null,
+			TurnUpkeepAction => null,
 			ExpireTemporaryShieldGrantAction => null,
 			ApDeltaAction => null,
 			ResetShieldsUpUsedThisTurnAction => null,
+			ReleaseShieldBraceAction => null,
+			ResetShieldBraceUsedThisTurnAction => null,
 			EnterOverheatAction => null,
 			ClearOverheatAction => null,
 			FuelBurnAction => null,

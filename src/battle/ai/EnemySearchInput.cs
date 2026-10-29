@@ -31,8 +31,6 @@ internal static class EnemySearchInput
 		int searchStartDepth)
 	{
 		var world = frame.World.Fork();
-		var runtimes = frame.Runtimes.Fork();
-		ExecutionHelper.Apply(new EndOfPhaseAction(actorId), world, runtimes.For(actorId));
 
 		var state = world.StateOf(actorId);
 		if (!state.IsAlive)

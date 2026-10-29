@@ -1,4 +1,7 @@
 using System.Collections.Frozen;
+using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
 using GrimSpace.Battle.Units;
@@ -19,6 +22,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	private FrozenSet<Coord> _abilityBlockingCells;
 
 	public UnitRegistry UnitRegistry { get; }
+	public PerUnitActivationRoundLists ActivationRoundLists { get; }
 	public IReadOnlyDictionary<string, NonUnit> NonUnits => _nonUnits;
 	public FrozenSet<Coord> AbilityBlockingCells => _abilityBlockingCells;
 	public BoundedGrid Grid { get; }
@@ -105,9 +109,36 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		return false;
 	}
 
+	public void ApplyInitialActivationRoundState()
+	{
+		foreach (var unit in UnitRegistry.All)
+			EnsureDefensiveManeuversActivationRoundEntry(unit.State.Id);
+	}
+
+	internal void EnsureDefensiveManeuversActivationRoundEntry(string unitId)
+	{
+		if (!UnitRegistry.TryGet(unitId, out var unit) || !unit.State.DefensiveManeuversActive)
+			return;
+
+		foreach (var entry in ActivationRoundLists.EntriesFor(unitId))
+		{
+			if (entry is { RunAt: EUnitActivationPhase.Start, Sticky: true, Action: SyncDefensiveManeuversMpUsedAction })
+				return;
+		}
+
+		ActivationRoundLists.Append(
+			unitId,
+			new ActivationRoundEntry(
+				EUnitActivationPhase.Start,
+				RoundsRemaining: null,
+				Sticky: true,
+				new SyncDefensiveManeuversMpUsedAction(unitId)));
+	}
+
 	private BattleWorld(
 		UnitRegistry unitRegistry,
 		Dictionary<string, NonUnit> nonUnits,
+		PerUnitActivationRoundLists activationRoundLists,
 		FrozenSet<Coord> abilityBlockingCells,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
@@ -118,6 +149,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	{
 		UnitRegistry = unitRegistry;
 		_nonUnits = nonUnits;
+		ActivationRoundLists = activationRoundLists;
 		_abilityBlockingCells = abilityBlockingCells;
 		Grid = grid;
 		BlockedCells = blockedCells;
@@ -179,9 +211,10 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		foreach (var unit in roster)
 			units.Add(unit);
 
-		return new BattleWorld(
+		var world = new BattleWorld(
 			units,
 			nonUnits,
+			new PerUnitActivationRoundLists(),
 			CollectAbilityBlockingCells(nonUnits.Values),
 			grid,
 			blockedCells,
@@ -189,6 +222,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 			battleId,
 			objective,
 			engagedShipIds);
+		world.ApplyInitialActivationRoundState();
+		return world;
 	}
 
 	private static Unit CloneForSnapshot(Unit unit) =>
@@ -202,6 +237,7 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 		new(
 			UnitRegistry.CloneForFork(),
 			_nonUnits.ToDictionary(),
+			ActivationRoundLists.CloneForFork(),
 			_abilityBlockingCells,
 			Grid,
 			BlockedCells,

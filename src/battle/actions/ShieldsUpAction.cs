@@ -1,3 +1,4 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -19,6 +20,7 @@ public sealed class ShieldsUpDef
 {
 	public const int NextTickApPenalty = 2;
 	public const int FollowUpDelayTicks = 1;
+	public const int ExpiryEndPasses = 2;
 
 	public static ShieldsUpDef Instance { get; } = new();
 
@@ -74,7 +76,11 @@ public sealed class ShieldsUpDef
 				grantId,
 				PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax),
 			new ShieldsUpActivateEffect(),
-			new ScheduleActionEffect(delay, new ExpireTemporaryShieldGrantAction(actorId, grantId)),
+			new ScheduleActivationRoundEffect(
+				EUnitActivationPhase.End,
+				ExpiryEndPasses,
+				sticky: false,
+				new ExpireTemporaryShieldGrantAction(actorId, grantId)),
 			new ScheduleActionEffect(delay, new ApDeltaAction(actorId, -NextTickApPenalty)),
 			new ScheduleActionEffect(delay, new ResetShieldsUpUsedThisTurnAction(actorId)),
 		];

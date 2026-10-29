@@ -241,7 +241,14 @@ public static class SaveDtoMapper
 			TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 			state.ShieldsUpUsedThisTurn,
 			state.OverchargeEnginesCooldownRemaining,
-			state.DefensiveManeuversMpSpentLastTurn,
+			state.ShieldBraceActive,
+			state.ShieldBraceFace,
+			ShieldBraceSnapshot = state.ShieldBraceSnapshot is { } braceSnapshot
+				? CaptureFaces(braceSnapshot)
+				: null,
+			state.ShieldBraceDamagePending,
+			state.ShieldBraceUsedThisTurn,
+			state.DefensiveManeuversMpUsed,
 			state.DefensiveManeuversRollIndex,
 			state.InTheFrayActive,
 			state.OneWithTheVoidActive,
@@ -283,7 +290,14 @@ public static class SaveDtoMapper
 		RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, dto.TemporaryShieldGrants);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.OverchargeEnginesCooldownRemaining = dto.OverchargeEnginesCooldownRemaining;
-		state.DefensiveManeuversMpSpentLastTurn = dto.DefensiveManeuversMpSpentLastTurn;
+		state.ShieldBraceActive = dto.ShieldBraceActive;
+		state.ShieldBraceFace = dto.ShieldBraceFace;
+		state.ShieldBraceSnapshot = dto.ShieldBraceSnapshot is { } braceSnapshot
+			? RestoreFaces(braceSnapshot)
+			: null;
+		state.ShieldBraceDamagePending = dto.ShieldBraceDamagePending;
+		state.ShieldBraceUsedThisTurn = dto.ShieldBraceUsedThisTurn;
+		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
 		state.InTheFrayActive = dto.InTheFrayActive;
 		state.OneWithTheVoidActive = dto.OneWithTheVoidActive;
@@ -358,11 +372,18 @@ public static class SaveDtoMapper
 				state.ParentId,
 				TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 				state.ShieldsUpUsedThisTurn,
-			state.OverchargeEnginesCooldownRemaining,
-				state.DefensiveManeuversMpSpentLastTurn,
+				state.OverchargeEnginesCooldownRemaining,
+				state.ShieldBraceActive,
+				state.ShieldBraceFace,
+				ShieldBraceSnapshot = state.ShieldBraceSnapshot is { } saveBraceSnapshot
+					? CaptureFaces(saveBraceSnapshot)
+					: null,
+				state.ShieldBraceDamagePending,
+				state.ShieldBraceUsedThisTurn,
+				state.DefensiveManeuversMpUsed,
 				state.DefensiveManeuversRollIndex,
 				state.InTheFrayActive,
-			state.OneWithTheVoidActive,
+				state.OneWithTheVoidActive,
 				state.Heat,
 				state.Overdrive,
 				state.Overheat,
@@ -884,7 +905,14 @@ public static class SaveDtoMapper
 			RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, unitDto.TemporaryShieldGrants);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.OverchargeEnginesCooldownRemaining = unitDto.OverchargeEnginesCooldownRemaining;
-			state.DefensiveManeuversMpSpentLastTurn = unitDto.DefensiveManeuversMpSpentLastTurn;
+			state.ShieldBraceActive = unitDto.ShieldBraceActive;
+			state.ShieldBraceFace = unitDto.ShieldBraceFace;
+			state.ShieldBraceSnapshot = unitDto.ShieldBraceSnapshot is { } unitBraceSnapshot
+				? RestoreFaces(unitBraceSnapshot)
+				: null;
+			state.ShieldBraceDamagePending = unitDto.ShieldBraceDamagePending;
+			state.ShieldBraceUsedThisTurn = unitDto.ShieldBraceUsedThisTurn;
+			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
 			state.InTheFrayActive = unitDto.InTheFrayActive;
 			state.OneWithTheVoidActive = unitDto.OneWithTheVoidActive;

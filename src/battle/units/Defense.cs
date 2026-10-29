@@ -21,8 +21,10 @@ public static class Defense
 		var fromShield = System.Math.Min(shield, remaining);
 		unit.ShieldPoints[face] = shield - fromShield;
 		remaining -= fromShield;
+		var absorbed = amount - remaining;
+		ShieldBrace.RecordShieldDamage(unit, face, fromShield);
 
-		return amount - remaining;
+		return absorbed;
 	}
 
 	public static int RestoreShieldsOnFace(State unit, ESpatialOrientation face, int amount)

@@ -44,6 +44,15 @@ public static class PilotSkillCatalog
 				tier: 5,
 				minimumEarnedLevel: 6,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
+			[EPilotSkillId.Brace] = new(
+				EPilotSkillId.Brace,
+				[EPilotCapabilityId.ShieldBrace],
+				new HudTooltipContent(
+					"Brace!",
+					$"Move {PilotSkillPercents.Brace.ShieldConsolidationPercent}% of each shield face to one face you choose until your next turn. That face can exceed its maximum. Shield damage it absorbs is spread to your other faces when the brace ends."),
+				tier: 1,
+				minimumEarnedLevel: 2,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
 			[EPilotSkillId.DefensiveManeuvers] = new(
 				EPilotSkillId.DefensiveManeuvers,
 				[EPilotCapabilityId.StationaryDamageDeflection],

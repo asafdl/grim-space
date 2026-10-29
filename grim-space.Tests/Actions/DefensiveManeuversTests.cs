@@ -1,7 +1,8 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -14,73 +15,89 @@ namespace GrimSpace.Tests.Actions;
 public sealed class DefensiveManeuversTests
 {
 	[Fact]
-	public void EndOfPhase_ReplacesLatestTurnManeuverPointSpend()
+	public void Bootstrap_AppendsStickyStartSyncEntry()
 	{
 		var (player, battle) = PlayerWithDefensiveManeuversBattle();
+		var entry = Assert.Single(battle.Engine.World.ActivationRoundLists.EntriesFor(player.State.Id));
+		Assert.Equal(EUnitActivationPhase.Start, entry.RunAt);
+		Assert.Null(entry.RoundsRemaining);
+		Assert.True(entry.Sticky);
+		Assert.IsType<SyncDefensiveManeuversMpUsedAction>(entry.Action);
+	}
 
-		battle.Engine.Commit(new EndOfPhaseAction(player.State.Id));
-		Assert.Equal(0, player.State.DefensiveManeuversMpSpentLastTurn);
-
+	[Fact]
+	public void StartPass_SyncsMpUsedFromPool()
+	{
+		var (player, battle) = PlayerWithDefensiveManeuversBattle();
 		player.State.ManeuverPoints = 1;
-		battle.Engine.Commit(new EndOfPhaseAction(player.State.Id));
 
-		Assert.Equal(2, player.State.DefensiveManeuversMpSpentLastTurn);
+		BattleTestApply.CommitActivationRoundPasses(
+			battle,
+			player.State.Id,
+			EUnitActivationPhase.Start,
+			1);
+
+		Assert.Equal(2, player.State.DefensiveManeuversMpUsed);
 	}
 
 	[Fact]
-	public void EndOfPhase_WithoutSkillDoesNotRecordCondition()
-	{
-		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
-		var battle = BattleTestFixture.BeginSimulation(
-			player,
-			BattleTestFixture.Enemy(new Coord(0, 0, 0)));
-
-		battle.Engine.Commit(new EndOfPhaseAction(player.State.Id));
-
-		Assert.Null(player.State.DefensiveManeuversMpSpentLastTurn);
-	}
-
-	[Fact]
-	public void RecordEffect_UndoRestoresPreviousTurn()
+	public void MpChangeEffect_UpdatesMpUsedWhenActive()
 	{
 		var (player, battle) = PlayerWithDefensiveManeuversBattle();
-		player.State.DefensiveManeuversMpSpentLastTurn = 1;
-		var effect = new RecordDefensiveManeuversTurnEffect();
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
+		var effect = new MpChangeEffect(-2);
+
+		effect.Apply(battle.Engine.World, runtime, player.State.Id);
+
+		Assert.Equal(2, player.State.DefensiveManeuversMpUsed);
+
+		effect.Undo(battle.Engine.World, runtime, player.State.Id);
+
+		Assert.Equal(0, player.State.DefensiveManeuversMpUsed);
+	}
+
+	[Fact]
+	public void SyncEffect_UndoRestoresPreviousMpUsed()
+	{
+		var (player, battle) = PlayerWithDefensiveManeuversBattle();
+		player.State.DefensiveManeuversMpUsed = 1;
+		var effect = new SyncDefensiveManeuversMpUsedFromPoolEffect();
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(1, player.State.DefensiveManeuversMpSpentLastTurn);
+		Assert.Equal(1, player.State.DefensiveManeuversMpUsed);
 	}
 
 	[Fact]
-	public void StateClone_PreservesDefensiveManeuversConditionAndRollSequence()
+	public void StateClone_PreservesDefensiveManeuversFields()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.DefensiveManeuversMpSpentLastTurn = 0;
+		state.DefensiveManeuversActive = true;
+		state.DefensiveManeuversMpUsed = 0;
 		state.DefensiveManeuversRollIndex = 4;
 
 		var clone = state.Clone();
 
-		Assert.Equal(0, clone.DefensiveManeuversMpSpentLastTurn);
+		Assert.True(clone.DefensiveManeuversActive);
+		Assert.Equal(0, clone.DefensiveManeuversMpUsed);
 		Assert.Equal(4, clone.DefensiveManeuversRollIndex);
 	}
 
 	[Fact]
-	public void BattleUnitStateDto_PreservesDefensiveManeuversConditionAndRollSequence()
+	public void BattleUnitStateDto_PreservesDefensiveManeuversFields()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.DefensiveManeuversMpSpentLastTurn = 2;
+		state.DefensiveManeuversActive = true;
+		state.DefensiveManeuversMpUsed = 2;
 		state.DefensiveManeuversRollIndex = 7;
-		state.InTheFrayActive = true;
 
 		var dto = GrimSpace.Run.Persistence.SaveDtoMapper.CaptureBattleUnitState(state);
 		var restored = GrimSpace.Run.Persistence.SaveDtoMapper.RestoreBattleUnitState(dto);
 
-		Assert.Equal(2, restored.DefensiveManeuversMpSpentLastTurn);
+		Assert.Equal(2, restored.DefensiveManeuversMpUsed);
 		Assert.Equal(7, restored.DefensiveManeuversRollIndex);
-		Assert.True(restored.InTheFrayActive);
 	}
 
 	private static (Unit Player, BattleOrchestrator Battle) PlayerWithDefensiveManeuversBattle()

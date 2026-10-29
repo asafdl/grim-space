@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Spatial;
@@ -35,8 +36,10 @@ public sealed class CarrierRepurposedMinerIntegrationTests
 				&& spawn.TargetId == repurposedMiner.State.Id
 				&& spawn.EntityType == EType.RepurposedMiner);
 		Assert.Contains(
-			replay.Actions,
-			action => action is EndOfPhaseAction { ActorId: var actorId } && actorId == repurposedMiner.State.Id);
+			replay.History,
+			entry => entry is Record<UnitActivationRoundPhase> { Value: var phase }
+				&& phase.UnitId == repurposedMiner.State.Id
+				&& phase.Phase == EUnitActivationPhase.End);
 	}
 
 	[Fact]

@@ -6,6 +6,7 @@ public enum EPilotSkillId
 	OverchargeEngines,
 	DodgeThis,
 	IonizedPayload,
+	Brace,
 	DefensiveManeuvers,
 	InTheFray,
 	OneWithTheVoid,

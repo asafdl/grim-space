@@ -5,7 +5,8 @@ public readonly record struct AbilityLegality(
 	bool SpawnRepurposedMiner,
 	bool Detonate,
 	bool ShieldsUp,
-	bool OverchargeEngines)
+	bool OverchargeEngines,
+	bool Brace)
 {
-	public static AbilityLegality Empty { get; } = new(WeaponPeek.Empty, false, false, false, false);
+	public static AbilityLegality Empty { get; } = new(WeaponPeek.Empty, false, false, false, false, false);
 }

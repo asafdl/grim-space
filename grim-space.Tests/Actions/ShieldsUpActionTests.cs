@@ -47,8 +47,11 @@ public sealed class ShieldsUpActionTests
 		Assert.True(player.State.ShieldsUpUsedThisTurn);
 		Assert.True(battle.Engine.World.Timeline.ContainsPending(
 			action => action is ApDeltaAction ap && ap.ActorId == PlayerId && ap.Delta == -ShieldsUpDef.NextTickApPenalty));
+		Assert.Contains(
+			battle.Engine.World.ActivationRoundLists.EntriesFor(PlayerId),
+			entry => entry.Action is ExpireTemporaryShieldGrantAction);
 
-		new RoundUpkeepEffect().Apply(
+		new TurnUpkeepEffect().Apply(
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
@@ -62,6 +65,12 @@ public sealed class ShieldsUpActionTests
 			MovementExpectations.FighterApPerTurn - ShieldsUpDef.NextTickApPenalty,
 			player.State.ActionPoints);
 		Assert.False(player.State.ShieldsUpUsedThisTurn);
+		Assert.Equal(
+			ExpectedTemporaryShieldsOnFace(player.State, ESpatialOrientation.Forward),
+			TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
+
+		BattleTestApply.CommitActivationRoundEndPasses(battle, PlayerId, ShieldsUpDef.ExpiryEndPasses);
+
 		Assert.Equal(0, TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
 	}
 

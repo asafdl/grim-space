@@ -143,7 +143,7 @@ public sealed class InTheFrayTests
 			pilots);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
 		target.State.ShieldPoints[hitFace] = 6;
-		target.State.DefensiveManeuversMpSpentLastTurn = 0;
+		target.State.DefensiveManeuversMpUsed = 0;
 		target.State.DefensiveManeuversRollIndex = 6;
 
 		ApplyDamage(shooter, target, battle, damage: 3);

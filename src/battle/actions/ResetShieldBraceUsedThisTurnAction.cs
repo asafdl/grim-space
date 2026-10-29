@@ -1,24 +1,22 @@
-using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record RoundUpkeepAction(string ActorId) : IAction<BattleWorld, ActorRuntime>
+public sealed record ResetShieldBraceUsedThisTurnAction(string ActorId) : IAction<BattleWorld, ActorRuntime>
 {
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		RoundUpkeepDef.Instance;
+		ResetShieldBraceUsedThisTurnDef.Instance;
 }
 
-public sealed class RoundUpkeepDef
+public sealed class ResetShieldBraceUsedThisTurnDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
 {
-	public static RoundUpkeepDef Instance { get; } = new();
+	public static ResetShieldBraceUsedThisTurnDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId) => [];
-
-	public RoundUpkeepAction Bind(string actorId) => new(actorId);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => true;
 
@@ -28,5 +26,5 @@ public sealed class RoundUpkeepDef
 		IAction action,
 		BattleWorld world,
 		ActorRuntime runtime) =>
-		[new RoundUpkeepEffect()];
+		[new SetShieldBraceUsedThisTurnEffect(false)];
 }

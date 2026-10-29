@@ -1,8 +1,10 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Components;
+using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Tests;
@@ -11,16 +13,23 @@ namespace GrimSpace.Tests;
 public sealed class TurnReplayActivationOrderTests
 {
 	[Fact]
-	public void ActivationOrder_PreservesActivationOccurrencesAndSkipsSystemActors()
+	public void ActivationOrder_UsesEndPhaseRecordsWhenPresent()
 	{
 		var replay = new TurnReplay(
 			new Dictionary<string, GrimSpace.Battle.Units.State>(),
 			[
-				new EndOfPhaseAction("alpha"),
-				new EndOfPhaseAction(BattleActorIds.Rules),
-				new EndOfPhaseAction("beta"),
-				new EndOfPhaseAction("alpha"),
-				new EndOfPhaseAction(BattleActorIds.Terrain),
+				new Record<UnitActivationRoundPhase>(
+					new UnitActivationRoundPhase("alpha", EUnitActivationPhase.Start)),
+				new Record<UnitActivationRoundPhase>(
+					new UnitActivationRoundPhase("alpha", EUnitActivationPhase.End)),
+				new Record<UnitActivationRoundPhase>(
+					new UnitActivationRoundPhase("beta", EUnitActivationPhase.Start)),
+				new Record<UnitActivationRoundPhase>(
+					new UnitActivationRoundPhase("beta", EUnitActivationPhase.End)),
+				new Record<UnitActivationRoundPhase>(
+					new UnitActivationRoundPhase("alpha", EUnitActivationPhase.Start)),
+				new Record<UnitActivationRoundPhase>(
+					new UnitActivationRoundPhase("alpha", EUnitActivationPhase.End)),
 			],
 			new Dictionary<string, GrimSpace.Battle.Units.State>());
 

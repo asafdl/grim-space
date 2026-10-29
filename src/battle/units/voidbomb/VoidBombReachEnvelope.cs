@@ -103,8 +103,7 @@ public sealed class VoidBombReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> lay
 
 					var nextWorld = frame.World.Fork();
 					var nextRuntimes = frame.Runtimes.Fork();
-					ExecutionHelper.Apply(new EndOfPhaseAction(actorId), nextWorld, nextRuntimes.For(actorId));
-					ExecutionHelper.Apply(new RoundUpkeepAction(actorId), nextWorld, nextRuntimes.For(actorId));
+					ExecutionHelper.Apply(new TurnUpkeepAction(actorId), nextWorld, nextRuntimes.For(actorId));
 
 					nextFrontiers[nextWorld.StateOf(actorId).Position] = (nextWorld, nextRuntimes);
 				}

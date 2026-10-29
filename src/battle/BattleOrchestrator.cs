@@ -14,6 +14,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Round;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using UnitState = GrimSpace.Battle.Units.State;
@@ -27,7 +28,8 @@ public sealed class BattleOrchestrator : IDisposable
 
 	private bool _resolveInProgress;
 	private int _resolveVersion;
-	private readonly HashSet<string> _activatedThisRound = new(StringComparer.Ordinal);
+	private readonly HashSet<string> _activatedThisTurn = new(StringComparer.Ordinal);
+	private RoundExecutionAgent? _roundExecutionAgent;
 
 	internal BattleOrchestrator(
 		Engine<BattleWorld, ActorRuntime> engine,
@@ -47,7 +49,7 @@ public sealed class BattleOrchestrator : IDisposable
 	public bool IsBattleOver => _engine.World.battleResult != EBattleResult.Ongoing;
 	public int TurnNumber => _engine.Tick;
 	public EBattlePhase Phase { get; private set; } = (EBattlePhase)(-1);
-	public bool IsAtRoundStart => _activatedThisRound.Count == 0;
+	public bool IsAtTurnStart => _activatedThisTurn.Count == 0;
 	public TurnReplay? PendingReplay { get; private set; }
 	public int PendingReplayTurn { get; private set; }
 
@@ -59,6 +61,17 @@ public sealed class BattleOrchestrator : IDisposable
 
 	public UserExecutionAgent PlayerAgent =>
 		(UserExecutionAgent)UnitRegistry.For(_engine.World).UnitOf(ActivePlayerId).ExecutionAgent;
+
+	internal void InitializeRoundExecutionAgent()
+	{
+		if (_roundExecutionAgent is not null)
+			return;
+
+		var agent = new RoundExecutionAgent(() => _engine.World);
+		agent.Init(BattleActorIds.Rules, WriterFor(BattleActorIds.Rules));
+		agent.SetCanWork(true);
+		_roundExecutionAgent = agent;
+	}
 
 	public static BattleOrchestrator FromEncounter(
 		BattleEncounter encounter,
@@ -181,9 +194,14 @@ public sealed class BattleOrchestrator : IDisposable
 					EPilotCapabilityId.InTheFray);
 				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
 					EPilotCapabilityId.OneWithTheVoid);
+				unit.State.DefensiveManeuversActive = runtime.PilotCapabilities.Contains(
+					EPilotCapabilityId.StationaryDamageDeflection);
 			}
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
+
+		foreach (var unit in world.UnitRegistry.All)
+			world.EnsureDefensiveManeuversActivationRoundEntry(unit.State.Id);
 
 		actorRuntimes.Register(BattleActorIds.Rules, ActorRuntime.From(null));
 
@@ -202,8 +220,10 @@ public sealed class BattleOrchestrator : IDisposable
 				unit.ExecutionAgent.Rebind(unit.State.Id, writer);
 		}
 
+		orchestrator.InitializeRoundExecutionAgent();
+
 		if (world.battleResult == EBattleResult.Ongoing)
-			orchestrator.BeginRound(phaseReason);
+			orchestrator.BeginTurn(phaseReason);
 		else
 			orchestrator.SetPhase(EBattlePhase.BattleOver, phaseReason);
 
@@ -212,7 +232,7 @@ public sealed class BattleOrchestrator : IDisposable
 
 	internal void EnterPlayerTurn(string reason = "player turn")
 	{
-		PrepareRound();
+		PrepareTurn();
 		EnsureAgentInitialized(ActivePlayerId);
 		SetPhase(EBattlePhase.PlayerTurn, reason);
 	}
@@ -228,13 +248,13 @@ public sealed class BattleOrchestrator : IDisposable
 
 	public IActionBatchWriter WriterFor(string actorId) => _actionSink.WriterFor(actorId);
 
-	private void BeginRound(string reason)
+	private void BeginTurn(string reason)
 	{
-		PrepareRound();
-		ContinueRound(reason);
+		PrepareTurn();
+		ContinueTurn(reason);
 	}
 
-	private void ContinueRound(string reason)
+	private void ContinueTurn(string reason)
 	{
 		var next = NextLivingActivation();
 		if (next is null)
@@ -253,11 +273,11 @@ public sealed class BattleOrchestrator : IDisposable
 		_ = ResolveSegmentAndReplay(TurnNumber, version, playerActorId: null);
 	}
 
-	private void PrepareRound()
+	private void PrepareTurn()
 	{
 		_engine.ActorRuntimes.Reset();
 		RevokeAllCanWork();
-		_activatedThisRound.Clear();
+		_activatedThisTurn.Clear();
 	}
 
 	private Unit? NextLivingActivation()
@@ -265,7 +285,7 @@ public sealed class BattleOrchestrator : IDisposable
 		var units = UnitRegistry.For(_engine.World);
 		foreach (var actorId in units.ActivationOrder)
 		{
-			if (!_activatedThisRound.Contains(actorId)
+			if (!_activatedThisTurn.Contains(actorId)
 				&& units.TryGet(actorId, out var unit)
 				&& unit.State.IsAlive)
 				return unit;
@@ -307,7 +327,7 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 		}
 
-		var roundEnded = TurnNumber > PendingReplayTurn;
+		var turnAdvanced = TurnNumber > PendingReplayTurn;
 		PendingReplay = null;
 		if (IsBattleOver)
 		{
@@ -315,10 +335,10 @@ public sealed class BattleOrchestrator : IDisposable
 			return;
 		}
 
-		if (roundEnded)
-			BeginRound("next round");
+		if (turnAdvanced)
+			BeginTurn("next turn");
 		else
-			ContinueRound("replay complete");
+			ContinueTurn("replay complete");
 	}
 
 	public void Retire()
@@ -369,19 +389,30 @@ public sealed class BattleOrchestrator : IDisposable
 		}
 	}
 
-	private IReadOnlyList<ITimelineEntry> CommitActor(string actorId, IReadOnlyList<IAction> actions)
+	private void CommitActivation(string actorId, IReadOnlyList<IAction> actions)
 	{
-		var batch = new List<IAction>(actions.Count + 1);
-		batch.AddRange(actions);
-		batch.Add(new EndOfPhaseAction(actorId));
-		return _engine.Commit([..batch]);
+		CommitRulesActivationPass(actorId, EUnitActivationPhase.Start);
+		_engine.Commit([..actions]);
+		CommitRulesActivationPass(actorId, EUnitActivationPhase.End);
 	}
 
-	private IReadOnlyList<ITimelineEntry> CommitRoundUpkeep()
+	private void CommitRulesActivationPass(string unitId, EUnitActivationPhase phase)
+	{
+		if (_roundExecutionAgent is null)
+			throw new InvalidOperationException("Round execution agent is not initialized.");
+
+		_roundExecutionAgent.PlanAndPublish(unitId, phase);
+		if (!_actionSink.TryTakeBatch(BattleActorIds.Rules, out var batch))
+			throw new InvalidOperationException("Round execution agent did not publish a Rules batch.");
+
+		_engine.Commit([..batch.Actions]);
+	}
+
+	private IReadOnlyList<ITimelineEntry> CommitTurnUpkeep()
 	{
 		var batch = new List<IAction>();
 		foreach (var unitId in UnitRegistry.For(_engine.World).Ids)
-			batch.Add(new RoundUpkeepAction(unitId));
+			batch.Add(new TurnUpkeepAction(unitId));
 		return _engine.Commit([..batch]);
 	}
 
@@ -458,16 +489,16 @@ public sealed class BattleOrchestrator : IDisposable
 
 				EnsureAgentInitialized(actorId);
 				var batch = await TakeActorBatchAsync(actorId);
-				CommitActor(actorId, batch.Actions);
-				_activatedThisRound.Add(actorId);
+				CommitActivation(actorId, batch.Actions);
+				_activatedThisTurn.Add(actorId);
 				playerActorId = null;
 				NotifyWorldUpdated();
 			}
 
-			var roundEnded = NextLivingActivation() is null;
-			if (roundEnded)
+			var allActivationsComplete = NextLivingActivation() is null;
+			if (allActivationsComplete)
 			{
-				CommitRoundUpkeep();
+				CommitTurnUpkeep();
 				_engine.Commit(CommitBattleOutcomeDef.Instance.BindEvaluate());
 			}
 
@@ -475,7 +506,7 @@ public sealed class BattleOrchestrator : IDisposable
 				.Skip(historyStart)
 				.ToArray();
 			var segmentEnd = SnapshotAll();
-			if (roundEnded)
+			if (allActivationsComplete)
 				_engine.AdvanceTick();
 
 			return new TurnReplay(segmentStart, history, segmentEnd);

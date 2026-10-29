@@ -1,4 +1,6 @@
+using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Units.Maneuvering;
 using GrimSpace.Battle.Units;
@@ -25,7 +27,10 @@ public sealed class TimelineTests
 
 		var byActor = battle.Engine.HistoryByActor(tick);
 		Assert.True(byActor.ContainsKey(battle.PlayerId));
-		Assert.Contains(byActor[battle.PlayerId], action => action is MoveStepAction or EndOfPhaseAction);
+		Assert.Contains(byActor[battle.PlayerId], action => action is MoveStepAction);
+		Assert.Contains(
+			byActor[BattleActorIds.Rules],
+			action => action is ProcessActivationRoundAction);
 	}
 
 	[Fact]

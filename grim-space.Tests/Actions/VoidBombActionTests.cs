@@ -1,3 +1,5 @@
+using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Units;
@@ -90,7 +92,7 @@ public sealed class VoidBombActionTests
 	}
 
 	[Fact]
-	public void RoundUpkeepDecrementsTorpedoCooldown()
+	public void TurnUpkeepDecrementsTorpedoCooldown()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
@@ -123,8 +125,10 @@ public sealed class VoidBombActionTests
 			entry => entry is Record<SpawnFacts> { Value: var spawn }
 				&& spawn.TargetId == torpedo.State.Id);
 		Assert.Contains(
-			replay.Actions,
-			action => action is EndOfPhaseAction && action.ActorId == torpedo.State.Id);
+			replay.History,
+			entry => entry is Record<UnitActivationRoundPhase> { Value: var phase }
+				&& phase.UnitId == torpedo.State.Id
+				&& phase.Phase == EUnitActivationPhase.End);
 		Assert.Contains(
 			replay.Actions,
 			action => action is VoidBombMoveStepAction && action.ActorId == torpedo.State.Id);

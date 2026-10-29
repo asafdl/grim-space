@@ -29,8 +29,14 @@ public sealed class State
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public List<TemporaryShieldGrant> TemporaryShieldGrants { get; } = [];
 	public bool ShieldsUpUsedThisTurn { get; set; }
+	public bool ShieldBraceActive { get; set; }
+	public ESpatialOrientation? ShieldBraceFace { get; set; }
+	public FaceShieldPoints? ShieldBraceSnapshot { get; set; }
+	public int ShieldBraceDamagePending { get; set; }
+	public bool ShieldBraceUsedThisTurn { get; set; }
 	public int OverchargeEnginesCooldownRemaining { get; set; }
-	public int? DefensiveManeuversMpSpentLastTurn { get; set; }
+	public bool DefensiveManeuversActive { get; set; }
+	public int DefensiveManeuversMpUsed { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
 	public bool InTheFrayActive { get; set; }
 	public bool OneWithTheVoidActive { get; set; }
@@ -106,8 +112,14 @@ public sealed class State
 			Projectile = Projectile,
 			ParentId = ParentId,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
+			ShieldBraceActive = ShieldBraceActive,
+			ShieldBraceFace = ShieldBraceFace,
+			ShieldBraceSnapshot = ShieldBraceSnapshot?.Clone(),
+			ShieldBraceDamagePending = ShieldBraceDamagePending,
+			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
-			DefensiveManeuversMpSpentLastTurn = DefensiveManeuversMpSpentLastTurn,
+			DefensiveManeuversActive = DefensiveManeuversActive,
+			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			InTheFrayActive = InTheFrayActive,
 			OneWithTheVoidActive = OneWithTheVoidActive,

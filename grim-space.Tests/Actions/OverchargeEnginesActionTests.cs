@@ -90,10 +90,10 @@ public sealed class OverchargeEnginesActionTests
 
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 		var world = battle.Engine.World;
-		new RoundUpkeepEffect().Apply(world, runtime, PlayerId);
+		new TurnUpkeepEffect().Apply(world, runtime, PlayerId);
 		Assert.Equal(PilotSkillPercents.OverchargeEngines.CooldownTurns - 1, player.State.OverchargeEnginesCooldownRemaining);
 
-		new RoundUpkeepEffect().Apply(world, runtime, PlayerId);
+		new TurnUpkeepEffect().Apply(world, runtime, PlayerId);
 		Assert.Equal(0, player.State.OverchargeEnginesCooldownRemaining);
 
 		player.State.ActionPoints = MovementExpectations.FighterApPerTurn;

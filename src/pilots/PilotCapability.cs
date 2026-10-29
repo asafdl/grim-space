@@ -7,6 +7,7 @@ public enum EPilotCapabilityId
 	AdjacentDamageBonus,
 	LightningShieldDamageBonus,
 	ScrapDroneSwarmDamageBonus,
+	ShieldBrace,
 	StationaryDamageDeflection,
 	InTheFray,
 	OneWithTheVoid,

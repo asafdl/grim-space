@@ -14,6 +14,7 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.AdjacentDamageBonus
 			or EPilotCapabilityId.LightningShieldDamageBonus
 			or EPilotCapabilityId.ScrapDroneSwarmDamageBonus
+			or EPilotCapabilityId.ShieldBrace
 			or EPilotCapabilityId.StationaryDamageDeflection
 			or EPilotCapabilityId.InTheFray
 			or EPilotCapabilityId.OneWithTheVoid

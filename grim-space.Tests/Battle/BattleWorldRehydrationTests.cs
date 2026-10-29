@@ -25,7 +25,7 @@ public sealed class BattleWorldRehydrationTests
 		player.State.MountRuntime[mount].UsesRemaining = 0;
 		player.State.MountRuntime[mount].CooldownRemaining = 2;
 		liveWorld.Timeline.Clock.Set(4);
-		original.Engine.Schedule(3, new EndOfPhaseAction(original.PlayerId));
+		original.Engine.Schedule(3, new MoveStepAction(original.PlayerId));
 
 		var savedWorld = liveWorld.Fork();
 		original.Dispose();
@@ -53,7 +53,7 @@ public sealed class BattleWorldRehydrationTests
 			liveWorld.Asteroids.Select(AsteroidSnapshot),
 			restoredWorld.Asteroids.Select(AsteroidSnapshot));
 		Assert.True(restoredWorld.Timeline.ContainsPending(
-			action => action is EndOfPhaseAction end && end.ActorId == player.State.Id));
+			action => action is MoveStepAction move && move.ActorId == player.State.Id));
 	}
 
 	[Fact]

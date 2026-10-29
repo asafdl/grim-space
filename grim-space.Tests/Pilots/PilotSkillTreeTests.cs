@@ -98,6 +98,7 @@ public sealed class PilotSkillTreeTests
 
 		var tree = PilotSkillAvailability.TreeFor(supportPilot).Select(skill => skill.Id).ToArray();
 
+		Assert.Contains(EPilotSkillId.Brace, tree);
 		Assert.Contains(EPilotSkillId.DefensiveManeuvers, tree);
 		Assert.DoesNotContain(EPilotSkillId.DodgeThis, tree);
 	}

@@ -144,13 +144,13 @@ public sealed class SpawnRepurposedMinerActionTests
 	}
 
 	[Fact]
-	public void RoundUpkeepDecrementsRepurposedMinerCooldown()
+	public void TurnUpkeepDecrementsRepurposedMinerCooldown()
 	{
 		var battle = CarrierBattle(new Coord(5, 5, 5));
 		var carrierId = BattleTestFixture.FirstEnemyId(battle);
 		StateMountTestKit.SetCooldownRemaining(battle.Engine.World.StateOf(carrierId), EAbilityKind.MinerBay, 2);
 
-		battle.Engine.Commit([new RoundUpkeepAction(carrierId)]);
+		battle.Engine.Commit([new TurnUpkeepAction(carrierId)]);
 
 		Assert.Equal(1, StateMountTestKit.CooldownRemaining(battle.Engine.World.StateOf(carrierId), EAbilityKind.MinerBay));
 	}

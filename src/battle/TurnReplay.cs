@@ -1,6 +1,8 @@
+using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle;
@@ -24,8 +26,9 @@ public sealed record TurnReplay(
 
 	public IReadOnlyList<string> ActivationOrder =>
 		History
-			.OfType<EndOfPhaseAction>()
-			.Select(action => action.ActorId)
+			.OfType<Record<UnitActivationRoundPhase>>()
+			.Where(record => record.Value.Phase == EUnitActivationPhase.End)
+			.Select(record => record.Value.UnitId)
 			.Where(actorId => actorId is not BattleActorIds.Rules and not BattleActorIds.Terrain)
 			.ToList();
 }

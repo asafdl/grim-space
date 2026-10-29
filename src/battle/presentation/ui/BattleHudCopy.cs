@@ -162,6 +162,20 @@ internal static class BattleHudCopy
 			details);
 	}
 
+	public static BattleHudTooltipContent BraceTooltipFor(UnitDisplayState unit)
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.Brace);
+		var mechanics =
+			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: 1 per turn]";
+		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
+			? mechanics
+			: $"{definition.Tooltip.Details}\n{mechanics}";
+		return new BattleHudTooltipContent(
+			definition.Tooltip.Title,
+			definition.Tooltip.Body,
+			details);
+	}
+
 	public static BattleHudTooltipContent SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<MinerBaySpec>(unit, EAbilityKind.MinerBay) is { } bay
 			? SpawnRepurposedMinerTooltipFor(bay)

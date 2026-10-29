@@ -37,7 +37,12 @@ public sealed record UnitDisplayState(
 	IReadOnlyList<PilotCapabilityGrant> PilotCapabilities,
 	string? PilotPortraitId,
 	bool ShieldsUpUsedThisTurn,
-	int OverchargeEnginesCooldownRemaining)
+	int OverchargeEnginesCooldownRemaining,
+	bool ShieldBraceActive = false,
+	ESpatialOrientation? ShieldBraceFace = null,
+	FaceShieldPoints? ShieldBraceSnapshot = null,
+	int ShieldBraceDamagePending = 0,
+	bool ShieldBraceUsedThisTurn = false)
 {
 	public static UnitDisplayState Capture(State state, ActorRuntime runtime) =>
 		new(
@@ -69,7 +74,12 @@ public sealed record UnitDisplayState(
 			runtime.PilotCapabilityGrants.ToArray(),
 			runtime.PortraitId,
 			state.ShieldsUpUsedThisTurn,
-			state.OverchargeEnginesCooldownRemaining);
+			state.OverchargeEnginesCooldownRemaining,
+			state.ShieldBraceActive,
+			state.ShieldBraceFace,
+			state.ShieldBraceSnapshot?.Clone(),
+			state.ShieldBraceDamagePending,
+			state.ShieldBraceUsedThisTurn);
 
 	public int MaxActionPoints => Maneuverability.MaxActionPoints;
 	public int MaxManeuverPoints => Maneuverability.MaxManeuverPoints;
@@ -122,6 +132,11 @@ public sealed record UnitDisplayState(
 			Overheat = Overheat,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
+			ShieldBraceActive = ShieldBraceActive,
+			ShieldBraceFace = ShieldBraceFace,
+			ShieldBraceSnapshot = ShieldBraceSnapshot?.Clone(),
+			ShieldBraceDamagePending = ShieldBraceDamagePending,
+			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 		};
 		foreach (var mount in Mounts)
 		{

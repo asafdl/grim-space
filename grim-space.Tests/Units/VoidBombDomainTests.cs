@@ -65,11 +65,11 @@ public sealed class VoidBombDomainTests
 		var ready = AbilityHudCatalog.BuildState(
 			spec,
 			unit,
-			new AbilityLegality(WeaponPeek.Empty, false, Detonate: true, ShieldsUp: false, OverchargeEngines: false));
+			new AbilityLegality(WeaponPeek.Empty, false, Detonate: true, ShieldsUp: false, OverchargeEngines: false, Brace: false));
 		var illegal = AbilityHudCatalog.BuildState(
 			spec,
 			unit,
-			new AbilityLegality(WeaponPeek.Empty, false, Detonate: false, ShieldsUp: false, OverchargeEngines: false));
+			new AbilityLegality(WeaponPeek.Empty, false, Detonate: false, ShieldsUp: false, OverchargeEngines: false, Brace: false));
 
 		var expectedTooltip = BattleHudCopy.DetonateTooltipFor(unit);
 		var actualTooltip = spec.Tooltip(unit);

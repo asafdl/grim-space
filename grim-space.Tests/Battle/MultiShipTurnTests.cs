@@ -33,7 +33,7 @@ public sealed class MultiShipTurnTests
 
 		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
 		Assert.Equal("fighter", battle.ActivePlayerId);
-		Assert.True(battle.IsAtRoundStart);
+		Assert.True(battle.IsAtTurnStart);
 
 		var firstReplay = NextReplay(battle);
 		battle.EndTurn();
@@ -48,7 +48,7 @@ public sealed class MultiShipTurnTests
 		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
 		Assert.Equal("gunship", battle.ActivePlayerId);
 		Assert.True(battle.PlayerAgent.IsPlanning);
-		Assert.False(battle.IsAtRoundStart);
+		Assert.False(battle.IsAtTurnStart);
 
 		var secondReplay = NextReplay(battle);
 		battle.EndTurn();
@@ -62,7 +62,7 @@ public sealed class MultiShipTurnTests
 
 		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
 		Assert.Equal("fighter", battle.ActivePlayerId);
-		Assert.True(battle.IsAtRoundStart);
+		Assert.True(battle.IsAtTurnStart);
 	}
 
 	[Fact]

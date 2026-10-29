@@ -121,7 +121,7 @@ public partial class BattleController : Node3D
 				SceneTransitioning: false,
 				BattleTurnInProgress:
 					_battle.Phase == EBattlePhase.PlayerTurn
-					&& !_battle.IsAtRoundStart));
+					&& !_battle.IsAtTurnStart));
 		Session.Instance.DevMenu.SetBattleActions(
 			() => _battle.CanForceOutcome,
 			() => ForceOutcome(EBattleResult.Win),

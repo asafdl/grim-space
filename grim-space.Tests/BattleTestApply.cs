@@ -1,4 +1,6 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.World;
@@ -103,12 +105,33 @@ internal static class BattleTestApply
 			_ = effect.Apply(board, runtime, action.ActorId);
 	}
 
+	internal static void CommitActivationRoundEndPasses(
+		BattleOrchestrator battle,
+		string unitId,
+		int endPassCount) =>
+		CommitActivationRoundPasses(battle, unitId, EUnitActivationPhase.End, endPassCount);
+
+	internal static void CommitActivationRoundPasses(
+		BattleOrchestrator battle,
+		string unitId,
+		EUnitActivationPhase phase,
+		int passCount)
+	{
+		var world = battle.Engine.World;
+		for (var pass = 0; pass < passCount; pass++)
+		{
+			foreach (var action in world.ActivationRoundLists.ProcessPass(unitId, phase))
+				battle.Engine.Commit([action]);
+		}
+	}
+
 	private static IEnumerable<IAction> WithPhaseEnd(IReadOnlyList<IAction> actions, string actorId)
 	{
 		foreach (var action in actions)
 			yield return action;
 
-		if (!actions.OfType<EndOfPhaseAction>().Any())
-			yield return new EndOfPhaseAction(actorId);
+		if (!actions.OfType<ProcessActivationRoundAction>().Any(action =>
+				action.TargetUnitId == actorId && action.Phase == EUnitActivationPhase.End))
+			yield return new ProcessActivationRoundAction(actorId, EUnitActivationPhase.End);
 	}
 }

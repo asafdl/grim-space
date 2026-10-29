@@ -82,7 +82,8 @@ public sealed class ApplyAreaDamageEffectTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
-		enemy.State.DefensiveManeuversMpSpentLastTurn = 0;
+		enemy.State.DefensiveManeuversActive = true;
+		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = rollIndex;
 		var hullBefore = enemy.State.HullPoints;
 		var effect = new ApplyAreaDamageEffect(
@@ -107,6 +108,8 @@ public sealed class ApplyAreaDamageEffectTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.DefensiveManeuversActive = true;
+		enemy.State.DefensiveManeuversMpUsed = 1;
 		enemy.State.DefensiveManeuversRollIndex = 6;
 		var hullBefore = enemy.State.HullPoints;
 		var effect = new ApplyAreaDamageEffect(
@@ -129,7 +132,8 @@ public sealed class ApplyAreaDamageEffectTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
-		enemy.State.DefensiveManeuversMpSpentLastTurn = 0;
+		enemy.State.DefensiveManeuversActive = true;
+		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = 6;
 		var hullBefore = enemy.State.HullPoints;
 		var effect = new ApplyAreaDamageEffect(

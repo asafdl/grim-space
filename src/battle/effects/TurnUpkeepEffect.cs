@@ -6,7 +6,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class RoundUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
+public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	private int _previousActionPoints;
 	private int _previousManeuverPoints;

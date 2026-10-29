@@ -1,3 +1,5 @@
+using GrimSpace.Battle;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation;
@@ -107,8 +109,8 @@ public sealed class ActionLogTests
 	{
 		ITimelineEntry[] history =
 		[
-			new EndOfPhaseAction("repurposed-miner-a"),
-			new RoundUpkeepAction("repurposed-miner-a"),
+			new ProcessActivationRoundAction("repurposed-miner-a", EUnitActivationPhase.End),
+			new TurnUpkeepAction("repurposed-miner-a"),
 			new FuelBurnAction("repurposed-miner-a"),
 			new Record<SpawnFacts>(new SpawnFacts(
 				"repurposed-miner-a",
@@ -126,7 +128,8 @@ public sealed class ActionLogTests
 		ITimelineEntry[] history =
 		[
 			new MoveStepAction("fighter-a"),
-			new EndOfPhaseAction("fighter-a"),
+			new Record<UnitActivationRoundPhase>(
+				new UnitActivationRoundPhase("fighter-a", EUnitActivationPhase.End)),
 			new MoveStepAction("repurposed-miner-b"),
 			new MoveStepAction("repurposed-miner-b"),
 		];

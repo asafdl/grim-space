@@ -34,6 +34,11 @@ public static class PilotSkillPercents
 		public const int ShieldDamageBonusPercent = 100;
 	}
 
+	public static class Brace
+	{
+		public const int ShieldConsolidationPercent = 66;
+	}
+
 	public static class DefensiveManeuvers
 	{
 		public const int DeflectChancePercent = 25;

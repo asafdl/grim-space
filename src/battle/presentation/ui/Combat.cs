@@ -11,4 +11,5 @@ public enum EPlayerMode
 	Detonate,
 	ShieldsUp,
 	OverchargeEngines,
+	Brace,
 }

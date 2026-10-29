@@ -25,6 +25,7 @@ public static class AbilityHudCatalog
 	private static readonly Color LightningAccent = new(0.38f, 0.68f, 1f, 0.48f);
 	private static readonly Color VoidBombAccent = new(0.68f, 0.32f, 0.98f, 0.52f);
 	private static readonly Color GoopGunAccent = new(0.42f, 0.88f, 0.38f, 0.48f);
+	private static readonly Color BraceAccent = new(0.72f, 0.58f, 0.28f, 0.5f);
 
 	public sealed record Visual(string IconPath, Color Tint);
 
@@ -187,6 +188,19 @@ public static class AbilityHudCatalog
 					unit.OverchargeEnginesCooldownRemaining == 0 ? 1 : 0,
 					1),
 				legality => legality.OverchargeEngines),
+			BraceDef => new(
+				EPlayerMode.Brace,
+				def,
+				new AbilityTargetingSpec(
+					AdjacentMountedSource,
+					AbilitySourceMeshes.CreateDetonation,
+					BraceAccent),
+				"res://assets/ui/abilities/shields_up.svg",
+				BattleHudCopy.BraceTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.ShieldBraceUsedThisTurn || unit.ShieldBraceActive ? 0 : 1,
+					1),
+				legality => legality.Brace),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};
