@@ -18,17 +18,20 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string ManeuverIconPath = "res://assets/ui/abilities/yaw.svg";
 	private const string FrayIconPath = "res://assets/ui/abilities/focus.svg";
 	private const string VoidBombIconPath = "res://assets/ui/abilities/void_bomb.svg";
-	private const string IconBorderPath = "res://assets/ui/components/runtime/icon_border_blue.png";
+	private const string SkillReticlePath =
+		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
 	private const string PilotCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 	private const int SkillNodeSize = 60;
+	private const int SkillIconSize = 26;
 	private const int PortraitSize = 144;
 	private const int IdentityRailWidth = 204;
 
 	private static readonly Color AvailableColor = HudPalettes.PurpleRed.Primary;
 	private static readonly Color LearnedColor = new(0.42f, 0.88f, 0.58f);
 	private static readonly Color LockedColor = new(0.32f, 0.38f, 0.46f);
-	private static readonly Texture2D IconBorder = GD.Load<Texture2D>(IconBorderPath);
-
+	private static readonly Color SkillReticleColor =
+		HudPalettes.WithAlpha(HudPalettes.BlueCyan.Highlight, 0.82f);
+	private static readonly Texture2D SkillReticle = GD.Load<Texture2D>(SkillReticlePath);
 	private readonly ModalShell _shell;
 	private string? _pilotId;
 
@@ -150,21 +153,6 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			requiredXp > 0 ? $"{currentXp} / {requiredXp}" : "MAX"));
 		return rail;
 	}
-
-	private static void ApplyIconBorder(Button button, float brightness)
-	{
-		button.AddThemeStyleboxOverride("normal", IconBorderStyle(brightness));
-		button.AddThemeStyleboxOverride("hover", IconBorderStyle(brightness * 1.25f));
-		button.AddThemeStyleboxOverride("pressed", IconBorderStyle(brightness));
-		button.AddThemeStyleboxOverride("disabled", IconBorderStyle(brightness));
-	}
-
-	private static StyleBoxTexture IconBorderStyle(float brightness) =>
-		new()
-		{
-			Texture = IconBorder,
-			ModulateColor = new Color(brightness, brightness, brightness),
-		};
 
 	private Control BuildPilotCursor(int direction, bool visible)
 	{
@@ -339,20 +327,25 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		};
 		host.SetTooltip(definition.Tooltip);
 
+		var frameColor = !isLearned && !canLearn
+			? HudPalettes.WithAlpha(HudPalettes.BlueCyan.Highlight, 0.35f)
+			: SkillReticleColor;
+
 		var button = new Button
 		{
 			CustomMinimumSize = new Vector2(SkillNodeSize, SkillNodeSize),
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			SizeFlagsVertical = SizeFlags.ExpandFill,
 			Disabled = !canLearn,
-			Icon = SvgIconLoader.Load(IconPathFor(definition.Id), color, 34),
+			Icon = SvgIconLoader.LoadCentered(IconPathFor(definition.Id), color, SkillIconSize),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
+			FocusMode = FocusModeEnum.None,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
+		button.AddThemeConstantOverride("h_separation", 0);
 		button.AddThemeColorOverride("icon_disabled_color", Colors.White);
-		ApplyIconBorder(button, isLearned || canLearn ? 1f : 0.5f);
+		ApplySkillReticleBorder(button, frameColor);
+
 		if (canLearn)
 		{
 			host.MouseDefaultCursorShape = CursorShape.PointingHand;
@@ -369,6 +362,24 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		host.AddChild(button);
 		return host;
 	}
+
+	private static void ApplySkillReticleBorder(Button button, Color frameColor)
+	{
+		button.AddThemeStyleboxOverride("normal", SkillReticleBorderStyle(frameColor));
+		button.AddThemeStyleboxOverride(
+			"hover",
+			SkillReticleBorderStyle(frameColor.Lightened(0.12f)));
+		button.AddThemeStyleboxOverride("pressed", SkillReticleBorderStyle(frameColor));
+		button.AddThemeStyleboxOverride("disabled", SkillReticleBorderStyle(frameColor));
+		button.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+	}
+
+	private static StyleBoxTexture SkillReticleBorderStyle(Color modulate) =>
+		new()
+		{
+			Texture = SkillReticle,
+			ModulateColor = modulate,
+		};
 
 	private static string IconPathFor(EPilotSkillId skillId) =>
 		skillId switch

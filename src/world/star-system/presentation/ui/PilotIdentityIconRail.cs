@@ -113,7 +113,7 @@ public static class PilotIdentityIconRail
 		var button = new Button
 		{
 			CustomMinimumSize = new Vector2(IconSlotSize, IconSlotSize),
-			Icon = SvgIconLoader.Load(iconPath, iconColor, IconSize),
+			Icon = SvgIconLoader.LoadCentered(iconPath, iconColor, IconSize),
 			ExpandIcon = false,
 			IconAlignment = HorizontalAlignment.Center,
 			VerticalIconAlignment = VerticalAlignment.Center,
