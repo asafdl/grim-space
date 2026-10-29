@@ -1,3 +1,4 @@
+using GrimSpace.Tests.Run;
 using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Run;
@@ -61,11 +62,7 @@ public sealed class PurchaseShipActionTests
 	public void CommitSetup_WithRun_RegistersOwnedShipWithoutPilotWhenActiveRosterFull()
 	{
 		using var run = State.CreateNewRun(42);
-		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
-		{
-			var shipId = TypedIdGenerator.NextId("fighter");
-			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)));
-		}
+		RunTestKit.EnlistUntilActivePilotCap(run);
 
 		Assert.Equal(RunPilotRegistry.MaxActivePilots, run.PilotRegistry.Active.Count);
 		var pilotCountBefore = run.PilotRegistry.All.Count;

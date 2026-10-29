@@ -1,3 +1,4 @@
+using GrimSpace.Tests.Run;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Math.Grid;
@@ -144,7 +145,7 @@ public sealed class DeploymentPlacementTests
 				seed,
 				gridSize: 64,
 				playerFleet.State.Id);
-			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
 			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
 			Assert.InRange(
@@ -170,7 +171,7 @@ public sealed class DeploymentPlacementTests
 				seed,
 				gridSize: 64,
 				playerFleet.State.Id);
-			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
 			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 			deltas.Add(enemy.Position - player.Position);
 		}
@@ -197,7 +198,7 @@ public sealed class DeploymentPlacementTests
 				gridSize: 64,
 				playerFleet.State.Id,
 				canonicalLayout: true);
-			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
 			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 			var delta = enemy.Position - player.Position;
 			var axisComponents = (delta.X != 0 ? 1 : 0)
@@ -232,7 +233,7 @@ public sealed class DeploymentPlacementTests
 				gridSize: 64,
 				playerFleet.State.Id,
 				tutorialScriptedSpawn: true);
-			var player = spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
 			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
 			Assert.Equal(new Coord(center - 8, center, center), player.Position);
@@ -260,7 +261,7 @@ public sealed class DeploymentPlacementTests
 				"tutorial-scripted",
 				playerFleet.State.Id,
 				tutorialScriptedSpawn: true);
-			var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var player = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns);
 			var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
 			var basis = GridBasis.From(player.Fore, player.Dorsal, Coord.Cross(player.Dorsal, player.Fore));
 

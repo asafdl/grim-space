@@ -1,3 +1,4 @@
+using GrimSpace.Tests.Run;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.World.StarSystem;
@@ -21,8 +22,10 @@ public sealed class HazardPayEconomyTests
 	{
 		using var run = RunState.CreateNewRun(42);
 		DismissOpeningNarrative(run);
-		var pilot = Assert.Single(run.PilotRegistry.Active);
+		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithHazardMissedPeriods(2));
+		var hazardDue =
+			StrategicEconomyConfig.HazardPayCreditsPerPilot * run.PilotRegistry.Active.Count;
 		var creditsBefore = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
 
 		AddPirate(run);
@@ -31,7 +34,7 @@ public sealed class HazardPayEconomyTests
 		run.StarSystem.AdvanceClock();
 
 		Assert.Equal(
-			creditsBefore - StrategicEconomyConfig.HazardPayCreditsPerPilot,
+			creditsBefore - hazardDue,
 			run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits));
 		Assert.True(run.PilotRegistry.TryGet(pilot.Id, out var after));
 		Assert.Equal(0, after.MissedHazardPeriods);
@@ -43,7 +46,7 @@ public sealed class HazardPayEconomyTests
 	{
 		using var run = RunState.CreateNewRun(42);
 		DismissOpeningNarrative(run);
-		var pilot = Assert.Single(run.PilotRegistry.Active);
+		var pilot = RunTestKit.StarterRangerPilot(run);
 		AddPirate(run);
 		PrepareAwaitingDecision(run);
 
@@ -51,7 +54,7 @@ public sealed class HazardPayEconomyTests
 			"refuse-engagement",
 			RunState.PlayerFleetUnitId,
 			[RunState.PlayerFleetUnitId, "pirate-a"],
-			RefusedPilotIds: [pilot.Id]);
+			RefusedPilotIds: run.PilotRegistry.Active.Select(active => active.Id).ToArray());
 		run.ReceiveEngagementFact(new Record<EngagementCommitted>(fact));
 
 		Assert.Null(run.ActiveBattle);

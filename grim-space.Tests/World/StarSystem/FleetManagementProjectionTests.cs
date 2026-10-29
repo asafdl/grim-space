@@ -12,12 +12,14 @@ public sealed class FleetManagementProjectionTests
 	public void Collect_ProjectsOwnedShipPilotStatsAndAbilities()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var shipId = Assert.Single(run.GetFieldedShipIds());
+		var shipId = run.GetFieldedShipIds()
+			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 
 		var view = FleetManagementProjection.Collect(run);
 
-		var ship = Assert.Single(view.Ships);
+		Assert.Equal(2, view.Ships.Count);
+		var ship = Assert.Single(view.Ships, entry => entry.Id == shipId);
 		Assert.Equal(shipId, ship.Id);
 		Assert.Equal("Fighter", ship.Chassis);
 		Assert.Equal((2 * 100), ship.Hull);
@@ -49,7 +51,7 @@ public sealed class FleetManagementProjectionTests
 			}
 			&& ability.Stats.Select(stat => (stat.Label, stat.Value)).SequenceEqual(
 				[("BLAST DAMAGE", "100"), ("BLAST RADIUS", "3"), ("FUEL TURNS", "2"), ("COOLDOWN", "3")]));
-		Assert.Equal(pilot.Id, Assert.Single(view.Pilots).Id);
+		Assert.Equal(pilot.Id, view.Pilots.Single(entry => entry.Id == pilot.Id).Id);
 		Assert.Equal(EOperatorClassId.SpaceRanger, pilot.ClassId);
 		Assert.Equal(EOperatorClassId.SpaceRanger, ship.ClassId);
 	}
@@ -58,8 +60,11 @@ public sealed class FleetManagementProjectionTests
 	public void Collect_ProjectsPilotAndShipClasses()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var fighterShipId = Assert.Single(run.GetFieldedShipIds());
-		var pilot = Assert.Single(run.PilotRegistry.All);
+		var fighterShipId = run.GetFieldedShipIds()
+			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
+		var pilot = run.PilotRegistry.TryGetForShip(fighterShipId, out var fighterPilot)
+			? fighterPilot
+			: throw new InvalidOperationException("Starter fighter pilot is missing.");
 		const string minerShipId = "projection-unclassified-miner";
 		Assert.True(run.TryAcquireOwnedShip(
 			new ShipSpawnDeclaration(minerShipId, EType.RepurposedMiner)));

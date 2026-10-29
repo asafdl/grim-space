@@ -1,3 +1,4 @@
+using GrimSpace.Tests.Run;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
@@ -167,7 +168,7 @@ public sealed class PilotIdentityTests
 	public void RegenerateMap_PreservesPilotIdentity()
 	{
 		using var run = State.CreateNewRun(42);
-		var pilotBefore = Assert.Single(run.PilotRegistry.All);
+		var pilotBefore = RunTestKit.StarterRangerPilot(run);
 		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilotBefore.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, pilotBefore.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilotBefore.NegativeQuirkId);

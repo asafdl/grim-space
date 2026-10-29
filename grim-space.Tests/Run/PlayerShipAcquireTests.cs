@@ -53,11 +53,7 @@ public sealed class PlayerShipAcquireTests
 	public void CanAcquirePlayerShip_BlocksWhenActivePilotCapWouldBeExceededOnMap()
 	{
 		using var run = RunState.CreateNewRun(42);
-		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
-		{
-			var shipId = TypedIdGenerator.NextId("fighter");
-			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)));
-		}
+		RunTestKit.EnlistUntilActivePilotCap(run);
 
 		var blockedId = TypedIdGenerator.NextId("fighter");
 		Assert.False(run.CanAcquirePlayerShip(new ShipSpawnDeclaration(blockedId, BattleUnitType.Fighter)));
@@ -130,11 +126,7 @@ public sealed class PlayerShipAcquireTests
 	public void PurchaseShipAction_RemainsLegalWhenActivePilotCapIsFull()
 	{
 		using var run = RunState.CreateNewRun(42);
-		for (var index = 0; index < RunPilotRegistry.MaxActivePilots - 1; index++)
-		{
-			var shipId = TypedIdGenerator.NextId("fighter");
-			Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)));
-		}
+		RunTestKit.EnlistUntilActivePilotCap(run);
 
 		var offer = run.StarSystem.Map.Market.ListRecruitmentOffers()
 			.First(candidate => candidate.GearTier == EShipGearTier.T1);

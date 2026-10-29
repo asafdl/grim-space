@@ -66,7 +66,9 @@ public sealed class PlayerShipDestructionTests
 		Assert.False(run.ItemInventory.TryGet(doomedId, out _));
 		Assert.False(run.PilotRegistry.TryGet(doomedPilot.Id, out _));
 		Assert.True(run.ItemInventory.TryGet(survivorId, out _));
-		Assert.Equal([survivorId], run.GetFieldedShipIds());
+		Assert.Equal(2, run.GetFieldedShipIds().Count);
+		Assert.Contains(survivorId, run.GetFieldedShipIds());
+		Assert.DoesNotContain(doomedId, run.GetFieldedShipIds());
 		var worldFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		Assert.Equal(run.GetFieldedShipIds(), worldFleet.Members.Select(member => member.Id).ToArray());
 	}
@@ -75,7 +77,7 @@ public sealed class PlayerShipDestructionTests
 	public void BattleOutcome_StillAppliesHandoffForDestroyedEnemyShip()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var playerShipId = Assert.Single(run.GetFieldedShipIds());
+		var playerShipId = run.GetFieldedShipIds()[0];
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
 			new GrimSpace.Math.Grid.Coord(4, 0, 0),

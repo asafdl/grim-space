@@ -1,3 +1,4 @@
+using GrimSpace.Tests.Run;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
@@ -47,7 +48,7 @@ public sealed class BeginEngagementTests
 			committed.EngagementId,
 			committed.InitiatorUnitId);
 		Assert.Equal(playerId, committed.InitiatorUnitId);
-		Assert.Equal(2, encounter.Spawns.Count);
+		Assert.Equal(3, encounter.Spawns.Count);
 		Assert.Equal(
 			playerFleet.Members.Concat(pirateFleet.Members).Select(member => member.Id).Order(),
 			encounter.Spawns.Select(spawn => spawn.Ship.Id).Order());
@@ -89,7 +90,7 @@ public sealed class BeginEngagementTests
 			"test-engagement",
 			playerFleet.State.Id,
 			canonicalLayout: true);
-		var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+		var player = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns);
 		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
 		Assert.Equal(16, player.Position.ManhattanDistanceTo(enemy.Position));
@@ -114,7 +115,7 @@ public sealed class BeginEngagementTests
 			id: "test-engagement",
 			initiatorFleetId: pirateFleet.State.Id,
 			canonicalLayout: true);
-		var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+		var player = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns);
 		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
 		Assert.Equal(enemy.Position + enemy.Fore * 16, player.Position);
@@ -141,7 +142,7 @@ public sealed class BeginEngagementTests
 				seed,
 				$"test-engagement-{seed}",
 				playerFleet.State.Id);
-			var player = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Player);
+			var player = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns);
 			var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 			approachAxes.Add(new Coord(
 				System.Math.Abs(player.Fore.X),

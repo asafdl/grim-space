@@ -1,4 +1,5 @@
 using GrimSpace.Battle.PilotCapabilities;
+using GrimSpace.Tests.Run;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Units.Enums;
@@ -72,7 +73,7 @@ public sealed class PilotSkillTreeTests
 	public void RunState_TryLearnUpdatesRegistry()
 	{
 		using var run = State.CreateNewRun(42);
-		var pilot = Assert.Single(run.PilotRegistry.All);
+		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 250));
 		Assert.True(run.PilotRegistry.TryGet(pilot.Id, out pilot));
 

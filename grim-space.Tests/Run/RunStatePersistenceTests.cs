@@ -24,7 +24,8 @@ public sealed class RunStatePersistenceTests
 	public void RegenerateMap_PreservesRunOwnedState()
 	{
 		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
-		var shipId = Assert.Single(run.GetFieldedShipIds());
+		var shipId = run.GetFieldedShipIds()
+			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
 		var ship = ShipInstance.FromSpec(
 			shipId,
 			FighterSpec.Instance,
@@ -49,7 +50,8 @@ public sealed class RunStatePersistenceTests
 
 		Assert.NotSame(previousMap, run.StarSystem.Map);
 		Assert.Equal(99, run.StarSystem.Map.Seed);
-		Assert.Equal([shipId], run.GetFieldedShipIds());
+		Assert.Equal(2, run.GetFieldedShipIds().Count);
+		Assert.Contains(shipId, run.GetFieldedShipIds());
 		Assert.Same(ship, run.ItemInventory.Get(shipId));
 		Assert.Equal(3, run.ItemInventory.Get(shipId).HullPoints);
 		Assert.Equal(ship.Loadout.MaxHullPoints, run.ItemInventory.Get(shipId).Loadout.MaxHullPoints);
@@ -95,7 +97,8 @@ public sealed class RunStatePersistenceTests
 	public void Snapshot_RestoresRunOwnedStateAndBindings()
 	{
 		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
-		var shipId = Assert.Single(run.GetFieldedShipIds());
+		var shipId = run.GetFieldedShipIds()
+			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		run.TutorialState!.ActiveStepIndex = 2;
 		run.TutorialState!.PendingTutorialGraduation = true;

@@ -64,14 +64,12 @@ public sealed class BattleSpawnPilotTests
 			id: "pilot-save-test",
 			initiatorFleetId: playerFleet.State.Id,
 			shipIdToPilotSnapshot: shipToPilot);
-		var expectedPilot = Assert.Single(encounter.Spawns, spawn => spawn.Team == ETeam.Player).Pilot;
+		var expectedPilot = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns).Pilot;
 
 		var dto = SaveDtoMapper.CaptureBattleEncounter(encounter);
 		var restored = SaveDtoMapper.RestoreBattleEncounter(dto);
 
-		var restoredPilot = Assert.Single(
-			restored.Spawns,
-			spawn => spawn.Team == ETeam.Player).Pilot;
+		var restoredPilot = RunTestKit.StarterFighterBattleSpawn(restored.Spawns).Pilot;
 		Assert.NotNull(expectedPilot);
 		Assert.NotNull(restoredPilot);
 		Assert.Equal(expectedPilot.PilotId, restoredPilot.PilotId);
@@ -98,8 +96,8 @@ public sealed class BattleSpawnPilotTests
 			shipIdToPilotSnapshot: shipToPilot);
 
 		var playerSpawns = encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player).ToArray();
-		Assert.Equal(2, playerSpawns.Length);
-		Assert.Equal(2, playerSpawns.Select(spawn => spawn.Pilot!.PilotId).Distinct(StringComparer.Ordinal).Count());
+		Assert.Equal(3, playerSpawns.Length);
+		Assert.Equal(3, playerSpawns.Select(spawn => spawn.Pilot!.PilotId).Distinct(StringComparer.Ordinal).Count());
 	}
 
 	[Fact]

@@ -1,3 +1,4 @@
+using GrimSpace.Tests.Run;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
 using RunState = GrimSpace.Run.State;
@@ -11,13 +12,14 @@ public sealed class SalaryPayrollEconomyTests
 	public void Cadence_PaysRosterAndClearsMissedSalary()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var pilot = Assert.Single(run.PilotRegistry.All);
+		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithSalaryPayroll(2));
 		Assert.True(
 			run.StarSystem.Map.PlayerResources.TryApply(
 				ResourceBundle.Of(ResourceId.Credits, 100)));
 
-		var due = StrategicEconomyConfig.SalaryFor(pilot.BaseSalaryCredits, pilot.ClaimedLevel);
+		var due = run.PilotRegistry.Active.Sum(active =>
+			StrategicEconomyConfig.SalaryFor(active.BaseSalaryCredits, active.ClaimedLevel));
 		var creditsBefore = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
 
 		AdvanceToSalaryCadence(run);
@@ -33,7 +35,7 @@ public sealed class SalaryPayrollEconomyTests
 	public void Cadence_IncrementsMissWhenCreditsShort()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var pilot = Assert.Single(run.PilotRegistry.All);
+		var pilot = RunTestKit.StarterRangerPilot(run);
 		var credits = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
 		Assert.True(
 			run.StarSystem.Map.PlayerResources.TryApply(
@@ -50,7 +52,7 @@ public sealed class SalaryPayrollEconomyTests
 	public void SaveLoad_PreservesSalaryFields()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var pilot = Assert.Single(run.PilotRegistry.All);
+		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithSalaryPayroll(3));
 
 		var registry = GrimSpace.Run.Persistence.PersistenceRegistry.CreateDefault();
@@ -67,7 +69,7 @@ public sealed class SalaryPayrollEconomyTests
 	public void StarterPilot_HasDefaultBaseSalary()
 	{
 		using var run = RunState.CreateNewRun(42);
-		var pilot = Assert.Single(run.PilotRegistry.All);
+		var pilot = RunTestKit.StarterRangerPilot(run);
 		Assert.Equal(StrategicEconomyConfig.DefaultBaseSalaryCredits, pilot.BaseSalaryCredits);
 	}
 

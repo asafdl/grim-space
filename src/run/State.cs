@@ -440,6 +440,14 @@ public sealed class State : IDisposable
 		run.ApplyPlayerShipAcquire(
 			new ShipSpawnDeclaration(playerShipId, BattleUnitType.Fighter),
 			createStarterPilot: true);
+		var engineerShipId = TypedIdGenerator.NextId(
+			UnitTypeSlug.For(BattleUnitType.RepurposedMiner));
+		run.ApplyPlayerShipAcquire(
+			new ShipSpawnDeclaration(
+				engineerShipId,
+				BattleUnitType.RepurposedMiner,
+				EShipGearTier.T0),
+			createStarterPilot: false);
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
 			run.GetFieldedShipIds(),

@@ -1,3 +1,4 @@
+using GrimSpace.Tests.Run;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Economy;
@@ -120,7 +121,7 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 			run.StarSystem.Map.PlayerResources.TryApply(
 				ResourceBundle.Of(ResourceId.Fuel, -fuel)));
 
-		var shipId = run.GetFieldedShipIds().Single();
+		var shipId = RunTestKit.StarterFighterShipId(run);
 		var hullBefore = run.ItemInventory.Get(shipId).HullPoints;
 		var destination = run.StarSystem.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 
