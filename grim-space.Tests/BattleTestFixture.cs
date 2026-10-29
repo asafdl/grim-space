@@ -68,6 +68,8 @@ internal static class BattleTestFixture
 				var runtime = ActorRuntime.From(pilot);
 				unit.State.InTheFrayActive = runtime.PilotCapabilities.Contains(
 					GrimSpace.Pilots.EPilotCapabilityId.InTheFray);
+				unit.State.ReinforcedHullActive = runtime.PilotCapabilities.Contains(
+					GrimSpace.Pilots.EPilotCapabilityId.ReinforcedHull);
 				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
 					GrimSpace.Pilots.EPilotCapabilityId.OneWithTheVoid);
 				unit.State.DefensiveManeuversActive = runtime.PilotCapabilities.Contains(

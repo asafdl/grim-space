@@ -10,6 +10,7 @@ public enum EPilotCapabilityId
 	ShieldBrace,
 	StationaryDamageDeflection,
 	InTheFray,
+	ReinforcedHull,
 	OneWithTheVoid,
 	MinorScrapRewardBonus,
 	ScrapRewardBonus,

@@ -63,6 +63,12 @@ public static class PilotSkillPercents
 		public const int ScrapRewardBonusPercent = 15;
 	}
 
+	public static class ReinforcedHull
+	{
+		/// <summary>Fraction of hull damage retained after reduction (67 = take 33% less).</summary>
+		public const int HullDamageTakenPercent = 67;
+	}
+
 	public static class IKnowABot
 	{
 		public const int ShipUpgradeDiscountPercent = 10;

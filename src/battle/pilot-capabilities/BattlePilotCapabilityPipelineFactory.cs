@@ -17,6 +17,7 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.ShieldBrace
 			or EPilotCapabilityId.StationaryDamageDeflection
 			or EPilotCapabilityId.InTheFray
+			or EPilotCapabilityId.ReinforcedHull
 			or EPilotCapabilityId.OneWithTheVoid
 			or EPilotCapabilityId.InitiativePenalty;
 

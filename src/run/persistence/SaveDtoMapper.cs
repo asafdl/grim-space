@@ -251,6 +251,7 @@ public static class SaveDtoMapper
 			state.DefensiveManeuversMpUsed,
 			state.DefensiveManeuversRollIndex,
 			state.InTheFrayActive,
+			state.ReinforcedHullActive,
 			state.OneWithTheVoidActive,
 			state.Heat,
 			state.Overdrive,
@@ -300,6 +301,7 @@ public static class SaveDtoMapper
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
 		state.InTheFrayActive = dto.InTheFrayActive;
+		state.ReinforcedHullActive = dto.ReinforcedHullActive;
 		state.OneWithTheVoidActive = dto.OneWithTheVoidActive;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.Projectile = dto.Projectile;
@@ -383,6 +385,7 @@ public static class SaveDtoMapper
 				state.DefensiveManeuversMpUsed,
 				state.DefensiveManeuversRollIndex,
 				state.InTheFrayActive,
+				state.ReinforcedHullActive,
 				state.OneWithTheVoidActive,
 				state.Heat,
 				state.Overdrive,
@@ -915,6 +918,7 @@ public static class SaveDtoMapper
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
 			state.InTheFrayActive = unitDto.InTheFrayActive;
+			state.ReinforcedHullActive = unitDto.ReinforcedHullActive;
 			state.OneWithTheVoidActive = unitDto.OneWithTheVoidActive;
 			RestoreHeat(
 				state,

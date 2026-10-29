@@ -8,6 +8,15 @@ public static class PilotSkillCatalog
 	private static readonly IReadOnlyDictionary<EPilotSkillId, PilotSkillDefinition> Definitions =
 		new Dictionary<EPilotSkillId, PilotSkillDefinition>
 		{
+			[EPilotSkillId.ReinforcedHull] = new(
+				EPilotSkillId.ReinforcedHull,
+				[EPilotCapabilityId.ReinforcedHull],
+				new HudTooltipContent(
+					"Reinforced Hull",
+					$"Take {100 - PilotSkillPercents.ReinforcedHull.HullDamageTakenPercent}% less damage to hull."),
+				tier: 1,
+				minimumEarnedLevel: 1,
+				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.ShieldsUp] = new(
 				EPilotSkillId.ShieldsUp,
 				[EPilotCapabilityId.ShieldBoost],

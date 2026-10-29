@@ -11,5 +11,6 @@ public enum EPilotSkillId
 	InTheFray,
 	OneWithTheVoid,
 	DronesYearnForMines,
+	ReinforcedHull,
 	IKnowABot,
 }

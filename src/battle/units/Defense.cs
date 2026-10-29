@@ -85,6 +85,13 @@ public static class Defense
 		var shieldBefore = EffectiveShield(unit, face);
 		AbsorbWithShields(unit, face, damage + shieldDamageBonus);
 		var hullDamage = System.Math.Max(damage - shieldBefore, 0);
+		if (unit.ReinforcedHullActive && hullDamage > 0)
+		{
+			hullDamage = ScalePercent(
+				hullDamage,
+				PilotSkillPercents.ReinforcedHull.HullDamageTakenPercent);
+		}
+
 		unit.HullPoints = System.Math.Max(unit.HullPoints - hullDamage, 0);
 	}
 

@@ -33,6 +33,7 @@ public sealed record BattleUnitSaveDto(
 	int DefensiveManeuversMpUsed = 0,
 	int DefensiveManeuversRollIndex = 0,
 	bool InTheFrayActive = false,
+	bool ReinforcedHullActive = false,
 	bool OneWithTheVoidActive = false,
 	int Heat = 0,
 	int? HeatCapacity = null,
