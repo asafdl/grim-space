@@ -21,8 +21,11 @@ uniform vec3 bh_center = vec3(-0.62, -0.38, -0.52);
 // proportions are bit-identical — only the on-screen size moves.
 uniform float bh_shadow_radius : hint_range(0.01, 1.2) = 0.06;
 // Outer edge of the glow. EHT/GMVA class: shadow diameter ~ half the glow
-// diameter (shadow small inside generous light).
-uniform float bh_glow_radius : hint_range(0.02, 1.6) = 0.114;
+// diameter (shadow small inside generous light). SKYPASS V3P2 — 0.114 ->
+// 0.126 only to give the repaired crown band (crest 1.9x radius + edge) and
+// the broadened under-bowl headroom inside the early-out cull; the shadow
+// radius (the crisp on-screen size) is untouched.
+uniform float bh_glow_radius : hint_range(0.02, 1.6) = 0.126;
 // SKYPASS V3 ITEM 1 — inclination squash: the accretion light (ring band,
 // halo, grain field) is drawn on a squashed ellipse — major axis horizontal,
 // minor/major = this factor — so the feature reads as a semi-edge-on disc
@@ -33,14 +36,19 @@ uniform float bh_disc_squash : hint_range(0.33, 1.0) = 0.55;
 // Photon-ring band gaussian sigma. Visible FWHM = 1.66 * this (= 0.174 rad),
 // >= 1/3 of the glow diameter (0.127 rad) — a broad soft band, never a knife line.
 uniform float bh_ring_thickness : hint_range(0.01, 0.8) = 0.063;
-uniform float bh_energy : hint_range(0.0, 4.0) = 1.55;
+	// SKYPASS V3P2 energy carry: the whole feature reads brighter at the
+	// repaired proportions (1.55 -> 1.75) — band, halo, and arc terms ride it.
+uniform float bh_energy : hint_range(0.0, 4.0) = 1.75;
 // SKYPASS V3 ITEM 4 — palette pinned to the over/under-arcs target crop
 // (D:/ops-work/bh-yt/rely-v2/target-overunder-arcs.png): fully saturated
 // deep orange/red — crest sRGB (254,152,53), mid band (209,50,2), outer
 // falloff (125,1,0). Deliberately NOT the washed amber of v2 and NOT the
 // NASA blue variant the user ruled out.
-uniform vec3 bh_hot_color : source_color = vec3(1.0, 0.45, 0.12);
-uniform vec3 bh_warm_color : source_color = vec3(0.88, 0.16, 0.005);
+// SKYPASS V3P2 ITEM 6 — lifted to the target crop's palette class: hot crest
+// equals the measured crop crest sRGB (254,152,53) -> (1.0, 0.60, 0.21), warm
+// mid shifted to the (209,50,2) class, outer falloff stays the deep red.
+uniform vec3 bh_hot_color : source_color = vec3(1.0, 0.60, 0.21);
+uniform vec3 bh_warm_color : source_color = vec3(0.95, 0.21, 0.01);
 uniform vec3 bh_outer_color : source_color = vec3(0.62, 0.0, 0.0);
 // One side of the ring brighter. In a direction-locked sky pass the doppler
 // side is pinned to the ring the way a real photograph pins it.
@@ -210,25 +218,45 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	// lensed silhouette; the under arc centre sits just outside the shadow
 	// edge (1.22x radius) so the hug is tight.
 	float outside_shadow = smoothstep(bh_shadow_radius * 0.99, bh_shadow_radius * 1.01, ang);
-	// SKYPASS V3P1 ITEM T — the top arc is RIGID: a crisp continuous band with
-	// clean edges and no wobble. A smoothstep slab (steady crest 1.08-1.28x
-	// radius, ~0.04x-radius edge transitions) replaces the old centred
-	// gaussian, and the TIME-driven flicker/grain factors are dropped from the
-	// arc energy: the user ruled the top arc must not wobble. It stays
-	// continuous across the whole upper silhouette via a sin-taper (full over
-	// the top dome, easing out at both sides), never a beaded stitch. The
-	// under arc keeps its soft gaussian hug — only the top band is rigid.
-	float top_mid = bh_shadow_radius * 1.18;
-	float top_half = bh_shadow_radius * 0.10;
-	float top_edge = bh_shadow_radius * 0.04;
+	// SKYPASS V3P2 ITEM 2 — the over-front band comes BACK across the shadow's
+	// lower third IN FRONT of the face (the target crop's signature wave), but
+	// the horizon never gets crossed: the face mask kills the band only in a
+	// 0.3R band up against the rim (cut 0.58-0.70x radius), so every band
+	// pixel dies >= 0.3R before the event horizon edge, which stays pure black.
+	// A crisp smoothstep slab in projected.y at the disc's lower third, never
+	// a soft smear.
+	float face_band_mask = 1.0 - smoothstep(bh_shadow_radius * 0.58, bh_shadow_radius * 0.70, ang);
+	float front_cy = -bh_shadow_radius * 0.50;
+	float front_half = bh_shadow_radius * 0.10;
+	float front_edge = bh_shadow_radius * 0.03;
+	float front_band = smoothstep(front_cy - front_half - front_edge, front_cy - front_half, projected.y)
+		* smoothstep(front_cy + front_half + front_edge, front_cy + front_half, projected.y)
+		* face_band_mask;
+	// SKYPASS V3P2 ITEMS 1+3 — the top arc keeps its RIGID smoothstep slab
+	// construction (no TIME flicker, no grain — the user ruled it must not
+	// wobble) but is fattened and lifted to the compare-priced crown: crest
+	// band 1.6-1.9x radius (was 1.08-1.28x), 2x the steady energy, so the
+	// crown reads as the target's thick continuous mass with the same clean
+	// few-px edges.
+	float top_mid = bh_shadow_radius * 1.75;
+	float top_half = bh_shadow_radius * 0.15;
+	float top_edge = bh_shadow_radius * 0.05;
 	float top_band = smoothstep(top_mid - top_half - top_edge, top_mid - top_half, ang)
 		* smoothstep(top_mid + top_half + top_edge, top_mid + top_half, ang)
 		* smoothstep(0.0, 0.30, unit.y);
-	// Crest at 1.22x radius with a 0.10x sigma: at the shadow cut (1.01x) the
-	// gaussian is already exp(-(2.1)^2) ~= 1%, so the arc dies cleanly OUTSIDE
-	// the rim — the hug stays tight but never truncates against the black.
-	float arc_under = exp(-pow((ang - bh_shadow_radius * 1.22) / (bh_shadow_radius * 0.10), 2.0))
-		* exp(-pow((ring_angle + 1.5708) / 0.75, 2.0));
+	// SKYPASS V3P2 ITEM 4 — the tight 1.22x/0.10x hug widens into the target's
+	// under-bowl: broad gaussian ~1.5x the shadow width below the horizon
+	// (crest 1.20x radius, sigma 0.50x, gate opened 0.75 -> 1.05 rad), still
+	// fully OUTSIDE the disc (outside_shadow), still grain-alive.
+	float arc_under = exp(-pow((ang - bh_shadow_radius * 1.20) / (bh_shadow_radius * 0.50), 2.0))
+		* exp(-pow((ring_angle + 1.5708) / 1.05, 2.0));
+	// SKYPASS V3P2 ITEM 5 — gold crescent pinned to the shadow's LOWER-LEFT rim
+	// (the target crop's doppler side; the v3.1 probes nailed local (1,0) =
+	// screen LEFT, (0,1) = screen UP, so lower-left is (1,-0.55) normalized).
+	// A tight near-rim gate (1.02x radius, 0.12x sigma) times a hard
+	// lower-left direction lobe, rendered in the crop's gold crest colour.
+	float crescent_gate = exp(-pow((ang - bh_shadow_radius * 1.02) / (bh_shadow_radius * 0.12), 2.0));
+	float crescent = crescent_gate * pow(max(dot(unit, normalize(vec2(1.0, -0.55))), 0.0), 2.5);
 	// Doppler on the arcs uses the ring's scheme (a base level everywhere,
 	// boosted on the bright side) so the dim-side arc stays visible instead
 	// of being wiped out — the target crop shows both arcs on both sides.
@@ -243,7 +271,10 @@ vec3 apply_black_hole(vec3 base, vec3 eyedir) {
 	vec3 arc_col = mix(bh_hot_color, bh_warm_color, smoothstep(0.0, 0.7, arc_t));
 
 	return base * (1.0 - shadow) + glow * brightness
-		+ arc_col * ((top_band * arc_energy_steady + arc_under * 0.7 * arc_energy_alive) * outside_shadow);
+		+ arc_col * ((top_band * arc_energy_steady * 2.0
+			+ arc_under * 0.9 * arc_energy_alive
+			+ crescent * 1.5 * arc_energy_steady) * outside_shadow)
+		+ mix(bh_hot_color, vec3(1.0), 0.25) * front_band * bh_energy * 2.0;
 }
 
 void sky() {

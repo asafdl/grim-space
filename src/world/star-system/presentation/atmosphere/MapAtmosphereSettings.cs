@@ -23,7 +23,11 @@ public sealed record MapAtmosphereSettings(
 	// proportions are unchanged — only the on-screen size moves. The shader's
 	// own uniform defaults are kept in sync as fallbacks.
 	float BlackHoleShadowAngularRadius = 0.06f,
-	float BlackHoleGlowAngularRadius = 0.114f,
+	// SKYPASS V3P2 — glow 0.114 -> 0.126 only for early-out headroom above the
+	// repaired crown band (crest 1.9x radius) and the broadened under-bowl;
+	// the on-screen crisp size (shadow 0.06) is untouched, matching the
+	// shader's uniform default (kept in sync as a fallback).
+	float BlackHoleGlowAngularRadius = 0.126f,
 	float SunGlowEnergy = 0.78f,
 	float AmbientEnergy = 0.44f,
 	float FillLightEnergy = 0.17f)
