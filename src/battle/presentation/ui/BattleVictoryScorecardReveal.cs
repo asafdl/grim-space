@@ -5,6 +5,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 internal static class BattleVictoryScorecardReveal
 {
+	private const float InitialDelaySeconds = 1.2f;
 	private const float RowBeatSeconds = 3.5f;
 	private const float ExperienceFillSeconds = 2.8f;
 
@@ -24,6 +25,7 @@ internal static class BattleVictoryScorecardReveal
 			return tween;
 		}
 
+		tween.TweenInterval(InitialDelaySeconds);
 		for (var index = 0; index < rows.Count; index++)
 		{
 			var row = rows[index];

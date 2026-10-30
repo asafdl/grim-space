@@ -68,16 +68,15 @@ public partial class LightningCannonEffect : Node3D
 			throw new ArgumentOutOfRangeException(nameof(cellSize), "Cell size and line length must be positive; pyramid range cannot be negative.");
 
 		var fore = forward.Normalized();
-		var up = (dorsal - fore * dorsal.Dot(fore)).Normalized();
-		if (fore.LengthSquared() < 0.9f || up.LengthSquared() < 0.9f)
-			throw new ArgumentException("Forward and dorsal must be nonparallel directions.");
+		if (fore.LengthSquared() < 0.9f)
+			throw new ArgumentException("Forward must be a non-zero direction.", nameof(forward));
 
 		var reach = (lineLength + pyramidRange) * cellSize;
 		return SpawnBolt(
 			parent,
 			origin + fore * (cellSize * 0.25f),
 			fore,
-			up,
+			OrthogonalUp(fore, dorsal),
 			reach,
 			strikeSeconds,
 			lifetimeSeconds);
@@ -101,20 +100,34 @@ public partial class LightningCannonEffect : Node3D
 		var start = points[0];
 		var end = points[^1];
 		var fore = (end - start).Normalized();
-		var up = (dorsal - fore * dorsal.Dot(fore)).Normalized();
-		if (fore.LengthSquared() < 0.9f || up.LengthSquared() < 0.9f)
-			throw new ArgumentException("Path direction and dorsal must be nonparallel.");
+		if (fore.LengthSquared() < 0.9f)
+			throw new ArgumentException("Lightning path start and end must differ.", nameof(points));
 
 		var reach = start.DistanceTo(end);
 		return SpawnBolt(
 			parent,
 			start,
 			fore,
-			up,
+			OrthogonalUp(fore, dorsal),
 			reach,
 			strikeSeconds,
 			lifetimeSeconds,
 			startDelay);
+	}
+
+	/// <summary>
+	/// Prefer ship dorsal as bolt "up"; when a chain hop runs parallel to dorsal, fall back to a world axis.
+	/// </summary>
+	private static Vector3 OrthogonalUp(Vector3 fore, Vector3 preferredUp)
+	{
+		var projected = preferredUp - fore * preferredUp.Dot(fore);
+		if (projected.LengthSquared() > 1e-6f)
+			return projected.Normalized();
+
+		var fallback = Mathf.Abs(fore.Dot(Vector3.Up)) < 0.9f
+			? Vector3.Up
+			: Vector3.Right;
+		return (fallback - fore * fallback.Dot(fore)).Normalized();
 	}
 
 	private static LightningCannonEffect SpawnBolt(
