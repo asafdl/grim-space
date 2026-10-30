@@ -238,21 +238,18 @@ public sealed partial class BattleCommandHud : Control
 		ResourceMeters.AddThemeConstantOverride("separation", 1);
 		resourceHost.AddChild(ResourceMeters);
 		_apBar = new BattleResourceBar(
-			name: null,
 			ActionPointsBarColor,
 			BattleHudCopy.ActionPointsTooltip,
 			ActionPointsIconPath,
 			ActionPointsBarColor);
 		ResourceMeters.AddChild(_apBar);
 		_mpBar = new BattleResourceBar(
-			name: null,
 			color: ManeuverPointsBarColor,
 			tooltip: BattleHudCopy.ManeuverPointsTooltip,
 			iconPath: ManeuverPointsIconPath,
 			iconTint: ManeuverPointsBarColor);
 		ResourceMeters.AddChild(_mpBar);
 		_heatBar = new BattleResourceBar(
-			name: null,
 			color: HeatBarColor,
 			tooltip: BattleHudCopy.HeatTooltip(HeatSpec.Standard),
 			iconPath: HeatIconPath,

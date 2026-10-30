@@ -1,7 +1,6 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Components;
-using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -9,17 +8,15 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public partial class ResourceHud : MarginContainer
 {
 	private const string TransactionSfxPath = "res://assets/sfx/ui/resource_transaction.wav";
-	private const int IconSize = 22;
-	private const int AmountMinimumWidth = 48;
 	private const int DeltaLabelHeight = 18;
-	private const int EntrySeparation = 16;
-	private const int ResourcePanelMinimumWidth = 520;
-	private const int ResourcePanelMinimumHeight = 94;
+	private const int DeltaLabelWidth = 56;
+	private const int RailSeparation = 1;
+	private const int BottomMargin = 12;
 	private const float CountUpSpeed = 140f;
 	private const float DeltaHoldDuration = 4f;
 	private const float DeltaFadeDuration = 1.5f;
 
-	private readonly Dictionary<ResourceId, Label> _amountLabels = new();
+	private readonly Dictionary<ResourceId, ResourceRail> _rails = new();
 	private readonly Dictionary<ResourceId, Label> _deltaLabels = new();
 	private readonly Dictionary<ResourceId, float> _displayedAmounts = new();
 	private readonly Dictionary<ResourceId, int> _targetAmounts = new();
@@ -156,8 +153,8 @@ public partial class ResourceHud : MarginContainer
 
 	private void UpdateAmountLabels()
 	{
-		foreach (var (id, label) in _amountLabels)
-			label.Text = Mathf.RoundToInt(_displayedAmounts[id]).ToString();
+		foreach (var (id, rail) in _rails)
+			rail.SetValueText(Mathf.RoundToInt(_displayedAmounts[id]).ToString());
 	}
 
 	private void ShowDelta(ResourceId id, int delta)
@@ -188,16 +185,13 @@ public partial class ResourceHud : MarginContainer
 
 	private void ConfigureChrome()
 	{
-		SetAnchorsPreset(LayoutPreset.TopRight);
-		AnchorLeft = 1f;
-		AnchorRight = 1f;
+		SetAnchorsPreset(LayoutPreset.BottomRight);
 		GrowHorizontal = GrowDirection.Begin;
+		GrowVertical = GrowDirection.Begin;
 		MouseFilter = MouseFilterEnum.Ignore;
 
-		AddThemeConstantOverride("margin_top", 48);
-		AddThemeConstantOverride(
-			"margin_right",
-			HudStyles.Margin + HudStyles.ObjectivesHudPanelWidth + HudStyles.HudSiblingGap);
+		AddThemeConstantOverride("margin_right", HudStyles.Margin);
+		AddThemeConstantOverride("margin_bottom", BottomMargin);
 	}
 
 	private void Build()
@@ -206,109 +200,60 @@ public partial class ResourceHud : MarginContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		content.AddThemeConstantOverride("separation", 2);
+		content.AddThemeConstantOverride("separation", RailSeparation);
 		AddChild(content);
-
-		var row = new HBoxContainer
-		{
-			Alignment = BoxContainer.AlignmentMode.Center,
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		row.AddThemeConstantOverride("separation", EntrySeparation);
-
-		var panel = new UiNestedContainer(UiContainerVisual.SidebarLandscape)
-		{
-			SizeOverride = new UiSizeOverride(
-				ResourcePanelMinimumWidth,
-				ResourcePanelMinimumHeight),
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		panel.SetContent(row);
-		content.AddChild(panel);
-
-		foreach (var id in Enum.GetValues<ResourceId>())
-			row.AddChild(CreateEntry(id));
 
 		_feedbackLabel = new Label
 		{
 			Text = "",
 			CustomMinimumSize = new Vector2(0, DeltaLabelHeight),
-			HorizontalAlignment = HorizontalAlignment.Center,
+			HorizontalAlignment = HorizontalAlignment.Right,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 			Modulate = Colors.Transparent,
 		};
 		HudStyles.ApplyTextRole(_feedbackLabel, HudTextRole.Danger);
 		content.AddChild(_feedbackLabel);
+
+		foreach (var id in Enum.GetValues<ResourceId>())
+			content.AddChild(CreateEntry(id));
 	}
 
 	private Control CreateEntry(ResourceId id)
 	{
-		var root = new HudTooltipHost
+		var row = new HBoxContainer
 		{
-			CustomMinimumSize = new Vector2(IconSize + 6 + AmountMinimumWidth, IconSize),
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		row.AddThemeConstantOverride("separation", 4);
+
+		var tooltipHost = new HudTooltipHost
+		{
 			MouseFilter = MouseFilterEnum.Stop,
 		};
-		root.SetTooltip(ResourceIconCatalog.Tooltip(id));
+		tooltipHost.SetTooltip(ResourceIconCatalog.Tooltip(id));
+		row.AddChild(tooltipHost);
 
-		var entry = new HBoxContainer
-		{
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = GrowDirection.Both,
-			GrowVertical = GrowDirection.Both,
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		entry.AddThemeConstantOverride("separation", 6);
-		root.AddChild(entry);
-
-		var icon = new TextureRect
-		{
-			Texture = GD.Load<Texture2D>(IconPath(id)),
-			CustomMinimumSize = new Vector2(IconSize, IconSize),
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			MouseFilter = MouseFilterEnum.Ignore,
-			SizeFlagsVertical = SizeFlags.ShrinkCenter,
-		};
-		entry.AddChild(icon);
-
-		var amount = new Label
-		{
-			Text = "0",
-			CustomMinimumSize = new Vector2(AmountMinimumWidth, IconSize),
-			HorizontalAlignment = HorizontalAlignment.Right,
-			MouseFilter = MouseFilterEnum.Ignore,
-			VerticalAlignment = VerticalAlignment.Center,
-		};
-		HudStyles.ApplyTextRole(amount, HudTextRole.Emphasis);
-		entry.AddChild(amount);
-		_amountLabels[id] = amount;
+		var rail = new ResourceRail(ResourceIconCatalog.RailColor(id), ResourceIconCatalog.IconPath(id));
+		tooltipHost.AddChild(rail);
+		_rails[id] = rail;
 		_displayedAmounts[id] = 0f;
 		_targetAmounts[id] = 0;
 
 		var delta = new Label
 		{
 			Text = "",
-			AnchorLeft = 0f,
-			AnchorRight = 1f,
-			AnchorTop = 1f,
-			AnchorBottom = 1f,
-			OffsetLeft = IconSize + 6,
-			OffsetTop = 2f,
-			OffsetBottom = 2f + DeltaLabelHeight,
-			GrowHorizontal = GrowDirection.Both,
+			CustomMinimumSize = new Vector2(DeltaLabelWidth, 0),
 			HorizontalAlignment = HorizontalAlignment.Right,
+			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 			Modulate = Colors.Transparent,
 		};
 		HudStyles.ApplyTextRole(delta, HudTextRole.Metadata);
-		root.AddChild(delta);
+		row.AddChild(delta);
+		row.MoveChild(delta, 0);
 		_deltaLabels[id] = delta;
 
-		return root;
+		return row;
 	}
-
-	private static string IconPath(ResourceId id) =>
-		ResourceIconCatalog.IconPath(id);
 }
