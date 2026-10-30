@@ -8,8 +8,9 @@ namespace GrimSpace.Run;
 /// <summary>Pilot XP curve and battle-win rewards. Levels are derived from <see cref="Pilot.ExperiencePoints"/> only.</summary>
 public static class PilotProgression
 {
-	public const int CompletionXp = 50;
-	public const int KillXpPerKill = 25;
+	public const int DefaultXpDifficulty = 3;
+	public const int XpPerBattleBasePoint = 50;
+	public const int PerformanceScoreDivisor = 80;
 
 	private static readonly EPilotSkillId[] EmptyLearnedSkills = [];
 
@@ -53,9 +54,26 @@ public static class PilotProgression
 		return pilot.WithExperience(pilot.ExperiencePoints + amount);
 	}
 
+	public static int CountEnemySpawns(IReadOnlyList<BattleSpawn> spawns) =>
+		spawns.Count(spawn => spawn.Team == ETeam.Enemy);
+
+	public static int BattleXpBase(int enemyCount, int difficulty) =>
+		enemyCount * difficulty;
+
+	public static int ExperienceFromPerformance(int battleBase, int performancePoints)
+	{
+		if (battleBase <= 0 || performancePoints <= 0)
+			return 0;
+
+		return (int)System.Math.Round(
+			battleBase * XpPerBattleBasePoint * (decimal)performancePoints / PerformanceScoreDivisor,
+			System.MidpointRounding.AwayFromZero);
+	}
+
 	public static IReadOnlyDictionary<string, int> RewardsFor(
 		IReadOnlyList<BattleSpawn> spawns,
 		BattleOutcome outcome,
+		int xpDifficulty,
 		Func<string, IReadOnlyList<EPilotSkillId>>? resolveLearnedSkills = null)
 	{
 		ArgumentNullException.ThrowIfNull(spawns);
@@ -64,9 +82,8 @@ public static class PilotProgression
 			return new Dictionary<string, int>();
 
 		var handoffs = BuildHandoffLookup(outcome.StateHandoffs);
-		var killCount = CountEnemyKills(spawns, handoffs);
-		var xpPerSurvivor = CompletionXp + killCount * KillXpPerKill;
-		if (xpPerSurvivor <= 0)
+		var battleBase = BattleXpBase(CountEnemySpawns(spawns), xpDifficulty);
+		if (battleBase <= 0)
 			return new Dictionary<string, int>();
 
 		var grants = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -77,8 +94,13 @@ public static class PilotProgression
 			if (!handoffs.TryGetValue(spawn.Ship.Id, out var handoff) || handoff.HullPoints <= 0)
 				continue;
 
+			outcome.PerformancePointsByUnitId.TryGetValue(spawn.Ship.Id, out var performancePoints);
+			var xp = ExperienceFromPerformance(battleBase, performancePoints);
+			if (xp <= 0)
+				continue;
+
 			var learnedSkills = resolveLearnedSkills?.Invoke(spawn.PilotId) ?? EmptyLearnedSkills;
-			grants[spawn.PilotId] = ApplyExperienceGainBonus(xpPerSurvivor, learnedSkills);
+			grants[spawn.PilotId] = ApplyExperienceGainBonus(xp, learnedSkills);
 		}
 
 		return grants;
@@ -118,24 +140,6 @@ public static class PilotProgression
 		foreach (var handoff in handoffs)
 			lookup[handoff.Id] = handoff;
 		return lookup;
-	}
-
-	private static int CountEnemyKills(
-		IReadOnlyList<BattleSpawn> spawns,
-		Dictionary<string, UnitStateHandoff> handoffs)
-	{
-		var kills = 0;
-		foreach (var spawn in spawns)
-		{
-			if (spawn.Team != ETeam.Enemy)
-				continue;
-			if (!handoffs.TryGetValue(spawn.Ship.Id, out var handoff))
-				continue;
-			if (handoff.HullPoints <= 0)
-				kills++;
-		}
-
-		return kills;
 	}
 
 	private static int ScalePercent(int amount, int percent) =>

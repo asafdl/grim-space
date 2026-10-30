@@ -105,6 +105,7 @@ public static class SaveDtoMapper
 			encounter.Seed,
 			encounter.Id,
 			encounter.Objective,
+			encounter.XpDifficulty,
 			Spawns = encounter.Spawns.Select(spawn =>
 				ReflectionJson.Map<BattleEncounterSpawnDto>(new
 				{
@@ -138,6 +139,9 @@ public static class SaveDtoMapper
 			Seed = dto.Seed,
 			Id = dto.Id,
 			Objective = dto.Objective,
+			XpDifficulty = dto.XpDifficulty <= 0
+				? BattleEncounter.DefaultXpDifficulty
+				: dto.XpDifficulty,
 			Spawns = dto.Spawns.Select(RestoreBattleSpawn).ToArray(),
 			WorldHazards = dto.Hazards.Select(hazard => new BattleHazardSpawn
 			{

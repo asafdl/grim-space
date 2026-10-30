@@ -1,10 +1,12 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Presentation;
+using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
-using GrimSpace.Core.Actions;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
@@ -86,19 +88,39 @@ public static class CommitBattleOutcomeRules
 			_ => throw new ArgumentOutOfRangeException(nameof(world.Objective), world.Objective, null),
 		};
 
-	public static BattleOutcome CaptureOutcome(BattleWorld world, EBattleResult result) =>
-		new(
-			world.BattleId,
-			result,
-			UnitRegistry.For(world).All
-				.Where(unit => world.EngagedShipIds.Contains(unit.State.Id))
-				.Select(unit => new UnitStateHandoff(
-					unit.State.Id,
-					unit.State.Type,
-					unit.State.HullPoints,
-					unit.State.ShieldPoints.Clone(),
-					ShipLoadoutGearTier.FromLoadout(unit.State.Loadout, unit.State.Type)))
-				.ToArray());
+	public static BattleOutcome CaptureOutcome(BattleWorld world, EBattleResult result)
+	{
+		var handoffs = UnitRegistry.For(world).All
+			.Where(unit => world.EngagedShipIds.Contains(unit.State.Id))
+			.Select(unit => new UnitStateHandoff(
+				unit.State.Id,
+				unit.State.Type,
+				unit.State.HullPoints,
+				unit.State.ShieldPoints.Clone(),
+				ShipLoadoutGearTier.FromLoadout(unit.State.Loadout, unit.State.Type)))
+			.ToArray();
+		if (result != EBattleResult.Win)
+			return new BattleOutcome(world.BattleId, result, handoffs);
+
+		var playerUnitIds = UnitRegistry.For(world).All
+			.Where(unit =>
+				unit.Team == ETeam.Player
+				&& world.EngagedShipIds.Contains(unit.State.Id))
+			.Select(unit => unit.State.Id)
+			.ToHashSet(StringComparer.Ordinal);
+		var timeline = BuildPerformanceTimeline(world);
+		var performancePoints = BattleUnitPerformance.PerformancePointsByUnit(timeline, playerUnitIds);
+		return new BattleOutcome(world.BattleId, result, handoffs, performancePoints);
+	}
+
+	private static IReadOnlyList<ITimelineEntry> BuildPerformanceTimeline(BattleWorld world)
+	{
+		var snapshot = world.Timeline.ToSnapshot();
+		var entries = new List<ITimelineEntry>();
+		foreach (var tick in snapshot.History.Keys.Order())
+			entries.AddRange(snapshot.History[tick]);
+		return entries;
+	}
 
 	private static EBattleResult EvaluateEliminateOpponents(UnitRegistry units, ETeam team)
 	{

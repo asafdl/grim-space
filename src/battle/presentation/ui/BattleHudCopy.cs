@@ -75,8 +75,12 @@ internal static class BattleHudCopy
 	public const string VictoryTitle = "Victory";
 	public const string VictoryNoPilotPerformance = "No pilot performance to report.";
 
-	public static string VictoryPilotPerformanceMetadata(int damageDealt, int damageTaken, int experience) =>
-		$"Damage done {damageDealt} · Damage taken {damageTaken}\n"
+	public static string VictoryPilotPerformanceMetadata(
+		int damageDealt,
+		int damageTaken,
+		int healingDone,
+		int experience) =>
+		$"Damage done {damageDealt} · Damage taken {damageTaken} · Healing done {healingDone}\n"
 		+ (experience > 0 ? $"+{experience} XP" : "No XP");
 
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);

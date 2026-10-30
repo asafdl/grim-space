@@ -14,6 +14,7 @@ public static class BattleVictorySummaryBuilder
 	public static BattleVictorySummary Build(
 		BattleOutcome outcome,
 		IReadOnlyList<BattleSpawn> spawns,
+		int xpDifficulty,
 		IReadOnlyList<ITimelineEntry> timeline,
 		Func<string, Pilot?> resolvePilot)
 	{
@@ -31,6 +32,7 @@ public static class BattleVictorySummaryBuilder
 		var xpGrants = PilotProgression.RewardsFor(
 			spawns,
 			outcome,
+			xpDifficulty,
 			pilotId => resolvePilot(pilotId)?.LearnedSkills ?? Array.Empty<EPilotSkillId>());
 
 		var pilotRows = new List<BattleVictoryPilotRow>();
@@ -51,15 +53,19 @@ public static class BattleVictorySummaryBuilder
 				PilotHireDisplay.ShipPackageLine(spawn.Ship.Spec.Chassis, gearTier),
 				totals.Dealt,
 				totals.Taken,
+				totals.HealingDone,
 				xp,
-				BattlePerformanceScore.Grade(totals.Dealt, totals.Taken)));
+				BattlePerformanceScore.Grade(totals.Dealt, totals.Taken, totals.HealingDone)));
 		}
 
 		pilotRows.Sort((left, right) =>
 		{
 			var byScore = BattlePerformanceScore
-				.Points(right.DamageDealt, right.DamageTaken)
-				.CompareTo(BattlePerformanceScore.Points(left.DamageDealt, left.DamageTaken));
+				.Points(right.DamageDealt, right.DamageTaken, right.HealingDone)
+				.CompareTo(BattlePerformanceScore.Points(
+					left.DamageDealt,
+					left.DamageTaken,
+					left.HealingDone));
 			return byScore != 0
 				? byScore
 				: string.Compare(left.DisplayName, right.DisplayName, StringComparison.Ordinal);

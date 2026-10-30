@@ -205,7 +205,7 @@ public sealed class State : IDisposable
 			$"Battle outcome resolved: id='{outcome.BattleId}', result='{outcome.Result}', "
 			+ $"tutorialsEnabled={Tutorials is not null}.");
 		if (outcome.Result == EBattleResult.Win)
-			GrantPilotBattleXp(ActiveBattle.Spawns, outcome);
+			GrantPilotBattleXp(ActiveBattle.Spawns, ActiveBattle.XpDifficulty, outcome);
 
 		ApplyOutcomeToRegistry(outcome);
 
@@ -969,11 +969,15 @@ public sealed class State : IDisposable
 		}
 	}
 
-	private void GrantPilotBattleXp(IReadOnlyList<BattleSpawn> spawns, BattleOutcome outcome)
+	private void GrantPilotBattleXp(
+		IReadOnlyList<BattleSpawn> spawns,
+		int xpDifficulty,
+		BattleOutcome outcome)
 	{
 		foreach (var (pilotId, xp) in PilotProgression.RewardsFor(
 			         spawns,
 			         outcome,
+			         xpDifficulty,
 			         id => PilotRegistry.TryGet(id, out var pilot)
 				         ? pilot.LearnedSkills
 				         : Array.Empty<EPilotSkillId>()))

@@ -6,5 +6,6 @@ public sealed record BattleEncounterSaveDto(
 	int Seed,
 	string Id,
 	EObjective Objective,
+	int XpDifficulty,
 	IReadOnlyList<BattleEncounterSpawnDto> Spawns,
 	IReadOnlyList<BattleEncounterHazardDto> Hazards);

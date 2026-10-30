@@ -9,6 +9,7 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.World;
 

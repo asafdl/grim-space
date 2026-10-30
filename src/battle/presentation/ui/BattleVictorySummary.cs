@@ -6,6 +6,7 @@ public sealed record BattleVictoryPilotRow(
 	string ShipLine,
 	int DamageDealt,
 	int DamageTaken,
+	int HealingDone,
 	int ExperienceEarned,
 	char ScoreGrade);
 

@@ -66,6 +66,7 @@ public partial class BattleController : Node3D
 
 	private bool _strategicBattle;
 	private IReadOnlyList<BattleSpawn> _encounterSpawns = [];
+	private int _xpDifficulty = BattleEncounter.DefaultXpDifficulty;
 	private EBattlePhase _lastPhase = (EBattlePhase)(-1);
 	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
 	private readonly List<string> _resolvedRoundActivations = [];
@@ -91,6 +92,7 @@ public partial class BattleController : Node3D
 			try
 			{
 				_encounterSpawns = Session.Instance.Run.ActiveBattle!.Spawns;
+				_xpDifficulty = Session.Instance.Run.ActiveBattle!.XpDifficulty;
 				_battle = Session.Instance.Run.CreateActiveBattleOrchestrator();
 				backdropSeed = Session.Instance.Run.ActiveBattle!.Seed;
 			}
@@ -106,6 +108,7 @@ public partial class BattleController : Node3D
 		{
 			var devEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
 			_encounterSpawns = devEncounter.Spawns;
+			_xpDifficulty = devEncounter.XpDifficulty;
 			_battle = BattleOrchestrator.FromEncounter(devEncounter);
 			backdropSeed = devEncounter.Seed;
 		}
@@ -899,6 +902,7 @@ public partial class BattleController : Node3D
 		return BattleVictorySummaryBuilder.Build(
 			outcome,
 			_encounterSpawns,
+			_xpDifficulty,
 			_frames.BattleTimelineEntries,
 			pilotId => run.PilotRegistry.TryGet(pilotId, out var pilot) ? pilot : null);
 	}

@@ -61,6 +61,7 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 			BattleHudCopy.VictoryPilotPerformanceMetadata(
 				row.DamageDealt,
 				row.DamageTaken,
+				row.HealingDone,
 				row.ExperienceEarned),
 			string.Empty,
 			ShipPilotPortraitCatalog.TextureFor(row.PortraitId))

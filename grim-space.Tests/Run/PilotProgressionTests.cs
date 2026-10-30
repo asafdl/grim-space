@@ -1,6 +1,6 @@
 using GrimSpace.Battle.Encounter;
-using GrimSpace.Pilots;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Tests;
 using GrimSpace.Units;
@@ -66,11 +66,20 @@ public sealed class PilotProgressionTests
 	}
 
 	[Fact]
-	public void RewardsFor_Win_GrantsCompletionAndKillBonusToEachSurvivor()
+	public void ExperienceFromPerformance_ScalesByBattleBaseAndScore()
+	{
+		var battleBase = PilotProgression.BattleXpBase(enemyCount: 2, difficulty: 3);
+		Assert.Equal(150, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 40));
+		Assert.Equal(300, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 80));
+	}
+
+	[Fact]
+	public void RewardsFor_Win_ScalesXpByPerformanceForEachSurvivor()
 	{
 		const string survivorPilotA = "pilot-a";
 		const string survivorPilotB = "pilot-b";
 		const string deadPilot = "pilot-dead";
+		const int xpDifficulty = 3;
 		var spawns = new[]
 		{
 			PlayerSpawn("fighter-a", survivorPilotA),
@@ -80,9 +89,7 @@ public sealed class PilotProgressionTests
 			EnemySpawn("enemy-2"),
 			EnemySpawn("enemy-3"),
 		};
-		var outcome = new BattleOutcome(
-			"battle-1",
-			EBattleResult.Win,
+		var outcome = WinOutcome(
 			[
 				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
 				OutcomeTestKit.Handoff("fighter-b", EType.Fighter, 5),
@@ -90,14 +97,21 @@ public sealed class PilotProgressionTests
 				OutcomeTestKit.Handoff("enemy-1", EType.Fighter, 0),
 				OutcomeTestKit.Handoff("enemy-2", EType.Fighter, 0),
 				OutcomeTestKit.Handoff("enemy-3", EType.Fighter, 0),
-			]);
+			],
+			new Dictionary<string, int>(StringComparer.Ordinal)
+			{
+				["fighter-a"] = 80,
+				["fighter-b"] = 40,
+			});
+		var battleBase = PilotProgression.BattleXpBase(3, xpDifficulty);
+		var expectedA = PilotProgression.ExperienceFromPerformance(battleBase, 80);
+		var expectedB = PilotProgression.ExperienceFromPerformance(battleBase, 40);
 
-		var expectedXp = PilotProgression.CompletionXp + 3 * PilotProgression.KillXpPerKill;
-		var grants = PilotProgression.RewardsFor(spawns, outcome);
+		var grants = PilotProgression.RewardsFor(spawns, outcome, xpDifficulty);
 
 		Assert.Equal(2, grants.Count);
-		Assert.Equal(expectedXp, grants[survivorPilotA]);
-		Assert.Equal(expectedXp, grants[survivorPilotB]);
+		Assert.Equal(expectedA, grants[survivorPilotA]);
+		Assert.Equal(expectedB, grants[survivorPilotB]);
 		Assert.False(grants.ContainsKey(deadPilot));
 	}
 
@@ -106,25 +120,31 @@ public sealed class PilotProgressionTests
 	{
 		const string boostedPilot = "pilot-boosted";
 		const string baselinePilot = "pilot-baseline";
+		const int xpDifficulty = 3;
 		var spawns = new[]
 		{
 			PlayerSpawn("fighter-a", boostedPilot),
 			PlayerSpawn("fighter-b", baselinePilot),
 			EnemySpawn("enemy-1"),
 		};
-		var outcome = new BattleOutcome(
-			"battle-1",
-			EBattleResult.Win,
+		var outcome = WinOutcome(
 			[
 				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
 				OutcomeTestKit.Handoff("fighter-b", EType.Fighter, 1),
 				OutcomeTestKit.Handoff("enemy-1", EType.Fighter, 0),
-			]);
-
-		var baseXp = PilotProgression.CompletionXp + PilotProgression.KillXpPerKill;
+			],
+			new Dictionary<string, int>(StringComparer.Ordinal)
+			{
+				["fighter-a"] = 40,
+				["fighter-b"] = 40,
+			});
+		var baseXp = PilotProgression.ExperienceFromPerformance(
+			PilotProgression.BattleXpBase(1, xpDifficulty),
+			40);
 		var grants = PilotProgression.RewardsFor(
 			spawns,
 			outcome,
+			xpDifficulty,
 			pilotId => pilotId switch
 			{
 				boostedPilot => new[] { EPilotSkillId.BetterRam },
@@ -152,41 +172,49 @@ public sealed class PilotProgressionTests
 			EBattleResult.Lose,
 			[OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1)]);
 
-		Assert.Empty(PilotProgression.RewardsFor(spawns, outcome));
+		Assert.Empty(PilotProgression.RewardsFor(spawns, outcome, PilotProgression.DefaultXpDifficulty));
 	}
 
 	[Fact]
-	public void RewardsFor_OnlyCountsEnemySpawnsDestroyedInHandoffs()
+	public void RewardsFor_UsesEnemySpawnCountNotKillCount()
 	{
+		const int xpDifficulty = 3;
 		var spawns = new[]
 		{
 			PlayerSpawn("fighter-a", "pilot-a"),
 			EnemySpawn("enemy-1"),
 			EnemySpawn("enemy-2"),
 		};
-		var outcome = new BattleOutcome(
-			"battle-1",
-			EBattleResult.Win,
+		var outcome = WinOutcome(
 			[
 				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
 				OutcomeTestKit.Handoff("enemy-1", EType.Fighter, 0),
-			]);
+			],
+			new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 40 });
+		var expectedXp = PilotProgression.ExperienceFromPerformance(
+			PilotProgression.BattleXpBase(2, xpDifficulty),
+			40);
 
-		var expectedXp = PilotProgression.CompletionXp + PilotProgression.KillXpPerKill;
-		Assert.Equal(expectedXp, Assert.Single(PilotProgression.RewardsFor(spawns, outcome)).Value);
+		Assert.Equal(expectedXp, Assert.Single(PilotProgression.RewardsFor(spawns, outcome, xpDifficulty)).Value);
 	}
 
 	[Fact]
 	public void RewardsFor_SkipsPlayerSpawnsWithoutPilotId()
 	{
 		var spawns = new[] { PlayerSpawn("fighter-a", pilotId: null) };
-		var outcome = new BattleOutcome(
+		var outcome = WinOutcome([OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1)]);
+
+		Assert.Empty(PilotProgression.RewardsFor(spawns, outcome, PilotProgression.DefaultXpDifficulty));
+	}
+
+	private static BattleOutcome WinOutcome(
+		IReadOnlyList<UnitStateHandoff> handoffs,
+		IReadOnlyDictionary<string, int>? performanceByUnitId = null) =>
+		new(
 			"battle-1",
 			EBattleResult.Win,
-			[OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1)]);
-
-		Assert.Empty(PilotProgression.RewardsFor(spawns, outcome));
-	}
+			handoffs,
+			performanceByUnitId ?? BattleOutcome.EmptyPerformancePoints);
 
 	private static BattleSpawn PlayerSpawn(string shipId, string? pilotId) =>
 		new()

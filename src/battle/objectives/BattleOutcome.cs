@@ -13,4 +13,17 @@ public sealed record UnitStateHandoff(
 public sealed record BattleOutcome(
 	string BattleId,
 	EBattleResult Result,
-	IReadOnlyList<UnitStateHandoff> StateHandoffs);
+	IReadOnlyList<UnitStateHandoff> StateHandoffs,
+	IReadOnlyDictionary<string, int> PerformancePointsByUnitId = null!)
+{
+	public static IReadOnlyDictionary<string, int> EmptyPerformancePoints { get; } =
+		new Dictionary<string, int>(StringComparer.Ordinal);
+
+	public BattleOutcome(
+		string BattleId,
+		EBattleResult Result,
+		IReadOnlyList<UnitStateHandoff> StateHandoffs)
+		: this(BattleId, Result, StateHandoffs, EmptyPerformancePoints)
+	{
+	}
+}

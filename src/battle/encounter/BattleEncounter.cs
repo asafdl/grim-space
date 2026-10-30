@@ -19,6 +19,8 @@ public sealed class BattleEncounter
 	public required string Id { get; init; }
 	public required IReadOnlyList<BattleSpawn> Spawns { get; init; }
 	public required EObjective Objective { get; init; }
+	public const int DefaultXpDifficulty = 3;
+	public int XpDifficulty { get; init; } = DefaultXpDifficulty;
 	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
 
 	public static BattleEncounter DevDefault(int seed = 42, int gridSize = 64)
