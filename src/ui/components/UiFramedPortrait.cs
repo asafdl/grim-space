@@ -13,6 +13,8 @@ public sealed partial class UiFramedPortrait : Control, IUiSized
 		set => _sizing.SizeOverride = value;
 	}
 
+	private const string CircleClipShaderPath =
+		"res://assets/ui/components/runtime/circle_clip.gdshader";
 	private const string FrameTexturePath =
 		"res://assets/ui/components/runtime/list_item_image_frame_base.png";
 	private const string PaletteShaderPath =
@@ -53,9 +55,13 @@ public sealed partial class UiFramedPortrait : Control, IUiSized
 		};
 		AddChild(_frame);
 
+		var circleClip = GD.Load<Shader>(CircleClipShaderPath)
+			?? throw new InvalidOperationException(
+				$"Could not load circle clip shader '{CircleClipShaderPath}'.");
 		_image = new TextureRect
 		{
 			Texture = portrait,
+			Material = new ShaderMaterial { Shader = circleClip },
 			MouseFilter = MouseFilterEnum.Ignore,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,

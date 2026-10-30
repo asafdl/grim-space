@@ -40,6 +40,7 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 | [`npc_dialog_hud_preview.tscn`](../scenes/dev/npc_dialog_hud_preview.tscn) | NPC dialog |
 | [`narrative_hud_preview.tscn`](../scenes/dev/narrative_hud_preview.tscn) | Narrative pager |
 | [`dev_menu_hud_preview.tscn`](../scenes/dev/dev_menu_hud_preview.tscn) | Dev menu |
+| [`battle_victory_hud_preview.tscn`](../scenes/dev/battle_victory_hud_preview.tscn) | Battle victory scorecard |
 
 ## Palettes
 

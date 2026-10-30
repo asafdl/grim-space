@@ -8,6 +8,8 @@ public sealed record BattleVictoryPilotRow(
 	int DamageTaken,
 	int HealingDone,
 	int ExperienceEarned,
+	int ExperiencePointsBefore,
+	int ExperiencePointsAfter,
 	char ScoreGrade);
 
 public sealed record BattleVictorySummary(IReadOnlyList<BattleVictoryPilotRow> Pilots);

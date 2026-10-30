@@ -119,6 +119,8 @@ public sealed class BattleVictorySummaryTests
 				PilotProgression.BattleXpBase(1, PilotProgression.DefaultXpDifficulty),
 				100),
 			top.ExperienceEarned);
+		Assert.Equal(0, top.ExperiencePointsBefore);
+		Assert.Equal(top.ExperienceEarned, top.ExperiencePointsAfter);
 		Assert.Equal('A', top.ScoreGrade);
 
 		var second = summary.Pilots[1];

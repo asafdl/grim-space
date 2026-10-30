@@ -1,7 +1,8 @@
+using System.Text;
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Ui.Components;
-using GrimSpace.World.StarSystem.Presentation.Ui;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -9,7 +10,15 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 {
 	public event Action? ContinueRequested;
 
+	private const string DoorLatchSfxPath = "res://assets/sfx/ui/fire_door_closing.wav";
+
 	private ModalShell _shell = null!;
+	private AudioStreamPlayer _doorLatchPlayer = null!;
+	private Tween? _revealTween;
+	private string? _presentationKey;
+	private IReadOnlyList<HudAction> _pendingFooterActions = [];
+	private Control[]? _pendingRevealRows;
+	private Control[]? _activeRevealRows;
 
 	public BattleVictoryOverlay()
 	{
@@ -20,6 +29,16 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 
 	public void Sync(BattleVictorySummary summary, bool strategicBattle)
 	{
+		var key = PresentationKey(summary, strategicBattle);
+		if (Visible && _presentationKey == key && _revealTween is not null)
+			return;
+
+		if (Visible && _presentationKey == key && _revealTween is null)
+			return;
+
+		CancelReveal();
+		_presentationKey = key;
+
 		_shell.Open(BattleHudCopy.VictoryTitle, string.Empty);
 		_shell.SetRequiresDecision(true);
 		_shell.SetDismissVisible(false);
@@ -29,50 +48,113 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 		var body = HudWidgets.CreateCardList();
 		body.AddThemeConstantOverride("separation", 10);
 
+		var revealRows = new List<Control>();
 		if (summary.Pilots.Count == 0)
 		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
+			var emptyState = HudWidgets.CreateStatusPanel(
 				HudStatusKind.Neutral,
-				BattleHudCopy.VictoryNoPilotPerformance));
+				BattleHudCopy.VictoryNoPilotPerformance);
+			body.AddChild(emptyState);
+			revealRows.Add(emptyState);
 		}
 		else
 		{
 			foreach (var row in summary.Pilots)
-				body.AddChild(CreatePilotRow(row));
+			{
+				var item = new BattleVictoryPilotRowView(row);
+				body.AddChild(item);
+				revealRows.Add(item);
+			}
 		}
 
 		_shell.SetBody(body);
-		_shell.SetFooter(
+		_pendingFooterActions =
 		[
 			new HudAction(
 				strategicBattle ? BattleHudCopy.ReturnToStarMap : BattleHudCopy.Reset,
 				HudActionKind.Primary,
 				() => ContinueRequested?.Invoke()),
-		]);
+		];
+		_shell.SetFooter([]);
 		Visible = true;
+		_pendingRevealRows = revealRows.ToArray();
+		CallDeferred(MethodName.StartPendingReveal);
 	}
 
-	public void HideOverlay() => Visible = false;
-
-	private static UiImageListItem CreatePilotRow(BattleVictoryPilotRow row)
+	public void HideOverlay()
 	{
-		var item = new UiImageListItem(
-			row.DisplayName,
-			BattleHudCopy.VictoryPilotPerformanceMetadata(
-				row.DamageDealt,
-				row.DamageTaken,
-				row.HealingDone,
-				row.ExperienceEarned),
-			string.Empty,
-			ShipPilotPortraitCatalog.TextureFor(row.PortraitId))
+		CancelReveal();
+		_presentationKey = null;
+		_pendingRevealRows = null;
+		_activeRevealRows = null;
+		Visible = false;
+	}
+
+	private void StartPendingReveal()
+	{
+		if (_pendingRevealRows is null)
+			return;
+
+		var rows = _pendingRevealRows;
+		_pendingRevealRows = null;
+		_activeRevealRows = rows;
+
+		_revealTween = BattleVictoryScorecardReveal.Begin(
+			this,
+			_doorLatchPlayer,
+			rows,
+			() =>
+			{
+				_revealTween = null;
+				_activeRevealRows = null;
+				_shell.SetFooter(_pendingFooterActions);
+			});
+	}
+
+	private void CancelReveal()
+	{
+		if (_revealTween is not null)
 		{
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			FocusMode = Control.FocusModeEnum.None,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			MouseDefaultCursorShape = Control.CursorShape.Arrow,
-		};
-		item.SetTrailingContent(BattlePerformanceGradeDisplay.CreateTrailing(row.ScoreGrade));
-		return item;
+			_revealTween.Kill();
+			_revealTween = null;
+		}
+
+		CancelExperienceFillOnRows(_pendingRevealRows);
+		CancelExperienceFillOnRows(_activeRevealRows);
+		_activeRevealRows = null;
+	}
+
+	private static void CancelExperienceFillOnRows(IReadOnlyList<Control>? rows)
+	{
+		if (rows is null)
+			return;
+
+		foreach (var row in rows)
+		{
+			if (row is BattleVictoryPilotRowView pilotRow)
+				pilotRow.CancelExperienceFill();
+		}
+	}
+
+	private static string PresentationKey(BattleVictorySummary summary, bool strategicBattle)
+	{
+		var builder = new StringBuilder(strategicBattle ? "1:" : "0:");
+		for (var index = 0; index < summary.Pilots.Count; index++)
+		{
+			if (index > 0)
+				builder.Append('|');
+
+			var row = summary.Pilots[index];
+			builder.Append(row.DisplayName)
+				.Append(':')
+				.Append(row.DamageDealt)
+				.Append(':')
+				.Append(row.ExperiencePointsAfter)
+				.Append(':')
+				.Append(row.ScoreGrade);
+		}
+
+		return builder.ToString();
 	}
 
 	private void Build()
@@ -109,5 +191,13 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 		_shell.GrowHorizontal = Control.GrowDirection.Both;
 		_shell.GrowVertical = Control.GrowDirection.Both;
 		root.AddChild(_shell);
+
+		_doorLatchPlayer = new AudioStreamPlayer
+		{
+			Stream = GD.Load<AudioStream>(DoorLatchSfxPath)
+				?? throw new InvalidOperationException($"Could not load SFX '{DoorLatchSfxPath}'."),
+			Bus = AudioBuses.Sfx,
+		};
+		AddChild(_doorLatchPlayer);
 	}
 }

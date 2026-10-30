@@ -45,6 +45,27 @@ public static class PilotProgression
 		return (experiencePoints - levelStart, nextThreshold - levelStart);
 	}
 
+	public static int ExperienceForLevel(int level)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(level, 1);
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(level, MaxLevel);
+		return LevelThresholds[level - 1];
+	}
+
+	public static bool TryGetNextLevelThreshold(int experiencePoints, out int thresholdExperience)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
+		var level = LevelFor(experiencePoints);
+		if (level >= MaxLevel)
+		{
+			thresholdExperience = 0;
+			return false;
+		}
+
+		thresholdExperience = LevelThresholds[level];
+		return true;
+	}
+
 	public static Pilot AddExperience(Pilot pilot, int amount)
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
