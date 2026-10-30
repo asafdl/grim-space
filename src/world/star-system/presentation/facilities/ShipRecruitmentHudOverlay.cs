@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.Ui.Components;
 
@@ -66,18 +67,37 @@ public sealed partial class ShipRecruitmentHudOverlay : Control
 				HudStatusKind.Neutral,
 				"No ships are available."));
 
+		TryGetActiveShip(out var baseline);
 		foreach (var offer in offers)
 		{
 			var captured = offer;
 			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
-			body.AddChild(MerchantUiListItem.Create(
+			var item = MerchantUiListItem.Create(
 				PilotHireDisplay.ShipChassisLabel(captured.Chassis),
 				ShipRecruitmentDisplay.ListMetadata(captured),
 				captured.Cost,
 				canAfford,
-				() => RecruitmentRequested?.Invoke(captured)));
+				() => RecruitmentRequested?.Invoke(captured));
+			HudTooltipCard.SetTooltip(item, ShipRecruitmentDisplay.CompareTooltip(captured, baseline));
+			body.AddChild(item);
 		}
 
 		_shell.SetBody(body);
+	}
+
+	private bool TryGetActiveShip(out ShipInstance? ship)
+	{
+		ship = null;
+		var runtime = _run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
+		var shipId = PlayerFleetSelection.EnsureSelectedMember(
+			_run.StarSystem.Map,
+			runtime,
+			State.PlayerFleetUnitId,
+			_run.GetFieldedShipIds());
+		if (shipId is null)
+			return false;
+
+		ship = _run.ItemInventory.Get(shipId);
+		return true;
 	}
 }
