@@ -58,6 +58,7 @@ public partial class MapController : Node3D
 	private WorldLinkNavigator? _objectivesLinks;
 	private PoiContractOverlay _poiContractOverlay = null!;
 	private StarMapPauseMenuOverlay _pauseMenu = null!;
+	private RunOverHudOverlay _runOverHud = null!;
 
 	private StarSystemOrchestrator _orchestrator = null!;
 	private UserIntentTranslator _intentTranslator = null!;
@@ -172,6 +173,13 @@ public partial class MapController : Node3D
 		_pauseMenu.MainMenuRequested += ReturnToMainMenu;
 		_pauseMenu.ApplyTheme(MenuUi.Theme);
 		_uiLayer.AddChild(_pauseMenu);
+
+		_runOverHud = new RunOverHudOverlay();
+		_runOverHud.MainMenuRequested += AcknowledgeRunOver;
+		_uiLayer.AddChild(_runOverHud);
+		Session.Instance.Run.RunOverChanged += OnRunOverChanged;
+		if (Session.Instance.Run.IsRunOver)
+			PresentRunOver();
 
 		var world = _orchestrator.Map;
 		var halfX = world.Width * MapMapping.WorldUnitsPerPoint * 0.5f;
@@ -428,6 +436,8 @@ public partial class MapController : Node3D
 	public override void _ExitTree()
 	{
 		Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
+		if (_runOverHud is not null)
+			Session.Instance.Run.RunOverChanged -= OnRunOverChanged;
 		Session.Instance.ClearAutosaveContext();
 		Session.Instance.DevMenu.ClearMapActions();
 		if (_orchestrator.PlayerAgent is not null)
@@ -586,7 +596,8 @@ public partial class MapController : Node3D
 		|| (_deliveryMeetingDialog?.IsOpen ?? false)
 		|| (_leadSaleMerchant?.IsOpen ?? false)
 		|| (_engagement?.IsOpen ?? false)
-		|| (_wreck?.IsOpen ?? false);
+		|| (_wreck?.IsOpen ?? false)
+		|| (_runOverHud?.IsOpen ?? false);
 
 	private void TogglePauseMenu()
 	{
@@ -624,6 +635,24 @@ public partial class MapController : Node3D
 		var result = Session.Instance.TrySaveBeforeLeavingRun();
 		if (result != SaveStorageResult.Success)
 			GD.PrintErr($"Failed to save game before returning to main menu: {result}");
+		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
+	}
+
+	private void OnRunOverChanged() => PresentRunOver();
+
+	private void PresentRunOver()
+	{
+		_orchestrator.SetStepped();
+		_runOverHud.Open(Session.Instance.Run.CaptureStatisticsSummary());
+	}
+
+	private void AcknowledgeRunOver()
+	{
+		Session.Instance.Run.RunOverChanged -= OnRunOverChanged;
+		Session.Instance.ClearAutosaveContext();
+		var result = Session.Instance.ClearSaveGame();
+		if (result != SaveStorageResult.Success)
+			GD.PrintErr($"Failed to clear save after run over: {result}");
 		GetTree().ChangeSceneToFile("res://scenes/main.tscn");
 	}
 

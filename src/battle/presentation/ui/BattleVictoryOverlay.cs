@@ -1,6 +1,7 @@
 using System.Text;
 using Godot;
 using GrimSpace.Application;
+using GrimSpace.Battle.Objectives;
 using GrimSpace.Components;
 using GrimSpace.Ui.Components;
 
@@ -27,9 +28,12 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 		Visible = false;
 	}
 
-	public void Sync(BattleVictorySummary summary, bool strategicBattle)
+	public void Sync(
+		BattleVictorySummary summary,
+		bool strategicBattle,
+		EBattleResult result = EBattleResult.Win)
 	{
-		var key = PresentationKey(summary, strategicBattle);
+		var key = PresentationKey(summary, strategicBattle, result);
 		if (Visible && _presentationKey == key && _revealTween is not null)
 			return;
 
@@ -39,7 +43,7 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 		CancelReveal();
 		_presentationKey = key;
 
-		_shell.Open(BattleHudCopy.VictoryTitle, string.Empty);
+		_shell.Open(BattleHudCopy.ScorecardTitle(result), string.Empty);
 		_shell.SetRequiresDecision(true);
 		_shell.SetDismissVisible(false);
 		_shell.SetHeaderVisible(true);
@@ -136,9 +140,13 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 		}
 	}
 
-	private static string PresentationKey(BattleVictorySummary summary, bool strategicBattle)
+	private static string PresentationKey(
+		BattleVictorySummary summary,
+		bool strategicBattle,
+		EBattleResult result)
 	{
 		var builder = new StringBuilder(strategicBattle ? "1:" : "0:");
+		builder.Append(result).Append(':');
 		for (var index = 0; index < summary.Pilots.Count; index++)
 		{
 			if (index > 0)
@@ -151,7 +159,9 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 				.Append(':')
 				.Append(row.ExperiencePointsAfter)
 				.Append(':')
-				.Append(row.ScoreGrade);
+				.Append(row.ScoreGrade)
+				.Append(':')
+				.Append(row.IsScrapped ? '1' : '0');
 		}
 
 		return builder.ToString();

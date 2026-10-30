@@ -10,6 +10,7 @@ public sealed record BattleVictoryPilotRow(
 	int ExperienceEarned,
 	int ExperiencePointsBefore,
 	int ExperiencePointsAfter,
-	char ScoreGrade);
+	char ScoreGrade,
+	bool IsScrapped = false);
 
 public sealed record BattleVictorySummary(IReadOnlyList<BattleVictoryPilotRow> Pilots);

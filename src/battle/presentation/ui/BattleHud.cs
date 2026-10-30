@@ -364,13 +364,13 @@ public partial class BattleHud : Node
 		_actionLogPanel.SetEntries(frame.ActionLogEntries);
 		_actionLogLayer.Visible = !hideHud && GameSettings.ShowActionLog;
 
-		var showVictory = frame.ShowOutcomeOverlay
-			&& frame.Outcome == EBattleResult.Win
-			&& victorySummary is not null;
-		VictoryOverlay.Visible = showVictory;
-		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay && !showVictory;
-		if (showVictory)
-			VictoryOverlay.Sync(victorySummary!, _strategicBattle);
+		var showScorecard = frame.ShowOutcomeOverlay
+			&& victorySummary is not null
+			&& frame.Outcome is EBattleResult.Win or EBattleResult.Lose;
+		VictoryOverlay.Visible = showScorecard;
+		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay && !showScorecard;
+		if (showScorecard)
+			VictoryOverlay.Sync(victorySummary!, _strategicBattle, frame.Outcome);
 		else if (frame.ShowOutcomeOverlay)
 			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogEntries, _strategicBattle);
 

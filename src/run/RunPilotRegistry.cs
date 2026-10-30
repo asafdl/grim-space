@@ -14,6 +14,8 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 	private readonly Dictionary<string, Pilot> _pilotsById = new(StringComparer.Ordinal);
 	private readonly List<string> _activePilotIds = [];
 
+	public event Action? PilotRemoved;
+
 	public IReadOnlyCollection<Pilot> All => _pilotsById.Values;
 
 	public IReadOnlyList<Pilot> Active =>
@@ -276,7 +278,10 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);
 		_activePilotIds.Remove(pilotId);
-		_pilotsById.Remove(pilotId);
+		if (!_pilotsById.Remove(pilotId))
+			return;
+
+		PilotRemoved?.Invoke();
 	}
 
 	public void RemoveForShip(string shipId)
@@ -289,6 +294,7 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 
 			_activePilotIds.Remove(pilot.Id);
 			_pilotsById.Remove(pilot.Id);
+			PilotRemoved?.Invoke();
 			return;
 		}
 	}

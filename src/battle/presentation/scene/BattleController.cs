@@ -904,7 +904,8 @@ public partial class BattleController : Node3D
 
 	private BattleVictorySummary? BuildVictorySummary(PresentationFrame frame)
 	{
-		if (!frame.ShowOutcomeOverlay || frame.Outcome != EBattleResult.Win)
+		if (!frame.ShowOutcomeOverlay
+			|| frame.Outcome is not (EBattleResult.Win or EBattleResult.Lose))
 			return null;
 
 		var outcome = CommitBattleOutcomeRules.CaptureOutcome(
@@ -921,9 +922,7 @@ public partial class BattleController : Node3D
 
 	private void OnOutcomeOverlayAction()
 	{
-		if (_strategicBattle && _currentFrame.Outcome == EBattleResult.Lose)
-			GoToMainMenu();
-		else if (_strategicBattle)
+		if (_strategicBattle)
 			ReturnToStarMap();
 		else
 			ResetBattle();

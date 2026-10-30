@@ -85,7 +85,7 @@ public partial class ResourceHud : MarginContainer
 	{
 		if (starving)
 		{
-			PresentFeedback("FUEL STARVATION — HULL DAMAGE", hold: false);
+			PresentFeedback("Not enough fuel. Can't manuever properly.", hold: false);
 			return;
 		}
 

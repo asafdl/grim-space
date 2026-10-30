@@ -85,6 +85,6 @@ internal static class BattleVictoryScorecardReveal
 		doorLatchPlayer.Play();
 
 		if (row is BattleVictoryPilotRowView pilotRow)
-			pilotRow.BeginExperienceFill(ExperienceFillSeconds);
+			pilotRow.BeginRowReveal(ExperienceFillSeconds);
 	}
 }

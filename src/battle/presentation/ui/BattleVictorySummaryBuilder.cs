@@ -48,6 +48,7 @@ public static class BattleVictorySummaryBuilder
 			var pilot = resolvePilot(spawn.PilotId);
 			var gearTier = handoff?.GearTier ?? EShipGearTier.T0;
 			var experienceBefore = pilot?.ExperiencePoints ?? 0;
+			var isScrapped = handoff is { HullPoints: <= 0 };
 			pilotRows.Add(new BattleVictoryPilotRow(
 				pilot?.Name ?? spawn.PilotId,
 				pilot?.PortraitId ?? Pilot.PortraitPool[0],
@@ -58,7 +59,8 @@ public static class BattleVictorySummaryBuilder
 				xp,
 				experienceBefore,
 				experienceBefore + xp,
-				BattlePerformanceScore.Grade(totals.Dealt, totals.Taken, totals.HealingDone)));
+				BattlePerformanceScore.Grade(totals.Dealt, totals.Taken, totals.HealingDone),
+				isScrapped));
 		}
 
 		pilotRows.Sort((left, right) =>

@@ -10,7 +10,7 @@ public static class StrategicEconomyConfig
 	public const int FuelPurchaseAmount = 100;
 	public const int FuelPurchaseCreditCost = 50;
 	public const double DistancePerFuelUnit = 25;
-	public const int StarvationHullDamagePerTick = 5;
+	public const int StarvationDamagePerTick = 2;
 	public const int StrategicTicksPerSecond = 5;
 	public const int SalaryCadenceMinutes = 5;
 

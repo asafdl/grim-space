@@ -26,7 +26,9 @@ public sealed partial class BattleVictoryPilotRowView : Control
 	private readonly UiImageListItem _item;
 	private readonly ProgressBar _xpBar;
 	private readonly Label _levelLabel;
+	private readonly Label _scrapStamp;
 	private readonly PilotLevelUpChevron _levelUpIcon;
+	private readonly bool _isScrapped;
 	private readonly int _experienceBefore;
 	private readonly int _experienceAfter;
 	private int _lastAppliedXp;
@@ -34,10 +36,13 @@ public sealed partial class BattleVictoryPilotRowView : Control
 	private Tween? _xpTween;
 	private Tween? _trackFlashTween;
 	private Tween? _fillPulseTween;
+	private Tween? _scrapTween;
 
 	public event Action? ExperienceFillFinished;
 
-	public bool IsExperienceFillIdle => _xpTween is null;
+	public bool IsExperienceFillIdle => _xpTween is null && _scrapTween is null;
+
+	public bool IsScrapped => _isScrapped;
 
 	public BattleVictoryPilotRowView(BattleVictoryPilotRow row)
 	{
@@ -45,6 +50,7 @@ public sealed partial class BattleVictoryPilotRowView : Control
 		SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		MouseFilter = MouseFilterEnum.Ignore;
 
+		_isScrapped = row.IsScrapped;
 		_experienceBefore = row.ExperiencePointsBefore;
 		_experienceAfter = row.ExperiencePointsAfter;
 		_lastAppliedXp = row.ExperiencePointsBefore;
@@ -62,7 +68,8 @@ public sealed partial class BattleVictoryPilotRowView : Control
 				row.DamageDealt,
 				row.DamageTaken,
 				row.HealingDone,
-				row.ExperienceEarned),
+				row.ExperienceEarned,
+				row.IsScrapped),
 			string.Empty,
 			ShipPilotPortraitCatalog.TextureFor(row.PortraitId))
 		{
@@ -78,6 +85,7 @@ public sealed partial class BattleVictoryPilotRowView : Control
 
 		_xpBar = PilotExperienceMeter.CreateBar();
 		_xpBar.ZIndex = 2;
+		_xpBar.Visible = !_isScrapped;
 		AddChild(_xpBar);
 
 		_levelLabel = new Label
@@ -87,6 +95,7 @@ public sealed partial class BattleVictoryPilotRowView : Control
 			VerticalAlignment = VerticalAlignment.Top,
 			MouseFilter = MouseFilterEnum.Ignore,
 			ZIndex = 3,
+			Visible = !_isScrapped,
 		};
 		_levelLabel.AddThemeFontSizeOverride("font_size", 13);
 		_levelLabel.AddThemeColorOverride("font_color", Colors.White);
@@ -94,10 +103,38 @@ public sealed partial class BattleVictoryPilotRowView : Control
 		_levelLabel.AddThemeConstantOverride("outline_size", 2);
 		AddChild(_levelLabel);
 
-		PilotExperienceMeter.ApplyTotalExperience(_xpBar, _experienceBefore);
+		_scrapStamp = new Label
+		{
+			Text = BattleHudCopy.ScrappedStamp,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = MouseFilterEnum.Ignore,
+			ZIndex = 4,
+			Visible = false,
+			Modulate = new Color(1f, 1f, 1f, 0f),
+		};
+		_scrapStamp.AddThemeFontSizeOverride("font_size", 28);
+		_scrapStamp.AddThemeColorOverride("font_color", new Color(0.95f, 0.28f, 0.22f));
+		_scrapStamp.AddThemeColorOverride("font_outline_color", Colors.Black);
+		_scrapStamp.AddThemeConstantOverride("outline_size", 4);
+		AddChild(_scrapStamp);
+
+		if (!_isScrapped)
+			PilotExperienceMeter.ApplyTotalExperience(_xpBar, _experienceBefore);
 
 		Resized += LayoutChrome;
 		Callable.From(LayoutChrome).CallDeferred();
+	}
+
+	public void BeginRowReveal(float durationSeconds)
+	{
+		if (_isScrapped)
+		{
+			BeginScrapReveal(durationSeconds);
+			return;
+		}
+
+		BeginExperienceFill(durationSeconds);
 	}
 
 	public void BeginExperienceFill(float durationSeconds)
@@ -299,9 +336,40 @@ public sealed partial class BattleVictoryPilotRowView : Control
 		_xpTween = null;
 		_trackFlashTween?.Kill();
 		_trackFlashTween = null;
+		_scrapTween?.Kill();
+		_scrapTween = null;
 		StopFillPulse();
 		PilotExperienceMeter.ResetTrackStyle(_xpBar);
 		_levelUpIcon.Visible = false;
+		_scrapStamp.Visible = false;
+		_scrapStamp.Modulate = new Color(1f, 1f, 1f, 0f);
+		_scrapStamp.Scale = Vector2.One;
+	}
+
+	private void BeginScrapReveal(float durationSeconds)
+	{
+		_scrapTween?.Kill();
+		_scrapStamp.Visible = true;
+		_scrapStamp.Modulate = new Color(1f, 1f, 1f, 0f);
+		_scrapStamp.Scale = new Vector2(1.8f, 1.8f);
+		LayoutChrome();
+
+		var beat = Mathf.Max(0.35f, durationSeconds * 0.45f);
+		_scrapTween = CreateTween();
+		_scrapTween.SetParallel(true);
+		_scrapTween.TweenProperty(_scrapStamp, "modulate:a", 1f, beat * 0.35f)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.Out);
+		_scrapTween.TweenProperty(_scrapStamp, "scale", Vector2.One, beat)
+			.SetTrans(Tween.TransitionType.Back)
+			.SetEase(Tween.EaseType.Out);
+		_scrapTween.SetParallel(false);
+		_scrapTween.TweenInterval(0.2f);
+		_scrapTween.Finished += () =>
+		{
+			_scrapTween = null;
+			NotifyExperienceFillFinished();
+		};
 	}
 
 	private void LayoutChrome()
@@ -323,5 +391,9 @@ public sealed partial class BattleVictoryPilotRowView : Control
 			+ DefaultRowHeight * BracketCircleCenterY / BracketArtHeight;
 		_levelLabel.Position = new Vector2(portraitLeft, portraitCenterY - radius + 2f);
 		_levelLabel.Size = new Vector2(PortraitDiameter, 20f);
+
+		_scrapStamp.PivotOffset = new Vector2(bodyWidth * 0.5f, Size.Y * 0.5f);
+		_scrapStamp.Position = Vector2.Zero;
+		_scrapStamp.Size = new Vector2(bodyWidth, Size.Y);
 	}
 }

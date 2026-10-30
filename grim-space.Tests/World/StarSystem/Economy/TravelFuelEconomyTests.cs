@@ -1,7 +1,9 @@
+using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Run;
 using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Economy;
+using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
@@ -113,7 +115,7 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Starvation_DamagesFieldedHullWhenFuelIsEmpty()
+	public void Starvation_DamagesFieldedShieldsBeforeHullWhenFuelIsEmpty()
 	{
 		using var run = RunState.CreateNewRun(42);
 		var fuel = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Fuel);
@@ -122,7 +124,8 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 				ResourceBundle.Of(ResourceId.Fuel, -fuel)));
 
 		var shipId = RunTestKit.StarterFighterShipId(run);
-		var hullBefore = run.ItemInventory.Get(shipId).HullPoints;
+		var before = run.ItemInventory.Get(shipId).Clone();
+		Assert.True(before.TotalCurrentShieldPoints > 0);
 		var destination = run.StarSystem.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 
 		// CreateNewRun leaves WaitingForPlayerInput; queueing a move advances the clock once.
@@ -131,9 +134,27 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 
 		Assert.IsType<FleetTravel.Journey>(
 			run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId).State.Travel);
+		var after = run.ItemInventory.Get(shipId);
+		Assert.Equal(before.HullPoints, after.HullPoints);
 		Assert.Equal(
-			hullBefore - StrategicEconomyConfig.StarvationHullDamagePerTick,
-			run.ItemInventory.Get(shipId).HullPoints);
+			before.TotalCurrentShieldPoints - StrategicEconomyConfig.StarvationDamagePerTick,
+			after.TotalCurrentShieldPoints);
+	}
+
+	[Fact]
+	public void ApplyStarvationDamage_DrainsShieldsThenHull()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var ship = run.ItemInventory.Get(RunTestKit.StarterFighterShipId(run)).Clone();
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			ship.ShieldPoints[face] = 0;
+		ship.ShieldPoints[ESpatialOrientation.Forward] = 3;
+		ship.HullPoints = 20;
+
+		var after = TravelFuelEffects.ApplyStarvationDamage(ship, 5);
+
+		Assert.Equal(0, after.TotalCurrentShieldPoints);
+		Assert.Equal(18, after.HullPoints);
 	}
 
 	private StarSystemOrchestrator CreatePlayerOrchestrator() =>

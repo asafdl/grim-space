@@ -122,11 +122,83 @@ public sealed class BattleVictorySummaryTests
 		Assert.Equal(0, top.ExperiencePointsBefore);
 		Assert.Equal(top.ExperienceEarned, top.ExperiencePointsAfter);
 		Assert.Equal('A', top.ScoreGrade);
+		Assert.False(top.IsScrapped);
 
 		var second = summary.Pilots[1];
 		Assert.Equal(0, second.DamageDealt);
 		Assert.Equal(30, second.DamageTaken);
 		Assert.Equal(0, second.ExperienceEarned);
+		Assert.False(second.IsScrapped);
+	}
+
+	[Fact]
+	public void Build_LoseIncludesPilotRowsAndMarksScrappedHull()
+	{
+		var spawns = new[]
+		{
+			PlayerSpawn("fighter-a", "pilot-a"),
+			PlayerSpawn("fighter-b", "pilot-b"),
+			EnemySpawn("enemy-1"),
+		};
+		var outcome = new BattleOutcome(
+			"battle-1",
+			EBattleResult.Lose,
+			[
+				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 0),
+				OutcomeTestKit.Handoff("fighter-b", EType.Fighter, 3),
+				OutcomeTestKit.Handoff("enemy-1", EType.Fighter, 1),
+			]);
+		var timeline = new ITimelineEntry[]
+		{
+			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-a", default, default, 0, 80)),
+			new Record<ImpactFacts>(new ImpactFacts("fighter-b", "enemy-1", default, default, 0, 10)),
+		};
+
+		var summary = BattleVictorySummaryBuilder.Build(
+			outcome,
+			spawns,
+			PilotProgression.DefaultXpDifficulty,
+			timeline,
+			_ => null);
+
+		Assert.Equal(2, summary.Pilots.Count);
+		var scrapped = Assert.Single(summary.Pilots, row => row.DisplayName == "pilot-a");
+		Assert.True(scrapped.IsScrapped);
+		Assert.Equal(0, scrapped.ExperienceEarned);
+
+		var survivor = Assert.Single(summary.Pilots, row => row.DisplayName == "pilot-b");
+		Assert.False(survivor.IsScrapped);
+		Assert.Equal(0, survivor.ExperienceEarned);
+	}
+
+	[Fact]
+	public void Build_WinMarksScrappedPilotsWhenHullZero()
+	{
+		var spawns = new[]
+		{
+			PlayerSpawn("fighter-a", "pilot-a"),
+			PlayerSpawn("fighter-b", "pilot-b"),
+		};
+		var outcome = WinOutcome(
+			[
+				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 0),
+				OutcomeTestKit.Handoff("fighter-b", EType.Fighter, 2),
+			],
+			new Dictionary<string, int>(StringComparer.Ordinal)
+			{
+				["fighter-a"] = 50,
+				["fighter-b"] = 50,
+			});
+
+		var summary = BattleVictorySummaryBuilder.Build(
+			outcome,
+			spawns,
+			PilotProgression.DefaultXpDifficulty,
+			[],
+			_ => null);
+
+		Assert.True(Assert.Single(summary.Pilots, row => row.DisplayName == "pilot-a").IsScrapped);
+		Assert.False(Assert.Single(summary.Pilots, row => row.DisplayName == "pilot-b").IsScrapped);
 	}
 
 	private static BattleOutcome WinOutcome(

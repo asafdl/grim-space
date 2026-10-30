@@ -89,6 +89,8 @@ public partial class Session : Node
 		return TrySaveGame(battleWorld ?? _autosaveBattleWorldProvider?.Invoke());
 	}
 
+	public SaveStorageResult ClearSaveGame() => _saveStorage.TryDelete();
+
 	public LoadResult TryLoadGame()
 	{
 		var storageResult = _saveStorage.TryRead(out var document);

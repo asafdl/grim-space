@@ -38,6 +38,8 @@ public sealed class SaveGameStore : ISaveGameStorage
 	public SaveStorageResult TryWrite(SaveGameDocument document) =>
 		_storage.TryWrite(document);
 
+	public SaveStorageResult TryDelete() => _storage.TryDelete();
+
 	private static void ValidateSlotId(string saveSlotId)
 	{
 		if (string.IsNullOrWhiteSpace(saveSlotId)

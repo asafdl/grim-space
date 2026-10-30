@@ -18,10 +18,9 @@ public sealed class OverchargeEnginesActionTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void OverchargeEngines_IsLegalWhenReadyAndEnoughAp()
+	public void OverchargeEngines_IsLegalWhenReady()
 	{
-		var (player, battle) = PlayerWithOverchargeBattle();
-		player.State.ActionPoints = PilotSkillPercents.OverchargeEngines.MinimumApToUse;
+		var (_, battle) = PlayerWithOverchargeBattle();
 
 		var legal = Capabilities.LegalCapabilities(battle.PlayerAgent.Sim, PlayerId);
 
@@ -29,15 +28,15 @@ public sealed class OverchargeEnginesActionTests
 	}
 
 	[Fact]
-	public void OverchargeEngines_IsNotLegalWithoutEnoughAp()
+	public void OverchargeEngines_IsLegalAtZeroAp()
 	{
 		var (player, battle) = PlayerWithOverchargeBattle();
-		player.State.ActionPoints = PilotSkillPercents.OverchargeEngines.MinimumApToUse - 1;
+		player.State.ActionPoints = 0;
 		var action = OverchargeEnginesDef.Instance.Bind(PlayerId);
 		var world = battle.Engine.World;
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
-		Assert.False(OverchargeEnginesDef.Instance.IsLegal(action, world, runtime));
+		Assert.True(OverchargeEnginesDef.Instance.IsLegal(action, world, runtime));
 	}
 
 	[Fact]

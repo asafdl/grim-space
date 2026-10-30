@@ -72,6 +72,7 @@ public sealed partial class BattleVictoryHudPreview : Control
 				0,
 				210,
 				210,
-				'D'),
+				'D',
+				IsScrapped: true),
 		]);
 }

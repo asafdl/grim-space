@@ -16,6 +16,7 @@ public interface ISaveGameStorage
 	bool Exists();
 	SaveStorageResult TryRead(out SaveGameDocument? document);
 	SaveStorageResult TryWrite(SaveGameDocument document);
+	SaveStorageResult TryDelete();
 }
 
 public sealed class FileSystemSaveGameStorage : ISaveGameStorage
@@ -122,6 +123,28 @@ public sealed class FileSystemSaveGameStorage : ISaveGameStorage
 			catch (UnauthorizedAccessException)
 			{
 			}
+		}
+	}
+
+	public SaveStorageResult TryDelete()
+	{
+		try
+		{
+			if (File.Exists(_path))
+				File.Delete(_path);
+			if (File.Exists(_temporaryPath))
+				File.Delete(_temporaryPath);
+			return SaveStorageResult.Success;
+		}
+		catch (IOException ex)
+		{
+			GameLog.LogException(ex, $"Failed to delete save game '{_path}'.");
+			return SaveStorageResult.Failed;
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			GameLog.LogException(ex, $"Failed to delete save game '{_path}'.");
+			return SaveStorageResult.Failed;
 		}
 	}
 }

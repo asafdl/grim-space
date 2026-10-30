@@ -73,15 +73,23 @@ internal static class BattleHudCopy
 	public const string ReturnToStarMap = "Return to Star Map";
 	public const string ReturnToMainMenu = "Main Menu";
 	public const string VictoryTitle = "Victory";
+	public const string DefeatTitle = "Objective Failed";
 	public const string VictoryNoPilotPerformance = "No pilot performance to report.";
+	public const string ScrappedStamp = "SCRAP";
+
+	public static string ScorecardTitle(EBattleResult result) =>
+		result == EBattleResult.Lose ? DefeatTitle : VictoryTitle;
 
 	public static string VictoryPilotPerformanceMetadata(
 		int damageDealt,
 		int damageTaken,
 		int healingDone,
-		int experience) =>
+		int experience,
+		bool isScrapped = false) =>
 		$"Damage done {damageDealt} · Damage taken {damageTaken} · Healing done {healingDone}\n"
-		+ (experience > 0 ? $"+{experience} XP" : "No XP");
+		+ (isScrapped
+			? ScrappedStamp
+			: experience > 0 ? $"+{experience} XP" : "No XP");
 
 	public static string Turn(int turnNumber) => string.Format(TurnLabel, turnNumber);
 

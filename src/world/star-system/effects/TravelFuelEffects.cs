@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -170,18 +171,11 @@ public static class TravelFuelEffects
 			if (!world.ItemInventory.TryGet(member.Id, out var before))
 				continue;
 
-			var afterHull = System.Math.Max(
-				0,
-				before.HullPoints - StrategicEconomyConfig.StarvationHullDamagePerTick);
-			if (afterHull == before.HullPoints)
+			var after = ApplyStarvationDamage(before, StrategicEconomyConfig.StarvationDamagePerTick);
+			if (after.HullPoints == before.HullPoints
+				&& after.ShieldPoints.Matches(before.ShieldPoints))
 				continue;
 
-			var after = new ShipInstance(
-				before.Id,
-				before.Spec,
-				before.Loadout,
-				afterHull,
-				before.ShieldPoints.Clone());
 			ships.Add(
 				new TravelStarvationShipDamage(
 					before.Id,
@@ -194,5 +188,30 @@ public static class TravelFuelEffects
 
 		damage = new TravelStarvationDamage(ships);
 		return true;
+	}
+
+	internal static ShipInstance ApplyStarvationDamage(ShipInstance before, int amount)
+	{
+		ArgumentNullException.ThrowIfNull(before);
+		ArgumentOutOfRangeException.ThrowIfNegative(amount);
+
+		var shields = before.ShieldPoints.Clone();
+		var remaining = amount;
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+		{
+			if (remaining <= 0)
+				break;
+
+			var absorb = System.Math.Min(shields[face], remaining);
+			shields[face] -= absorb;
+			remaining -= absorb;
+		}
+
+		return new ShipInstance(
+			before.Id,
+			before.Spec,
+			before.Loadout,
+			System.Math.Max(0, before.HullPoints - remaining),
+			shields);
 	}
 }

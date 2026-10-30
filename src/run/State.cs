@@ -19,6 +19,7 @@ using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.PilotCapabilities;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Run.Items;
 using GrimSpace.Run.Persistence;
@@ -44,7 +45,20 @@ public sealed class State : IDisposable
 	public BattleOutcome? PendingBattleOutcome { get; private set; }
 	public BattleWorld? RestoredBattleWorld { get; private set; }
 
+	/// <summary>True when the pilot roster is empty. Independent of battle objective result.</summary>
+	public bool IsRunOver { get; private set; }
+
+	public RunStatistics Statistics { get; } = new();
+
 	public event Action? BattleReady;
+
+	/// <summary>Rising edge only: fires when <see cref="IsRunOver"/> becomes true.</summary>
+	public event Action? RunOverChanged;
+
+	public State()
+	{
+		PilotRegistry.PilotRemoved += RefreshRunOver;
+	}
 
 	public RunStateSnapshotDto CaptureSnapshot(
 		PersistenceRegistry registry,
@@ -71,7 +85,8 @@ public sealed class State : IDisposable
 			_resolvedBattleIds.ToArray(),
 			_launchedEngagementIds.ToArray(),
 			battleWorld is null ? null : SaveDtoMapper.CaptureBattleWorld(battleWorld, registry),
-			StarSystem.CaptureRuntimeSnapshots(registry));
+			StarSystem.CaptureRuntimeSnapshots(registry),
+			Statistics.CaptureSnapshot());
 	}
 
 	public static State FromSnapshot(
@@ -116,6 +131,7 @@ public sealed class State : IDisposable
 		run.PendingBattleOutcome = snapshot.PendingBattleOutcome;
 		run._resolvedBattleIds.UnionWith(snapshot.ResolvedBattleIds);
 		run._launchedEngagementIds.UnionWith(snapshot.LaunchedEngagementIds);
+		run.Statistics.RestoreSnapshot(snapshot.Statistics);
 
 		if (snapshot.Tutorial is { } tutorial)
 		{
@@ -143,6 +159,7 @@ public sealed class State : IDisposable
 			run.StarSystem.RuntimeFor(PlayerFleetUnitId),
 			PlayerFleetUnitId,
 			run.GetFieldedShipIds());
+		run.RefreshRunOver();
 		return run;
 	}
 
@@ -207,6 +224,7 @@ public sealed class State : IDisposable
 		if (outcome.Result == EBattleResult.Win)
 			GrantPilotBattleXp(ActiveBattle.Spawns, ActiveBattle.XpDifficulty, outcome);
 
+		Statistics.RecordBattle(outcome.Result);
 		ApplyOutcomeToRegistry(outcome);
 
 		_resolvedBattleIds.Add(outcome.BattleId);
@@ -214,6 +232,14 @@ public sealed class State : IDisposable
 		ActiveBattle = null;
 		ReleaseBattleOutcomeSubscription();
 	}
+
+	public RunStatisticsSummary CaptureStatisticsSummary() =>
+		new(
+			StarSystem.Map.ContractRegistry.CountCompleted(),
+			Statistics.BattlesWon,
+			Statistics.BattlesLost,
+			Statistics.CreditsEarned,
+			StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits));
 
 	public BattleOrchestrator CreateActiveBattleOrchestrator()
 	{
@@ -489,7 +515,19 @@ public sealed class State : IDisposable
 			PlayerFleetUnitId,
 			run.GetFieldedShipIds());
 		run.ConfigureTutorials(tutorialsEnabled);
+		run.RefreshRunOver();
 		return run;
+	}
+
+	private void RefreshRunOver()
+	{
+		var runOver = PilotRegistry.All.Count == 0;
+		if (runOver == IsRunOver)
+			return;
+
+		IsRunOver = runOver;
+		if (runOver)
+			RunOverChanged?.Invoke();
 	}
 
 	public void ConfigureTutorials(bool enabled)
@@ -529,24 +567,12 @@ public sealed class State : IDisposable
 
 	public void Dispose()
 	{
+		PilotRegistry.PilotRemoved -= RefreshRunOver;
 		if (Tutorials is not null)
 			Tutorials.FlowCompleted -= OnTutorialFlowCompleted;
 		Tutorials?.Dispose();
 		Tutorials = null;
-		_engagementSubscription?.Dispose();
-		_engagementSubscription = null;
-		_fleetSpawnSubscription?.Dispose();
-		_fleetSpawnSubscription = null;
-		_merchantShipPurchaseSubscription?.Dispose();
-		_merchantShipPurchaseSubscription = null;
-		_travelStarvationSubscription?.Dispose();
-		_travelStarvationSubscription = null;
-		_playerShipEnlistedSubscription?.Dispose();
-		_playerShipEnlistedSubscription = null;
-		_pilotSalaryPayrollSubscription?.Dispose();
-		_pilotSalaryPayrollSubscription = null;
-		_pilotHazardPayrollSubscription?.Dispose();
-		_pilotHazardPayrollSubscription = null;
+		ReleaseStarSystemSubscriptions();
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
 		StarSystem?.Dispose();
@@ -572,11 +598,19 @@ public sealed class State : IDisposable
 			StarSystem.Subscribe<Record<PilotSalaryPayroll>>(OnPilotSalaryPayroll);
 		_pilotHazardPayrollSubscription =
 			StarSystem.Subscribe<Record<HazardPayrollResult>>(OnPilotHazardPayroll);
+		StarSystem.ResourceTransactionCommitted += OnResourceTransactionForStatistics;
 		StarSystem.BindSalaryPayrollRoster(SnapshotSalaryPayrollRoster);
 		StarSystem.Map.PilotRegistry = PilotRegistry;
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)
+	{
+		ReleaseStarSystemSubscriptions();
+		StarSystem.Dispose();
+		BindStarSystem(orchestrator);
+	}
+
+	private void ReleaseStarSystemSubscriptions()
 	{
 		_engagementSubscription?.Dispose();
 		_engagementSubscription = null;
@@ -596,9 +630,12 @@ public sealed class State : IDisposable
 		_pilotSalaryPayrollSubscription = null;
 		_pilotHazardPayrollSubscription?.Dispose();
 		_pilotHazardPayrollSubscription = null;
-		StarSystem.Dispose();
-		BindStarSystem(orchestrator);
+		if (StarSystem is not null)
+			StarSystem.ResourceTransactionCommitted -= OnResourceTransactionForStatistics;
 	}
+
+	private void OnResourceTransactionForStatistics(Transaction transaction) =>
+		Statistics.RecordTransaction(transaction);
 
 	internal void ReceiveEngagementFact(Record<EngagementCommitted> record) =>
 		OnCommittedEngagement(record);
