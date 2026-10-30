@@ -165,9 +165,7 @@ public sealed partial class ModalShell : Control
 		content.SizeFlagsHorizontal = _compactBody
 			? SizeFlags.ShrinkCenter
 			: SizeFlags.ExpandFill;
-		content.SizeFlagsVertical = _compactBody
-			? SizeFlags.ShrinkCenter
-			: SizeFlags.ShrinkBegin;
+		content.SizeFlagsVertical = SizeFlags.ShrinkBegin;
 		_bodyHost.AddChild(content);
 	}
 
@@ -346,7 +344,7 @@ public sealed partial class ModalShell : Control
 
 	private void ApplyBodyLayoutMode()
 	{
-		var bodyVertical = _compactBody ? SizeFlags.ShrinkCenter : SizeFlags.ExpandFill;
+		var bodyVertical = _compactBody ? SizeFlags.ShrinkBegin : SizeFlags.ExpandFill;
 		_bodyLayout.SizeFlagsVertical = SizeFlags.ExpandFill;
 		_bodyScroll.SizeFlagsVertical = bodyVertical;
 		_bodyMargin.SizeFlagsVertical = SizeFlags.ExpandFill;

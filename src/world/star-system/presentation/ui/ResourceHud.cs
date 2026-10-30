@@ -95,14 +95,6 @@ public partial class ResourceHud : MarginContainer
 			return;
 		}
 
-		if (fuelBalance < routeFuelEstimate)
-		{
-			PresentFeedback(
-				$"FUEL SHORT — NEED {routeFuelEstimate} (HAVE {fuelBalance})",
-				hold: false);
-			return;
-		}
-
 		ClearPersistentFeedback();
 	}
 
