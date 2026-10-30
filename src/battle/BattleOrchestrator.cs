@@ -472,6 +472,14 @@ public sealed class BattleOrchestrator : IDisposable
 			unit.ExecutionAgent.OnWorldUpdated();
 	}
 
+	private void TryEvaluateBattleOutcome()
+	{
+		if (IsBattleOver)
+			return;
+
+		_engine.Commit(CommitBattleOutcomeDef.Instance.BindEvaluate());
+	}
+
 	private async Task<TurnReplay> ExecuteSegmentAsync(string? playerActorId)
 	{
 		if (_resolveInProgress)
@@ -497,13 +505,16 @@ public sealed class BattleOrchestrator : IDisposable
 				_activatedThisTurn.Add(actorId);
 				playerActorId = null;
 				NotifyWorldUpdated();
+				TryEvaluateBattleOutcome();
+				if (IsBattleOver)
+					break;
 			}
 
 			var allActivationsComplete = NextLivingActivation() is null;
 			if (allActivationsComplete)
 			{
 				CommitTurnUpkeep();
-				_engine.Commit(CommitBattleOutcomeDef.Instance.BindEvaluate());
+				TryEvaluateBattleOutcome();
 			}
 
 			var history = _engine.History(turnNumber)

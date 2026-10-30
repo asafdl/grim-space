@@ -5,6 +5,7 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Components;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Heat;
+using GrimSpace.Ui.Components;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -46,7 +47,7 @@ public sealed partial class BattleCommandHud : Control
 	private readonly BattleResourceBar _heatBar;
 	private readonly BattlePortraitHealthBar _healthBar;
 	private readonly BattlePortraitShieldBar _shieldBar;
-	private readonly TextureRect _pilotPortraitImage;
+	private readonly UiFramedPortrait _pilotPortrait;
 	private readonly Label _pilotPortraitPlaceholder;
 	private string? _pilotPortraitId;
 	private readonly BattleCommandConsole _console;
@@ -122,7 +123,7 @@ public sealed partial class BattleCommandHud : Control
 		};
 		AddChild(_healthBar);
 		var pilotPortrait = CreatePilotPortrait();
-		_pilotPortraitImage = pilotPortrait.Image;
+		_pilotPortrait = pilotPortrait.Portrait;
 		_pilotPortraitPlaceholder = pilotPortrait.Placeholder;
 		AddChild(pilotPortrait.Root);
 
@@ -354,14 +355,13 @@ public sealed partial class BattleCommandHud : Control
 		_pilotPortraitId = portraitId;
 		if (string.IsNullOrEmpty(portraitId))
 		{
-			_pilotPortraitImage.Texture = null;
-			_pilotPortraitImage.Visible = false;
+			_pilotPortrait.Visible = false;
 			_pilotPortraitPlaceholder.Visible = true;
 			return;
 		}
 
-		_pilotPortraitImage.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
-		_pilotPortraitImage.Visible = true;
+		_pilotPortrait.SetPortrait(ShipPilotPortraitCatalog.TextureFor(portraitId));
+		_pilotPortrait.Visible = true;
 		_pilotPortraitPlaceholder.Visible = false;
 	}
 
@@ -528,9 +528,9 @@ public sealed partial class BattleCommandHud : Control
 		return button;
 	}
 
-	private static (PanelContainer Root, TextureRect Image, Label Placeholder) CreatePilotPortrait()
+	private static (Control Root, UiFramedPortrait Portrait, Label Placeholder) CreatePilotPortrait()
 	{
-		var portrait = new PanelContainer
+		var host = new Control
 		{
 			Name = "PilotPortrait",
 			AnchorLeft = 0f,
@@ -545,54 +545,27 @@ public sealed partial class BattleCommandHud : Control
 			GrowVertical = GrowDirection.Begin,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		portrait.AddThemeStyleboxOverride(
-			"panel",
-			CircleStyle(
-				HudPalettes.WithAlpha(HudPalettes.PurpleRed.Surface, 0.98f),
-				HudPalettes.WithAlpha(HudPalettes.PurpleRed.Primary, 0.95f),
-				3,
-				7f));
 
-		var inner = new PanelContainer
+		var framedPortrait = new UiFramedPortrait(
+			ShipPilotPortraitCatalog.TextureFor("pilot_01"),
+			palette: HudPalettes.PurpleRed)
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
-			ClipContents = true,
-		};
-		inner.AddThemeStyleboxOverride(
-			"panel",
-			CircleStyle(
-				HudPalettes.PurpleRed.DeepSurface,
-				HudPalettes.WithAlpha(HudPalettes.PurpleRed.Border, 0.9f),
-				2,
-				6f));
-		portrait.AddChild(inner);
-
-		var image = new TextureRect
-		{
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			OffsetLeft = 0f,
-			OffsetTop = 0f,
-			OffsetRight = 0f,
-			OffsetBottom = 0f,
-			GrowHorizontal = GrowDirection.Both,
-			GrowVertical = GrowDirection.Both,
-			MouseFilter = MouseFilterEnum.Ignore,
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
 			Visible = false,
 		};
-		inner.AddChild(image);
+		framedPortrait.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		framedPortrait.GrowHorizontal = GrowDirection.Both;
+		framedPortrait.GrowVertical = GrowDirection.Both;
+		host.AddChild(framedPortrait);
 
 		var placeholder = new Label
 		{
 			Text = "PILOT",
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
+		placeholder.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		placeholder.AddThemeColorOverride(
 			"font_color",
 			HudPalettes.WithAlpha(HudPalettes.PurpleRed.Primary, 0.72f));
@@ -601,33 +574,9 @@ public sealed partial class BattleCommandHud : Control
 			HudPalettes.PurpleRed.DeepSurface);
 		placeholder.AddThemeConstantOverride("outline_size", 2);
 		placeholder.AddThemeFontSizeOverride("font_size", 12);
-		inner.AddChild(placeholder);
-		return (portrait, image, placeholder);
+		host.AddChild(placeholder);
+		return (host, framedPortrait, placeholder);
 	}
-
-	private static StyleBoxFlat CircleStyle(
-		Color fill,
-		Color border,
-		int borderWidth,
-		float contentMargin = 0f) =>
-		new()
-		{
-			BgColor = fill,
-			BorderColor = border,
-			BorderWidthLeft = borderWidth,
-			BorderWidthTop = borderWidth,
-			BorderWidthRight = borderWidth,
-			BorderWidthBottom = borderWidth,
-			CornerRadiusTopLeft = 999,
-			CornerRadiusTopRight = 999,
-			CornerRadiusBottomRight = 999,
-			CornerRadiusBottomLeft = 999,
-			AntiAliasing = true,
-			ContentMarginLeft = contentMargin,
-			ContentMarginTop = contentMargin,
-			ContentMarginRight = contentMargin,
-			ContentMarginBottom = contentMargin,
-		};
 
 	private static void SetPressed(Button button, bool pressed)
 	{

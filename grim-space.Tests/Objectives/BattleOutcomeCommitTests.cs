@@ -1,9 +1,13 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Player;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Tests;
 using GrimSpace.Tests.Actions;
 using GrimSpace.Battle.Units;
 using GrimSpace.Units.Enums;
@@ -76,6 +80,61 @@ public sealed class BattleOutcomeCommitTests
 		BattleTestActions.CommitAndResolve(battle);
 
 		Assert.Equal(EBattleResult.Lose, battle.Engine.World.battleResult);
+	}
+
+	[Fact]
+	public async Task EliminatingLastOpponentEndsBattleWithoutRemainingActivations()
+	{
+		using var battle = BattleOrchestrator.FromEncounter(
+			new BattleEncounter
+			{
+				Id = "early-win",
+				Seed = 1,
+				Objective = EObjective.EliminateOpponents,
+				Spawns =
+				[
+					BattleSpawnTestKit.Create(
+						"lead",
+						EType.Fighter,
+						ETeam.Player,
+						new Coord(1, 1, 1),
+						new UserExecutionAgent()),
+					BattleSpawnTestKit.Create(
+						"wing",
+						EType.Gunship,
+						ETeam.Player,
+						new Coord(2, 1, 1),
+						new UserExecutionAgent()),
+					BattleSpawnTestKit.Create(
+						"enemy",
+						EType.Fighter,
+						ETeam.Enemy,
+						new Coord(8, 1, 1),
+						new AiController()),
+				],
+			},
+			gridSize: 12,
+			preferredPlayerId: "lead");
+
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		battle.Engine.World.StateOf(enemyId).HullPoints = 0;
+		BattleTestFixture.ResetPlayerPlanning(battle);
+
+		var replayReady = new TaskCompletionSource<TurnReplay>(
+			TaskCreationOptions.RunContinuationsAsynchronously);
+		void OnTurnResolved(TurnReplay replay, int _) => replayReady.TrySetResult(replay);
+		battle.TurnResolved += OnTurnResolved;
+		battle.EndTurn();
+		var replay = await replayReady.Task;
+		battle.TurnResolved -= OnTurnResolved;
+
+		Assert.Equal(["lead"], replay.ActivationOrder);
+		Assert.Equal(EBattleResult.Win, battle.Engine.World.battleResult);
+
+		battle.NotifyReplayComplete();
+
+		Assert.Equal(EBattlePhase.BattleOver, battle.Phase);
+		Assert.Equal("lead", battle.ActivePlayerId);
 	}
 
 	[Fact]
