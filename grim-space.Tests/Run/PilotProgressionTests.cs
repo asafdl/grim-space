@@ -102,6 +102,48 @@ public sealed class PilotProgressionTests
 	}
 
 	[Fact]
+	public void RewardsFor_AppliesBetterRamBonusPerPilot()
+	{
+		const string boostedPilot = "pilot-boosted";
+		const string baselinePilot = "pilot-baseline";
+		var spawns = new[]
+		{
+			PlayerSpawn("fighter-a", boostedPilot),
+			PlayerSpawn("fighter-b", baselinePilot),
+			EnemySpawn("enemy-1"),
+		};
+		var outcome = new BattleOutcome(
+			"battle-1",
+			EBattleResult.Win,
+			[
+				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
+				OutcomeTestKit.Handoff("fighter-b", EType.Fighter, 1),
+				OutcomeTestKit.Handoff("enemy-1", EType.Fighter, 0),
+			]);
+
+		var baseXp = PilotProgression.CompletionXp + PilotProgression.KillXpPerKill;
+		var grants = PilotProgression.RewardsFor(
+			spawns,
+			outcome,
+			pilotId => pilotId switch
+			{
+				boostedPilot => new[] { EPilotSkillId.BetterRam },
+				_ => Array.Empty<EPilotSkillId>(),
+			});
+
+		Assert.Equal(
+			PilotProgression.ApplyExperienceGainBonus(baseXp, [EPilotSkillId.BetterRam]),
+			grants[boostedPilot]);
+		Assert.Equal(baseXp, grants[baselinePilot]);
+	}
+
+	[Fact]
+	public void ApplyExperienceGainBonus_RoundsAwayFromZero()
+	{
+		Assert.Equal(12, PilotProgression.ApplyExperienceGainBonus(10, [EPilotSkillId.BetterRam]));
+	}
+
+	[Fact]
 	public void RewardsFor_Lose_ReturnsEmpty()
 	{
 		var spawns = new[] { PlayerSpawn("fighter-a", "pilot-a") };

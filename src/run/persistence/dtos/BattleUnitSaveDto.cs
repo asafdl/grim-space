@@ -34,6 +34,7 @@ public sealed record BattleUnitSaveDto(
 	int DefensiveManeuversRollIndex = 0,
 	bool InTheFrayActive = false,
 	bool ReinforcedHullActive = false,
+	bool HealingSkillRangeBonusActive = false,
 	bool OneWithTheVoidActive = false,
 	int Heat = 0,
 	int? HeatCapacity = null,

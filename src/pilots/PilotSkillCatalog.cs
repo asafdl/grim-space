@@ -17,6 +17,15 @@ public static class PilotSkillCatalog
 				tier: 1,
 				minimumEarnedLevel: 1,
 				audience: PilotSkillAudience.Global),
+			[EPilotSkillId.BetterRam] = new(
+				EPilotSkillId.BetterRam,
+				[EPilotCapabilityId.ExperienceGainBonus],
+				new HudTooltipContent(
+					"Better RAM",
+					$"Gain XP {PilotSkillPercents.BetterRam.ExperienceGainBonusPercent}% faster."),
+				tier: 1,
+				minimumEarnedLevel: 1,
+				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.ShieldsUp] = new(
 				EPilotSkillId.ShieldsUp,
 				[EPilotCapabilityId.ShieldBoost],
@@ -70,6 +79,15 @@ public static class PilotSkillCatalog
 					$"If you spend no maneuver points during your turn, gain a {PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent}% chance to deflect {PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent}% damage from each hit until your next turn ends."),
 				tier: 2,
 				minimumEarnedLevel: 3,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
+			[EPilotSkillId.HelpABotterOut] = new(
+				EPilotSkillId.HelpABotterOut,
+				[EPilotCapabilityId.HealingSkillRangeBonus],
+				new HudTooltipContent(
+					"Help a Botter Out",
+					$"Healing skills have +{PilotSkillPercents.HelpABotterOut.HealingRangeBonusCells} range."),
+				tier: 5,
+				minimumEarnedLevel: 5,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
 			[EPilotSkillId.InTheFray] = new(
 				EPilotSkillId.InTheFray,

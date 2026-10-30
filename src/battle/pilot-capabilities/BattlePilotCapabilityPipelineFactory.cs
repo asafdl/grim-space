@@ -18,6 +18,7 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.StationaryDamageDeflection
 			or EPilotCapabilityId.InTheFray
 			or EPilotCapabilityId.ReinforcedHull
+			or EPilotCapabilityId.HealingSkillRangeBonus
 			or EPilotCapabilityId.OneWithTheVoid
 			or EPilotCapabilityId.InitiativePenalty;
 

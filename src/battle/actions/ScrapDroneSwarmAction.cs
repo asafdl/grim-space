@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -15,9 +16,11 @@ public sealed record ScrapDroneSwarmAction(
 	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>, IMountedAction
 {
 	private static readonly string[] ActionTags =
-	[BattleActionTags.Attack, BattleActionTags.ScrapDrone];
+	[BattleActionTags.Attack, BattleActionTags.ScrapDrone, BattleActionTags.Heal];
 
 	IReadOnlyList<string> IAction.Tags => ActionTags;
+
+	public IReadOnlyList<string> Tags => ActionTags;
 
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		ScrapDroneSwarmDef.Instance;
@@ -111,9 +114,10 @@ public sealed class ScrapDroneSwarmDef
 	{
 		var state = world.StateOf(action.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn);
-		if (installed?.Spec is not IAreaDamage areaDamage)
+		if (installed?.Spec is not IAreaDamage baseArea)
 			return FrozenSet<Coord>.Empty;
 
+		var areaDamage = HealingSkillRange.ApplyRangeBonus(baseArea, state, action.Tags);
 		var frame = BodyFrame.From(state);
 		var geometric = AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
 		return AbilityArea.ApplyBlocking(state.Position, geometric, IsBlockable, world.AbilityBlockingCells);

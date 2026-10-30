@@ -194,6 +194,8 @@ public sealed class BattleOrchestrator : IDisposable
 					EPilotCapabilityId.InTheFray);
 				unit.State.ReinforcedHullActive = runtime.PilotCapabilities.Contains(
 					EPilotCapabilityId.ReinforcedHull);
+				unit.State.HealingSkillRangeBonusActive = runtime.PilotCapabilities.Contains(
+					EPilotCapabilityId.HealingSkillRangeBonus);
 				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
 					EPilotCapabilityId.OneWithTheVoid);
 				unit.State.DefensiveManeuversActive = runtime.PilotCapabilities.Contains(

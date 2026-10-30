@@ -70,6 +70,8 @@ internal static class BattleTestFixture
 					GrimSpace.Pilots.EPilotCapabilityId.InTheFray);
 				unit.State.ReinforcedHullActive = runtime.PilotCapabilities.Contains(
 					GrimSpace.Pilots.EPilotCapabilityId.ReinforcedHull);
+				unit.State.HealingSkillRangeBonusActive = runtime.PilotCapabilities.Contains(
+					GrimSpace.Pilots.EPilotCapabilityId.HealingSkillRangeBonus);
 				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
 					GrimSpace.Pilots.EPilotCapabilityId.OneWithTheVoid);
 				unit.State.DefensiveManeuversActive = runtime.PilotCapabilities.Contains(

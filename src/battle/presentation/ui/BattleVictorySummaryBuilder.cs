@@ -2,6 +2,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Core.Actions;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -27,7 +28,10 @@ public static class BattleVictorySummaryBuilder
 			.Select(spawn => spawn.Ship.Id)
 			.ToHashSet(StringComparer.Ordinal);
 		var performance = BattleUnitPerformance.ForPlayerUnits(timeline, playerUnitIds);
-		var xpGrants = PilotProgression.RewardsFor(spawns, outcome);
+		var xpGrants = PilotProgression.RewardsFor(
+			spawns,
+			outcome,
+			pilotId => resolvePilot(pilotId)?.LearnedSkills ?? Array.Empty<EPilotSkillId>());
 
 		var pilotRows = new List<BattleVictoryPilotRow>();
 		foreach (var spawn in spawns)

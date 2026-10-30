@@ -10,7 +10,8 @@ public static class StarMapPilotCapabilityPipelineFactory
 	public static bool Supports(EPilotCapabilityId capabilityId) =>
 		capabilityId is EPilotCapabilityId.MinorScrapRewardBonus
 			or EPilotCapabilityId.ScrapRewardBonus
-			or EPilotCapabilityId.OptimalityContractCreditBonus;
+			or EPilotCapabilityId.OptimalityContractCreditBonus
+			or EPilotCapabilityId.ExperienceGainBonus;
 
 	public static ActionEffectPipeline<StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Build(
 		IReadOnlyList<PilotCapabilityGrant> strategicGrants)

@@ -11,6 +11,8 @@ public enum EPilotCapabilityId
 	StationaryDamageDeflection,
 	InTheFray,
 	ReinforcedHull,
+	ExperienceGainBonus,
+	HealingSkillRangeBonus,
 	OneWithTheVoid,
 	MinorScrapRewardBonus,
 	ScrapRewardBonus,

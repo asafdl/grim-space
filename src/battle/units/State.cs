@@ -40,6 +40,7 @@ public sealed class State
 	public int DefensiveManeuversRollIndex { get; set; }
 	public bool InTheFrayActive { get; set; }
 	public bool ReinforcedHullActive { get; set; }
+	public bool HealingSkillRangeBonusActive { get; set; }
 	public bool OneWithTheVoidActive { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public required HeatSpec HeatProfile { get; set; }
@@ -124,6 +125,7 @@ public sealed class State
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			InTheFrayActive = InTheFrayActive,
 			ReinforcedHullActive = ReinforcedHullActive,
+			HealingSkillRangeBonusActive = HealingSkillRangeBonusActive,
 			OneWithTheVoidActive = OneWithTheVoidActive,
 			Maneuverability = Maneuverability,
 			HeatProfile = HeatProfile,

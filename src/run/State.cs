@@ -971,7 +971,12 @@ public sealed class State : IDisposable
 
 	private void GrantPilotBattleXp(IReadOnlyList<BattleSpawn> spawns, BattleOutcome outcome)
 	{
-		foreach (var (pilotId, xp) in PilotProgression.RewardsFor(spawns, outcome))
+		foreach (var (pilotId, xp) in PilotProgression.RewardsFor(
+			         spawns,
+			         outcome,
+			         id => PilotRegistry.TryGet(id, out var pilot)
+				         ? pilot.LearnedSkills
+				         : Array.Empty<EPilotSkillId>()))
 		{
 			if (!PilotRegistry.TryGet(pilotId, out var pilot))
 				continue;

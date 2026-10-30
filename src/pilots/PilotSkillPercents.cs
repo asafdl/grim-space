@@ -69,6 +69,16 @@ public static class PilotSkillPercents
 		public const int HullDamageTakenPercent = 67;
 	}
 
+	public static class BetterRam
+	{
+		public const int ExperienceGainBonusPercent = 20;
+	}
+
+	public static class HelpABotterOut
+	{
+		public const int HealingRangeBonusCells = 1;
+	}
+
 	public static class IKnowABot
 	{
 		public const int ShipUpgradeDiscountPercent = 10;

@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Run;
@@ -9,6 +10,8 @@ public static class PilotProgression
 {
 	public const int CompletionXp = 50;
 	public const int KillXpPerKill = 25;
+
+	private static readonly EPilotSkillId[] EmptyLearnedSkills = [];
 
 	/// <summary>Cumulative XP required to reach each level (index 0 = level 1).</summary>
 	private static readonly int[] LevelThresholds = [0, 100, 250, 450, 700, 1000];
@@ -52,7 +55,8 @@ public static class PilotProgression
 
 	public static IReadOnlyDictionary<string, int> RewardsFor(
 		IReadOnlyList<BattleSpawn> spawns,
-		BattleOutcome outcome)
+		BattleOutcome outcome,
+		Func<string, IReadOnlyList<EPilotSkillId>>? resolveLearnedSkills = null)
 	{
 		ArgumentNullException.ThrowIfNull(spawns);
 		ArgumentNullException.ThrowIfNull(outcome);
@@ -73,10 +77,38 @@ public static class PilotProgression
 			if (!handoffs.TryGetValue(spawn.Ship.Id, out var handoff) || handoff.HullPoints <= 0)
 				continue;
 
-			grants[spawn.PilotId] = xpPerSurvivor;
+			var learnedSkills = resolveLearnedSkills?.Invoke(spawn.PilotId) ?? EmptyLearnedSkills;
+			grants[spawn.PilotId] = ApplyExperienceGainBonus(xpPerSurvivor, learnedSkills);
 		}
 
 		return grants;
+	}
+
+	public static int ApplyExperienceGainBonus(
+		int baseXp,
+		IReadOnlyList<EPilotSkillId> learnedSkills)
+	{
+		if (baseXp <= 0 || !HasExperienceGainBonus(learnedSkills))
+			return baseXp;
+
+		return ScalePercent(
+			baseXp,
+			100 + PilotSkillPercents.BetterRam.ExperienceGainBonusPercent);
+	}
+
+	public static bool HasExperienceGainBonus(IReadOnlyList<EPilotSkillId> learnedSkills)
+	{
+		ArgumentNullException.ThrowIfNull(learnedSkills);
+		foreach (var skillId in learnedSkills)
+		{
+			foreach (var capabilityId in PilotSkillCatalog.Get(skillId).CapabilityIds)
+			{
+				if (capabilityId == EPilotCapabilityId.ExperienceGainBonus)
+					return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static Dictionary<string, UnitStateHandoff> BuildHandoffLookup(
@@ -105,4 +137,7 @@ public static class PilotProgression
 
 		return kills;
 	}
+
+	private static int ScalePercent(int amount, int percent) =>
+		(int)System.Math.Round(amount * percent / 100m, System.MidpointRounding.AwayFromZero);
 }
