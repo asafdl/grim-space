@@ -31,7 +31,7 @@ public sealed partial class RunOverHudOverlay : Control
 	{
 		ArgumentNullException.ThrowIfNull(summary);
 
-		_shell.Open("Run Over", "It is possible to commit no mistakes, yet still lose. However that's not what happened here...");
+		_shell.Open("Run Over", "It is possible to commit no mistakes, yet still lose. However, that's not what happened here...");
 		_shell.SetRequiresDecision(true);
 		_shell.SetHeaderVisible(true);
 		_shell.SetBackHandler(null);
