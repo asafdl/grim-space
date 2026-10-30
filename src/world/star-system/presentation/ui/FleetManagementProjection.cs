@@ -1,5 +1,6 @@
 using GrimSpace.Run;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -27,6 +28,7 @@ internal sealed record FleetShipView(
 	string Id,
 	string Chassis,
 	EOperatorClassId ClassId,
+	EShipGearTier GearTier,
 	int Hull,
 	int MaxHull,
 	int Shields,
@@ -68,6 +70,7 @@ internal static class FleetManagementProjection
 				ship.Id,
 				ChassisName(ship.Spec.Chassis),
 				ship.Spec.ClassId,
+				ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis),
 				ship.HullPoints,
 				ship.Loadout.MaxHullPoints,
 				ship.TotalCurrentShieldPoints,

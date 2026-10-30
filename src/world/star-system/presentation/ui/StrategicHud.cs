@@ -80,8 +80,10 @@ public partial class StrategicHud : CanvasLayer
 		_playerFleetHud.PilotSheetRequested += OnPilotSheetRequested;
 		_pilotSheet.SkillLearnRequested += OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested += OnPilotCycleRequested;
+		_pilotSheet.DismissRequested += OnPilotDismissRequested;
 		SetProcess(true);
 		SyncObjectives();
+		Session.Instance.Run.EnsureActiveRosterFilledFromAssignments();
 		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator, _intents);
 	}
 
@@ -103,6 +105,7 @@ public partial class StrategicHud : CanvasLayer
 		_pilotSheet.FleetManagementRequested -= OnPilotFleetManagementRequested;
 		_pilotSheet.SkillLearnRequested -= OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested -= OnPilotCycleRequested;
+		_pilotSheet.DismissRequested -= OnPilotDismissRequested;
 		_errorBanner.ReportRequested -= OnErrorReportRequested;
 		_contractStateSubscription.Dispose();
 		_resourceFeed.Dispose();
@@ -152,6 +155,7 @@ public partial class StrategicHud : CanvasLayer
 	{
 		_returnToFleetAfterPilotSheet = false;
 		var run = Session.Instance.Run;
+		run.EnsureActiveRosterFilledFromAssignments();
 		var selectedShipId = PlayerFleetSelection.EnsureSelectedMember(
 			_orchestrator.Map,
 			_orchestrator.RuntimeFor(State.PlayerFleetUnitId),
@@ -227,8 +231,27 @@ public partial class StrategicHud : CanvasLayer
 			GD.PushWarning(
 				$"Character sheet for pilot '{pilotId}': assigned ship '{pilot.AssignedShipId}' was not found.");
 
-		_pilotSheet.Open(pilot, run.GetFieldedShipIds().Count > 1, assignedShip);
+		_pilotSheet.Open(
+			pilot,
+			run.GetFieldedShipIds().Count > 1,
+			assignedShip,
+			canDismiss: run.PilotRegistry.All.Count > 1);
 		return true;
+	}
+
+	private void OnPilotDismissRequested(string pilotId)
+	{
+		var run = Session.Instance.Run;
+		if (!run.TryDismissPilot(pilotId))
+		{
+			GD.PushWarning($"Unable to dismiss pilot '{pilotId}'.");
+			return;
+		}
+
+		_returnToFleetAfterPilotSheet = false;
+		_pilotSheet.Close();
+		if (_fleetReturnShipId is not null)
+			_fleetManagement.Open(run, _fleetReturnShipId);
 	}
 
 	private void OnPilotCycleRequested(string pilotId, int direction)

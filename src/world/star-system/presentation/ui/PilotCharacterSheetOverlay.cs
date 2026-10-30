@@ -36,11 +36,13 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		HudPalettes.WithAlpha(HudPalettes.BlueCyan.Highlight, 0.82f);
 	private static readonly Texture2D SkillReticle = GD.Load<Texture2D>(SkillReticlePath);
 	private readonly ModalShell _shell;
+	private readonly CompactConfirmationPopup _dismissPopup;
 	private string? _pilotId;
 
 	public event Action<string, EPilotSkillId>? SkillLearnRequested;
 	public event Action<string, int>? PilotCycleRequested;
 	public event Action<string>? FleetManagementRequested;
+	public event Action<string>? DismissRequested;
 	public event Action? Closed;
 
 	public PilotCharacterSheetOverlay()
@@ -54,28 +56,59 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 		_shell = new ModalShell(HudThemeFamily.Informative);
 		_shell.SetDismissVisible(true);
-		_shell.Closed += () => Closed?.Invoke();
+		_shell.Closed += () =>
+		{
+			_dismissPopup.Hide();
+			Closed?.Invoke();
+		};
 		AddChild(_shell);
+		_dismissPopup = new CompactConfirmationPopup();
+		AddChild(_dismissPopup);
 	}
 
 	public bool IsOpen => _shell.IsOpen;
 
-	public void Close() => _shell.Close();
+	public void Close()
+	{
+		_dismissPopup.Hide();
+		_shell.Close();
+	}
 
 	public bool TryHandleInput(InputEvent @event) => _shell.TryHandleInput(@event);
 
-	public void Open(Pilot pilot, bool canCyclePilots, ShipInstance? assignedShip = null)
+	public void Open(
+		Pilot pilot,
+		bool canCyclePilots,
+		ShipInstance? assignedShip = null,
+		bool canDismiss = true)
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
 		_pilotId = pilot.Id;
+		_dismissPopup.Hide();
 		_shell.Open("Character Sheet", pilot.Name);
 		_shell.SetHeader(
 			HudHeaderMode.Back,
 			() => FleetManagementRequested?.Invoke(pilot.Id),
 			"Fleet");
 		_shell.SetBackHandler(null);
-		_shell.SetFooter([]);
+		_shell.SetFooter(
+		[
+			new HudAction(
+				"Dismiss",
+				HudActionKind.Destructive,
+				ShowDismissConfirm,
+				enabled: canDismiss),
+		]);
 		_shell.SetBody(BuildBody(pilot, canCyclePilots, assignedShip));
+	}
+
+	private void ShowDismissConfirm(BaseButton anchor)
+	{
+		if (_pilotId is null)
+			return;
+
+		var pilotId = _pilotId;
+		_dismissPopup.Request(anchor, () => DismissRequested?.Invoke(pilotId));
 	}
 
 	private Control BuildBody(Pilot pilot, bool canCyclePilots, ShipInstance? assignedShip)
@@ -328,7 +361,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			CustomMinimumSize = new Vector2(SkillNodeSize, SkillNodeSize),
 			MouseFilter = MouseFilterEnum.Stop,
 		};
-		host.SetTooltip(definition.Tooltip);
+		host.SetTooltip(definition.SheetTooltip);
 
 		var frameColor = !isLearned && !canLearn
 			? HudPalettes.WithAlpha(HudPalettes.BlueCyan.Highlight, 0.35f)

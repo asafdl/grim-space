@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Units;
 using GrimSpace.Components;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -73,6 +74,7 @@ public partial class UnitView : Node3D
 		else
 			BindShip();
 
+		ApplyGearTierHullTint(state);
 		BindShieldBubble(state);
 		if (state.HeatProfile.Participates)
 		{
@@ -642,6 +644,32 @@ public partial class UnitView : Node3D
 	{
 		_hull = VoidBombMesh.CreateHullInstance();
 		_visualRoot.AddChild(_hull);
+	}
+
+	private void ApplyGearTierHullTint(State state)
+	{
+		if (_hull is null)
+			return;
+		if (!ShipGearTierTint.TryGet(
+			ShipLoadoutGearTier.FromLoadout(state.Loadout, state.Type),
+			out var tint))
+			return;
+
+		foreach (var child in _hull.FindChildren("*", "MeshInstance3D", true, false))
+		{
+			if (child is not MeshInstance3D { Mesh: { } mesh } instance)
+				continue;
+
+			for (var surface = 0; surface < mesh.GetSurfaceCount(); surface++)
+			{
+				if (instance.GetActiveMaterial(surface) is not BaseMaterial3D source)
+					continue;
+
+				var material = (BaseMaterial3D)source.Duplicate();
+				material.AlbedoColor *= tint;
+				instance.SetSurfaceOverrideMaterial(surface, material);
+			}
+		}
 	}
 
 	private void BindShieldBubble(State state)

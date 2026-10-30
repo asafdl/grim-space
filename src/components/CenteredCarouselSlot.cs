@@ -41,6 +41,7 @@ internal sealed partial class CenteredCarouselSlot : Button
 	public void ShowItem(
 		CenteredCarouselEntry item,
 		Texture2D? icon,
+		Color iconTint,
 		bool highlighted,
 		float opacity)
 	{
@@ -50,6 +51,7 @@ internal sealed partial class CenteredCarouselSlot : Button
 		Disabled = false;
 		AddThemeStyleboxOverride("normal", MakeBoxStyle(highlighted));
 		_highlightCursor.Visible = highlighted;
+		ApplyIconTint(iconTint);
 		Modulate = highlighted ? Colors.White : new Color(1f, 1f, 1f, opacity);
 	}
 
@@ -61,7 +63,17 @@ internal sealed partial class CenteredCarouselSlot : Button
 		Disabled = true;
 		AddThemeStyleboxOverride("normal", MakeBoxStyle(highlighted: false, dim: true));
 		_highlightCursor.Visible = false;
+		ApplyIconTint(Colors.White);
 		Modulate = Colors.White;
+	}
+
+	private void ApplyIconTint(Color tint)
+	{
+		AddThemeColorOverride("icon_normal_color", tint);
+		AddThemeColorOverride("icon_hover_color", tint);
+		AddThemeColorOverride("icon_pressed_color", tint);
+		AddThemeColorOverride("icon_disabled_color", tint);
+		AddThemeColorOverride("icon_focus_color", tint);
 	}
 
 	private void OnPressed()

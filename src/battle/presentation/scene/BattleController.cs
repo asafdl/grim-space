@@ -24,6 +24,7 @@ using GrimSpace.Components;
 using GrimSpace.Education;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Tutorials;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 
@@ -206,6 +207,7 @@ public partial class BattleController : Node3D
 		_battleHud.Build();
 		_battleHud.SetStrategicBattle(_strategicBattle);
 		_battleHud.TurnFlowBar.SetPortraitResolver(PortraitForUnit);
+		_battleHud.TurnFlowBar.SetPortraitTintResolver(PortraitTintForUnit);
 		AddChild(_battleHud);
 
 		_translator = new UserIntentTranslator(
@@ -687,6 +689,16 @@ public partial class BattleController : Node3D
 
 		_unitTypes[unitId] = unit.State.Type;
 		return UnitPortraitCatalog.For(unit.State.Type);
+	}
+
+	private Color PortraitTintForUnit(string unitId)
+	{
+		var registry = UnitRegistry.For(_battle.Engine.World);
+		if (!registry.TryGet(unitId, out var unit))
+			return Colors.White;
+
+		return ShipGearTierTint.ModulateFor(
+			ShipLoadoutGearTier.FromLoadout(unit.State.Loadout, unit.State.Type));
 	}
 
 	private void ReturnToPlayer()

@@ -9,9 +9,6 @@ public static class PilotSkillPercents
 
 	public static class OverchargeEngines
 	{
-		/// <summary>Minimum AP required on the ship to activate (does not spend AP).</summary>
-		public const int MinimumApToUse = 2;
-
 		public const int RefreshedAp = 2;
 
 		public const int NextTurnApPenalty = 2;

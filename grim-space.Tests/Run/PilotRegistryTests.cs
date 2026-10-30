@@ -7,6 +7,7 @@ using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
@@ -118,6 +119,68 @@ public sealed class PilotRegistryTests
 		Assert.True(run.PilotRegistry.TryGet(originalPilot.Id, out var replacedPilot));
 		Assert.Null(replacedPilot.AssignedShipId);
 		Assert.False(replacedPilot.IsActive);
+	}
+
+	[Fact]
+	public void TryAssignPilotToShip_KeepsActivePilotWhenMovingToEmptyOwnedShip()
+	{
+		using var run = State.CreateNewRun(42);
+		var starterShipId = RunTestKit.StarterFighterShipId(run);
+		Assert.True(run.PilotRegistry.TryGetForShip(starterShipId, out var pilot));
+		var emptyShipId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryAcquireOwnedShip(
+			new ShipSpawnDeclaration(emptyShipId, BattleUnitType.Fighter, EShipGearTier.T1)));
+		var activeBefore = run.PilotRegistry.Active.Count;
+
+		Assert.True(run.TryAssignPilotToShip(pilot.Id, emptyShipId));
+
+		Assert.True(run.PilotRegistry.TryGet(pilot.Id, out var moved));
+		Assert.Equal(emptyShipId, moved.AssignedShipId);
+		Assert.True(moved.IsActive);
+		Assert.Equal(activeBefore, run.PilotRegistry.Active.Count);
+		Assert.Contains(emptyShipId, run.GetFieldedShipIds());
+		Assert.DoesNotContain(starterShipId, run.GetFieldedShipIds());
+		Assert.False(run.PilotRegistry.TryGetForShip(starterShipId, out _));
+	}
+
+	[Fact]
+	public void TryAssignPilotToShip_FieldsReservePilotOntoEmptyShipWhenSquadHasRoom()
+	{
+		using var run = State.CreateNewRun(42);
+		Assert.Equal(2, run.PilotRegistry.Active.Count);
+		var emptyShipId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryAcquireOwnedShip(
+			new ShipSpawnDeclaration(emptyShipId, BattleUnitType.Fighter, EShipGearTier.T1)));
+		var reserve = Pilot.CreateForShip("reserve-for-empty");
+		run.PilotRegistry.Register(reserve);
+		run.PilotRegistry.Unassign(reserve.Id);
+
+		Assert.True(run.TryAssignPilotToShip(reserve.Id, emptyShipId));
+
+		Assert.True(run.PilotRegistry.TryGet(reserve.Id, out var fielded));
+		Assert.Equal(emptyShipId, fielded.AssignedShipId);
+		Assert.True(fielded.IsActive);
+		Assert.Equal(3, run.PilotRegistry.Active.Count);
+		Assert.Contains(emptyShipId, run.GetFieldedShipIds());
+	}
+
+	[Fact]
+	public void EnsureActiveRosterFilledFromAssignments_ActivatesAssignedInactivePilots()
+	{
+		using var run = State.CreateNewRun(42);
+		var emptyShipId = TypedIdGenerator.NextId("fighter");
+		Assert.True(run.TryAcquireOwnedShip(
+			new ShipSpawnDeclaration(emptyShipId, BattleUnitType.Fighter, EShipGearTier.T1)));
+		var reserve = Pilot.CreateForShip(emptyShipId);
+		run.PilotRegistry.Register(reserve);
+		Assert.False(reserve.IsActive);
+		Assert.Equal(emptyShipId, reserve.AssignedShipId);
+
+		Assert.True(run.EnsureActiveRosterFilledFromAssignments());
+
+		Assert.True(run.PilotRegistry.TryGet(reserve.Id, out var fielded));
+		Assert.True(fielded.IsActive);
+		Assert.Contains(emptyShipId, run.GetFieldedShipIds());
 	}
 
 	[Fact]
@@ -441,25 +504,56 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
-	public void Activate_RespectsMaxActivePilotCap()
+	public void TryDismissPilot_RemovesPilotAndKeepsOwnedShip()
+	{
+		using var run = State.CreateNewRun(42);
+		var fighterShipId = RunTestKit.StarterFighterShipId(run);
+		Assert.True(run.PilotRegistry.TryGetForShip(fighterShipId, out var pilot));
+		var pilotId = pilot.Id;
+		var pilotsBefore = run.PilotRegistry.All.Count;
+
+		Assert.True(run.TryDismissPilot(pilotId));
+
+		Assert.False(run.PilotRegistry.TryGet(pilotId, out _));
+		Assert.Equal(pilotsBefore - 1, run.PilotRegistry.All.Count);
+		Assert.True(run.ItemInventory.IsPlayerOwned(fighterShipId));
+		Assert.DoesNotContain(fighterShipId, run.GetFieldedShipIds());
+	}
+
+	[Fact]
+	public void TryDismissPilot_RejectsLastPilot()
+	{
+		using var run = State.CreateNewRun(42);
+		var fighterShipId = RunTestKit.StarterFighterShipId(run);
+		var minerShipId = RunTestKit.StarterRepurposedMinerShipId(run);
+		Assert.True(run.PilotRegistry.TryGetForShip(fighterShipId, out var fighterPilot));
+		Assert.True(run.PilotRegistry.TryGetForShip(minerShipId, out var minerPilot));
+		Assert.True(run.TryDismissPilot(fighterPilot.Id));
+
+		Assert.False(run.TryDismissPilot(minerPilot.Id));
+		Assert.True(run.PilotRegistry.TryGet(minerPilot.Id, out _));
+	}
+
+	[Fact]
+	public void Register_RespectsMaxPilotCap()
 	{
 		var registry = new RunPilotRegistry();
-		var inventory = new GrimSpace.Run.Items.Inventory();
-		const string playerFleet = State.PlayerFleetUnitId;
-		var pilots = new List<Pilot>();
-		for (var index = 0; index < RunPilotRegistry.MaxActivePilots + 1; index++)
-		{
-			var shipId = $"fighter-{index}";
-			inventory.Register(ShipInstance.FromCatalog(shipId, EType.Fighter), playerFleet);
-			var pilot = Pilot.CreateForShip(shipId);
-			registry.Register(pilot);
-			pilots.Add(pilot);
-		}
+		for (var index = 0; index < RunPilotRegistry.MaxPilots; index++)
+			registry.Register(Pilot.CreateForShip($"fighter-{index}"));
 
-		for (var index = 0; index < RunPilotRegistry.MaxActivePilots; index++)
-			registry.Activate(pilots[index].Id, inventory, playerFleet);
-
+		Assert.False(registry.CanRegister);
 		Assert.Throws<InvalidOperationException>(() =>
-			registry.Activate(pilots[^1].Id, inventory, playerFleet));
+			registry.Register(Pilot.CreateForShip("fighter-overflow")));
+	}
+
+	[Fact]
+	public void TryAcquirePilotHire_RejectsWhenRosterFull()
+	{
+		using var run = State.CreateNewRun(42);
+		RunTestKit.EnlistUntilActivePilotCap(run);
+		Assert.Equal(RunPilotRegistry.MaxPilots, run.PilotRegistry.All.Count);
+
+		Assert.False(run.TryAcquirePilotHire(new PilotHireCommitted(
+			new PilotRecruitProfile("Overflow", "pilot_03", EPilotBackgroundId.PodRacer))));
 	}
 }

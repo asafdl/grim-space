@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Run;
@@ -57,6 +58,7 @@ public sealed partial class FleetManagementOverlay : Control
 		_carousel.ItemClicked += OnShipClicked;
 		_carousel.IndexChanged += OnShipIndexChanged;
 		_carousel.SetIconResolver(ShipIconFor);
+		_carousel.SetIconTintResolver(ShipIconTintFor);
 
 		_pilotPopup = new PopupPanel
 		{
@@ -257,7 +259,7 @@ public sealed partial class FleetManagementOverlay : Control
 					PilotSheetRequested?.Invoke(pilot.Id);
 				});
 			control.AddChild(portrait);
-			control.AddChild(CaptionLabel($"{pilot.ClassId.DisplayName().ToUpperInvariant()} PILOT"));
+			control.AddChild(CaptionLabel(pilot.Name));
 			return control;
 		}
 
@@ -269,7 +271,6 @@ public sealed partial class FleetManagementOverlay : Control
 		HudStyles.StyleButton(unassigned, HudActionKind.Secondary);
 		unassigned.Pressed += () => ShowPilotPopup(unassigned, ship);
 		control.AddChild(unassigned);
-		control.AddChild(CaptionLabel("NO PILOT ASSIGNED"));
 		return control;
 	}
 
@@ -283,6 +284,7 @@ public sealed partial class FleetManagementOverlay : Control
 		rows.AddThemeConstantOverride("separation", 8);
 		rows.AddChild(SummaryRow("CHASSIS", ship.Chassis));
 		rows.AddChild(SummaryRow("SHIP CLASS", ship.ClassId.DisplayName()));
+		rows.AddChild(SummaryRow("GEAR TIER", ship.GearTier.ToString()));
 		rows.AddChild(SummaryRow("HULL", $"{ship.Hull} / {ship.MaxHull}", HullColor));
 		rows.AddChild(SummaryRow("SHIELDS", $"{ship.Shields} / {ship.MaxShields}", ShieldColor));
 		rows.AddChild(SummaryRow("ACTION POINTS", ship.ActionPoints.ToString(), ActionPointColor));
@@ -380,27 +382,39 @@ public sealed partial class FleetManagementOverlay : Control
 			_pilotPopupContent.RemoveChild(child);
 			child.QueueFree();
 		}
-		var grid = new GridContainer
+
+		var compatible = _view.Pilots
+			.Where(pilot => OperatorClassCompatibility.CanOperate(pilot.ClassId, ship.ClassId))
+			.ToArray();
+		if (compatible.Length == 0)
 		{
-			Columns = PilotPopupColumns,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-		};
-		grid.AddThemeConstantOverride("h_separation", PilotPopupGridHSeparation);
-		grid.AddThemeConstantOverride("v_separation", PilotPopupGridVSeparation);
-		var rowCount = Mathf.CeilToInt(_view.Pilots.Count / (float)PilotPopupColumns);
-		grid.CustomMinimumSize = new Vector2(
-			PilotPopupColumns * PopupPilotPortraitSize
-				+ (PilotPopupColumns - 1) * PilotPopupGridHSeparation,
-			rowCount * PopupPilotPortraitSize
-				+ Mathf.Max(0, rowCount - 1) * PilotPopupGridVSeparation);
-		_pilotPopupContent.AddChild(grid);
-		foreach (var pilot in _view.Pilots)
+			_pilotPopupContent.AddChild(CaptionLabel(
+				$"No {ship.ClassId.DisplayName()} pilots available."));
+		}
+		else
 		{
-			var candidate = pilot;
-			grid.AddChild(BuildPopupPilotPortrait(
-				pilot,
-				$"{pilot.Name} · {PilotStatus(pilot, ship)}",
-				() => AssignPilot(candidate.Id, ship.Id)));
+			var grid = new GridContainer
+			{
+				Columns = PilotPopupColumns,
+				SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			};
+			grid.AddThemeConstantOverride("h_separation", PilotPopupGridHSeparation);
+			grid.AddThemeConstantOverride("v_separation", PilotPopupGridVSeparation);
+			var rowCount = Mathf.CeilToInt(compatible.Length / (float)PilotPopupColumns);
+			grid.CustomMinimumSize = new Vector2(
+				PilotPopupColumns * PopupPilotPortraitSize
+					+ (PilotPopupColumns - 1) * PilotPopupGridHSeparation,
+				rowCount * PopupPilotPortraitSize
+					+ Mathf.Max(0, rowCount - 1) * PilotPopupGridVSeparation);
+			_pilotPopupContent.AddChild(grid);
+			foreach (var pilot in compatible)
+			{
+				var candidate = pilot;
+				grid.AddChild(BuildPopupPilotPortrait(
+					pilot,
+					$"{pilot.Name} · {PilotStatus(pilot, ship)}",
+					() => AssignPilot(candidate.Id, ship.Id)));
+			}
 		}
 
 		var anchorRect = anchor.GetGlobalRect();
@@ -577,8 +591,7 @@ public sealed partial class FleetManagementOverlay : Control
 
 	private Texture2D? ShipIconFor(string shipId)
 	{
-		var ship = _view.Ships.FirstOrDefault(candidate =>
-			string.Equals(candidate.Id, shipId, StringComparison.Ordinal));
+		var ship = ShipViewFor(shipId);
 		if (ship is null)
 			return null;
 
@@ -587,6 +600,18 @@ public sealed partial class FleetManagementOverlay : Control
 			: (EType?)null;
 		return chassis is { } type ? UnitPortraitCatalog.For(type) : null;
 	}
+
+	private Color ShipIconTintFor(string shipId)
+	{
+		var ship = ShipViewFor(shipId);
+		return ship is null
+			? Colors.White
+			: ShipGearTierTint.ModulateFor(ship.GearTier);
+	}
+
+	private FleetShipView? ShipViewFor(string shipId) =>
+		_view.Ships.FirstOrDefault(candidate =>
+			string.Equals(candidate.Id, shipId, StringComparison.Ordinal));
 
 	private void DetachCarousel()
 	{

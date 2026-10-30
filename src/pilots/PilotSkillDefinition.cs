@@ -7,6 +7,8 @@ public sealed class PilotSkillDefinition
 	public EPilotSkillId Id { get; }
 	public IReadOnlyList<EPilotCapabilityId> CapabilityIds { get; }
 	public HudTooltipContent Tooltip { get; }
+	/// <summary>Character-sheet tooltip including class/background origin; battle HUD uses <see cref="Tooltip"/>.</summary>
+	public HudTooltipContent SheetTooltip => WithOriginLine(Tooltip, Audience);
 	public string Name => Tooltip.Title!;
 	public string Description => Tooltip.Body;
 	public int Tier { get; }
@@ -38,7 +40,7 @@ public sealed class PilotSkillDefinition
 		CapabilityIds = capabilityIds;
 		Audience = audience.Kind == default ? PilotSkillAudience.Global : audience;
 		Audience.Validate();
-		Tooltip = WithOriginLine(tooltip, Audience);
+		Tooltip = tooltip;
 		Tier = tier;
 		Prerequisites = prerequisites ?? Array.Empty<EPilotSkillId>();
 		MinimumEarnedLevel = minimumEarnedLevel;

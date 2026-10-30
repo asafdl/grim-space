@@ -94,11 +94,19 @@ public sealed partial class PilotHiringHudOverlay : Control
 			return;
 		}
 
+		var rosterFull = !_run.PilotRegistry.CanRegister;
+		if (rosterFull)
+		{
+			body.AddChild(HudWidgets.CreateStatusPanel(
+				HudStatusKind.Neutral,
+				$"Roster full ({RunPilotRegistry.MaxPilots}/{RunPilotRegistry.MaxPilots})."));
+		}
+
 		foreach (var candidate in candidates)
 		{
 			var captured = candidate;
 			var cost = PilotRecruitment.Price(map, captured);
-			var canAfford = map.PlayerResources.CanApply(cost.Negate());
+			var canAfford = !rosterFull && map.PlayerResources.CanApply(cost.Negate());
 			body.AddChild(BuildCandidateCard(captured, cost, canAfford));
 		}
 

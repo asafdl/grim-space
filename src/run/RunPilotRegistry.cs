@@ -7,7 +7,9 @@ namespace GrimSpace.Run;
 
 public sealed class RunPilotRegistry : IPilotSkillRosterReader
 {
-	public const int MaxActivePilots = 4;
+	/// <summary>Temporary flat roster: at most this many pilots, and all ship-assigned pilots are fielded.</summary>
+	public const int MaxPilots = 4;
+	public const int MaxActivePilots = MaxPilots;
 
 	private readonly Dictionary<string, Pilot> _pilotsById = new(StringComparer.Ordinal);
 	private readonly List<string> _activePilotIds = [];
@@ -49,11 +51,15 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		}
 	}
 
+	public bool CanRegister => _pilotsById.Count < MaxPilots;
+
 	public void Register(Pilot pilot)
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
 		if (pilot.IsActive)
 			throw new InvalidOperationException("A pilot must be activated through the roster.");
+		if (!CanRegister)
+			throw new InvalidOperationException($"Cannot register more than {MaxPilots} pilots.");
 
 		RegisterCore(pilot);
 	}
@@ -199,8 +205,12 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		var pilotActiveIndex = _activePilotIds.IndexOf(pilot.Id);
 		var occupantActiveIndex = hasOccupant ? _activePilotIds.IndexOf(occupant.Id) : -1;
 		var pilotShipId = pilot.AssignedShipId;
-		var pilotIsActiveAfter = occupantActiveIndex >= 0;
-		var occupantIsActiveAfter = pilotActiveIndex >= 0;
+		// Occupied target: swap active slots with the occupant.
+		// Empty target: always field (temporary: max pilots == max active, no hangar roster).
+		var pilotIsActiveAfter = hasOccupant
+			? occupantActiveIndex >= 0
+			: true;
+		var occupantIsActiveAfter = hasOccupant && pilotActiveIndex >= 0;
 
 		if (!itemInventory.IsOwnedBy(shipId, playerFleetUnitId))
 			throw new InvalidOperationException($"Ship '{shipId}' is not owned by '{playerFleetUnitId}'.");
@@ -222,16 +232,44 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 		if (hasOccupant)
 			Replace(occupant.WithAssignment(pilotShipId, occupantIsActiveAfter));
 
-		if (pilotActiveIndex >= 0)
-		{
-			if (hasOccupant)
-				_activePilotIds[pilotActiveIndex] = occupant.Id;
-			else
-				_activePilotIds.RemoveAt(pilotActiveIndex);
-		}
+		if (pilotActiveIndex >= 0 && hasOccupant)
+			_activePilotIds[pilotActiveIndex] = occupant.Id;
+		else if (!hasOccupant && pilotActiveIndex < 0 && pilotIsActiveAfter)
+			_activePilotIds.Add(pilot.Id);
 
 		if (occupantActiveIndex >= 0)
 			_activePilotIds[occupantActiveIndex] = pilot.Id;
+	}
+
+	/// <summary>
+	/// Fields assigned-but-inactive pilots into free active slots (heals hangar assignments
+	/// that never activated, e.g. older saves).
+	/// </summary>
+	internal bool FillActiveSlotsFromAssigned(Inventory itemInventory, string playerFleetUnitId)
+	{
+		ArgumentNullException.ThrowIfNull(itemInventory);
+		ArgumentException.ThrowIfNullOrEmpty(playerFleetUnitId);
+		var changed = false;
+		foreach (var pilot in _pilotsById.Values
+			.Where(candidate => !candidate.IsActive && !string.IsNullOrEmpty(candidate.AssignedShipId))
+			.OrderBy(candidate => candidate.Name, StringComparer.Ordinal)
+			.ThenBy(candidate => candidate.Id, StringComparer.Ordinal)
+			.ToArray())
+		{
+			if (_activePilotIds.Count >= MaxActivePilots)
+				break;
+			if (!itemInventory.IsOwnedBy(pilot.AssignedShipId!, playerFleetUnitId))
+				continue;
+			if (!OperatorClassCompatibility.CanOperate(
+				pilot.ClassId,
+				itemInventory.Get(pilot.AssignedShipId!).Spec.ClassId))
+				continue;
+
+			Activate(pilot.Id, itemInventory, playerFleetUnitId);
+			changed = true;
+		}
+
+		return changed;
 	}
 
 	public void Remove(string pilotId)

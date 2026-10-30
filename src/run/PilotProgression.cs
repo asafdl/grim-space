@@ -9,7 +9,9 @@ namespace GrimSpace.Run;
 public static class PilotProgression
 {
 	public const int DefaultXpDifficulty = 3;
-	public const int XpPerBattleBasePoint = 50;
+	/// <summary>XP at S-rank (performance == <see cref="PerformanceScoreDivisor"/>) equals battleBase × this.</summary>
+	public const int XpPerBattleBasePoint = 15;
+	/// <summary>Performance score that yields full battle XP (matches S-grade threshold).</summary>
 	public const int PerformanceScoreDivisor = 80;
 
 	private static readonly EPilotSkillId[] EmptyLearnedSkills = [];
@@ -86,8 +88,10 @@ public static class PilotProgression
 		if (battleBase <= 0 || performancePoints <= 0)
 			return 0;
 
+		// Cap at S-rank so overkill damage cannot multiply XP past a full clear.
+		var capped = System.Math.Min(performancePoints, PerformanceScoreDivisor);
 		return (int)System.Math.Round(
-			battleBase * XpPerBattleBasePoint * (decimal)performancePoints / PerformanceScoreDivisor,
+			battleBase * XpPerBattleBasePoint * (decimal)capped / PerformanceScoreDivisor,
 			System.MidpointRounding.AwayFromZero);
 	}
 

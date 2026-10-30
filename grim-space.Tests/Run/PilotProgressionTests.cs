@@ -69,8 +69,31 @@ public sealed class PilotProgressionTests
 	public void ExperienceFromPerformance_ScalesByBattleBaseAndScore()
 	{
 		var battleBase = PilotProgression.BattleXpBase(enemyCount: 2, difficulty: 3);
-		Assert.Equal(150, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 40));
-		Assert.Equal(300, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 80));
+		Assert.Equal(45, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 40));
+		Assert.Equal(90, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 80));
+	}
+
+	[Fact]
+	public void ExperienceFromPerformance_CapsAtSRankScore()
+	{
+		var battleBase = PilotProgression.BattleXpBase(enemyCount: 2, difficulty: 3);
+		var atS = PilotProgression.ExperienceFromPerformance(battleBase, PilotProgression.PerformanceScoreDivisor);
+		var aboveS = PilotProgression.ExperienceFromPerformance(
+			battleBase,
+			PilotProgression.PerformanceScoreDivisor * 3);
+		Assert.Equal(atS, aboveS);
+	}
+
+	[Fact]
+	public void ExperienceFromPerformance_TypicalT0Fight_DoesNotMultiLevelFromZero()
+	{
+		// 3 enemies, S-rank clear: should land around one early level, not 4+.
+		var battleBase = PilotProgression.BattleXpBase(enemyCount: 3, difficulty: 3);
+		var xp = PilotProgression.ExperienceFromPerformance(
+			battleBase,
+			PilotProgression.PerformanceScoreDivisor);
+		Assert.Equal(135, xp);
+		Assert.Equal(2, PilotProgression.LevelFor(xp));
 	}
 
 	[Fact]

@@ -156,7 +156,7 @@ internal static class BattleHudCopy
 	{
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.OverchargeEngines);
 		var mechanics =
-			$"[icon: {Icon.ActionPoints}, text: requires {PilotSkillPercents.OverchargeEngines.MinimumApToUse} AP, +{PilotSkillPercents.OverchargeEngines.RefreshedAp} up to max]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.OverchargeEngines.CooldownTurns} turns]\n[icon: {Icon.ActionPoints}, text: -{PilotSkillPercents.OverchargeEngines.NextTurnApPenalty} next turn]";
+			$"[icon: {Icon.ActionPoints}, text: Refresh up to {PilotSkillPercents.OverchargeEngines.RefreshedAp}]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.OverchargeEngines.CooldownTurns} turns]\n[icon: {Icon.ActionPoints}, text: -{PilotSkillPercents.OverchargeEngines.NextTurnApPenalty} next turn]";
 		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
 			? mechanics
 			: $"{definition.Tooltip.Details}\n{mechanics}";

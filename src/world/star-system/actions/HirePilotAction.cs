@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Units;
 using GrimSpace.World.StarSystem.Effects;
@@ -42,6 +43,8 @@ public sealed class HirePilotActionDef
 		if (!world.FleetRegistry.TryGet(hire.ActorId, out var fleet))
 			return false;
 		if (fleet.State.CurrentEngagement?.Phase == EEngagementPhase.Engaged)
+			return false;
+		if (world.PilotRegistry is { } pilots && pilots.All.Count >= RunPilotRegistry.MaxPilots)
 			return false;
 
 		return world.PlayerResources.CanApply(cost.Negate());

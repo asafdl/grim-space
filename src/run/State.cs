@@ -350,6 +350,21 @@ public sealed class State : IDisposable
 	public bool TryAssignPilotToShip(string pilotId, string shipId) =>
 		TryAssignPilotToShip(pilotId, shipId, out _);
 
+	public bool TryDismissPilot(string pilotId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		if (ActiveBattle is not null)
+			return false;
+		if (!PilotRegistry.TryGet(pilotId, out _))
+			return false;
+		if (PilotRegistry.All.Count <= 1)
+			return false;
+
+		PilotRegistry.Remove(pilotId);
+		EnsureActiveRosterFilledFromAssignments();
+		return true;
+	}
+
 	private EPilotAssignmentFailureReason GetPilotAssignmentFailureReason(
 		string pilotId,
 		string shipId)
@@ -396,13 +411,26 @@ public sealed class State : IDisposable
 			return false;
 		}
 		if (string.Equals(pilot.AssignedShipId, shipId, StringComparison.Ordinal))
+		{
+			EnsureActiveRosterFilledFromAssignments();
 			return true;
+		}
 
 		PilotRegistry.AssignPilotToShip(
 			pilotId,
 			shipId,
 			ItemInventory,
 			PlayerFleetUnitId);
+		EnsureActiveRosterFilledFromAssignments();
+		return true;
+	}
+
+	/// <summary>
+	/// Activates assigned reserve pilots into free squad slots and refreshes fleet projection.
+	/// </summary>
+	public bool EnsureActiveRosterFilledFromAssignments()
+	{
+		var changed = PilotRegistry.FillActiveSlotsFromAssigned(ItemInventory, PlayerFleetUnitId);
 		RefreshStrategicFleetProjection();
 		RefreshStrategicPilotCapabilities();
 		PlayerFleetSelection.EnsureSelectedMember(
@@ -410,7 +438,7 @@ public sealed class State : IDisposable
 			StarSystem.RuntimeFor(PlayerFleetUnitId),
 			PlayerFleetUnitId,
 			GetFieldedShipIds());
-		return true;
+		return changed;
 	}
 
 	public void RegenerateMap(int? seed = null)
@@ -645,6 +673,9 @@ public sealed class State : IDisposable
 	internal bool TryAcquirePilotHire(PilotHireCommitted hire)
 	{
 		ArgumentNullException.ThrowIfNull(hire);
+		if (!PilotRegistry.CanRegister)
+			return false;
+
 		PilotRegistry.Register(Pilot.FromRecruitProfile(null, hire.Profile));
 		return true;
 	}
@@ -664,13 +695,14 @@ public sealed class State : IDisposable
 		var shipClass = ShipCatalog.SpecFor(declaration.Chassis).ClassId;
 		if (shipClass == EOperatorClassId.Unclassified)
 			return;
+		if (!PilotRegistry.CanRegister)
+			return;
 
 		var pilot = createStarterPilot
 			? Pilot.CreateStarterForShip(declaration.ShipId)
 			: Pilot.CreateForShip(declaration.ShipId, shipClass);
 		PilotRegistry.Register(pilot);
-		if (PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
-			PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);
+		PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);
 	}
 
 	private void RefreshStrategicFleetProjection()
@@ -694,7 +726,10 @@ public sealed class State : IDisposable
 			}
 
 			var ship = ItemInventory.Get(shipId);
-			registrations[index] = new ShipSpawnDeclaration(shipId, ship.Spec.Chassis);
+			registrations[index] = new ShipSpawnDeclaration(
+				shipId,
+				ship.Spec.Chassis,
+				ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis));
 		}
 
 		StarSystem.Map.FleetRegistry.Replace(new Fleet(fleet.State, members, registrations));

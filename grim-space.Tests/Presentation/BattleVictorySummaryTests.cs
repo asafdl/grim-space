@@ -98,7 +98,7 @@ public sealed class BattleVictorySummaryTests
 			});
 		var timeline = new ITimelineEntry[]
 		{
-			new Record<ImpactFacts>(new ImpactFacts("fighter-a", "enemy-1", default, default, 0, 50)),
+			new Record<ImpactFacts>(new ImpactFacts("fighter-a", "enemy-1", default, default, 0, 400)),
 			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-b", default, default, 0, 30)),
 		};
 
@@ -112,7 +112,7 @@ public sealed class BattleVictorySummaryTests
 		Assert.Equal(2, summary.Pilots.Count);
 		var top = summary.Pilots[0];
 		Assert.Equal("pilot-a", top.DisplayName);
-		Assert.Equal(50, top.DamageDealt);
+		Assert.Equal(400, top.DamageDealt);
 		Assert.Equal(0, top.DamageTaken);
 		Assert.Equal(
 			PilotProgression.ExperienceFromPerformance(

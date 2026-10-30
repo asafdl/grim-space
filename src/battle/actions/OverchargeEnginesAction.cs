@@ -56,8 +56,7 @@ public sealed class OverchargeEnginesDef
 
 		var state = world.StateOf(action.ActorId);
 		return !state.Overheat
-			&& state.OverchargeEnginesCooldownRemaining == 0
-			&& state.ActionPoints >= PilotSkillPercents.OverchargeEngines.MinimumApToUse;
+			&& state.OverchargeEnginesCooldownRemaining == 0;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

@@ -22,6 +22,7 @@ public sealed class FleetManagementProjectionTests
 		var ship = Assert.Single(view.Ships, entry => entry.Id == shipId);
 		Assert.Equal(shipId, ship.Id);
 		Assert.Equal("Fighter", ship.Chassis);
+		Assert.Equal(EShipGearTier.T0, ship.GearTier);
 		Assert.Equal((2 * 100), ship.Hull);
 		Assert.Equal((2 * 100), ship.MaxHull);
 		Assert.Equal((3 * 100), ship.Shields);
@@ -76,5 +77,20 @@ public sealed class FleetManagementProjectionTests
 		Assert.Equal(EOperatorClassId.SpaceRanger, pilot.ClassId);
 		Assert.Equal(EOperatorClassId.SpaceRanger, fighterShip.ClassId);
 		Assert.Equal(EOperatorClassId.Support, minerShip.ClassId);
+	}
+
+	[Fact]
+	public void Collect_ProjectsPurchasedGearTierDistinctFromStarterT0()
+	{
+		using var run = RunState.CreateNewRun(42);
+		const string purchasedId = "projection-t1-fighter";
+		Assert.True(run.TryAcquireOwnedShip(
+			new ShipSpawnDeclaration(purchasedId, EType.Fighter, EShipGearTier.T1)));
+
+		var view = FleetManagementProjection.Collect(run);
+
+		var purchased = Assert.Single(view.Ships, ship => ship.Id == purchasedId);
+		Assert.Equal(EShipGearTier.T1, purchased.GearTier);
+		Assert.Contains(view.Ships, ship => ship.GearTier == EShipGearTier.T0);
 	}
 }

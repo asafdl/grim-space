@@ -19,6 +19,7 @@ public sealed partial class CenteredCarousel : PanelContainer
 	private int _index;
 	private int _highlightedIndex;
 	private Func<string, Texture2D?> _iconFor = _ => null;
+	private Func<string, Color> _iconTintFor = _ => Colors.White;
 
 	public event Action<string>? ItemClicked;
 	public event Action<int>? IndexChanged;
@@ -89,6 +90,12 @@ public sealed partial class CenteredCarousel : PanelContainer
 		Render();
 	}
 
+	public void SetIconTintResolver(Func<string, Color> iconTintFor)
+	{
+		_iconTintFor = iconTintFor;
+		Render();
+	}
+
 	public void SetIndex(int index, bool changeHighlight = true)
 	{
 		var nextIndex = CenteredCarouselWindow.ClampIndex(index, _items.Count);
@@ -153,9 +160,10 @@ public sealed partial class CenteredCarousel : PanelContainer
 			}
 
 			var icon = _iconFor(item.Id);
+			var iconTint = _iconTintFor(item.Id);
 			var highlighted = itemIndex == _highlightedIndex;
 			var opacity = slot == CenterSlot - 1 || slot == CenterSlot + 1 ? 0.85f : 0.55f;
-			_slots[slot].ShowItem(item, icon, highlighted, opacity);
+			_slots[slot].ShowItem(item, icon, iconTint, highlighted, opacity);
 		}
 	}
 
