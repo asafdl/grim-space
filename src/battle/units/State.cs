@@ -35,6 +35,9 @@ public sealed class State
 	public int ShieldBraceDamagePending { get; set; }
 	public bool ShieldBraceUsedThisTurn { get; set; }
 	public int OverchargeEnginesCooldownRemaining { get; set; }
+	public int ProtectionDroneCooldownRemaining { get; set; }
+	public bool ProtectionDroneBuffActive { get; set; }
+	public int ProtectionDroneRollIndex { get; set; }
 	public bool DefensiveManeuversActive { get; set; }
 	public int DefensiveManeuversMpUsed { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
@@ -120,6 +123,9 @@ public sealed class State
 			ShieldBraceDamagePending = ShieldBraceDamagePending,
 			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
+			ProtectionDroneCooldownRemaining = ProtectionDroneCooldownRemaining,
+			ProtectionDroneBuffActive = ProtectionDroneBuffActive,
+			ProtectionDroneRollIndex = ProtectionDroneRollIndex,
 			DefensiveManeuversActive = DefensiveManeuversActive,
 			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,

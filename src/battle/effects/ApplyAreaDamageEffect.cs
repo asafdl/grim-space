@@ -4,9 +4,7 @@ using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
-using GrimSpace.Math;
 using GrimSpace.Math.Grid;
-using GrimSpace.Pilots;
 
 namespace GrimSpace.Battle.Effects;
 
@@ -184,15 +182,8 @@ public sealed class ApplyAreaDamageEffect(
 			ref appliedDamage,
 			ref appliedShieldDamageBonus);
 
-		if (damage > 0
-			&& unit.DefensiveManeuversActive
-			&& unit.DefensiveManeuversMpUsed == 0
-			&& RollsDeflection(unit))
-		{
-			var retained = PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent;
-			appliedDamage = ScalePercent(appliedDamage, retained);
-			appliedShieldDamageBonus = ScalePercent(appliedShieldDamageBonus, retained);
-		}
+		if (damage > 0)
+			Defense.ApplyDeflectionRolls(unit, cause, ref appliedDamage, ref appliedShieldDamageBonus);
 
 		if (appliedDamage > 0)
 			Defense.ApplyDamage(unit, appliedDamage, face, appliedShieldDamageBonus);
@@ -218,17 +209,4 @@ public sealed class ApplyAreaDamageEffect(
 		(int)System.Math.Round(amount * percent / 100m, System.MidpointRounding.AwayFromZero);
 
 	private static int PortionOf(int amount, int percent) => ScalePercent(amount, percent);
-
-	private bool RollsDeflection(State unit)
-	{
-		var rollIndex = unit.DefensiveManeuversRollIndex++;
-		var random = new StableRandom(
-			new StableSeedMixer()
-				.Add(unit.Id)
-				.Add(rollIndex)
-				.Add((int)cause)
-				.Value);
-		return random.NextDouble()
-			< PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent / 100.0;
-	}
 }

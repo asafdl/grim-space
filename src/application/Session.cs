@@ -158,6 +158,9 @@ public partial class Session : Node
 		_devMenu.SetResourceActions(
 			() => Run is not null && Run.StarSystem is not null,
 			GrantDebugResources);
+		_devMenu.SetPilotExperienceActions(
+			() => Run is not null,
+			GrantDebugMaxPilotExperience);
 		_devMenu.SetDangerActions(
 			() => Run is not null && Run.StarSystem is not null,
 			BumpDebugDanger);
@@ -265,6 +268,11 @@ public partial class Session : Node
 			(ResourceId.ScrapAlloy, 1000),
 			(ResourceId.IndustrialCore, 1000),
 			(ResourceId.Fuel, 1000)));
+	}
+
+	private void GrantDebugMaxPilotExperience()
+	{
+		Run?.TryGrantDebugMaxPilotExperience();
 	}
 
 	private void BumpDebugDanger()

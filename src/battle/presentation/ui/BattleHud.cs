@@ -397,7 +397,8 @@ public partial class BattleHud : Node
 			frame.CanFocusCamera,
 			frame.RangeEnemy is not null,
 			frame.CanUndo,
-			allowEndTurn);
+			frame.TargetPick is { } pick ? pick.CanLockIn : allowEndTurn,
+			lockInMode: frame.TargetPick is not null);
 	}
 
 	private Tween? FadePhaseVisual(

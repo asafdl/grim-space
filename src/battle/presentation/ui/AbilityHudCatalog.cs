@@ -6,6 +6,7 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Targeting;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Encounter;
@@ -26,6 +27,7 @@ public static class AbilityHudCatalog
 	private static readonly Color VoidBombAccent = new(0.68f, 0.32f, 0.98f, 0.52f);
 	private static readonly Color GoopGunAccent = new(0.42f, 0.88f, 0.38f, 0.48f);
 	private static readonly Color BraceAccent = new(0.72f, 0.58f, 0.28f, 0.5f);
+	private static readonly Color ProtectionDroneAccent = new(0.55f, 0.85f, 0.95f, 0.5f);
 
 	public sealed record Visual(string IconPath, Color Tint);
 
@@ -55,9 +57,17 @@ public static class AbilityHudCatalog
 		string? IconPath,
 		Func<UnitDisplayState, BattleHudTooltipContent> Tooltip,
 		Func<UnitDisplayState, AbilityLegality, string> Charges,
-		Func<AbilityLegality, bool> IsLegal)
+		Func<AbilityLegality, bool> IsLegal,
+		TargetPickSpec? TargetPick = null)
 	{
 		public Color IconTint { get; } = OpaqueTint(Targeting.Tint);
+
+		public ITargetedActionDef? TargetedDef =>
+			TargetPick is null
+				? null
+				: Def as ITargetedActionDef
+					?? throw new InvalidOperationException(
+						$"{Def.GetType().Name} declares target picks but is not an {nameof(ITargetedActionDef)}.");
 	}
 
 	private static Color OpaqueTint(Color previewTint) =>
@@ -201,6 +211,20 @@ public static class AbilityHudCatalog
 					unit.ShieldBraceUsedThisTurn || unit.ShieldBraceActive ? 0 : 1,
 					1),
 				legality => legality.Brace),
+			ProtectionDroneDef => new(
+				EPlayerMode.ProtectionDrone,
+				def,
+				new AbilityTargetingSpec(
+					SelfSource<ProtectionDroneAction>,
+					AbilitySourceMeshes.CreateScrapDroneSwarmBurst,
+					ProtectionDroneAccent),
+				"res://assets/ui/abilities/scrap_drone_swarm.svg",
+				BattleHudCopy.ProtectionDroneTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.ProtectionDroneCooldownRemaining == 0 ? 1 : 0,
+					1),
+				legality => legality.ProtectionDrone,
+				ProtectionDroneDef.TargetPick),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};

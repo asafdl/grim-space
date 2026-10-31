@@ -373,6 +373,25 @@ public sealed class State : IDisposable
 		return true;
 	}
 
+	public bool TryGrantDebugMaxPilotExperience()
+	{
+		var any = false;
+		foreach (var pilot in PilotRegistry.All.ToArray())
+		{
+			var updated = PilotProgression.GrantMaxExperience(pilot);
+			if (ReferenceEquals(updated, pilot))
+				continue;
+
+			PilotRegistry.Update(updated);
+			any = true;
+			GameLog.Log(
+				$"Debug pilot XP: '{updated.Name}' → Lv {PilotProgression.LevelFor(updated.ExperiencePoints)} "
+				+ $"({updated.ExperiencePoints} total).");
+		}
+
+		return any;
+	}
+
 	public bool TryAssignPilotToShip(string pilotId, string shipId) =>
 		TryAssignPilotToShip(pilotId, shipId, out _);
 

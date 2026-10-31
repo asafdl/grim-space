@@ -2,6 +2,8 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Presentation.Interaction;
+using GrimSpace.Battle.Targeting;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
@@ -91,13 +93,16 @@ public sealed class PresentationFrameBuilder
 			: AbilityLegality.Empty;
 		var abilityChoices = canControl
 			&& state.Mode != EPlayerMode.Move
-			&& state.ActiveAbilitySpec is { } choiceSpec
+			&& state.ActiveAbilitySpec is { TargetPick: null } choiceSpec
 				? AbilityActivation.ResolveChoices(
 					choiceSpec,
 					focusUnit.ToState(),
 					legalCapabilities)
 				: [];
 		state.ClampAbilityHover(abilityChoices.Count);
+		var targetPick = canControl && state.ActiveAbilitySpec is { TargetPick: not null } pickSpec
+			? BuildTargetPick(state, pickSpec, sim.World, focusId)
+			: null;
 		var hoveredAbilityChoice = state.AbilityHoveredIndex is int abilityHoverIndex
 			? abilityChoices[abilityHoverIndex]
 			: null;
@@ -173,7 +178,12 @@ public sealed class PresentationFrameBuilder
 		{
 			instruction = new ActionInstruction(
 				Visible: true,
-				Label: BattleHudCopy.PickAbilitySource(state.Mode),
+				Label: targetPick is not null
+					? BattleHudCopy.PickTargets(
+						targetPick.PickedIds.Count,
+						targetPick.MinPicks,
+						targetPick.MaxPicks)
+					: BattleHudCopy.PickAbilitySource(state.Mode),
 				Accent: state.ActiveAbilitySpec?.IconTint);
 		}
 
@@ -224,11 +234,14 @@ public sealed class PresentationFrameBuilder
 			MovePaths = moveOptions,
 			PreviewUnits = previewUnits,
 			PreviewUnitTeams = previewUnitTeams,
-			RangeEnemy = FindRangeEnemy(
-				battle,
-				previewUnits,
-				previewUnitTeams,
-				state.RangeEnemyId),
+			RangeEnemy = targetPick is not null
+				? SessionRangeTarget(previewUnits, playerId, targetPick.CandidateId)
+				: FindRangeEnemy(
+					battle,
+					previewUnits,
+					previewUnitTeams,
+					state.RangeEnemyId),
+			TargetPick = targetPick,
 			Weapons = weapons,
 			AreaActions = areaActions,
 			Abilities = abilities,
@@ -264,6 +277,42 @@ public sealed class PresentationFrameBuilder
 			ReopenMoveCell = reopenMoveCell,
 		};
 	}
+
+	private static TargetPickFrame BuildTargetPick(
+		InteractionState state,
+		AbilityHudCatalog.Spec spec,
+		BattleWorld world,
+		string actorId)
+	{
+		var pick = spec.TargetPick!;
+		state.PruneTargetPicks(id => TargetPickSpec.IsLiving(world, id));
+		var legal = pick.LegalTargets(world, actorId, state.PickedTargetIds);
+		if (state.TargetCandidateId is not { } candidate || !legal.Contains(candidate))
+			state.SetTargetCandidate(legal.Count > 0 ? legal[0] : null);
+
+		var picked = state.PickedTargetIds.ToArray();
+		return new TargetPickFrame(
+			spec.TargetedDef!,
+			pick.MinPicks,
+			pick.MaxPicks,
+			state.TargetCandidateId,
+			picked,
+			legal,
+			CanConfirmPick: state.TargetCandidateId is { } current
+				&& pick.CanPickMore(picked.Length)
+				&& !picked.Contains(current),
+			CanLockIn: pick.CanLockIn(picked.Length));
+	}
+
+	private static EnemyRangeTarget? SessionRangeTarget(
+		IReadOnlyDictionary<string, UnitDisplayState> units,
+		string actorId,
+		string? candidateId) =>
+		candidateId is { } id
+		&& units.TryGetValue(actorId, out var actor)
+		&& units.TryGetValue(id, out var candidate)
+			? RangeTarget(id, actor.Position, candidate.Position)
+			: null;
 
 	private static UnitPreviewSnapshot CaptureLiveUnitSnapshot(BattleOrchestrator battle)
 	{

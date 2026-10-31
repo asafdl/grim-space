@@ -425,6 +425,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			EPilotSkillId.DodgeThis => DodgeIconPath,
 			EPilotSkillId.IonizedPayload => LightningIconPath,
 			EPilotSkillId.DefensiveManeuvers => ManeuverIconPath,
+			EPilotSkillId.ProtectionDrone => SalvageIconPath,
 			EPilotSkillId.Brace => ShieldIconPath,
 			EPilotSkillId.InTheFray => FrayIconPath,
 			EPilotSkillId.OneWithTheVoid => VoidBombIconPath,

@@ -13,6 +13,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class BattleCommandHud : Control
 {
+	private const string ExecuteTurnText = "EXECUTE TURN";
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
 	private const float ConsoleHeight = 160f;
@@ -291,7 +292,7 @@ public sealed partial class BattleCommandHud : Control
 
 		_executeButton = new BattleHudTooltipButton
 		{
-			Text = "EXECUTE TURN",
+			Text = ExecuteTurnText,
 			CustomMinimumSize = new Vector2(136f, 34f),
 			TooltipText = BattleHudCopy.EndTurnTooltip,
 			FocusMode = FocusModeEnum.None,
@@ -391,7 +392,8 @@ public sealed partial class BattleCommandHud : Control
 		bool cameraFocusAvailable,
 		bool canCycleTarget,
 		bool undoAvailable,
-		bool allowExecute)
+		bool allowExecute,
+		bool lockInMode)
 	{
 		_utilityHost.Visible = !isInspecting;
 		ExecuteAction.Visible = !isInspecting;
@@ -401,6 +403,10 @@ public sealed partial class BattleCommandHud : Control
 		_cycleTargetButton.Disabled = !canCycleTarget;
 		_undoButton.Disabled = !undoAvailable;
 		_executeButton.Disabled = !canAct || !allowExecute;
+		_executeButton.Text = lockInMode ? BattleHudCopy.LockInTargets : ExecuteTurnText;
+		_executeButton.TooltipText = lockInMode
+			? BattleHudCopy.LockInTargetsTooltip
+			: BattleHudCopy.EndTurnTooltip;
 		_inspectBackButton.Disabled = !isInspecting;
 		RefreshCommandWingWidth();
 	}

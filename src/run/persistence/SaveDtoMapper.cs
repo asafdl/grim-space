@@ -245,6 +245,9 @@ public static class SaveDtoMapper
 			TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 			state.ShieldsUpUsedThisTurn,
 			state.OverchargeEnginesCooldownRemaining,
+			state.ProtectionDroneCooldownRemaining,
+			state.ProtectionDroneBuffActive,
+			state.ProtectionDroneRollIndex,
 			state.ShieldBraceActive,
 			state.ShieldBraceFace,
 			ShieldBraceSnapshot = state.ShieldBraceSnapshot is { } braceSnapshot
@@ -296,6 +299,9 @@ public static class SaveDtoMapper
 		RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, dto.TemporaryShieldGrants);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.OverchargeEnginesCooldownRemaining = dto.OverchargeEnginesCooldownRemaining;
+		state.ProtectionDroneCooldownRemaining = dto.ProtectionDroneCooldownRemaining;
+		state.ProtectionDroneBuffActive = dto.ProtectionDroneBuffActive;
+		state.ProtectionDroneRollIndex = dto.ProtectionDroneRollIndex;
 		state.ShieldBraceActive = dto.ShieldBraceActive;
 		state.ShieldBraceFace = dto.ShieldBraceFace;
 		state.ShieldBraceSnapshot = dto.ShieldBraceSnapshot is { } braceSnapshot
@@ -381,6 +387,9 @@ public static class SaveDtoMapper
 				TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
 				state.ShieldsUpUsedThisTurn,
 				state.OverchargeEnginesCooldownRemaining,
+				state.ProtectionDroneCooldownRemaining,
+				state.ProtectionDroneBuffActive,
+				state.ProtectionDroneRollIndex,
 				state.ShieldBraceActive,
 				state.ShieldBraceFace,
 				ShieldBraceSnapshot = state.ShieldBraceSnapshot is { } saveBraceSnapshot
@@ -915,6 +924,9 @@ public static class SaveDtoMapper
 			RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, unitDto.TemporaryShieldGrants);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.OverchargeEnginesCooldownRemaining = unitDto.OverchargeEnginesCooldownRemaining;
+			state.ProtectionDroneCooldownRemaining = unitDto.ProtectionDroneCooldownRemaining;
+			state.ProtectionDroneBuffActive = unitDto.ProtectionDroneBuffActive;
+			state.ProtectionDroneRollIndex = unitDto.ProtectionDroneRollIndex;
 			state.ShieldBraceActive = unitDto.ShieldBraceActive;
 			state.ShieldBraceFace = unitDto.ShieldBraceFace;
 			state.ShieldBraceSnapshot = unitDto.ShieldBraceSnapshot is { } unitBraceSnapshot

@@ -113,7 +113,8 @@ public sealed class PlanningPreview
 			actions.Any(action => action is DetonateAction),
 			actions.Any(action => action is ShieldsUpAction),
 			actions.Any(action => action is OverchargeEnginesAction),
-			actions.Any(action => action is BraceAction));
+			actions.Any(action => action is BraceAction),
+			actions.Any(action => action is ProtectionDroneAction));
 
 	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
 	{

@@ -55,6 +55,9 @@ internal static class BattleHudCopy
 	public const string PickLaunchBay = "Pick launch bay";
 	public const string PickVoidBomb = "Pick void bomb";
 
+	public const string LockInTargets = "LOCK IN";
+	public const string LockInTargetsTooltip = "Queue the ability on the picked targets.";
+
 	public const string FocusTooltip = "Refocus camera on your active unit.";
 	public const string CycleTargetTooltip = "Cycle targeting reticle.";
 	public static string UndoTooltip =>
@@ -126,6 +129,9 @@ internal static class BattleHudCopy
 			_ => PickFiringMount,
 		};
 
+	public static string PickTargets(int picked, int min, int max) =>
+		$"Pick targets ({picked}/{(min == max ? min : $"{min}-{max}")})";
+
 	public static BattleHudTooltipContent ScrapDroneSwarmTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<ScrapDroneSwarmSpec>(unit, EAbilityKind.ScrapDroneSwarm) is { } swarm
 			? ScrapDroneSwarmTooltipFor(swarm)
@@ -179,6 +185,20 @@ internal static class BattleHudCopy
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.Brace);
 		var mechanics =
 			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: 1 per turn]";
+		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
+			? mechanics
+			: $"{definition.Tooltip.Details}\n{mechanics}";
+		return new BattleHudTooltipContent(
+			definition.Tooltip.Title,
+			definition.Tooltip.Body,
+			details);
+	}
+
+	public static BattleHudTooltipContent ProtectionDroneTooltipFor(UnitDisplayState unit)
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.ProtectionDrone);
+		var mechanics =
+			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.ProtectionDrone.CooldownTurns} turns]";
 		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
 			? mechanics
 			: $"{definition.Tooltip.Details}\n{mechanics}";

@@ -174,6 +174,9 @@ internal static class BattleTestFixture
 	public static Unit Enemy(Coord position) =>
 		Create(ETeam.Enemy, "enemy", position);
 
+	public static Unit Ally(Coord position, string id = "ally") =>
+		Create(ETeam.Player, id, position, EType.RepurposedMiner);
+
 	public static Unit Carrier(Coord position) =>
 		Create(ETeam.Enemy, "carrier", position, EType.Carrier);
 

@@ -6,7 +6,8 @@ public readonly record struct AbilityLegality(
 	bool Detonate,
 	bool ShieldsUp,
 	bool OverchargeEngines,
-	bool Brace)
+	bool Brace,
+	bool ProtectionDrone = false)
 {
 	public static AbilityLegality Empty { get; } = new(WeaponPeek.Empty, false, false, false, false, false);
 }

@@ -100,6 +100,7 @@ public sealed class PilotSkillTreeTests
 
 		Assert.Contains(EPilotSkillId.Brace, tree);
 		Assert.Contains(EPilotSkillId.DefensiveManeuvers, tree);
+		Assert.Contains(EPilotSkillId.ProtectionDrone, tree);
 		Assert.DoesNotContain(EPilotSkillId.DodgeThis, tree);
 	}
 

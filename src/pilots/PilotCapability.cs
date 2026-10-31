@@ -9,6 +9,7 @@ public enum EPilotCapabilityId
 	ScrapDroneSwarmDamageBonus,
 	ShieldBrace,
 	StationaryDamageDeflection,
+	ProtectionDrone,
 	InTheFray,
 	ReinforcedHull,
 	ExperienceGainBonus,

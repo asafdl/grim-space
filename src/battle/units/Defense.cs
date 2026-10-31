@@ -1,4 +1,6 @@
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.World;
+using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 
@@ -108,6 +110,69 @@ public static class Defense
 		var reducedShieldDamage = ScalePercent(appliedDamage + appliedShieldDamageBonus, retained);
 		appliedDamage = ScalePercent(appliedDamage, retained);
 		appliedShieldDamageBonus = reducedShieldDamage - appliedDamage;
+	}
+
+	/// <summary>
+	/// Each active deflection source rolls independently; successive successes stack retain %.
+	/// </summary>
+	public static void ApplyDeflectionRolls(
+		State unit,
+		EImpactCause cause,
+		ref int appliedDamage,
+		ref int appliedShieldDamageBonus)
+	{
+		if (appliedDamage <= 0)
+			return;
+
+		if (unit.DefensiveManeuversActive
+			&& unit.DefensiveManeuversMpUsed == 0
+			&& RollsDeflection(
+				unit,
+				unit.DefensiveManeuversRollIndex++,
+				cause,
+				PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent))
+		{
+			Retain(
+				ref appliedDamage,
+				ref appliedShieldDamageBonus,
+				PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent);
+		}
+
+		if (unit.ProtectionDroneBuffActive
+			&& RollsDeflection(
+				unit,
+				unit.ProtectionDroneRollIndex++,
+				cause,
+				PilotSkillPercents.ProtectionDrone.DeflectChancePercent,
+				sourceSalt: 1))
+		{
+			Retain(
+				ref appliedDamage,
+				ref appliedShieldDamageBonus,
+				PilotSkillPercents.ProtectionDrone.DeflectDamageTakenPercent);
+		}
+	}
+
+	private static void Retain(ref int damage, ref int shieldBonus, int retainedPercent)
+	{
+		damage = ScalePercent(damage, retainedPercent);
+		shieldBonus = ScalePercent(shieldBonus, retainedPercent);
+	}
+
+	private static bool RollsDeflection(
+		State unit,
+		int rollIndex,
+		EImpactCause cause,
+		int chancePercent,
+		int? sourceSalt = null)
+	{
+		var mixer = new StableSeedMixer()
+			.Add(unit.Id)
+			.Add(rollIndex)
+			.Add((int)cause);
+		if (sourceSalt is int salt)
+			mixer.Add(salt);
+		return new StableRandom(mixer.Value).NextDouble() < chancePercent / 100.0;
 	}
 
 	private static bool InTheFrayPositionMet(BattleWorld world, Unit unit)

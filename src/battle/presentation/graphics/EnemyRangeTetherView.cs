@@ -79,7 +79,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		var targetInfoViewport = new SubViewport
 		{
 			Name = "TargetInfoViewport",
-			Size = new Vector2I(240, 160),
+			Size = new Vector2I(240, 208),
 			TransparentBg = true,
 			Disable3D = true,
 			RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
@@ -107,7 +107,8 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		Node3D? target,
 		float separationMeters,
 		UnitDisplayState? sourceState = null,
-		UnitDisplayState? targetState = null)
+		UnitDisplayState? targetState = null,
+		string? pickHotkey = null)
 	{
 		_source = source;
 		_target = target;
@@ -132,7 +133,8 @@ public sealed partial class EnemyRangeTetherView : Node3D
 			targetState.HeatCapacity > 0
 				? targetState.Heat / (float)targetState.HeatCapacity
 				: 0f,
-			targetState.HeatProfile.Participates);
+			targetState.HeatProfile.Participates,
+			pickHotkey);
 		Show();
 		UpdateVisual();
 	}

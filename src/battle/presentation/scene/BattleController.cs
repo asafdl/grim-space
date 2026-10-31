@@ -48,6 +48,7 @@ public partial class BattleController : Node3D
 	private BattleView _battleView = null!;
 	private BoardAsteroidView _asteroidView = null!;
 	private EnemyRangeTetherView _enemyRangeTether = null!;
+	private PickedTargetMarksView _pickedTargetMarks = null!;
 	private GoopHazardView _goopHazardView = null!;
 	private BattleHud _battleHud = null!;
 	private BattleTutorialAdapter? _battleTutorial;
@@ -189,6 +190,8 @@ public partial class BattleController : Node3D
 		_enemyRangeTether = new EnemyRangeTetherView { Name = "EnemyRangeTether" };
 		_enemyRangeTether.Configure(layout.Grid);
 		_unitsRoot.AddChild(_enemyRangeTether);
+		_pickedTargetMarks = new PickedTargetMarksView { Name = "PickedTargetMarks" };
+		_unitsRoot.AddChild(_pickedTargetMarks);
 		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
 		_moveGhost.Configure(_camera);
 		_unitsRoot.AddChild(_moveGhost);
@@ -215,7 +218,8 @@ public partial class BattleController : Node3D
 			_agent,
 			_camera,
 			_battleHud,
-			_abilitySourcePicker)
+			_abilitySourcePicker,
+			_battleView.UnitViews)
 		{
 			Name = "UserIntentTranslator",
 		};
@@ -376,6 +380,9 @@ public partial class BattleController : Node3D
 		};
 		_translator.AbilityHoverChanged += OnAbilityHoverChanged;
 		_translator.CycleEnemyRequested += CycleEnemyFocus;
+		_translator.TargetCandidateRequested += OnTargetCandidateRequested;
+		_translator.TargetPickConfirmRequested += OnTargetPickConfirmRequested;
+		_translator.TargetPickUndoRequested += OnTargetPickUndoRequested;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
 		_translator.FocusCameraRequested += () =>
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
@@ -456,7 +463,8 @@ public partial class BattleController : Node3D
 
 		_frames.Interaction.SetMode(spec.Mode, spec);
 		RefreshPresentation();
-		if (AbilityActivation.ImmediateChoice(_currentFrame.AbilityChoices) is { } immediate)
+		if (spec.TargetPick is null
+			&& AbilityActivation.ImmediateChoice(_currentFrame.AbilityChoices) is { } immediate)
 			_translator.OnAbilityChoiceSelected(immediate);
 	}
 
@@ -570,6 +578,7 @@ public partial class BattleController : Node3D
 			movePoseSelectionActive: frame.IsMovePoseSelectionActive,
 			abilityChoices: frame.AbilityChoices,
 			abilityHoveredIndex: frame.AbilityHoveredIndex,
+			targetPick: frame.TargetPick,
 			reopenMoveCell: frame.ReopenMoveCell);
 		ApplyFrame(frame);
 	}
@@ -589,10 +598,39 @@ public partial class BattleController : Node3D
 		RefreshPresentation();
 	}
 
+	private void OnTargetCandidateRequested(string unitId)
+	{
+		_frames.Interaction.SetTargetCandidate(unitId);
+		RefreshPresentation();
+	}
+
+	private void OnTargetPickConfirmRequested()
+	{
+		_frames.Interaction.ConfirmTargetPick();
+		RefreshPresentation();
+	}
+
+	private void OnTargetPickUndoRequested()
+	{
+		_frames.Interaction.UndoTargetPick();
+		RefreshPresentation();
+	}
+
 	private void CycleEnemyFocus()
 	{
 		if (!_battle.AcceptsPlayerInput)
 			return;
+
+		if (_currentFrame.TargetPick is { LegalIds.Count: > 0 } targetPick)
+		{
+			var index = targetPick.CandidateId is { } candidateId
+				? targetPick.LegalIds.ToList().IndexOf(candidateId)
+				: -1;
+			_frames.Interaction.SetTargetCandidate(
+				targetPick.LegalIds[(index + 1) % targetPick.LegalIds.Count]);
+			RefreshPresentation();
+			return;
+		}
 
 		var playerPosition = _currentFrame.PreviewUnits[_battle.PlayerId].Position;
 		var enemies = _currentFrame.PreviewUnits
@@ -799,6 +837,11 @@ public partial class BattleController : Node3D
 
 	private void ApplyEnemyRangeTether(PresentationFrame frame)
 	{
+		_pickedTargetMarks.Apply(
+			(frame.TargetPick?.PickedIds ?? [])
+				.Select(id => _battleView.UnitViews.GetValueOrDefault(id))
+				.OfType<Node3D>()
+				.ToArray());
 		if (frame.RangeEnemy is not { } closest
 			|| !_battleView.UnitViews.TryGetValue(_battle.PlayerId, out var player)
 			|| !_battleView.UnitViews.TryGetValue(closest.EnemyId, out var enemy))
@@ -812,7 +855,10 @@ public partial class BattleController : Node3D
 			enemy,
 			closest.SeparationMeters,
 			frame.PreviewUnits[_battle.PlayerId],
-			frame.PreviewUnits[closest.EnemyId]);
+			frame.PreviewUnits[closest.EnemyId],
+			pickHotkey: frame.TargetPick is { CanConfirmPick: true }
+				? GameInputBindings.PrimaryLabel("battle_primary_click")
+				: null);
 	}
 
 	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)

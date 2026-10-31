@@ -13,6 +13,11 @@ public interface IMountedActionDef
 	IAction Bind(string actorId, ESpatialOrientation mountedOn);
 }
 
+public interface ITargetedActionDef
+{
+	IAction Bind(string actorId, IReadOnlyList<string> pickedIds);
+}
+
 public interface IMountedAction : IAction
 {
 	ESpatialOrientation MountedOn { get; }

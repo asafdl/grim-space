@@ -10,9 +10,13 @@ namespace GrimSpace.Battle.Presentation.Interaction;
 public sealed class InteractionState
 {
 	private readonly List<PoseHitOpportunity> _poseHitOpportunities = [];
+	private readonly List<string> _pickedTargetIds = [];
 
 	public string? FocusId { get; private set; }
 	public string? RangeEnemyId { get; private set; }
+	public string? TargetCandidateId { get; private set; }
+	public IReadOnlyList<string> PickedTargetIds => _pickedTargetIds;
+	public bool IsTargetSessionActive => ActiveAbilitySpec?.TargetPick is not null;
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities => _poseHitOpportunities;
@@ -47,9 +51,50 @@ public sealed class InteractionState
 	{
 		Mode = mode;
 		ActiveAbilitySpec = mode == EPlayerMode.Move ? null : abilitySpec;
+		ClearTargetSession();
 		ActionError = null;
 		ClearHovers();
 		ClearMoveSelection();
+	}
+
+	public void SetTargetCandidate(string? unitId)
+	{
+		if (IsTargetSessionActive)
+			TargetCandidateId = unitId;
+	}
+
+	public bool ConfirmTargetPick()
+	{
+		if (ActiveAbilitySpec?.TargetPick is not { } pick
+			|| TargetCandidateId is not { } candidate
+			|| !pick.CanPickMore(_pickedTargetIds.Count)
+			|| _pickedTargetIds.Contains(candidate))
+			return false;
+
+		_pickedTargetIds.Add(candidate);
+		TargetCandidateId = null;
+		return true;
+	}
+
+	/// <summary>Pops the last pick and returns the candidate to it.</summary>
+	public bool UndoTargetPick()
+	{
+		if (_pickedTargetIds.Count == 0)
+			return false;
+
+		var last = _pickedTargetIds[^1];
+		_pickedTargetIds.RemoveAt(_pickedTargetIds.Count - 1);
+		TargetCandidateId = last;
+		return true;
+	}
+
+	public void PruneTargetPicks(Func<string, bool> keep) =>
+		_pickedTargetIds.RemoveAll(id => !keep(id));
+
+	private void ClearTargetSession()
+	{
+		TargetCandidateId = null;
+		_pickedTargetIds.Clear();
 	}
 
 	public void ResetAfterTurn()

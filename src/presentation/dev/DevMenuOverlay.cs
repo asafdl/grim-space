@@ -18,6 +18,8 @@ public sealed partial class DevMenuOverlay : Control
 	private Action? _revealAllUnits;
 	private Func<bool>? _canSpawnPilotRecruitmentLead;
 	private Action? _spawnPilotRecruitmentLead;
+	private Func<bool>? _canGrantMaxPilotExperience;
+	private Action? _grantMaxPilotExperience;
 
 	public event Action? StartBattleRequested;
 
@@ -82,6 +84,12 @@ public sealed partial class DevMenuOverlay : Control
 				OnSpawnPilotRecruitmentLead,
 				_canSpawnPilotRecruitmentLead?.Invoke() == true));
 
+		if (_canGrantMaxPilotExperience is not null)
+			items.AddChild(HudWidgets.CreateModalMenuButton(
+				"Grant Full Pilot XP",
+				OnGrantMaxPilotExperience,
+				_canGrantMaxPilotExperience()));
+
 		_shell.SetBody(items);
 		var viewport = GetViewportRect().Size;
 		_shell.SetPanelMinimumSize(new Vector2(
@@ -111,6 +119,12 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		_canGrantResources = canGrantResources;
 		_grantResources = grantResources;
+	}
+
+	public void SetPilotExperienceActions(Func<bool> canGrantMaxPilotExperience, Action grantMaxPilotExperience)
+	{
+		_canGrantMaxPilotExperience = canGrantMaxPilotExperience;
+		_grantMaxPilotExperience = grantMaxPilotExperience;
 	}
 
 	public void SetDangerActions(Func<bool> canBumpDanger, Action bumpDanger)
@@ -181,5 +195,11 @@ public sealed partial class DevMenuOverlay : Control
 	{
 		Close();
 		_spawnPilotRecruitmentLead?.Invoke();
+	}
+
+	private void OnGrantMaxPilotExperience()
+	{
+		Close();
+		_grantMaxPilotExperience?.Invoke();
 	}
 }

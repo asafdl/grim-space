@@ -16,6 +16,7 @@ public sealed partial class DevMenuHudPreview : Control
 		UiHudPreviewChrome.MountOverlay(this, overlay);
 		overlay.SetBattleActions(() => true, () => { }, () => { });
 		overlay.SetResourceActions(() => true, () => { });
+		overlay.SetPilotExperienceActions(() => true, () => { });
 		overlay.SetDangerActions(() => true, () => { });
 		overlay.SetMapActions(() => true, () => { }, () => true, () => { });
 		overlay.Open();

@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
@@ -20,6 +21,7 @@ public sealed class PresentationFrame
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
 	public required IReadOnlyDictionary<string, ETeam> PreviewUnitTeams { get; init; }
 	public EnemyRangeTarget? RangeEnemy { get; init; }
+	public TargetPickFrame? TargetPick { get; init; }
 	public required WeaponPeek Weapons { get; init; }
 	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }
@@ -51,3 +53,13 @@ public sealed class PresentationFrame
 }
 
 public readonly record struct EnemyRangeTarget(string EnemyId, float SeparationMeters);
+
+public sealed record TargetPickFrame(
+	ITargetedActionDef Def,
+	int MinPicks,
+	int MaxPicks,
+	string? CandidateId,
+	IReadOnlyList<string> PickedIds,
+	IReadOnlyList<string> LegalIds,
+	bool CanConfirmPick,
+	bool CanLockIn);

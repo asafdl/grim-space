@@ -12,4 +12,5 @@ public enum EPlayerMode
 	ShieldsUp,
 	OverchargeEngines,
 	Brace,
+	ProtectionDrone,
 }

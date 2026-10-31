@@ -51,6 +51,17 @@ public sealed class PilotProgressionTests
 	}
 
 	[Fact]
+	public void GrantMaxExperience_SetsMaxLevelThreshold()
+	{
+		var pilot = Pilot.CreateForShip("fighter-a");
+		var maxed = PilotProgression.GrantMaxExperience(pilot);
+
+		Assert.Equal(PilotProgression.ExperienceForLevel(PilotProgression.MaxLevel), maxed.ExperiencePoints);
+		Assert.Equal(PilotProgression.MaxLevel, PilotProgression.LevelFor(maxed.ExperiencePoints));
+		Assert.Same(maxed, PilotProgression.GrantMaxExperience(maxed));
+	}
+
+	[Fact]
 	public void AddExperience_IgnoresNonPositiveAmount()
 	{
 		var pilot = Pilot.CreateForShip("fighter-a");

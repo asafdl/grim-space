@@ -31,6 +31,9 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		if (actor.OverchargeEnginesCooldownRemaining > 0)
 			actor.OverchargeEnginesCooldownRemaining--;
 
+		if (actor.ProtectionDroneCooldownRemaining > 0)
+			actor.ProtectionDroneCooldownRemaining--;
+
 		if (actor.HeatProfile.Participates && !actor.Overdrive && !actor.Overheat)
 		{
 			var cleared = System.Math.Max(0, actor.Heat - actor.HeatProfile.ClearPerTurn);

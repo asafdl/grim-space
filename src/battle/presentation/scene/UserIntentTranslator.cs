@@ -25,6 +25,7 @@ public sealed partial class UserIntentTranslator : Node
 	private readonly Controller _camera;
 	private readonly BattleHud _hud;
 	private readonly AbilitySourcePickerView _abilitySourcePicker;
+	private readonly IReadOnlyDictionary<string, UnitView> _unitViews;
 
 	private bool _enabled;
 	private bool _canIssueActions;
@@ -34,6 +35,7 @@ public sealed partial class UserIntentTranslator : Node
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
 	private IReadOnlyList<AbilityActivationChoice> _abilityChoices = [];
 	private int? _abilityHoveredIndex;
+	private TargetPickFrame? _targetPick;
 	private Coord? _moveHoveredCell;
 	private MovePathOption? _displayedHoveredMove;
 	private MovementHoverSnapshot? _displayedHoverSnapshot;
@@ -56,13 +58,15 @@ public sealed partial class UserIntentTranslator : Node
 		IActionSink actions,
 		Controller camera,
 		BattleHud hud,
-		AbilitySourcePickerView abilitySourcePicker)
+		AbilitySourcePickerView abilitySourcePicker,
+		IReadOnlyDictionary<string, UnitView> unitViews)
 	{
 		_actorId = actorId;
 		_actions = actions;
 		_camera = camera;
 		_hud = hud;
 		_abilitySourcePicker = abilitySourcePicker;
+		_unitViews = unitViews;
 	}
 
 	public void Bind(string actorId, IActionSink actions)
@@ -92,6 +96,9 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action? RetireRequested;
 	public event Action<Coord>? MoveReopenRequested;
 	public event Action<AbilityActivationChoice>? AbilityConfirmed;
+	public event Action<string>? TargetCandidateRequested;
+	public event Action? TargetPickConfirmRequested;
+	public event Action? TargetPickUndoRequested;
 
 	public void SetPresentation(
 		bool enabled,
@@ -106,6 +113,7 @@ public sealed partial class UserIntentTranslator : Node
 		bool movePoseSelectionActive,
 		IReadOnlyList<AbilityActivationChoice> abilityChoices,
 		int? abilityHoveredIndex,
+		TargetPickFrame? targetPick,
 		Coord? reopenMoveCell)
 	{
 		_enabled = enabled;
@@ -116,6 +124,7 @@ public sealed partial class UserIntentTranslator : Node
 		_moveOptions = moveOptions;
 		_abilityChoices = abilityChoices;
 		_abilityHoveredIndex = abilityHoveredIndex;
+		_targetPick = targetPick;
 		_moveHoveredCell = moveHoveredCell;
 		_displayedHoveredMove = hoveredMove;
 		var reachableBases = moveDestination is { } destination
@@ -267,7 +276,7 @@ public sealed partial class UserIntentTranslator : Node
 		if (@event.IsActionPressed("battle_undo", false, true) && _hud.CommandHud.CanUndo)
 		{
 			if (_mode != EPlayerMode.Move)
-				TryCancelAbilityMode();
+				UndoInAbilityMode();
 			else if (_moveInput.IsPoseSelectionActive)
 				CancelMoveSelection();
 			else
@@ -293,7 +302,12 @@ public sealed partial class UserIntentTranslator : Node
 
 	public void OnEndTurn()
 	{
-		if (_moveInput.Destination is null && _hud.CommandHud.CanExecute)
+		if (!_hud.CommandHud.CanExecute)
+			return;
+
+		if (_targetPick is { } targetPick)
+			LockInTargets(targetPick);
+		else if (_moveInput.Destination is null)
 			EndTurnRequested?.Invoke();
 	}
 
@@ -301,7 +315,7 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		if (_mode != EPlayerMode.Move)
 		{
-			TryCancelAbilityMode();
+			UndoInAbilityMode();
 			return;
 		}
 
@@ -390,6 +404,37 @@ public sealed partial class UserIntentTranslator : Node
 		return false;
 	}
 
+	private void UndoInAbilityMode()
+	{
+		if (_targetPick is { PickedIds.Count: > 0 })
+			TargetPickUndoRequested?.Invoke();
+		else
+			TryCancelAbilityMode();
+	}
+
+	private void LockInTargets(TargetPickFrame targetPick)
+	{
+		if (!Enqueue(targetPick.Def.Bind(_actorId, targetPick.PickedIds)))
+		{
+			ActionFailed?.Invoke();
+			return;
+		}
+
+		ModeRequested?.Invoke(EPlayerMode.Move);
+	}
+
+	private void HandleTargetClick(TargetPickFrame targetPick, Vector2 screenPosition)
+	{
+		if (UnitPick.Pick(_camera, screenPosition, _unitViews) is not { } unitId
+			|| !targetPick.LegalIds.Contains(unitId))
+			return;
+
+		if (unitId != targetPick.CandidateId)
+			TargetCandidateRequested?.Invoke(unitId);
+		else if (targetPick.CanConfirmPick)
+			TargetPickConfirmRequested?.Invoke();
+	}
+
 	private bool TryCancelAbilityMode()
 	{
 		if (_mode == EPlayerMode.Move)
@@ -426,6 +471,12 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (!_canIssueActions)
 			return;
+
+		if (_targetPick is { } targetPick)
+		{
+			HandleTargetClick(targetPick, screenPosition);
+			return;
+		}
 
 		var index = _abilitySourcePicker.PickIndex(screenPosition);
 		if (index is not int choiceIndex

@@ -44,6 +44,18 @@ public static class PilotSkillPercents
 		public const int DeflectDamageTakenPercent = 50;
 	}
 
+	public static class ProtectionDrone
+	{
+		public const int CooldownTurns = 4;
+
+		/// <summary>Ally End-phase passes before the buff expires (Brace/Shields Up style).</summary>
+		public const int BuffDurationEndPasses = 2;
+
+		public const int DeflectChancePercent = DefensiveManeuvers.DeflectChancePercent;
+
+		public const int DeflectDamageTakenPercent = DefensiveManeuvers.DeflectDamageTakenPercent;
+	}
+
 	public static class InTheFray
 	{
 		/// <summary>Manhattan cell distance required from an enemy (1 cell = 1 km).</summary>

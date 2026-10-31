@@ -77,6 +77,15 @@ public static class PilotProgression
 		return pilot.WithExperience(pilot.ExperiencePoints + amount);
 	}
 
+	public static Pilot GrantMaxExperience(Pilot pilot)
+	{
+		ArgumentNullException.ThrowIfNull(pilot);
+		var maxXp = ExperienceForLevel(MaxLevel);
+		return pilot.ExperiencePoints >= maxXp
+			? pilot
+			: pilot.WithExperience(maxXp);
+	}
+
 	public static int CountEnemySpawns(IReadOnlyList<BattleSpawn> spawns) =>
 		spawns.Count(spawn => spawn.Team == ETeam.Enemy);
 
