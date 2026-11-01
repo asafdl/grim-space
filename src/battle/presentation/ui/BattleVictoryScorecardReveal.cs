@@ -5,7 +5,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 internal static class BattleVictoryScorecardReveal
 {
-	private const float InitialDelaySeconds = 1.2f;
+	private const float InitialDelaySeconds = 0.4f;
 	private const float RowBeatSeconds = 3.5f;
 	private const float ExperienceFillSeconds = 2.8f;
 
