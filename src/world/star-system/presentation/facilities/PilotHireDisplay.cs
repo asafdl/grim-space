@@ -43,6 +43,7 @@ internal static class PilotHireDisplay
 		chassis switch
 		{
 			EType.RepurposedMiner => "Repurposed Miner",
+			EType.IndustrialGooper => "Industrial Gooper",
 			EType.Gunship => "Gunship",
 			_ => chassis.ToString(),
 		};

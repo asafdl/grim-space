@@ -29,7 +29,7 @@ public sealed class GoopGunScoringTests
 			"gooper",
 			enemyPos,
 			EType.IndustrialGooper,
-			new Coord(-1, 0, 0),
+			new Coord(1, 0, 0),
 			Coord.Up);
 		enemy.State.ActionPoints = 0;
 
@@ -50,7 +50,7 @@ public sealed class GoopGunScoringTests
 			"gooper",
 			enemyPos,
 			EType.IndustrialGooper,
-			new Coord(-1, 0, 0),
+			new Coord(1, 0, 0),
 			Coord.Up);
 		enemy.State.ActionPoints = 0;
 
@@ -74,7 +74,7 @@ public sealed class GoopGunScoringTests
 			"gooper",
 			gooperPos,
 			EType.IndustrialGooper,
-			new Coord(-1, 0, 0),
+			new Coord(1, 0, 0),
 			Coord.Up);
 		gooper.State.ActionPoints = 0;
 

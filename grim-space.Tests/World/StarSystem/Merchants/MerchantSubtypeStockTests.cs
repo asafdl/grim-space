@@ -21,7 +21,7 @@ public sealed class MerchantSubtypeStockTests(StarMapFixture maps)
 	{
 		var map = maps.Fresh(42);
 
-		Assert.Equal(6, map.Market.ListRecruitmentOffers().Count);
+		Assert.Equal(9, map.Market.ListRecruitmentOffers().Count);
 		Assert.True(MerchantSubtypeStock.HasOffers(map, EMerchantSubtype.Ships));
 	}
 }

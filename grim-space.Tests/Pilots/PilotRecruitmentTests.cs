@@ -10,10 +10,15 @@ public sealed class PilotRecruitmentTests
 	[Fact]
 	public void RecruitableOperatorClasses_MatchConfiguredPlayableClasses()
 	{
-		Assert.Equal(2, PilotRecruitment.RecruitableOperatorClassIds.Count);
+		Assert.Equal(3, PilotRecruitment.RecruitableOperatorClassIds.Count);
 		Assert.Equal(
 			PilotRecruitment.RecruitableOperatorClassIds.OrderBy(id => id),
-			new[] { EOperatorClassId.SpaceRanger, EOperatorClassId.Support }.OrderBy(id => id));
+			new[]
+			{
+				EOperatorClassId.SpaceRanger,
+				EOperatorClassId.Support,
+				EOperatorClassId.Tank,
+			}.OrderBy(id => id));
 	}
 
 	[Fact]

@@ -16,6 +16,8 @@ internal static class ShipRecruitmentDisplay
 		{
 			EType.RepurposedMiner =>
 				"The workhorse the Syndicate relied on for centuries.",
+			EType.IndustrialGooper =>
+				"Industrial chassis built to hold the line and coat the grid in goop.",
 			EType.Gunship =>
 				"A bit hard to manuever, but packs a punch. Great gun support.",
 			_ => "Fleet-ready hull from the broker's current manifest.",

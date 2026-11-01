@@ -82,10 +82,10 @@ public sealed class PilotRecruitmentRollTests
 	}
 
 	[Fact]
-	public void RollCandidates_CanProduceBothOperatorClasses()
+	public void RollCandidates_CanProduceAllOperatorClasses()
 	{
 		var seen = new HashSet<EOperatorClassId>();
-		for (var seed = 0; seed < 200 && seen.Count < 2; seed++)
+		for (var seed = 0; seed < 200 && seen.Count < 3; seed++)
 		{
 			var map = StarMap.Create(seed);
 			foreach (var candidate in PilotRecruitment.RollCandidates(map, "class-mix"))
@@ -94,6 +94,7 @@ public sealed class PilotRecruitmentRollTests
 
 		Assert.Contains(EOperatorClassId.SpaceRanger, seen);
 		Assert.Contains(EOperatorClassId.Support, seen);
+		Assert.Contains(EOperatorClassId.Tank, seen);
 	}
 
 	[Fact]

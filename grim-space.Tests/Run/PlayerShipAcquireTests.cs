@@ -108,6 +108,25 @@ public sealed class PlayerShipAcquireTests
 	}
 
 	[Fact]
+	public void TryAcquirePlayerShip_TankChassisEnlistsShipAndRegistersPilot()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var declaration = new ShipSpawnDeclaration(
+			"industrial-gooper-fielded",
+			BattleUnitType.IndustrialGooper);
+		var pilotCountBefore = run.PilotRegistry.All.Count;
+		var fieldedBefore = run.GetFieldedShipIds().ToArray();
+
+		Assert.True(run.TryAcquirePlayerShip(declaration));
+
+		Assert.True(run.ItemInventory.IsOwnedBy(declaration.ShipId, RunState.PlayerFleetUnitId));
+		Assert.Equal([.. fieldedBefore, declaration.ShipId], run.GetFieldedShipIds());
+		Assert.Equal(pilotCountBefore + 1, run.PilotRegistry.All.Count);
+		Assert.True(run.PilotRegistry.TryGetForShip(declaration.ShipId, out var pilot));
+		Assert.Equal(EOperatorClassId.Tank, pilot.ClassId);
+	}
+
+	[Fact]
 	public void FromSnapshot_RoundTripsOwnedUnfieldedShip()
 	{
 		using var run = RunState.CreateNewRun(42);

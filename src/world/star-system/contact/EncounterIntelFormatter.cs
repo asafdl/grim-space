@@ -25,6 +25,7 @@ public static class EncounterIntelFormatter
 		chassis switch
 		{
 			BattleUnitType.RepurposedMiner => "Repurposed Miner",
+			BattleUnitType.IndustrialGooper => "Industrial Gooper",
 			BattleUnitType.Fighter => "Fighter",
 			BattleUnitType.Carrier => "Carrier",
 			BattleUnitType.VoidBomb => "VoidBomb",

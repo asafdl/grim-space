@@ -15,7 +15,7 @@ public sealed class IndustrialGooperSpec : ShipSpec
 	}
 
 	public override EType Chassis => EType.IndustrialGooper;
-	public override EOperatorClassId ClassId => EOperatorClassId.Unclassified;
+	public override EOperatorClassId ClassId => EOperatorClassId.Tank;
 	public override int Initiative => 25;
 	public override int DefaultMaxHullPoints => 300;
 	public override ManeuverabilitySpec Maneuverability { get; } =
@@ -33,7 +33,6 @@ public sealed class IndustrialGooperSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.GoopGun, ESpatialOrientation.Forward)),
-		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Retro)),
+		new(new(EAbilityKind.GoopGun, ESpatialOrientation.Retro)),
 	];
 }

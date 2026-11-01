@@ -13,6 +13,7 @@ public static class PilotIdentityIconRail
 	private const string ScrapDroneBackgroundIconPath = "res://assets/ui/pilots/scrap-drone.png";
 	private const string SpaceRangerClassIconPath = "res://assets/ui/classes/space-ranger.png";
 	private const string SupportClassIconPath = "res://assets/ui/classes/support.png";
+	private const string TankClassIconPath = "res://assets/ui/classes/tank.png";
 	private const string OptimalityEnforcerIconPath = "res://assets/ui/pilots/optimality-enforcer.png";
 	private const string CorporateSlaveIconPath = "res://assets/ui/pilots/corporate-slave.png";
 	private const string PodRacerIconPath = "res://assets/ui/pilots/pod-racer.png";
@@ -88,6 +89,7 @@ public static class PilotIdentityIconRail
 		{
 			EOperatorClassId.SpaceRanger => SpaceRangerClassIconPath,
 			EOperatorClassId.Support => SupportClassIconPath,
+			EOperatorClassId.Tank => TankClassIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(classId), classId, null),
 		};
 		return CreateIcon(

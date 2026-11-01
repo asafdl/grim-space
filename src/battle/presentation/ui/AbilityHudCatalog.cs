@@ -125,7 +125,7 @@ public static class AbilityHudCatalog
 				EPlayerMode.GoopGun,
 				def,
 				new AbilityTargetingSpec(
-					ForwardSource<GoopGunAction>,
+					AdjacentMountedSource,
 					AbilitySourceMeshes.CreateGoopGun,
 					GoopGunAccent),
 				"res://assets/ui/abilities/goop_gun.svg",

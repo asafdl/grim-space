@@ -19,11 +19,14 @@ public sealed class StarMarketTests
 		Assert.Contains(
 			market.MerchantListings,
 					listing => listing.Pricing.Kind == MerchantListingPricingKind.ShieldRechargePerPoint);
-		Assert.Equal(6, market.RecruitmentListings.Count);
+		Assert.Equal(9, market.RecruitmentListings.Count);
 		Assert.Equal(3, market.RecruitmentListings.Count(listing => listing.Chassis == EType.Fighter));
 		Assert.Equal(
 			3,
 			market.RecruitmentListings.Count(listing => listing.Chassis == EType.RepurposedMiner));
+		Assert.Equal(
+			3,
+			market.RecruitmentListings.Count(listing => listing.Chassis == EType.IndustrialGooper));
 	}
 
 	[Fact]
@@ -121,10 +124,34 @@ public sealed class StarMarketTests
 		Assert.True(LoadoutStrength(purchased) > LoadoutStrength(t0));
 	}
 
-	[Fact]
-	public void Broker_ListsSixRecruitmentOffersAcrossBothClassShips()
+	[Theory]
+	[InlineData(EShipGearTier.T0, StarMarketSeed.IndustrialGooperT0CreditCost)]
+	[InlineData(EShipGearTier.T1, StarMarketSeed.IndustrialGooperT1CreditCost)]
+	[InlineData(EShipGearTier.T2, StarMarketSeed.IndustrialGooperT2CreditCost)]
+	public void Broker_ListsEveryIndustrialGooperTierWithTieredPrice(
+		EShipGearTier expectedTier,
+		int expectedCredits)
 	{
-		Assert.Equal(6, StarMarketSeed.Create().ListRecruitmentOffers().Count);
+		var offers = StarMarketSeed.Create().ListRecruitmentOffers();
+		var offer = Assert.Single(
+			offers,
+			candidate =>
+				candidate.Chassis == EType.IndustrialGooper
+				&& candidate.GearTier == expectedTier);
+
+		Assert.Equal(expectedCredits, Credits(offer.Cost));
+		if (expectedTier == EShipGearTier.T2)
+			Assert.Equal(
+				StarMarketSeed.IndustrialGooperT2IndustrialCoreCost,
+				Amount(offer.Cost, ResourceId.IndustrialCore));
+		else
+			Assert.False(offer.Cost.TryGet(ResourceId.IndustrialCore, out _));
+	}
+
+	[Fact]
+	public void Broker_ListsNineRecruitmentOffersAcrossClassShips()
+	{
+		Assert.Equal(9, StarMarketSeed.Create().ListRecruitmentOffers().Count);
 	}
 
 	[Theory]

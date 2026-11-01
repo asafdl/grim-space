@@ -112,7 +112,11 @@ public sealed class GoopGunDef
 
 		var burstDirection = frame.Step(action.MountedOn);
 		var center = state.Position + burstDirection * goopGun.Range;
-		var hazardFrame = BodyFrame.PatchAt(center, burstDirection, frame.Dorsal);
+		// Patch dorsal must be orthogonal to the burst axis (dorsal/ventral mounts fire along ship dorsal).
+		var patchDorsal = Coord.Dot(burstDirection, frame.Dorsal) == 0
+			? frame.Dorsal
+			: frame.Fore;
+		var hazardFrame = BodyFrame.PatchAt(center, burstDirection, patchDorsal);
 
 		var hazard = new GoopHazard
 		{

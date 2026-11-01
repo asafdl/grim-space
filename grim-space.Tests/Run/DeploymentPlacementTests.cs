@@ -282,7 +282,7 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void DevDefault_UpgradesRepurposedMinerAndIndustrialGooperWeapons()
+	public void DevDefault_UpgradesRepurposedMinerWeaponsAndKeepsGooperGoopGun()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
 		var ships = encounter.Spawns.Select(spawn => spawn.Ship).ToArray();
@@ -297,10 +297,9 @@ public sealed class DeploymentPlacementTests
 				Assert.Equal(1, swarm.DamageUpgradeTier);
 				Assert.Equal(1, swarm.RangeUpgradeTier);
 			});
-		var gooperSwarm = gooper.Loadout.InstalledAbilities.Single(
-			ability => ability.Kind == EAbilityKind.ScrapDroneSwarm);
-		Assert.Equal(1, gooperSwarm.DamageUpgradeTier);
-		Assert.Equal(1, gooperSwarm.RangeUpgradeTier);
+		Assert.Equal(
+			[EAbilityKind.GoopGun],
+			gooper.Loadout.InstalledAbilities.Select(ability => ability.Kind).ToArray());
 	}
 
 	[Fact]

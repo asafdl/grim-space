@@ -49,11 +49,11 @@ public sealed class ShipCatalogLoadoutForTierTests
 	{
 		Assert.Equal(EOperatorClassId.SpaceRanger, ShipCatalog.SpecFor(EType.Fighter).ClassId);
 		Assert.Equal(EOperatorClassId.Support, ShipCatalog.SpecFor(EType.RepurposedMiner).ClassId);
+		Assert.Equal(EOperatorClassId.Tank, ShipCatalog.SpecFor(EType.IndustrialGooper).ClassId);
 		Assert.All(
 			new[]
 			{
 				EType.Gunship,
-				EType.IndustrialGooper,
 				EType.Carrier,
 				EType.VoidBomb,
 			},
