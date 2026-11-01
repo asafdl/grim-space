@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Pilots;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Run;
@@ -9,15 +10,25 @@ namespace GrimSpace.Run;
 public static class PilotProgression
 {
 	public const int DefaultXpDifficulty = 3;
-	/// <summary>XP at S-rank (performance == <see cref="PerformanceScoreDivisor"/>) equals battleBase × this.</summary>
-	public const int XpPerBattleBasePoint = 15;
-	/// <summary>Performance score that yields full battle XP (matches S-grade threshold).</summary>
-	public const int PerformanceScoreDivisor = 80;
+
+	/// <summary>Provisional grade XP bases before battle multiplier. C never yields zero for survivors.</summary>
+	public const int XpGradeBaseC = 25;
+	public const int XpGradeBaseB = 35;
+	public const int XpGradeBaseA = 45;
+	public const int XpGradeBaseS = 55;
+
+	/// <summary>Performance-point bands for S/A/B/C — keep aligned with <c>BattlePerformanceScore.GradeFromPoints</c>.</summary>
+	public const int PerformancePointsS = 80;
+	public const int PerformancePointsA = 40;
+	public const int PerformancePointsB = 10;
 
 	private static readonly EPilotSkillId[] EmptyLearnedSkills = [];
 
-	/// <summary>Cumulative XP required to reach each level (index 0 = level 1).</summary>
-	private static readonly int[] LevelThresholds = [0, 100, 250, 450, 700, 1000];
+	/// <summary>
+	/// Cumulative XP required to reach each level (index 0 = level 1).
+	/// Early band is fast (~1–3 A-rank fights); mid/late curve steepens hard.
+	/// </summary>
+	private static readonly int[] LevelThresholds = [0, 100, 300, 550, 1300, 3000];
 
 	public static int MaxLevel => LevelThresholds.Length;
 
@@ -89,20 +100,61 @@ public static class PilotProgression
 	public static int CountEnemySpawns(IReadOnlyList<BattleSpawn> spawns) =>
 		spawns.Count(spawn => spawn.Team == ETeam.Enemy);
 
-	public static int BattleXpBase(int enemyCount, int difficulty) =>
-		enemyCount * difficulty;
+	public static int EnemyTierXpWeight(EShipGearTier tier) => (int)tier + 1;
 
-	public static int ExperienceFromPerformance(int battleBase, int performancePoints)
+	public static int SumEnemyXpWeight(IReadOnlyList<BattleSpawn> spawns)
 	{
-		if (battleBase <= 0 || performancePoints <= 0)
+		ArgumentNullException.ThrowIfNull(spawns);
+		var weight = 0;
+		foreach (var spawn in spawns)
+		{
+			if (spawn.Team != ETeam.Enemy)
+				continue;
+
+			var tier = ShipLoadoutGearTier.FromLoadout(spawn.Ship.Loadout, spawn.Ship.Spec.Chassis);
+			weight += EnemyTierXpWeight(tier);
+		}
+
+		return weight;
+	}
+
+	public static int BattleXpBase(int enemyXpWeight, int difficulty) =>
+		enemyXpWeight * difficulty;
+
+	public static char GradeForPerformancePoints(int performancePoints) =>
+		performancePoints switch
+		{
+			>= PerformancePointsS => 'S',
+			>= PerformancePointsA => 'A',
+			>= PerformancePointsB => 'B',
+			_ => 'C',
+		};
+
+	public static int GradeBaseExperience(char grade) =>
+		grade switch
+		{
+			'S' => XpGradeBaseS,
+			'A' => XpGradeBaseA,
+			'B' => XpGradeBaseB,
+			_ => XpGradeBaseC,
+		};
+
+	/// <summary>
+	/// Grade base × battle multiplier. Multiplier is <paramref name="battleBase"/> /
+	/// <see cref="DefaultXpDifficulty"/> so a 1-enemy fight at default difficulty pays the grade base.
+	/// </summary>
+	public static int ExperienceFromGrade(char grade, int battleBase)
+	{
+		if (battleBase <= 0)
 			return 0;
 
-		// Cap at S-rank so overkill damage cannot multiply XP past a full clear.
-		var capped = System.Math.Min(performancePoints, PerformanceScoreDivisor);
 		return (int)System.Math.Round(
-			battleBase * XpPerBattleBasePoint * (decimal)capped / PerformanceScoreDivisor,
+			GradeBaseExperience(grade) * (decimal)battleBase / DefaultXpDifficulty,
 			System.MidpointRounding.AwayFromZero);
 	}
+
+	public static int ExperienceFromPerformance(int battleBase, int performancePoints) =>
+		ExperienceFromGrade(GradeForPerformancePoints(performancePoints), battleBase);
 
 	public static IReadOnlyDictionary<string, int> RewardsFor(
 		IReadOnlyList<BattleSpawn> spawns,
@@ -116,7 +168,7 @@ public static class PilotProgression
 			return new Dictionary<string, int>();
 
 		var handoffs = BuildHandoffLookup(outcome.StateHandoffs);
-		var battleBase = BattleXpBase(CountEnemySpawns(spawns), xpDifficulty);
+		var battleBase = BattleXpBase(SumEnemyXpWeight(spawns), xpDifficulty);
 		if (battleBase <= 0)
 			return new Dictionary<string, int>();
 

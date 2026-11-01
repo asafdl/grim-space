@@ -8,9 +8,14 @@ public static class BattlePerformanceScore
 	/// </summary>
 	public const int CombatStatScale = 10;
 
+	/// <summary>
+	/// Rank contribution from output only. <paramref name="damageTaken"/> is unused for now
+	/// (kept so call sites can keep passing scorecard totals).
+	/// </summary>
 	public static int Points(int damageDealt, int damageTaken, int healingDone = 0)
 	{
-		var raw = damageDealt + healingDone - damageTaken;
+		_ = damageTaken;
+		var raw = damageDealt + healingDone;
 		if (raw <= 0)
 			return 0;
 
@@ -19,15 +24,15 @@ public static class BattlePerformanceScore
 			System.MidpointRounding.AwayFromZero);
 	}
 
-	public static char Grade(int damageDealt, int damageTaken, int healingDone = 0)
-	{
-		var points = Points(damageDealt, damageTaken, healingDone);
-		return points switch
+	public static char Grade(int damageDealt, int damageTaken, int healingDone = 0) =>
+		GradeFromPoints(Points(damageDealt, damageTaken, healingDone));
+
+	public static char GradeFromPoints(int performancePoints) =>
+		performancePoints switch
 		{
 			>= 80 => 'S',
 			>= 40 => 'A',
 			>= 10 => 'B',
 			_ => 'C',
 		};
-	}
 }

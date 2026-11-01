@@ -1,8 +1,10 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Movement;
@@ -188,6 +190,36 @@ public sealed class MovePreviewSearchTests
 
 		Assert.Same(initial, afterWeapon);
 		Assert.Equal(1, cache.BuildCount);
+	}
+
+	[Fact]
+	public void CacheInvalidatesWhenOverchargeEnginesRefreshesAp()
+	{
+		var origin = new Coord(5, 5, 5);
+		var player = BattleTestFixture.Player(origin, actionPoints: 1);
+		var enemy = BattleTestFixture.Enemy(origin + new Coord(20, 0, 0));
+		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
+		{
+			[PlayerId] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.OverchargeEngines]),
+		};
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			BattleTestFixture.Grid(40),
+			pilotsByActorId: pilots);
+		var sim = battle.PlayerAgent.Sim;
+		var cache = new MovePreviewCache();
+		var before = cache.GetPaths(sim, PlayerId);
+		var beforeReach = before.Max(route => route.Session.ExtensionApCost);
+
+		Assert.True(sim.TryEnqueue(OverchargeEnginesDef.Instance.Bind(PlayerId)));
+		var after = cache.GetPaths(sim, PlayerId);
+		var fresh = MovePathEndpoints.DiscoverExtensions(sim, PlayerId);
+
+		Assert.Equal(2, cache.BuildCount);
+		Assert.NotSame(before, after);
+		Assert.Equal(fresh.Select(PathKey), after.Select(route => PathKey(route.Session)));
+		Assert.True(after.Max(route => route.Session.ExtensionApCost) > beforeReach);
 	}
 
 	[Fact]

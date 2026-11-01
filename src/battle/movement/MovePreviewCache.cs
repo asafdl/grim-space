@@ -14,11 +14,13 @@ public sealed class MovePreviewCache
 	{
 		var movementPrefix = MovementPrefix(sim.Actions, actorId);
 		var occupancyFingerprint = OccupancyFingerprint(sim.World);
+		var movementBudget = MovementBudget(sim.World, actorId);
 		var cached = _entries.FirstOrDefault(entry =>
 			ReferenceEquals(entry.Sim, sim)
 			&& entry.ActorId == actorId
 			&& entry.MovementPrefix.SequenceEqual(movementPrefix)
-			&& entry.OccupancyFingerprint == occupancyFingerprint);
+			&& entry.OccupancyFingerprint == occupancyFingerprint
+			&& entry.MovementBudget == movementBudget);
 		if (cached is not null)
 			return cached.Paths;
 
@@ -30,6 +32,7 @@ public sealed class MovePreviewCache
 			actorId,
 			movementPrefix,
 			occupancyFingerprint,
+			movementBudget,
 			paths));
 		BuildCount++;
 		return paths;
@@ -54,10 +57,19 @@ public sealed class MovePreviewCache
 				.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 				.Select(unit => $"{unit.State.Id}@{unit.State.Position}"));
 
+	internal static (int ActionPoints, int ManeuverPoints) MovementBudget(
+		BattleWorld world,
+		string actorId)
+	{
+		var actor = world.StateOf(actorId);
+		return (actor.ActionPoints, actor.ManeuverPoints);
+	}
+
 	private sealed record Entry(
 		BattleSimulation Sim,
 		string ActorId,
 		IReadOnlyList<IAction> MovementPrefix,
 		string OccupancyFingerprint,
+		(int ActionPoints, int ManeuverPoints) MovementBudget,
 		IReadOnlyList<RouteHitPreview> Paths);
 }

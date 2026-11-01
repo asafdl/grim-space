@@ -15,9 +15,14 @@ public sealed class PilotProgressionTests
 	[InlineData(0, 1)]
 	[InlineData(99, 1)]
 	[InlineData(100, 2)]
-	[InlineData(249, 2)]
-	[InlineData(250, 3)]
-	[InlineData(1000, 6)]
+	[InlineData(299, 2)]
+	[InlineData(300, 3)]
+	[InlineData(549, 3)]
+	[InlineData(550, 4)]
+	[InlineData(1299, 4)]
+	[InlineData(1300, 5)]
+	[InlineData(2999, 5)]
+	[InlineData(3000, 6)]
 	public void LevelFor_MatchesThresholdTable(int experiencePoints, int expectedLevel)
 	{
 		Assert.Equal(expectedLevel, PilotProgression.LevelFor(experiencePoints));
@@ -27,7 +32,8 @@ public sealed class PilotProgressionTests
 	public void LevelFor_IsMonotonicAsExperienceIncreases()
 	{
 		var previous = PilotProgression.LevelFor(0);
-		for (var xp = 1; xp <= 1200; xp++)
+		var maxXp = PilotProgression.ExperienceForLevel(PilotProgression.MaxLevel);
+		for (var xp = 1; xp <= maxXp; xp++)
 		{
 			var level = PilotProgression.LevelFor(xp);
 			Assert.True(level >= previous);
@@ -45,8 +51,8 @@ public sealed class PilotProgressionTests
 		Assert.Equal(100, pilot.ExperiencePoints);
 		Assert.Equal(2, PilotProgression.LevelFor(pilot.ExperiencePoints));
 
-		pilot = PilotProgression.AddExperience(pilot, 150);
-		Assert.Equal(250, pilot.ExperiencePoints);
+		pilot = PilotProgression.AddExperience(pilot, 200);
+		Assert.Equal(300, pilot.ExperiencePoints);
 		Assert.Equal(3, PilotProgression.LevelFor(pilot.ExperiencePoints));
 	}
 
@@ -72,38 +78,60 @@ public sealed class PilotProgressionTests
 	public void ProgressWithinLevel_ReportsBarFractions()
 	{
 		Assert.Equal((50, 100), PilotProgression.ProgressWithinLevel(50));
-		Assert.Equal((0, 150), PilotProgression.ProgressWithinLevel(100));
-		Assert.Equal((0, 0), PilotProgression.ProgressWithinLevel(1000));
+		Assert.Equal((0, 200), PilotProgression.ProgressWithinLevel(100));
+		Assert.Equal((0, 0), PilotProgression.ProgressWithinLevel(PilotProgression.ExperienceForLevel(PilotProgression.MaxLevel)));
+	}
+
+	[Theory]
+	[InlineData(0, 'C', PilotProgression.XpGradeBaseC)]
+	[InlineData(9, 'C', PilotProgression.XpGradeBaseC)]
+	[InlineData(10, 'B', PilotProgression.XpGradeBaseB)]
+	[InlineData(40, 'A', PilotProgression.XpGradeBaseA)]
+	[InlineData(80, 'S', PilotProgression.XpGradeBaseS)]
+	[InlineData(240, 'S', PilotProgression.XpGradeBaseS)]
+	public void ExperienceFromPerformance_UsesGradeBaseTimesBattleMultiplier(
+		int performancePoints,
+		char expectedGrade,
+		int expectedGradeBase)
+	{
+		Assert.Equal(expectedGrade, PilotProgression.GradeForPerformancePoints(performancePoints));
+		var battleBase = PilotProgression.BattleXpBase(enemyXpWeight: 1, difficulty: PilotProgression.DefaultXpDifficulty);
+		Assert.Equal(expectedGradeBase, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints));
 	}
 
 	[Fact]
-	public void ExperienceFromPerformance_ScalesByBattleBaseAndScore()
+	public void ExperienceFromGrade_ScalesWithEnemyCountAndDifficulty()
 	{
-		var battleBase = PilotProgression.BattleXpBase(enemyCount: 2, difficulty: 3);
-		Assert.Equal(45, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 40));
-		Assert.Equal(90, PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 80));
+		var oneEnemy = PilotProgression.BattleXpBase(enemyXpWeight: 1, difficulty: 3);
+		var threeEnemies = PilotProgression.BattleXpBase(enemyXpWeight: 3, difficulty: 3);
+		Assert.Equal(
+			PilotProgression.XpGradeBaseC,
+			PilotProgression.ExperienceFromGrade('C', oneEnemy));
+		Assert.Equal(
+			PilotProgression.XpGradeBaseC * 3,
+			PilotProgression.ExperienceFromGrade('C', threeEnemies));
 	}
 
 	[Fact]
-	public void ExperienceFromPerformance_CapsAtSRankScore()
+	public void ExperienceFromPerformance_CGradeNeverZeroWhenBattleBasePositive()
 	{
-		var battleBase = PilotProgression.BattleXpBase(enemyCount: 2, difficulty: 3);
-		var atS = PilotProgression.ExperienceFromPerformance(battleBase, PilotProgression.PerformanceScoreDivisor);
-		var aboveS = PilotProgression.ExperienceFromPerformance(
-			battleBase,
-			PilotProgression.PerformanceScoreDivisor * 3);
-		Assert.Equal(atS, aboveS);
+		var battleBase = PilotProgression.BattleXpBase(enemyXpWeight: 2, difficulty: 3);
+		var xp = PilotProgression.ExperienceFromPerformance(battleBase, performancePoints: 0);
+		Assert.True(xp > 0);
+		Assert.Equal(
+			PilotProgression.ExperienceFromGrade('C', battleBase),
+			xp);
 	}
 
 	[Fact]
 	public void ExperienceFromPerformance_TypicalT0Fight_DoesNotMultiLevelFromZero()
 	{
-		// 3 enemies, S-rank clear: should land around one early level, not 4+.
-		var battleBase = PilotProgression.BattleXpBase(enemyCount: 3, difficulty: 3);
+		// 3 enemies, S-rank clear: grade base × enemy count at default difficulty.
+		var battleBase = PilotProgression.BattleXpBase(enemyXpWeight: 3, difficulty: 3);
 		var xp = PilotProgression.ExperienceFromPerformance(
 			battleBase,
-			PilotProgression.PerformanceScoreDivisor);
-		Assert.Equal(135, xp);
+			PilotProgression.PerformancePointsS);
+		Assert.Equal(PilotProgression.XpGradeBaseS * 3, xp);
 		Assert.Equal(2, PilotProgression.LevelFor(xp));
 	}
 
@@ -137,7 +165,9 @@ public sealed class PilotProgressionTests
 				["fighter-a"] = 80,
 				["fighter-b"] = 40,
 			});
-		var battleBase = PilotProgression.BattleXpBase(3, xpDifficulty);
+		var battleBase = PilotProgression.BattleXpBase(
+			PilotProgression.SumEnemyXpWeight(spawns),
+			xpDifficulty);
 		var expectedA = PilotProgression.ExperienceFromPerformance(battleBase, 80);
 		var expectedB = PilotProgression.ExperienceFromPerformance(battleBase, 40);
 
@@ -173,7 +203,7 @@ public sealed class PilotProgressionTests
 				["fighter-b"] = 40,
 			});
 		var baseXp = PilotProgression.ExperienceFromPerformance(
-			PilotProgression.BattleXpBase(1, xpDifficulty),
+			PilotProgression.BattleXpBase(PilotProgression.SumEnemyXpWeight(spawns), xpDifficulty),
 			40);
 		var grants = PilotProgression.RewardsFor(
 			spawns,
@@ -210,7 +240,7 @@ public sealed class PilotProgressionTests
 	}
 
 	[Fact]
-	public void RewardsFor_UsesEnemySpawnCountNotKillCount()
+	public void RewardsFor_UsesEnemySpawnWeightNotKillCount()
 	{
 		const int xpDifficulty = 3;
 		var spawns = new[]
@@ -226,10 +256,42 @@ public sealed class PilotProgressionTests
 			],
 			new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 40 });
 		var expectedXp = PilotProgression.ExperienceFromPerformance(
-			PilotProgression.BattleXpBase(2, xpDifficulty),
+			PilotProgression.BattleXpBase(PilotProgression.SumEnemyXpWeight(spawns), xpDifficulty),
 			40);
 
 		Assert.Equal(expectedXp, Assert.Single(PilotProgression.RewardsFor(spawns, outcome, xpDifficulty)).Value);
+		Assert.Equal(2, PilotProgression.SumEnemyXpWeight(spawns));
+	}
+
+	[Fact]
+	public void RewardsFor_ScalesXpWithEnemyGearTier()
+	{
+		const int xpDifficulty = 3;
+		var t0Spawns = new[]
+		{
+			PlayerSpawn("fighter-a", "pilot-a"),
+			EnemySpawn("enemy-t0", EShipGearTier.T0),
+		};
+		var t2Spawns = new[]
+		{
+			PlayerSpawn("fighter-a", "pilot-a"),
+			EnemySpawn("enemy-t2", EShipGearTier.T2),
+		};
+		var outcome = WinOutcome(
+			[
+				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
+				OutcomeTestKit.Handoff("enemy-t0", EType.Fighter, 0),
+				OutcomeTestKit.Handoff("enemy-t2", EType.Fighter, 0),
+			],
+			new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 40 });
+
+		var t0Xp = Assert.Single(PilotProgression.RewardsFor(t0Spawns, outcome, xpDifficulty)).Value;
+		var t2Xp = Assert.Single(PilotProgression.RewardsFor(t2Spawns, outcome, xpDifficulty)).Value;
+
+		Assert.Equal(PilotProgression.EnemyTierXpWeight(EShipGearTier.T0), PilotProgression.SumEnemyXpWeight(t0Spawns));
+		Assert.Equal(PilotProgression.EnemyTierXpWeight(EShipGearTier.T2), PilotProgression.SumEnemyXpWeight(t2Spawns));
+		Assert.True(t2Xp > t0Xp);
+		Assert.Equal(t0Xp * 3, t2Xp);
 	}
 
 	[Fact]
@@ -258,10 +320,13 @@ public sealed class PilotProgressionTests
 			Team = ETeam.Player,
 		};
 
-	private static BattleSpawn EnemySpawn(string shipId) =>
+	private static BattleSpawn EnemySpawn(string shipId, EShipGearTier gearTier = EShipGearTier.T0) =>
 		new()
 		{
-			Ship = ShipInstance.FromCatalog(shipId, EType.Fighter),
+			Ship = ShipInstance.FromSpec(
+				shipId,
+				ShipCatalog.SpecFor(EType.Fighter),
+				ShipCatalog.LoadoutForTier(EType.Fighter, gearTier)),
 			Team = ETeam.Enemy,
 		};
 }

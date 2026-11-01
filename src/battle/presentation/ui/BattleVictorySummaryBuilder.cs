@@ -47,7 +47,10 @@ public static class BattleVictorySummaryBuilder
 
 			var pilot = resolvePilot(spawn.PilotId);
 			var gearTier = handoff?.GearTier ?? EShipGearTier.T0;
-			var experienceBefore = pilot?.ExperiencePoints ?? 0;
+			// Registry may already include this fight's grant (applied on outcome commit).
+			var currentXp = pilot?.ExperiencePoints ?? 0;
+			var experienceBefore = currentXp >= xp ? currentXp - xp : currentXp;
+			var experienceAfter = experienceBefore + xp;
 			var isScrapped = handoff is { HullPoints: <= 0 };
 			pilotRows.Add(new BattleVictoryPilotRow(
 				pilot?.Name ?? spawn.PilotId,
@@ -58,7 +61,7 @@ public static class BattleVictorySummaryBuilder
 				totals.HealingDone,
 				xp,
 				experienceBefore,
-				experienceBefore + xp,
+				experienceAfter,
 				BattlePerformanceScore.Grade(totals.Dealt, totals.Taken, totals.HealingDone),
 				isScrapped));
 		}

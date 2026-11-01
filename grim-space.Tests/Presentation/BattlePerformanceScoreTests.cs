@@ -10,8 +10,9 @@ public sealed class BattlePerformanceScoreTests
 	[InlineData(100, 0, 0, 10, 'B')]
 	[InlineData(400, 0, 0, 40, 'A')]
 	[InlineData(800, 0, 0, 80, 'S')]
-	[InlineData(400, 100, 0, 30, 'B')]
-	public void PointsAndGrade_ScaleCombatStatsIntoBand(
+	[InlineData(400, 100, 0, 40, 'A')] // taken ignored
+	[InlineData(0, 999, 400, 40, 'A')] // healing alone
+	public void PointsAndGrade_ScaleDealtAndHealingOnly(
 		int dealt,
 		int taken,
 		int healing,

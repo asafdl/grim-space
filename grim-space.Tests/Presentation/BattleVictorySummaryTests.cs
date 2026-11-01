@@ -127,8 +127,41 @@ public sealed class BattleVictorySummaryTests
 		var second = summary.Pilots[1];
 		Assert.Equal(0, second.DamageDealt);
 		Assert.Equal(30, second.DamageTaken);
-		Assert.Equal(0, second.ExperienceEarned);
+		Assert.Equal(
+			PilotProgression.ExperienceFromPerformance(
+				PilotProgression.BattleXpBase(1, PilotProgression.DefaultXpDifficulty),
+				0),
+			second.ExperienceEarned);
+		Assert.True(second.ExperienceEarned > 0);
 		Assert.False(second.IsScrapped);
+	}
+
+	[Fact]
+	public void Build_TreatsRegistryXpAsPostGrantWhenAlreadyApplied()
+	{
+		var spawns = new[]
+		{
+			PlayerSpawn("fighter-a", "pilot-a"),
+			EnemySpawn("enemy-1"),
+		};
+		var outcome = WinOutcome(
+			[OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1)],
+			new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 80 });
+		var battleBase = PilotProgression.BattleXpBase(1, PilotProgression.DefaultXpDifficulty);
+		var xp = PilotProgression.ExperienceFromPerformance(battleBase, 80);
+		var pilot = PilotProgression.AddExperience(Pilot.CreateForShip("fighter-a"), xp);
+
+		var summary = BattleVictorySummaryBuilder.Build(
+			outcome,
+			spawns,
+			PilotProgression.DefaultXpDifficulty,
+			[],
+			id => string.Equals(id, "pilot-a", StringComparison.Ordinal) ? pilot : null);
+
+		var row = Assert.Single(summary.Pilots);
+		Assert.Equal(xp, row.ExperienceEarned);
+		Assert.Equal(0, row.ExperiencePointsBefore);
+		Assert.Equal(xp, row.ExperiencePointsAfter);
 	}
 
 	[Fact]
