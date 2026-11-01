@@ -13,4 +13,5 @@ public enum EPlayerMode
 	OverchargeEngines,
 	Brace,
 	ProtectionDrone,
+	DevMarkTargets,
 }

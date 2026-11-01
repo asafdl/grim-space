@@ -181,7 +181,6 @@ public sealed class PresentationFrameBuilder
 				Label: targetPick is not null
 					? BattleHudCopy.PickTargets(
 						targetPick.PickedIds.Count,
-						targetPick.MinPicks,
 						targetPick.MaxPicks)
 					: BattleHudCopy.PickAbilitySource(state.Mode),
 				Accent: state.ActiveAbilitySpec?.IconTint);

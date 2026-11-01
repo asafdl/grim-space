@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Threading.Tasks;
+using GrimSpace.Battle.Dev;
 using GrimSpace.Battle.World;
 using Godot;
 using GrimSpace.Core.Log;
@@ -155,6 +156,7 @@ public partial class Session : Node
 		_devMenu = new DevMenuOverlay();
 		devMenuLayer.AddChild(_devMenu);
 		_devMenu.StartBattleRequested += StartDevBattle;
+		_devMenu.StartTargetPickShowcaseRequested += StartTargetPickShowcase;
 		_devMenu.SetResourceActions(
 			() => Run is not null && Run.StarSystem is not null,
 			GrantDebugResources);
@@ -256,6 +258,16 @@ public partial class Session : Node
 		Run.ActiveBattle = null;
 		_devMenu.Close();
 		GetTree().ChangeSceneToFile(BattleScenePath);
+	}
+
+	public void StartTargetPickShowcase()
+	{
+		if (!IsRunReady())
+			StartNewRun();
+
+		Run.ActiveBattle = null;
+		_devMenu.Close();
+		GetTree().ChangeSceneToFile(TargetPickShowcase.ScenePath);
 	}
 
 	private void GrantDebugResources()

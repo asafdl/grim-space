@@ -74,13 +74,16 @@ public sealed class TargetPickTests
 	[Fact]
 	public void MinAndMaxGateConfirmAndLockIn()
 	{
-		var spec = new TargetPickSpec(2, 3, []);
+		var exact = new TargetPickSpec(2, 2, []);
+		var range = new TargetPickSpec(2, 3, []);
 
-		Assert.False(spec.CanLockIn(1));
-		Assert.True(spec.CanLockIn(2));
-		Assert.True(spec.CanLockIn(3));
-		Assert.True(spec.CanPickMore(2));
-		Assert.False(spec.CanPickMore(3));
+		Assert.True(exact.IsExactQuota);
+		Assert.False(range.IsExactQuota);
+		Assert.False(range.CanLockIn(1));
+		Assert.True(range.CanLockIn(2));
+		Assert.True(range.CanLockIn(3));
+		Assert.True(range.CanPickMore(2));
+		Assert.False(range.CanPickMore(3));
 		Assert.Throws<ArgumentOutOfRangeException>(() => new TargetPickSpec(0, 1, []));
 		Assert.Throws<ArgumentOutOfRangeException>(() => new TargetPickSpec(3, 2, []));
 	}
@@ -112,7 +115,7 @@ public sealed class TargetPickTests
 	}
 
 	[Fact]
-	public void ConfirmPickAdvancesCandidateAndEnablesLockIn()
+	public void ConfirmPickAdvancesCandidateAndEnablesCommit()
 	{
 		var battle = World();
 		var frames = BeginSession(battle, new TargetPickSpec(1, 2, EnemyOnly()));
@@ -125,6 +128,40 @@ public sealed class TargetPickTests
 		Assert.Equal("far-enemy", frame.TargetPick.CandidateId);
 		Assert.True(frame.TargetPick.CanLockIn);
 		Assert.True(frame.TargetPick.CanConfirmPick);
+	}
+
+	[Fact]
+	public void ExactQuotaBecomesCommitReadyOnFinalPick()
+	{
+		var battle = World();
+		var frames = BeginSession(battle, new TargetPickSpec(1, 1, EnemyOnly()));
+		Frame(battle, frames);
+
+		Assert.True(frames.Interaction.ConfirmTargetPick());
+		var frame = Frame(battle, frames);
+
+		Assert.Equal(["enemy"], frame.TargetPick!.PickedIds);
+		Assert.True(frame.TargetPick.IsExactQuota);
+		Assert.True(frame.TargetPick.CanLockIn);
+		Assert.False(frame.TargetPick.RequiresManualCommit);
+		Assert.False(frame.TargetPick.CanConfirmPick);
+	}
+
+	[Fact]
+	public void RangeQuotaStaysOpenAfterMinPick()
+	{
+		var battle = World();
+		var frames = BeginSession(battle, new TargetPickSpec(1, 3, EnemyOnly()));
+		Frame(battle, frames);
+
+		Assert.True(frames.Interaction.ConfirmTargetPick());
+		var frame = Frame(battle, frames);
+
+		Assert.Equal(["enemy"], frame.TargetPick!.PickedIds);
+		Assert.True(frame.TargetPick.RequiresManualCommit);
+		Assert.True(frame.TargetPick.CanLockIn);
+		Assert.True(frame.TargetPick.CanConfirmPick);
+		Assert.Equal("Pick targets (1/3)", frame.Instruction.Label);
 	}
 
 	[Fact]

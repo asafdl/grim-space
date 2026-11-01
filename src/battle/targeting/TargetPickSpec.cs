@@ -20,6 +20,8 @@ public sealed class TargetPickSpec
 		Filters = filters;
 	}
 
+	public bool IsExactQuota => MinPicks == MaxPicks;
+
 	public bool CanPickMore(int pickedCount) => pickedCount < MaxPicks;
 
 	public bool CanLockIn(int pickedCount) => pickedCount >= MinPicks && pickedCount <= MaxPicks;

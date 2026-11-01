@@ -390,15 +390,19 @@ public partial class BattleHud : Node
 			focusState.ShieldPoints,
 			focusState.Loadout.MaxShieldPoints);
 		CommandHud.ApplyPilotPortrait(focusState.PilotPortraitId);
-		CommandHud.ApplyMainActions(frame.Mode, frame.CanAct, focusState, frame.Abilities);
+		CommandHud.ApplyMainActions(
+			frame.Mode,
+			frame.CanAct,
+			focusState,
+			frame.Abilities,
+			frame.TargetPick);
 		CommandHud.ApplyCommands(
 			frame.IsInspecting,
 			frame.CanAct,
 			frame.CanFocusCamera,
 			frame.RangeEnemy is not null,
 			frame.CanUndo,
-			frame.TargetPick is { } pick ? pick.CanLockIn : allowEndTurn,
-			lockInMode: frame.TargetPick is not null);
+			allowEndTurn);
 	}
 
 	private Tween? FadePhaseVisual(

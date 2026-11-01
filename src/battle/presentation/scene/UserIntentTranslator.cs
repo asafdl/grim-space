@@ -305,10 +305,16 @@ public sealed partial class UserIntentTranslator : Node
 		if (!_hud.CommandHud.CanExecute)
 			return;
 
-		if (_targetPick is { } targetPick)
-			LockInTargets(targetPick);
-		else if (_moveInput.Destination is null)
+		if (_moveInput.Destination is null)
 			EndTurnRequested?.Invoke();
+	}
+
+	public void TryCommitTargetPick()
+	{
+		if (_targetPick is not { CanLockIn: true } targetPick)
+			return;
+
+		LockInTargets(targetPick);
 	}
 
 	public void OnUndo()

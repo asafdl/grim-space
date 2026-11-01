@@ -62,4 +62,9 @@ public sealed record TargetPickFrame(
 	IReadOnlyList<string> PickedIds,
 	IReadOnlyList<string> LegalIds,
 	bool CanConfirmPick,
-	bool CanLockIn);
+	bool CanLockIn)
+{
+	public bool IsExactQuota => MinPicks == MaxPicks;
+
+	public bool RequiresManualCommit => !IsExactQuota;
+}

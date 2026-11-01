@@ -33,8 +33,9 @@ public sealed partial class BattleCommandHud : Control
 	private static readonly Color CommandAccent =
 		HudPalettes.WithAlpha(HudPalettes.PurpleRed.Highlight, 0.78f);
 
-	private readonly ButtonGroup _modeGroup = new();
 	private readonly List<AbilityCard> _abilityCards = [];
+	private static readonly Color PickBadgeColor = Colors.White;
+	private static readonly Color IconDimWhilePicking = new(0.55f, 0.55f, 0.6f, 0.45f);
 	private readonly Button _focusButton;
 	private readonly Label _focusHotkey;
 	private readonly Button _cycleTargetButton;
@@ -367,7 +368,8 @@ public sealed partial class BattleCommandHud : Control
 		EPlayerMode mode,
 		bool canAct,
 		UnitDisplayState focusState,
-		AbilityLegality abilities)
+		AbilityLegality abilities,
+		TargetPickFrame? targetPick = null)
 	{
 		var specs = AbilityHudCatalog.ForDisplayState(focusState);
 		var layoutKey = string.Join('\0', specs.Select(spec => spec.Mode.ToString()));
@@ -378,9 +380,14 @@ public sealed partial class BattleCommandHud : Control
 		{
 			var card = _abilityCards[i];
 			var state = AbilityHudCatalog.BuildState(card.Spec, focusState, abilities);
+			var isActivePick = mode == card.Spec.Mode && targetPick is not null;
 			card.Button.Disabled = !canAct || !state.Enabled;
 			card.Button.SetTooltip(state.Tooltip);
 			SetPressed(card.Button, mode == card.Spec.Mode);
+			card.Button.SelfModulate = Colors.White;
+			ApplyIconDim(card.Button, isActivePick);
+			card.CommitTrail.SetActive(isActivePick);
+			ApplyPickBadge(card, isActivePick ? targetPick : null);
 		}
 
 		RefreshBindingLabels();
@@ -392,8 +399,7 @@ public sealed partial class BattleCommandHud : Control
 		bool cameraFocusAvailable,
 		bool canCycleTarget,
 		bool undoAvailable,
-		bool allowExecute,
-		bool lockInMode)
+		bool allowExecute)
 	{
 		_utilityHost.Visible = !isInspecting;
 		ExecuteAction.Visible = !isInspecting;
@@ -403,10 +409,8 @@ public sealed partial class BattleCommandHud : Control
 		_cycleTargetButton.Disabled = !canCycleTarget;
 		_undoButton.Disabled = !undoAvailable;
 		_executeButton.Disabled = !canAct || !allowExecute;
-		_executeButton.Text = lockInMode ? BattleHudCopy.LockInTargets : ExecuteTurnText;
-		_executeButton.TooltipText = lockInMode
-			? BattleHudCopy.LockInTargetsTooltip
-			: BattleHudCopy.EndTurnTooltip;
+		_executeButton.Text = ExecuteTurnText;
+		_executeButton.TooltipText = BattleHudCopy.EndTurnTooltip;
 		_inspectBackButton.Disabled = !isInspecting;
 		RefreshCommandWingWidth();
 	}
@@ -462,10 +466,10 @@ public sealed partial class BattleCommandHud : Control
 		if (index < 0 || index >= _abilityCards.Count)
 			return false;
 
-		var button = _abilityCards[index].Button;
-		if (button.Disabled)
+		var card = _abilityCards[index];
+		if (card.Button.Disabled)
 			return false;
-		button.ButtonPressed = true;
+		AbilityModeRequested?.Invoke(card.Spec);
 		return true;
 	}
 
@@ -485,18 +489,62 @@ public sealed partial class BattleCommandHud : Control
 				spec.IconTint,
 				"Ability",
 				toggleMode: true);
-			button.ButtonGroup = _modeGroup;
 			var hotkey = TacticalActionButtonStyle.AddHotkey(
 				button,
 				GameInputBindings.PrimaryLabel(GameInputBindings.AbilityAction(i + 1)));
-			button.Toggled += pressed =>
-			{
-				if (pressed)
-					AbilityModeRequested?.Invoke(spec);
-			};
+			var pickBadge = CreatePickBadge(button);
+			var commitTrail = new AbilityCommitTrail();
+			button.AddChild(commitTrail);
+			button.Pressed += () => AbilityModeRequested?.Invoke(spec);
 			MainActions.AddChild(button);
-			_abilityCards.Add(new AbilityCard(button, hotkey, spec));
+			_abilityCards.Add(new AbilityCard(button, hotkey, pickBadge, commitTrail, spec));
 		}
+	}
+
+	private static Label CreatePickBadge(Button button)
+	{
+		var label = new Label
+		{
+			Visible = false,
+			MouseFilter = MouseFilterEnum.Ignore,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			ClipText = true,
+		};
+		label.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		label.GrowHorizontal = GrowDirection.Both;
+		label.GrowVertical = GrowDirection.Both;
+		label.AddThemeFontSizeOverride("font_size", 18);
+		label.AddThemeColorOverride("font_color", PickBadgeColor);
+		label.AddThemeColorOverride("font_outline_color", new Color(0.02f, 0.05f, 0.08f));
+		label.AddThemeConstantOverride("outline_size", 4);
+		button.AddChild(label);
+		return label;
+	}
+
+	private static void ApplyPickBadge(AbilityCard card, TargetPickFrame? targetPick)
+	{
+		if (targetPick is null)
+		{
+			card.PickBadge.Visible = false;
+			return;
+		}
+
+		card.PickBadge.Visible = true;
+		card.PickBadge.Text = BattleHudCopy.TargetPickProgress(
+			targetPick.PickedIds.Count,
+			targetPick.MaxPicks);
+		card.PickBadge.AddThemeColorOverride("font_color", PickBadgeColor);
+	}
+
+	private static void ApplyIconDim(Button button, bool dim)
+	{
+		var color = dim ? IconDimWhilePicking : new Color(0.9f, 0.9f, 0.94f);
+		button.AddThemeColorOverride("icon_normal_color", color);
+		button.AddThemeColorOverride("icon_hover_color", dim ? IconDimWhilePicking : Colors.White);
+		button.AddThemeColorOverride(
+			"icon_pressed_color",
+			dim ? IconDimWhilePicking : new Color(0.82f, 0.84f, 0.9f));
 	}
 
 	private void OnFocusPressed() => FocusRequested?.Invoke();
@@ -681,5 +729,7 @@ public sealed partial class BattleCommandHud : Control
 	private sealed record AbilityCard(
 		BattleHudTooltipButton Button,
 		Label Hotkey,
+		Label PickBadge,
+		AbilityCommitTrail CommitTrail,
 		AbilityHudCatalog.Spec Spec);
 }

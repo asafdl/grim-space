@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Dev;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
@@ -225,6 +226,18 @@ public static class AbilityHudCatalog
 					1),
 				legality => legality.ProtectionDrone,
 				ProtectionDroneDef.TargetPick),
+			DevMarkTargetsDef => new(
+				EPlayerMode.DevMarkTargets,
+				def,
+				new AbilityTargetingSpec(
+					SelfSource<DevMarkTargetsAction>,
+					AbilitySourceMeshes.CreateScrapDroneSwarmBurst,
+					new Color(0.98f, 0.72f, 0.28f, 0.5f)),
+				"res://assets/ui/abilities/lightning_cannon.svg",
+				_ => BattleHudCopy.DevMarkTargetsTooltip,
+				(_, _) => BattleHudCopy.Charges(1, 1),
+				_ => true,
+				DevMarkTargetsDef.TargetPick),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};

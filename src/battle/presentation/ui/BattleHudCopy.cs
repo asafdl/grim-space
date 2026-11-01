@@ -55,9 +55,6 @@ internal static class BattleHudCopy
 	public const string PickLaunchBay = "Pick launch bay";
 	public const string PickVoidBomb = "Pick void bomb";
 
-	public const string LockInTargets = "LOCK IN";
-	public const string LockInTargetsTooltip = "Queue the ability on the picked targets.";
-
 	public const string FocusTooltip = "Refocus camera on your active unit.";
 	public const string CycleTargetTooltip = "Cycle targeting reticle.";
 	public static string UndoTooltip =>
@@ -129,8 +126,10 @@ internal static class BattleHudCopy
 			_ => PickFiringMount,
 		};
 
-	public static string PickTargets(int picked, int min, int max) =>
-		$"Pick targets ({picked}/{(min == max ? min : $"{min}-{max}")})";
+	public static string PickTargets(int picked, int max) =>
+		$"Pick targets ({picked}/{max})";
+
+	public static string TargetPickProgress(int picked, int max) => $"{picked}/{max}";
 
 	public static BattleHudTooltipContent ScrapDroneSwarmTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<ScrapDroneSwarmSpec>(unit, EAbilityKind.ScrapDroneSwarm) is { } swarm
@@ -193,6 +192,12 @@ internal static class BattleHudCopy
 			definition.Tooltip.Body,
 			details);
 	}
+
+	public static BattleHudTooltipContent DevMarkTargetsTooltip =>
+		new(
+			"Mark Targets (dev)",
+			"Dev-only range pick: select 1–3 enemies, then click this skill again to queue.",
+			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 
 	public static BattleHudTooltipContent ProtectionDroneTooltipFor(UnitDisplayState unit)
 	{

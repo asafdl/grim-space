@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Dev;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
@@ -108,7 +109,10 @@ public partial class BattleController : Node3D
 		}
 		else
 		{
-			var devEncounter = BattleEncounter.DevDefault(Random.Shared.Next());
+			var seed = Random.Shared.Next();
+			var devEncounter = TargetPickShowcase.Enabled
+				? BattleEncounter.TargetPickShowcase(seed)
+				: BattleEncounter.DevDefault(seed);
 			_encounterSpawns = devEncounter.Spawns;
 			_xpDifficulty = devEncounter.XpDifficulty;
 			_battle = BattleOrchestrator.FromEncounter(devEncounter);
@@ -461,6 +465,16 @@ public partial class BattleController : Node3D
 		if (!AcceptsCommands)
 			return;
 
+		if (_frames.Interaction.ActiveAbilitySpec?.Mode == spec.Mode
+			&& _currentFrame.TargetPick is { RequiresManualCommit: true, CanLockIn: true })
+		{
+			_translator.TryCommitTargetPick();
+			return;
+		}
+
+		if (_frames.Interaction.ActiveAbilitySpec?.Mode == spec.Mode)
+			return;
+
 		_frames.Interaction.SetMode(spec.Mode, spec);
 		RefreshPresentation();
 		if (spec.TargetPick is null
@@ -606,8 +620,12 @@ public partial class BattleController : Node3D
 
 	private void OnTargetPickConfirmRequested()
 	{
-		_frames.Interaction.ConfirmTargetPick();
+		if (!_frames.Interaction.ConfirmTargetPick())
+			return;
+
 		RefreshPresentation();
+		if (_currentFrame.TargetPick is { IsExactQuota: true, CanLockIn: true })
+			_translator.TryCommitTargetPick();
 	}
 
 	private void OnTargetPickUndoRequested()

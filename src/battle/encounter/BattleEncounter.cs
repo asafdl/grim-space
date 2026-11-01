@@ -6,6 +6,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.Factions;
@@ -72,6 +73,83 @@ public sealed class BattleEncounter
 				RegionMargin = fieldMargin,
 				ReservedCells = AsteroidFieldReservations.PlayerCorridors(spawns),
 			}),
+		};
+	}
+
+	/// <summary>
+	/// Compact skirmish for target-pick UX: Protection Drone (1/1) plus three nearby enemies for Mark Targets (1–3).
+	/// </summary>
+	public static BattleEncounter TargetPickShowcase(int seed = 42, int gridSize = 32)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(gridSize, 16);
+		var center = gridSize / 2;
+		var playerPos = new Coord(center - 4, center, center);
+		var dorsal = Coord.Up;
+		var playerFore = Coord.Forward;
+		var enemyFore = -Coord.Forward;
+
+		var playerSpawn = new BattleSpawn
+		{
+			Ship = DeploymentPlacement.UpgradeDevShip(
+				ShipInstance.FromCatalog($"fighter-target-pick-{seed}", EType.Fighter)),
+			Pilot = PilotBattleSnapshot.FromSkills(
+				$"pilot-target-pick-{seed}",
+				[EPilotSkillId.ProtectionDrone],
+				portraitId: "pilot_01"),
+			Team = ETeam.Player,
+			Position = playerPos,
+			Fore = playerFore,
+			Dorsal = dorsal,
+			ExecutionAgent = new UserExecutionAgent(),
+		};
+		var allyA = new BattleSpawn
+		{
+			Ship = DeploymentPlacement.UpgradeDevShip(
+				ShipInstance.FromCatalog($"ally-a-target-pick-{seed}", EType.RepurposedMiner)),
+			Team = ETeam.Player,
+			Position = playerPos + new Coord(0, 2, 0),
+			Fore = playerFore,
+			Dorsal = dorsal,
+			ExecutionAgent = new UserExecutionAgent(),
+		};
+		var allyB = new BattleSpawn
+		{
+			Ship = DeploymentPlacement.UpgradeDevShip(
+				ShipInstance.FromCatalog($"ally-b-target-pick-{seed}", EType.RepurposedMiner)),
+			Team = ETeam.Player,
+			Position = playerPos + new Coord(0, -2, 0),
+			Fore = playerFore,
+			Dorsal = dorsal,
+			ExecutionAgent = new UserExecutionAgent(),
+		};
+		BattleSpawn Enemy(string id, Coord offset) => new()
+		{
+			Ship = DeploymentPlacement.UpgradeDevShip(
+				ShipInstance.FromCatalog($"{id}-target-pick-{seed}", EType.Fighter)),
+			Team = ETeam.Enemy,
+			Position = playerPos + offset,
+			Fore = enemyFore,
+			Dorsal = dorsal,
+			ExecutionAgent = new AiController(),
+		};
+
+		var spawns = new[]
+		{
+			playerSpawn,
+			allyA,
+			allyB,
+			Enemy("enemy-a", new Coord(4, 0, 0)),
+			Enemy("enemy-b", new Coord(5, 2, 0)),
+			Enemy("enemy-c", new Coord(5, -2, 0)),
+		};
+
+		return new BattleEncounter
+		{
+			Id = TypedIdGenerator.NextId("engagement-target-pick"),
+			Seed = seed,
+			Spawns = spawns,
+			Objective = EObjective.EliminateOpponents,
+			WorldHazards = [],
 		};
 	}
 
