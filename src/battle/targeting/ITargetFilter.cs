@@ -12,7 +12,6 @@ public interface ITargetFilter
 		IReadOnlyList<string> alreadyPicked);
 }
 
-/// <summary>Accepts candidates whose relation to the actor is one of <paramref name="Allowed"/>.</summary>
 public sealed record RelationFilter(params EUnitRelation[] Allowed) : ITargetFilter
 {
 	public bool Matches(
