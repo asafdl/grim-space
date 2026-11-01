@@ -2,6 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -62,16 +63,18 @@ public sealed class ReinforcedHullTests
 	}
 
 	[Fact]
-	public void BattleUnitStateDto_PreservesReinforcedHullActive()
+	public void BattleUnitStateDto_PreservesReinforcedHullStatus()
 	{
 		var state = BattleTestFixture.Player(new Coord(0, 0, 0)).State;
-		state.ReinforcedHullActive = true;
+		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, state.Id));
 
 		var dto = SaveDtoMapper.CaptureBattleUnitState(state);
 		var restored = SaveDtoMapper.RestoreBattleUnitState(dto);
 
-		Assert.True(restored.ReinforcedHullActive);
-		Assert.True(state.Clone().ReinforcedHullActive);
+		var statusId = BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.ReinforcedHull), state.Id);
+		Assert.Contains(restored.Statuses, status => status.InstanceId == statusId);
+		Assert.Contains(state.Clone().Statuses, status => status.InstanceId == statusId);
+		Assert.Equal(67, BattleStatuses.RewriteHullDamage(restored.Statuses, 100));
 	}
 
 	private static BattleOrchestrator BeginBattle(

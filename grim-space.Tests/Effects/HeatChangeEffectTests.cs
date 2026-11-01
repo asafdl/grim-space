@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Heat;
 
@@ -56,6 +57,7 @@ public sealed class HeatChangeEffectTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
+		BattleStatuses.SyncOverheat(state);
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		new HeatChangeEffect(20).Apply(battle.Engine.World, runtime, PlayerId);

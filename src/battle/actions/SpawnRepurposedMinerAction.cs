@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
@@ -76,7 +77,7 @@ public sealed class SpawnRepurposedMinerDef
 	public bool IsLegal(SpawnRepurposedMinerAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (actor.Overheat)
+		if (BattleStatuses.HasOverheat(actor))
 			return false;
 		var installed = actor.FindInstalled(EAbilityKind.MinerBay, action.MountedOn);
 		if (installed is null)

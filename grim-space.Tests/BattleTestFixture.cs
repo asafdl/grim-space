@@ -65,18 +65,16 @@ internal static class BattleTestFixture
 			foreach (var unit in units)
 			{
 				pilotsByActorId.TryGetValue(unit.State.Id, out var pilot);
-				var runtime = ActorRuntime.From(pilot);
-				unit.State.InTheFrayActive = runtime.PilotCapabilities.Contains(
-					GrimSpace.Pilots.EPilotCapabilityId.InTheFray);
-				unit.State.ReinforcedHullActive = runtime.PilotCapabilities.Contains(
-					GrimSpace.Pilots.EPilotCapabilityId.ReinforcedHull);
-				unit.State.HealingSkillRangeBonusActive = runtime.PilotCapabilities.Contains(
-					GrimSpace.Pilots.EPilotCapabilityId.HealingSkillRangeBonus);
-				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
-					GrimSpace.Pilots.EPilotCapabilityId.OneWithTheVoid);
-				unit.State.DefensiveManeuversActive = runtime.PilotCapabilities.Contains(
-					GrimSpace.Pilots.EPilotCapabilityId.StationaryDamageDeflection);
+				GrimSpace.Battle.Statuses.BattlePassiveStatusInstaller.InstallFromCapabilities(
+					unit.State,
+					ActorRuntime.From(pilot));
 			}
+		}
+
+		foreach (var unit in units)
+		{
+			GrimSpace.Battle.Statuses.BattleStatuses.SyncOverdrive(unit.State);
+			GrimSpace.Battle.Statuses.BattleStatuses.SyncOverheat(unit.State);
 		}
 
 		var world = BattleWorld.FromLive(

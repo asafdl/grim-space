@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -55,7 +56,7 @@ public sealed class OverchargeEnginesDef
 			return false;
 
 		var state = world.StateOf(action.ActorId);
-		return !state.Overheat
+		return !BattleStatuses.HasOverheat(state)
 			&& state.OverchargeEnginesCooldownRemaining == 0;
 	}
 

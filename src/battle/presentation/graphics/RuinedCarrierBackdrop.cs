@@ -109,6 +109,16 @@ public static class RuinedCarrierBackdrop
 		AddDebris(root, "broken_fuselage.glb", new Vector3(-2.2f, 2.4f, center - 1.8f), new Vector3(31f, 11f, -44f), 0.24f);
 	}
 
+	internal static Node3D InstantiateFragment(string fileName)
+	{
+		var path = WreckPath + fileName;
+		var scene = GD.Load<PackedScene>(path)
+			?? throw new InvalidOperationException($"Could not load wreck fragment '{path}'.");
+		var fragment = scene.Instantiate<Node3D>();
+		fragment.Name = Path.GetFileNameWithoutExtension(fileName);
+		return fragment;
+	}
+
 	private static void AddDebris(
 		Node3D root,
 		string fileName,
@@ -116,11 +126,7 @@ public static class RuinedCarrierBackdrop
 		Vector3 rotationDegrees,
 		float scale)
 	{
-		var path = WreckPath + fileName;
-		var scene = GD.Load<PackedScene>(path)
-			?? throw new InvalidOperationException($"Could not load wreck fragment '{path}'.");
-		var fragment = scene.Instantiate<Node3D>();
-		fragment.Name = Path.GetFileNameWithoutExtension(fileName);
+		var fragment = InstantiateFragment(fileName);
 		fragment.Position = position;
 		fragment.RotationDegrees = rotationDegrees;
 		fragment.Scale = Vector3.One * scale;

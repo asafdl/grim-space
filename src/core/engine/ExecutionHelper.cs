@@ -15,7 +15,11 @@ public static class ExecutionHelper
 		if (action is not IAction<TWorld, TRuntime> typed)
 			return [];
 
-		var effects = typed.Definition.Resolve(action, world, runtime).ToList();
+		var effects = RewriteResolved(
+			action,
+			world,
+			runtime,
+			typed.Definition.Resolve(action, world, runtime));
 		foreach (var effect in effects)
 		{
 			var records = effect.Apply(world, runtime, action.ActorId);
@@ -34,11 +38,26 @@ public static class ExecutionHelper
 			return [];
 
 		var records = new List<IRecord>();
-		foreach (var effect in typed.Definition.Resolve(action, world, runtime))
+		foreach (var effect in RewriteResolved(
+			action,
+			world,
+			runtime,
+			typed.Definition.Resolve(action, world, runtime)))
 			records.AddRange(effect.Apply(world, runtime, action.ActorId));
 
 		return records;
 	}
+
+	private static IReadOnlyList<IEffect<TWorld, TRuntime>> RewriteResolved<TWorld, TRuntime>(
+		IAction action,
+		TWorld world,
+		TRuntime runtime,
+		IReadOnlyList<IEffect<TWorld, TRuntime>> effects)
+		where TWorld : IWorld<TWorld>
+		where TRuntime : IRuntimeContext<TRuntime> =>
+		world is IResolvedEffectPass<TWorld, TRuntime> pass
+			? pass.RewriteResolvedEffects(action, world, runtime, effects)
+			: effects;
 
 	public static void UndoEffects<TWorld, TRuntime>(
 		IReadOnlyList<IEffect<TWorld, TRuntime>> effects,

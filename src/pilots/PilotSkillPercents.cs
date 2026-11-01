@@ -88,6 +88,11 @@ public static class PilotSkillPercents
 		public const int HealingRangeBonusCells = 1;
 	}
 
+	public static class ScrapDrone
+	{
+		public const int SwarmAdditionalDamage = 100;
+	}
+
 	public static class IKnowABot
 	{
 		public const int ShipUpgradeDiscountPercent = 10;

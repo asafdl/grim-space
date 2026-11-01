@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -39,7 +40,7 @@ public sealed class SpawnVoidBombEffect(AbilityMount mount, string unitId)
 		torpedo.State.ActionPoints = projectile.MovementActionPoints;
 		torpedo.State.ManeuverPoints = 0;
 		torpedo.State.ParentId = actorId;
-		torpedo.State.OneWithTheVoidActive = firer.State.OneWithTheVoidActive;
+		BattleStatuses.CopyOneWithTheVoidOnto(firer.State, torpedo.State);
 		units.Add(torpedo);
 		_spawned = torpedo;
 

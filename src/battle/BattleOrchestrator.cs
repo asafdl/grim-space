@@ -8,6 +8,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
@@ -189,18 +190,10 @@ public sealed class BattleOrchestrator : IDisposable
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
 			if (pilotsByActorId is not null)
-			{
-				unit.State.InTheFrayActive = runtime.PilotCapabilities.Contains(
-					EPilotCapabilityId.InTheFray);
-				unit.State.ReinforcedHullActive = runtime.PilotCapabilities.Contains(
-					EPilotCapabilityId.ReinforcedHull);
-				unit.State.HealingSkillRangeBonusActive = runtime.PilotCapabilities.Contains(
-					EPilotCapabilityId.HealingSkillRangeBonus);
-				unit.State.OneWithTheVoidActive = runtime.PilotCapabilities.Contains(
-					EPilotCapabilityId.OneWithTheVoid);
-				unit.State.DefensiveManeuversActive = runtime.PilotCapabilities.Contains(
-					EPilotCapabilityId.StationaryDamageDeflection);
-			}
+				BattlePassiveStatusInstaller.InstallFromCapabilities(unit.State, runtime);
+
+			BattleStatuses.SyncOverdrive(unit.State);
+			BattleStatuses.SyncOverheat(unit.State);
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
 

@@ -2,6 +2,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
@@ -90,7 +91,7 @@ public sealed class VoidBombDef
 	public bool IsLegal(VoidBombAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (state.Overheat)
+		if (BattleStatuses.HasOverheat(state))
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.VoidBombLauncher, action.MountedOn);
 		if (installed is null)

@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -34,7 +35,9 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		if (actor.ProtectionDroneCooldownRemaining > 0)
 			actor.ProtectionDroneCooldownRemaining--;
 
-		if (actor.HeatProfile.Participates && !actor.Overdrive && !actor.Overheat)
+		if (actor.HeatProfile.Participates
+			&& !actor.Overdrive
+			&& !BattleStatuses.HasOverheat(actor))
 		{
 			var cleared = System.Math.Max(0, actor.Heat - actor.HeatProfile.ClearPerTurn);
 			if (cleared != actor.Heat)

@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Heat;
@@ -46,11 +47,13 @@ public sealed class HeatScheduleTransitionTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
+		BattleStatuses.SyncOverheat(state);
 
 		battle.Engine.Commit(new TurnUpkeepAction(PlayerId));
 
 		Assert.Equal(100, state.Heat);
 		Assert.True(state.Overheat);
+		Assert.True(BattleStatuses.HasOverheat(state));
 	}
 
 	[Fact]
@@ -78,6 +81,7 @@ public sealed class HeatScheduleTransitionTests
 		Assert.Equal(100, state.Heat);
 		Assert.False(state.Overdrive);
 		Assert.True(state.Overheat);
+		Assert.True(BattleStatuses.HasOverheat(state));
 		Assert.True(battle.Engine.World.Timeline.ContainsPending(
 			action => action is ClearOverheatAction clear && clear.ActorId == PlayerId));
 
@@ -90,6 +94,7 @@ public sealed class HeatScheduleTransitionTests
 		Assert.Equal(0, state.Heat);
 		Assert.False(state.Overdrive);
 		Assert.False(state.Overheat);
+		Assert.False(BattleStatuses.HasOverheat(state));
 	}
 
 	[Fact]
@@ -99,6 +104,7 @@ public sealed class HeatScheduleTransitionTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
+		BattleStatuses.SyncOverheat(state);
 
 		Assert.True(BattleTestApply.TryApplyOne(
 			MoveDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward),

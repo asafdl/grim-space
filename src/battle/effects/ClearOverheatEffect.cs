@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 
@@ -22,6 +23,7 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 
 		actor.Overheat = false;
 		actor.Heat = 0;
+		BattleStatuses.SyncOverheat(actor);
 		_applied = true;
 		return
 		[
@@ -41,5 +43,6 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 		var actor = world.StateOf(actorId);
 		actor.Heat = _previousHeat;
 		actor.Overheat = _previousOverheat;
+		BattleStatuses.SyncOverheat(actor);
 	}
 }

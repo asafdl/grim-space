@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -119,21 +120,24 @@ public sealed class ApplyChainLightningDamageEffect(
 		var appliedDamage = damage;
 		if (damageBonusPercent != 0)
 			appliedDamage = ScalePercent(appliedDamage, 100 + damageBonusPercent);
+		else
+			appliedDamage = ApplyAreaDamageEffect.ApplyOverdriveCrossingBonus(
+				world.StateOf(actorId),
+				appliedDamage);
+		appliedDamage = BattleStatuses.RewriteIncomingDamage(unit.Statuses, appliedDamage);
 		var appliedShieldDamageBonus = shieldDamageBonus;
 		if (shieldDamageBonusPercent > 0)
 			appliedShieldDamageBonus += PortionOf(appliedDamage, shieldDamageBonusPercent);
 
-		Defense.ApplyInTheFrayReduction(
+		var hit = BattleStatuses.RewriteIncomingHit(
+			unit.Statuses,
 			world,
 			targetUnit,
-			ref appliedDamage,
-			ref appliedShieldDamageBonus);
+			cause,
+			new IncomingHit(appliedDamage, appliedShieldDamageBonus));
 
-		if (damage > 0)
-			Defense.ApplyDeflectionRolls(unit, cause, ref appliedDamage, ref appliedShieldDamageBonus);
-
-		if (appliedDamage > 0)
-			Defense.ApplyDamage(unit, appliedDamage, face, appliedShieldDamageBonus);
+		if (hit.Damage > 0)
+			Defense.ApplyDamage(unit, hit.Damage, face, hit.ShieldDamageBonus);
 
 		var shieldAfter = Defense.EffectiveShield(unit, face);
 		var shieldDamage = shieldBefore - shieldAfter;

@@ -1,12 +1,15 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
+using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -25,11 +28,16 @@ public sealed class OneWithTheVoidTests
 	{
 		var battle = LaunchTorpedo(withSkill: true, out _);
 
-		Assert.True(battle.Engine.World.StateOf(PlayerId).OneWithTheVoidActive);
+		var player = battle.Engine.World.StateOf(PlayerId);
+		Assert.True(BattleStatuses.HasOneWithTheVoid(player));
 		var torpedo = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
 			unit => unit.State.Type == EType.VoidBomb);
-		Assert.True(torpedo.State.OneWithTheVoidActive);
+		Assert.True(BattleStatuses.HasOneWithTheVoid(torpedo.State));
+		Assert.DoesNotContain(
+			torpedo.State.Statuses,
+			status => status.InstanceId
+				== BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.OneWithTheVoid), PlayerId));
 	}
 
 	[Fact]
@@ -72,16 +80,49 @@ public sealed class OneWithTheVoidTests
 	}
 
 	[Fact]
-	public void BattleUnitStateDto_PreservesOneWithTheVoidActive()
+	public void BattleUnitStateDto_PreservesOneWithTheVoidStatus()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.OneWithTheVoidActive = true;
+		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.OneWithTheVoid, state.Id));
 
 		var dto = SaveDtoMapper.CaptureBattleUnitState(state);
 		var restored = SaveDtoMapper.RestoreBattleUnitState(dto);
 
-		Assert.True(restored.OneWithTheVoidActive);
-		Assert.True(state.Clone().OneWithTheVoidActive);
+		Assert.True(BattleStatuses.HasOneWithTheVoid(restored));
+		Assert.True(BattleStatuses.HasOneWithTheVoid(state.Clone()));
+	}
+
+	[Fact]
+	public void Detonate_StaysUntagged_SoAttackRewriteOutgoingDoesNotApply()
+	{
+		var battle = LaunchTorpedo(withSkill: false, out var torpedoId);
+		var torpedo = battle.Engine.World.StateOf(torpedoId);
+		torpedo.Statuses.Add(
+			new BattleStatus
+			{
+				InstanceId = "test:attack-bonus",
+				Priority = 1,
+				ActionTags = [BattleActionTags.Attack],
+				Polarity = EStatusPolarity.Buff,
+				RewriteOutgoing = (_, _, effect) =>
+					effect is ApplyAreaDamageEffect area
+						? area.WithDamageBonusPercent(50)
+						: effect,
+			});
+
+		IAction detonate = new DetonateAction(torpedoId);
+		Assert.Empty(detonate.Tags);
+
+		var effects = DetonateDef.Instance.Resolve(
+			detonate,
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(torpedoId));
+		var rewritten = BattleStatuses.RewriteOutgoing(
+			detonate,
+			battle.Engine.World,
+			effects);
+		var area = Assert.IsType<ApplyAreaDamageEffect>(Assert.Single(rewritten));
+		Assert.Equal(0, area.DamageBonusPercent);
 	}
 
 	private static BattleOrchestrator LaunchTorpedo(bool withSkill, out string torpedoId)

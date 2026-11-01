@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Heat;
 
@@ -16,6 +17,7 @@ public sealed class EnterOverheatEffectTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overdrive = true;
+		BattleStatuses.SyncOverdrive(state);
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		new EnterOverheatEffect().Apply(battle.Engine.World, runtime, PlayerId);
@@ -23,6 +25,9 @@ public sealed class EnterOverheatEffectTests
 		Assert.Equal(100, state.Heat);
 		Assert.False(state.Overdrive);
 		Assert.True(state.Overheat);
+		Assert.False(state.Statuses.Exists(status =>
+			status.InstanceId == BattleStatuses.BuffInstanceId("Overdrive", PlayerId)));
+		Assert.True(BattleStatuses.HasOverheat(state));
 	}
 
 	[Fact]
@@ -54,5 +59,6 @@ public sealed class EnterOverheatEffectTests
 
 		Assert.True(state.Overdrive);
 		Assert.False(state.Overheat);
+		Assert.False(BattleStatuses.HasOverheat(state));
 	}
 }

@@ -334,7 +334,7 @@ public sealed partial class SpaceBackdrop : Node3D
 		float spread) =>
 		center + (rng.Randf() + rng.Randf() + rng.Randf() - 1.5f) * spread;
 
-	private static Vector3 RandomUnit(RandomNumberGenerator rng)
+	internal static Vector3 RandomUnit(RandomNumberGenerator rng)
 	{
 		var y = rng.RandfRange(-1f, 1f);
 		var azimuth = rng.RandfRange(0f, Mathf.Tau);

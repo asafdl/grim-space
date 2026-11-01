@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -39,11 +40,8 @@ public sealed record UnitDisplayState(
 	bool ShieldsUpUsedThisTurn,
 	int OverchargeEnginesCooldownRemaining,
 	int ProtectionDroneCooldownRemaining = 0,
-	bool ShieldBraceActive = false,
-	ESpatialOrientation? ShieldBraceFace = null,
-	FaceShieldPoints? ShieldBraceSnapshot = null,
-	int ShieldBraceDamagePending = 0,
-	bool ShieldBraceUsedThisTurn = false)
+	bool ShieldBraceUsedThisTurn = false,
+	IReadOnlyList<BattleStatus>? Statuses = null)
 {
 	public static UnitDisplayState Capture(State state, ActorRuntime runtime) =>
 		new(
@@ -77,11 +75,10 @@ public sealed record UnitDisplayState(
 			state.ShieldsUpUsedThisTurn,
 			state.OverchargeEnginesCooldownRemaining,
 			state.ProtectionDroneCooldownRemaining,
-			state.ShieldBraceActive,
-			state.ShieldBraceFace,
-			state.ShieldBraceSnapshot?.Clone(),
-			state.ShieldBraceDamagePending,
-			state.ShieldBraceUsedThisTurn);
+			state.ShieldBraceUsedThisTurn,
+			state.Statuses.Select(status => status.DeepCopy()).ToArray());
+
+	public bool ShieldBraceActive => Statuses?.Any(status => status.Payload is ShieldBracePayload) == true;
 
 	public int MaxActionPoints => Maneuverability.MaxActionPoints;
 	public int MaxManeuverPoints => Maneuverability.MaxManeuverPoints;
@@ -135,10 +132,6 @@ public sealed record UnitDisplayState(
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
 			ProtectionDroneCooldownRemaining = ProtectionDroneCooldownRemaining,
-			ShieldBraceActive = ShieldBraceActive,
-			ShieldBraceFace = ShieldBraceFace,
-			ShieldBraceSnapshot = ShieldBraceSnapshot?.Clone(),
-			ShieldBraceDamagePending = ShieldBraceDamagePending,
 			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 		};
 		foreach (var mount in Mounts)
@@ -149,6 +142,9 @@ public sealed record UnitDisplayState(
 				CooldownRemaining = mount.CooldownRemaining,
 			};
 		}
+
+		if (Statuses is not null)
+			BattleStatuses.CopyInto(Statuses, state.Statuses);
 
 		return state;
 	}

@@ -1,11 +1,13 @@
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.PilotCapabilities;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
+using GrimSpace.Units.Enums;
 using GrimSpace.Units.Heat;
-using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -15,23 +17,36 @@ public sealed class OverdriveDamageBonusTests
 	private const string PlayerId = "player";
 
 	[Fact]
-	public void ThresholdCrossingAttack_GetsDamageBonus()
+	public void ThresholdCrossingAttack_GetsDamageBonusAtApply()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = state.HeatProfile.EffectiveCapacity - HeatChangeEffect.PerAbilityUse;
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+		var enemy = battle.Engine.World.UnitRegistry.All.First(unit => unit.State.Id != PlayerId);
+		enemy.State.Position = new Coord(6, 5, 5);
+		var hitFace = GrimSpace.Battle.Spatial.BodyFrame.From(enemy.State)
+			.HitFaceFrom(state.Position);
+		enemy.State.ShieldPoints[hitFace] = 0;
+		var hullBefore = enemy.State.HullPoints;
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.ScrapDroneSwarmBurst,
+			new HashSet<Coord> { enemy.State.Position },
+			100,
+			state.Position);
 
-		var modified = runtime.ActionEffects.Apply(
-			AttackAction(),
+		_ = new HeatChangeEffect(HeatChangeEffect.PerAbilityUse).Apply(
 			battle.Engine.World,
-			runtime,
-			[SampleAreaDamage()]);
+			battle.Engine.ActorRuntimes.For(PlayerId),
+			PlayerId);
+		Assert.True(state.Overdrive);
+		effect.Apply(
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(PlayerId),
+			PlayerId);
 
-		Assert.True(OverdriveDamageBonusModifier.IsEligible(battle.Engine.World, PlayerId));
 		Assert.Equal(
-			OverdriveDamageBonusModifier.BonusPercent,
-			Assert.IsType<ApplyAreaDamageEffect>(modified[0]).DamageBonusPercent);
+			hullBefore - ScalePercent(100, 100 + HeatChangeEffect.OverdriveDamageBonusPercent),
+			enemy.State.HullPoints);
 	}
 
 	[Fact]
@@ -42,33 +57,32 @@ public sealed class OverdriveDamageBonusTests
 		state.Heat = 0;
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
-		var modified = runtime.ActionEffects.Apply(
+		var modified = BattleStatuses.RewriteOutgoing(
 			AttackAction(),
 			battle.Engine.World,
-			runtime,
 			[SampleAreaDamage()]);
 
-		Assert.False(OverdriveDamageBonusModifier.IsEligible(battle.Engine.World, PlayerId));
+		Assert.False(state.Overdrive);
 		Assert.Equal(0, Assert.IsType<ApplyAreaDamageEffect>(modified[0]).DamageBonusPercent);
+		_ = runtime;
 	}
 
 	[Fact]
-	public void OverdriveFlag_BuffsAttack()
+	public void OverdriveStatus_BuffsAttackThroughRewriteOutgoing()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 50;
 		state.Overdrive = true;
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+		BattleStatuses.SyncOverdrive(state);
 
-		var modified = runtime.ActionEffects.Apply(
+		var modified = BattleStatuses.RewriteOutgoing(
 			AttackAction(),
 			battle.Engine.World,
-			runtime,
 			[SampleAreaDamage()]);
 
 		Assert.Equal(
-			OverdriveDamageBonusModifier.BonusPercent,
+			HeatChangeEffect.OverdriveDamageBonusPercent,
 			Assert.IsType<ApplyAreaDamageEffect>(modified[0]).DamageBonusPercent);
 	}
 
@@ -80,52 +94,84 @@ public sealed class OverdriveDamageBonusTests
 		state.HeatProfile = HeatSpec.None;
 		state.Overdrive = true;
 		state.Heat = 100;
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+		BattleStatuses.SyncOverdrive(state);
 
-		var modified = runtime.ActionEffects.Apply(
+		var modified = BattleStatuses.RewriteOutgoing(
 			AttackAction(),
 			battle.Engine.World,
-			runtime,
 			[SampleAreaDamage()]);
 
-		Assert.False(OverdriveDamageBonusModifier.IsEligible(battle.Engine.World, PlayerId));
 		Assert.Equal(0, Assert.IsType<ApplyAreaDamageEffect>(modified[0]).DamageBonusPercent);
+		Assert.Equal(
+			100,
+			ApplyAreaDamageEffect.ApplyOverdriveCrossingBonus(state, 100));
 	}
 
 	[Fact]
-	public void EmptyPilotRuntime_StillHasOverdriveModifierPipeline()
+	public void EmptyPilotRuntime_StillBuffsWhenOverdriveSynced()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Overdrive = true;
+		BattleStatuses.SyncOverdrive(state);
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		Assert.Empty(runtime.PilotCapabilities);
 
-		var modified = runtime.ActionEffects.Apply(
+		var modified = BattleStatuses.RewriteOutgoing(
 			AttackAction(),
 			battle.Engine.World,
-			runtime,
 			[SampleAreaDamage()]);
 
 		Assert.Equal(
-			OverdriveDamageBonusModifier.BonusPercent,
+			HeatChangeEffect.OverdriveDamageBonusPercent,
 			Assert.IsType<ApplyAreaDamageEffect>(modified[0]).DamageBonusPercent);
 	}
 
 	[Fact]
-	public void DetonateAction_HasNoAttackTagSoPipelineSkipsBonus()
+	public void Pipeline_NoLongerRegistersOverdriveBonus()
+	{
+		var pipeline = BattlePilotCapabilityPipelineFactory.Build(
+			new HashSet<EPilotCapabilityId>());
+		IAction action = AttackAction();
+		var effect = SampleAreaDamage();
+
+		var modified = Assert.IsType<ApplyAreaDamageEffect>(
+			Assert.Single(pipeline.Apply(action, null!, ActorRuntime.From(null), [effect])));
+
+		Assert.Equal(0, modified.DamageBonusPercent);
+	}
+
+	[Fact]
+	public void DetonateAction_HasNoAttackTagSoStatusSkipsBonus()
 	{
 		IAction action = new DetonateAction("void-bomb");
 		Assert.DoesNotContain(BattleActionTags.Attack, action.Tags);
 	}
 
-	private static ScrapDroneSwarmAction AttackAction()
+	[Fact]
+	public void StampedBonus_DoesNotDoubleApplyCrossingException()
 	{
-		var mountedOn = ESpatialOrientation.Port;
-		return new ScrapDroneSwarmAction(PlayerId, mountedOn);
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var state = battle.Engine.World.StateOf(PlayerId);
+		state.Overdrive = true;
+		BattleStatuses.SyncOverdrive(state);
+		var stamped = Assert.IsType<ApplyAreaDamageEffect>(
+			Assert.Single(BattleStatuses.RewriteOutgoing(AttackAction(), battle.Engine.World, [SampleAreaDamage()])));
+
+		Assert.Equal(HeatChangeEffect.OverdriveDamageBonusPercent, stamped.DamageBonusPercent);
+		// Apply path uses stamped percent and skips crossing helper when DamageBonusPercent != 0.
+		Assert.Equal(
+			ScalePercent(100, 100 + HeatChangeEffect.OverdriveDamageBonusPercent),
+			ScalePercent(stamped.Damage, 100 + stamped.DamageBonusPercent));
 	}
+
+	private static ScrapDroneSwarmAction AttackAction() =>
+		new(PlayerId, ESpatialOrientation.Port);
 
 	private static ApplyAreaDamageEffect SampleAreaDamage() =>
 		new(EImpactCause.ScrapDroneSwarmBurst, new HashSet<Coord>(), 100, Coord.Zero);
+
+	private static int ScalePercent(int amount, int percent) =>
+		(int)System.Math.Round(amount * percent / 100m, MidpointRounding.AwayFromZero);
 }

@@ -8,6 +8,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Pilots;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using BattleUnitState = GrimSpace.Battle.Units.State;
@@ -242,25 +243,14 @@ public static class SaveDtoMapper
 			state.ManeuverPoints,
 			state.FuelRemaining,
 			state.ParentId,
-			TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
+			Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 			state.ShieldsUpUsedThisTurn,
 			state.OverchargeEnginesCooldownRemaining,
 			state.ProtectionDroneCooldownRemaining,
-			state.ProtectionDroneBuffActive,
 			state.ProtectionDroneRollIndex,
-			state.ShieldBraceActive,
-			state.ShieldBraceFace,
-			ShieldBraceSnapshot = state.ShieldBraceSnapshot is { } braceSnapshot
-				? CaptureFaces(braceSnapshot)
-				: null,
-			state.ShieldBraceDamagePending,
 			state.ShieldBraceUsedThisTurn,
 			state.DefensiveManeuversMpUsed,
 			state.DefensiveManeuversRollIndex,
-			state.InTheFrayActive,
-			state.ReinforcedHullActive,
-			state.HealingSkillRangeBonusActive,
-			state.OneWithTheVoidActive,
 			state.Heat,
 			state.Overdrive,
 			state.Overheat,
@@ -296,25 +286,14 @@ public static class SaveDtoMapper
 		var maxMp = dto.MaxMp ?? maneuverability.MaxManeuverPoints;
 		state.ManeuverPoints = dto.ManeuverPoints ?? maxMp;
 		state.FuelRemaining = dto.FuelRemaining;
-		RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, dto.TemporaryShieldGrants);
+		RestoreStatuses(state, dto.Statuses);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.OverchargeEnginesCooldownRemaining = dto.OverchargeEnginesCooldownRemaining;
 		state.ProtectionDroneCooldownRemaining = dto.ProtectionDroneCooldownRemaining;
-		state.ProtectionDroneBuffActive = dto.ProtectionDroneBuffActive;
 		state.ProtectionDroneRollIndex = dto.ProtectionDroneRollIndex;
-		state.ShieldBraceActive = dto.ShieldBraceActive;
-		state.ShieldBraceFace = dto.ShieldBraceFace;
-		state.ShieldBraceSnapshot = dto.ShieldBraceSnapshot is { } braceSnapshot
-			? RestoreFaces(braceSnapshot)
-			: null;
-		state.ShieldBraceDamagePending = dto.ShieldBraceDamagePending;
 		state.ShieldBraceUsedThisTurn = dto.ShieldBraceUsedThisTurn;
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
-		state.InTheFrayActive = dto.InTheFrayActive;
-		state.ReinforcedHullActive = dto.ReinforcedHullActive;
-		state.HealingSkillRangeBonusActive = dto.HealingSkillRangeBonusActive;
-		state.OneWithTheVoidActive = dto.OneWithTheVoidActive;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
@@ -384,25 +363,14 @@ public static class SaveDtoMapper
 				state.ManeuverPoints,
 				state.FuelRemaining,
 				state.ParentId,
-				TemporaryShieldGrants = CaptureTemporaryShieldGrants(state.TemporaryShieldGrants),
+				Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 				state.ShieldsUpUsedThisTurn,
 				state.OverchargeEnginesCooldownRemaining,
 				state.ProtectionDroneCooldownRemaining,
-				state.ProtectionDroneBuffActive,
 				state.ProtectionDroneRollIndex,
-				state.ShieldBraceActive,
-				state.ShieldBraceFace,
-				ShieldBraceSnapshot = state.ShieldBraceSnapshot is { } saveBraceSnapshot
-					? CaptureFaces(saveBraceSnapshot)
-					: null,
-				state.ShieldBraceDamagePending,
 				state.ShieldBraceUsedThisTurn,
 				state.DefensiveManeuversMpUsed,
 				state.DefensiveManeuversRollIndex,
-				state.InTheFrayActive,
-				state.ReinforcedHullActive,
-				state.HealingSkillRangeBonusActive,
-				state.OneWithTheVoidActive,
 				state.Heat,
 				state.Overdrive,
 				state.Overheat,
@@ -921,25 +889,14 @@ public static class SaveDtoMapper
 			var maxMp = unitDto.MaxMp ?? maneuverability.MaxManeuverPoints;
 			state.ManeuverPoints = unitDto.ManeuverPoints ?? maxMp;
 			state.FuelRemaining = unitDto.FuelRemaining;
-			RestoreTemporaryShieldGrants(state.TemporaryShieldGrants, unitDto.TemporaryShieldGrants);
+			RestoreStatuses(state, unitDto.Statuses);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.OverchargeEnginesCooldownRemaining = unitDto.OverchargeEnginesCooldownRemaining;
 			state.ProtectionDroneCooldownRemaining = unitDto.ProtectionDroneCooldownRemaining;
-			state.ProtectionDroneBuffActive = unitDto.ProtectionDroneBuffActive;
 			state.ProtectionDroneRollIndex = unitDto.ProtectionDroneRollIndex;
-			state.ShieldBraceActive = unitDto.ShieldBraceActive;
-			state.ShieldBraceFace = unitDto.ShieldBraceFace;
-			state.ShieldBraceSnapshot = unitDto.ShieldBraceSnapshot is { } unitBraceSnapshot
-				? RestoreFaces(unitBraceSnapshot)
-				: null;
-			state.ShieldBraceDamagePending = unitDto.ShieldBraceDamagePending;
 			state.ShieldBraceUsedThisTurn = unitDto.ShieldBraceUsedThisTurn;
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
-			state.InTheFrayActive = unitDto.InTheFrayActive;
-			state.ReinforcedHullActive = unitDto.ReinforcedHullActive;
-			state.HealingSkillRangeBonusActive = unitDto.HealingSkillRangeBonusActive;
-			state.OneWithTheVoidActive = unitDto.OneWithTheVoidActive;
 			RestoreHeat(
 				state,
 				unitDto.Heat,
@@ -1058,27 +1015,51 @@ public static class SaveDtoMapper
 			pair => (IReadOnlyList<ITimelineEntry>)pair.Value.ToArray());
 	}
 
-	private static TemporaryShieldGrantDto[] CaptureTemporaryShieldGrants(
-		IReadOnlyList<GrimSpace.Battle.Units.TemporaryShieldGrant> grants) =>
-		grants
-			.Select(grant => new TemporaryShieldGrantDto(grant.GrantId, CaptureFaces(grant.Remaining)))
-			.ToArray();
-
-	private static void RestoreTemporaryShieldGrants(
-		ICollection<GrimSpace.Battle.Units.TemporaryShieldGrant> grants,
-		IReadOnlyList<TemporaryShieldGrantDto>? dtos)
+	private static BattleStatusDto CaptureStatus(BattleStatus status)
 	{
-		grants.Clear();
+		var brace = status.Payload as ShieldBracePayload;
+		var temporaryShield = status.Payload as TemporaryShieldPayload;
+		return new BattleStatusDto(
+			status.InstanceId,
+			status.Priority,
+			status.ActionTags.ToArray(),
+			status.Polarity,
+			brace?.Face,
+			brace is null ? null : CaptureFaces(brace.Snapshot),
+			brace?.DamagePending ?? 0,
+			temporaryShield is null ? null : CaptureFaces(temporaryShield.Remaining));
+	}
+
+	private static void RestoreStatuses(BattleUnitState state, IReadOnlyList<BattleStatusDto>? dtos)
+	{
+		state.Statuses.Clear();
 		if (dtos is null)
 			return;
 
 		foreach (var dto in dtos)
 		{
-			grants.Add(new GrimSpace.Battle.Units.TemporaryShieldGrant
+			IBattleStatusPayload payload = (dto.Face, dto.Snapshot, dto.Remaining) switch
 			{
-				GrantId = dto.GrantId,
-				Remaining = RestoreFaces(dto.Remaining),
-			});
+				({ } face, { } snapshot, null) => new ShieldBracePayload
+				{
+					Face = face,
+					Snapshot = RestoreFaces(snapshot),
+					DamagePending = dto.DamagePending,
+				},
+				(null, null, { } remaining) => new TemporaryShieldPayload { Remaining = RestoreFaces(remaining) },
+				(null, null, null) => EmptyStatusPayload.Instance,
+				_ => throw new InvalidDataException($"Status '{dto.InstanceId}' has inconsistent payload data."),
+			};
+			state.Statuses.Add(
+				BattleStatusRehydrator.Rehydrate(
+					new BattleStatus
+					{
+						InstanceId = dto.InstanceId,
+						Priority = dto.Priority,
+						ActionTags = dto.ActionTags,
+						Polarity = dto.Polarity,
+						Payload = payload,
+					}));
 		}
 	}
 
@@ -1094,13 +1075,16 @@ public static class SaveDtoMapper
 		state.Heat = heat;
 		state.Overdrive = overdrive;
 		state.Overheat = overheat;
-		if (heatCapacity is null && heatClearPerTurn is null && heatGainMultiplier is null)
-			return;
+		if (heatCapacity is not null || heatClearPerTurn is not null || heatGainMultiplier is not null)
+		{
+			state.HeatProfile = new HeatSpec(
+				heatCapacity ?? state.HeatProfile.Capacity,
+				heatClearPerTurn ?? state.HeatProfile.ClearPerTurn,
+				heatGainMultiplier ?? state.HeatProfile.GainMultiplier);
+		}
 
-		state.HeatProfile = new HeatSpec(
-			heatCapacity ?? state.HeatProfile.Capacity,
-			heatClearPerTurn ?? state.HeatProfile.ClearPerTurn,
-			heatGainMultiplier ?? state.HeatProfile.GainMultiplier);
+		BattleStatuses.SyncOverdrive(state);
+		BattleStatuses.SyncOverheat(state);
 	}
 
 	private static FaceShieldDto CaptureFaces(FaceShieldPoints points) =>

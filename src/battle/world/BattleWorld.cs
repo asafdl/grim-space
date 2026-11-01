@@ -4,6 +4,8 @@ using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
@@ -17,7 +19,10 @@ namespace GrimSpace.Battle.World;
 /// Live battlefield world during a fight: units (via <see cref="UnitRegistry"/>), non-units, grid, and timeline.
 /// <see cref="BattleWorld.Fork"/> snapshots for preview sims; commit writes back to this instance.
 /// </summary>
-public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, BattleWorld>
+public sealed class BattleWorld
+	: IWorld<BattleWorld>,
+		IActorStateWorld<State, BattleWorld>,
+		IResolvedEffectPass<BattleWorld, ActorRuntime>
 {
 	private readonly Dictionary<string, NonUnit> _nonUnits;
 	private FrozenSet<Coord> _abilityBlockingCells;
@@ -31,6 +36,13 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public Timeline Timeline { get; }
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
+
+	IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> IResolvedEffectPass<BattleWorld, ActorRuntime>.RewriteResolvedEffects(
+		IAction action,
+		BattleWorld world,
+		ActorRuntime runtime,
+		IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> effects) =>
+		BattleStatuses.RewriteOutgoing(action, world, effects);
 
 	public string BattleId { get; }
 	public EObjective Objective { get; }
@@ -75,6 +87,32 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 	public bool AnyOpponentInCells(string actorId, IEnumerable<Coord> cells) =>
 		UnitsInCells(actorId, cells).Any(entry => entry.Relation == EUnitRelation.Opponent);
 
+	public int CountUnitsInRange(
+		string actorId,
+		EUnitRelation relation,
+		int minDistance,
+		int maxDistance = int.MaxValue)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(minDistance);
+		if (maxDistance < minDistance)
+			throw new ArgumentOutOfRangeException(nameof(maxDistance));
+
+		var actor = UnitRegistry.UnitOf(actorId);
+		var origin = actor.State.Position;
+		var count = 0;
+		foreach (var unit in UnitRegistry.All)
+		{
+			if (!unit.State.IsAlive || actor.RelationTo(unit) != relation)
+				continue;
+			var distance = origin.ManhattanDistanceTo(unit.State.Position);
+			if (distance < minDistance || distance > maxDistance)
+				continue;
+			count++;
+		}
+
+		return count;
+	}
+
 	public readonly record struct UnitInArea(Unit Unit, EUnitRelation Relation);
 
 	public IEnumerable<Asteroid> Asteroids => _nonUnits.Values.OfType<Asteroid>();
@@ -118,7 +156,8 @@ public sealed class BattleWorld : IWorld<BattleWorld>, IActorStateWorld<State, B
 
 	internal void EnsureDefensiveManeuversActivationRoundEntry(string unitId)
 	{
-		if (!UnitRegistry.TryGet(unitId, out var unit) || !unit.State.DefensiveManeuversActive)
+		if (!UnitRegistry.TryGet(unitId, out var unit)
+			|| !BattleStatuses.HasDefensiveManeuvers(unit.State))
 			return;
 
 		foreach (var entry in ActivationRoundLists.EntriesFor(unitId))

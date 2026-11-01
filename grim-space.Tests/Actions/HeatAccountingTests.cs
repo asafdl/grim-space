@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Heat;
@@ -115,6 +116,7 @@ public sealed class HeatAccountingTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
+		BattleStatuses.SyncOverheat(state);
 
 		Assert.True(BattleTestApply.TryApplyOne(
 			MoveDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward),

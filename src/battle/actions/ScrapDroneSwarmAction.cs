@@ -1,9 +1,9 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
@@ -73,7 +73,7 @@ public sealed class ScrapDroneSwarmDef
 	public bool IsLegal(ScrapDroneSwarmAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (state.Overheat)
+		if (BattleStatuses.HasOverheat(state))
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
@@ -117,7 +117,7 @@ public sealed class ScrapDroneSwarmDef
 		if (installed?.Spec is not IAreaDamage baseArea)
 			return FrozenSet<Coord>.Empty;
 
-		var areaDamage = HealingSkillRange.ApplyRangeBonus(baseArea, state, action.Tags);
+		var areaDamage = BattleStatuses.RewriteArea(baseArea, state.Statuses, action.Tags);
 		var frame = BodyFrame.From(state);
 		var geometric = AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
 		return AbilityArea.ApplyBlocking(state.Position, geometric, IsBlockable, world.AbilityBlockingCells);

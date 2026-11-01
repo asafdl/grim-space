@@ -3,6 +3,7 @@ using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -74,13 +75,13 @@ public sealed class DefensiveManeuversTests
 	public void StateClone_PreservesDefensiveManeuversFields()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.DefensiveManeuversActive = true;
+		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.StationaryDamageDeflection, state.Id));
 		state.DefensiveManeuversMpUsed = 0;
 		state.DefensiveManeuversRollIndex = 4;
 
 		var clone = state.Clone();
 
-		Assert.True(clone.DefensiveManeuversActive);
+		Assert.True(BattleStatuses.HasDefensiveManeuvers(clone));
 		Assert.Equal(0, clone.DefensiveManeuversMpUsed);
 		Assert.Equal(4, clone.DefensiveManeuversRollIndex);
 	}
@@ -89,13 +90,14 @@ public sealed class DefensiveManeuversTests
 	public void BattleUnitStateDto_PreservesDefensiveManeuversFields()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.DefensiveManeuversActive = true;
+		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.StationaryDamageDeflection, state.Id));
 		state.DefensiveManeuversMpUsed = 2;
 		state.DefensiveManeuversRollIndex = 7;
 
 		var dto = GrimSpace.Run.Persistence.SaveDtoMapper.CaptureBattleUnitState(state);
 		var restored = GrimSpace.Run.Persistence.SaveDtoMapper.RestoreBattleUnitState(dto);
 
+		Assert.True(BattleStatuses.HasDefensiveManeuvers(restored));
 		Assert.Equal(2, restored.DefensiveManeuversMpUsed);
 		Assert.Equal(7, restored.DefensiveManeuversRollIndex);
 	}

@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
@@ -16,12 +17,16 @@ public sealed class TemporaryShieldsTests
 		TemporaryShields.GrantPerFace(unit, "b", 1);
 
 		Assert.Equal(2, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
+		Assert.Equal(2, unit.Statuses.Count(status => status.Payload is TemporaryShieldPayload));
 
 		Assert.Equal(1, Defense.AbsorbWithShields(unit, ESpatialOrientation.Forward, 1));
 		Assert.Equal(1, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
 
 		Assert.True(TemporaryShields.TryRevokeGrant(unit, "a", out _));
 		Assert.Equal(1, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
+		Assert.DoesNotContain(
+			unit.Statuses,
+			status => status.InstanceId == BattleStatuses.BuffInstanceId("TemporaryShield:a", unit.Id));
 
 		Assert.True(TemporaryShields.TryRevokeGrant(unit, "b", out _));
 		Assert.Equal(0, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));

@@ -170,9 +170,12 @@ One action may resolve to many effects; one effect may emit zero or more records
 ```text
 Action (what was attempted)
     → ActionDef.Resolve
+    → optional world IResolvedEffectPass (once per action)
     → Effects (what changes)
     → Records (what happened)
 ```
+
+Battle worlds implement that pass as a status rewrite over the acting unit's statuses before any effect applies. Read-only effective parameters (for example healing range) are queried from the same status list for targeting, preview, AI, and resolution. Multi-subject damage still expands per subject inside Apply so one subject's incoming statuses cannot rewrite another subject's hit.
 
 Simulation runs the same definitions and effects against forked state. Preview records stay inside that simulation and never enter the live timeline. During `Engine.Commit`, the engine resolves again against live state, then appends each action followed by its emitted records. Actions and records both implement `ITimelineEntry`.
 
@@ -267,7 +270,7 @@ Chassis that participate in heat ([`HeatSpec`](src/units/heat/HeatSpec.cs) on [`
 
 Actions emit [`HeatChangeEffect`](src/battle/effects/HeatChangeEffect.cs) deltas (`+10` per AP spent, `+5` per MP spent, `+20` per ability). Positive gains scale by `GainMultiplier` and no-op while overheated. Hitting capacity sets **overdrive** and schedules [`EnterOverheatAction`](src/battle/actions/EnterOverheatAction.cs) for the next tick; that clears overdrive, sets **overheat**, and schedules [`ClearOverheatAction`](src/battle/actions/ClearOverheatAction.cs) (heat to 0). [`TurnUpkeepEffect`](src/battle/effects/TurnUpkeepEffect.cs) cools by `ClearPerTurn` when neither flag is set.
 
-**Overdrive:** Attack-tagged damage through [`OverdriveDamageBonusModifier`](src/battle/pilot-capabilities/OverdriveDamageBonusModifier.cs) gains +80% (including the threshold-crossing attack). Reads the acting actor only. **Overheat:** ship abilities are illegal; movement remains legal and heat gain is frozen.
+**Overdrive:** Attack-tagged damage gains +80% via an Overdrive status (`BattleStatuses.SyncOverdrive`); the threshold-crossing attack is stamped in damage `Apply` because heat flips after `RewriteOutgoing`. **Overheat:** ship abilities are illegal; movement remains legal and heat gain is frozen.
 
 ### Turn loop
 
@@ -292,9 +295,22 @@ List rows are declarative: **`RunAt`** (`Start` / `End`), optional **`RoundsRema
 
 [`Capabilities`](src/battle/units/Capabilities.cs) maps each actor's installed abilities and **pilot runtime capabilities** to action definitions. Skills are progression sources that grant capabilities; battle and strategic runtimes consume resolved capability grants without depending on how they were acquired. AI and UI start from the installed action-definition set and ask each definition what is legal or discoverable; they do not maintain separate rule tables. Type-based overloads exist only for previews and tests that do not have live actor state.
 
-[`IAction`](src/core/actions/IAction.cs) exposes opaque string **`Tags`** for committed timeline entries; the kernel stores and forwards them only. Pilot capability pipeline registrations declare the action tags they match, and [`ActionTagEffectModifier`](src/core/actions/ActionTagEffectModifier.cs) applies the concrete modifier only when the action contains every required tag. Concrete modifiers transform compatible effect types without naming actions or repeating tag checks. Encounter creation installs the battle pipeline from the deployed pilots' frozen capability snapshots.
+[`IAction`](src/core/actions/IAction.cs) exposes opaque string **`Tags`** for committed timeline entries; the kernel stores and forwards them only. Strategic capability pipeline registrations declare the action tags they match, and [`ActionTagEffectModifier`](src/core/actions/ActionTagEffectModifier.cs) applies the concrete modifier only when the action contains every required tag. Battle passives instead install statuses from the deployed pilots' frozen capability snapshots; statuses match on the same action tags.
 
-Target-side passives publish their current combat condition from the owning actor runtime into cloneable battle unit state when the condition is evaluated. Damage effects read that state directly because effects receive the acting runtime only; they must not reach through the world to the engine's peer-runtime registry.
+Battle-local reacting conditions live on a status list on unit [`State`](src/battle/units/State.cs) (`State.Statuses`); statuses are the only owner of outgoing rewrites, effective-parameter rewrites, and incoming-hit rewrites. Ownership map:
+
+| Concern | Owner |
+|---|---|
+| Passive pilot conditions (Scrap Drone, healing range, Lightning, Adjacent, Reinforced Hull, In the Fray, Defensive Maneuvers, One With the Void) | [`BattlePassiveStatusInstaller`](src/battle/statuses/BattlePassiveStatusInstaller.cs) installs inline-callback statuses at battle start |
+| Timed buffs (Protection Drone, Shield Brace, temporary shields) | Grant/clear effects; Brace and temporary shields carry mutable payloads on the status |
+| Folds (outgoing, area, incoming damage/hit, shield/hull channels) | `BattleStatuses` |
+| Shield/hull absorb and damage application | [`Defense`](src/battle/units/Defense.cs) — no capability rules |
+| Heat flags | `State.Overdrive` / `State.Overheat` stay economy; `BattleStatuses.SyncOverdrive` / `SyncOverheat` mirror them into statuses after any flag change or restore. Overdrive's threshold-crossing shot is the sole Apply-time exception |
+| Economy and once-per-turn legality | `ShieldBraceUsedThisTurn`, `DefensiveManeuversMpUsed` / `DefensiveManeuversRollIndex`, `ProtectionDroneRollIndex` / cooldown, AP/MP, mount counters, cooldowns |
+| Detonate | Stays untagged; One With the Void is checked at Apply time via `HasOneWithTheVoid` |
+| Legacy battle pipeline | `BattlePilotCapabilityPipelineFactory.Build` returns an empty modifier list; `Supports` only filters grants |
+
+Persistence stores statuses as [`BattleStatusDto`](src/run/persistence/dtos/BattleStatusDto.cs) rows (instance id, priority, tags, polarity, optional Brace/temporary-shield payload). Delegates are not serialized: [`BattleStatusRehydrator`](src/battle/statuses/BattleStatusRehydrator.cs) rebuilds callbacks from the kind parsed out of the instance id and rejects unknown kinds.
 
 `BattleOrchestrator` owns phase transitions, activation order, outcome evaluation, and the engine commit boundary. Godot-facing [`BattleController`](src/battle/presentation/scene/BattleController.cs), [`BattleHud`](src/battle/presentation/ui/BattleHud.cs), and [`PresentationFrameBuilder`](src/battle/presentation/PresentationFrameBuilder.cs) consume previews and committed history but do not implement battle rules.
 

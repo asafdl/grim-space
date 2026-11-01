@@ -3,6 +3,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -48,8 +49,14 @@ public sealed class ProtectionDroneActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.True(ally.State.ProtectionDroneBuffActive);
-		Assert.False(player.State.ProtectionDroneBuffActive);
+		Assert.Contains(
+			ally.State.Statuses,
+			status => status.InstanceId
+				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), AllyId));
+		Assert.DoesNotContain(
+			player.State.Statuses,
+			status => status.InstanceId
+				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), PlayerId));
 		Assert.Equal(
 			PilotSkillPercents.ProtectionDrone.CooldownTurns,
 			player.State.ProtectionDroneCooldownRemaining);
@@ -64,7 +71,10 @@ public sealed class ProtectionDroneActionTests
 			AllyId,
 			PilotSkillPercents.ProtectionDrone.BuffDurationEndPasses);
 
-		Assert.False(ally.State.ProtectionDroneBuffActive);
+		Assert.DoesNotContain(
+			ally.State.Statuses,
+			status => status.InstanceId
+				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), AllyId));
 	}
 
 	[Fact]
@@ -82,7 +92,9 @@ public sealed class ProtectionDroneActionTests
 		world.StateOf(PlayerId).ProtectionDroneCooldownRemaining = 0;
 		Assert.False(ProtectionDroneDef.Instance.IsLegal(action, world, runtime));
 
-		ally.State.ProtectionDroneBuffActive = false;
+		BattleStatuses.RemoveInstance(
+			ally.State.Statuses,
+			BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), AllyId));
 		Assert.True(ProtectionDroneDef.Instance.IsLegal(action, world, runtime));
 	}
 

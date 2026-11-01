@@ -3,6 +3,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -24,7 +25,7 @@ public sealed class ActorRuntimeAssemblyTests
 	}
 
 	[Fact]
-	public void From_IonizedSnapshot_RegistersModifierThroughResolve()
+	public void From_IonizedSnapshot_AppliesShieldBonusThroughStatusPass()
 	{
 		var player = Factory.Create(
 			ShipInstance.FromCatalog("player", EType.Fighter),
@@ -40,16 +41,23 @@ public sealed class ActorRuntimeAssemblyTests
 		};
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, pilotsByActorId: pilots);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
-		var effects = LightningCannonDef.Instance.Resolve(
-			new LightningCannonAction(player.State.Id),
+		var action = new LightningCannonAction(player.State.Id);
+		var effects = BattleStatuses.RewriteOutgoing(
+			action,
 			battle.Engine.World,
-			runtime);
+			LightningCannonDef.Instance.Resolve(action, battle.Engine.World, runtime));
 
 		var damage = Assert.IsType<GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect>(
 			effects.First(effect => effect is GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect));
 		Assert.Equal(
 			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
 			damage.ShieldDamageBonusPercent);
+		Assert.Contains(
+			battle.Engine.World.StateOf(player.State.Id).Statuses,
+			status => status.InstanceId
+				== BattleStatuses.PassiveInstanceId(
+					nameof(EPilotCapabilityId.LightningShieldDamageBonus),
+					player.State.Id));
 	}
 
 	[Fact]

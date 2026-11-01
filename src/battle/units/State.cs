@@ -1,6 +1,7 @@
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
@@ -27,24 +28,14 @@ public sealed class State
 	public int FuelRemaining { get; set; }
 	public VoidBombProjectile? Projectile { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
-	public List<TemporaryShieldGrant> TemporaryShieldGrants { get; } = [];
+	public List<BattleStatus> Statuses { get; } = [];
 	public bool ShieldsUpUsedThisTurn { get; set; }
-	public bool ShieldBraceActive { get; set; }
-	public ESpatialOrientation? ShieldBraceFace { get; set; }
-	public FaceShieldPoints? ShieldBraceSnapshot { get; set; }
-	public int ShieldBraceDamagePending { get; set; }
 	public bool ShieldBraceUsedThisTurn { get; set; }
 	public int OverchargeEnginesCooldownRemaining { get; set; }
 	public int ProtectionDroneCooldownRemaining { get; set; }
-	public bool ProtectionDroneBuffActive { get; set; }
 	public int ProtectionDroneRollIndex { get; set; }
-	public bool DefensiveManeuversActive { get; set; }
 	public int DefensiveManeuversMpUsed { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
-	public bool InTheFrayActive { get; set; }
-	public bool ReinforcedHullActive { get; set; }
-	public bool HealingSkillRangeBonusActive { get; set; }
-	public bool OneWithTheVoidActive { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public required HeatSpec HeatProfile { get; set; }
 	public int Heat { get; set; }
@@ -117,22 +108,12 @@ public sealed class State
 			Projectile = Projectile,
 			ParentId = ParentId,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
-			ShieldBraceActive = ShieldBraceActive,
-			ShieldBraceFace = ShieldBraceFace,
-			ShieldBraceSnapshot = ShieldBraceSnapshot?.Clone(),
-			ShieldBraceDamagePending = ShieldBraceDamagePending,
 			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
 			ProtectionDroneCooldownRemaining = ProtectionDroneCooldownRemaining,
-			ProtectionDroneBuffActive = ProtectionDroneBuffActive,
 			ProtectionDroneRollIndex = ProtectionDroneRollIndex,
-			DefensiveManeuversActive = DefensiveManeuversActive,
 			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
-			InTheFrayActive = InTheFrayActive,
-			ReinforcedHullActive = ReinforcedHullActive,
-			HealingSkillRangeBonusActive = HealingSkillRangeBonusActive,
-			OneWithTheVoidActive = OneWithTheVoidActive,
 			Maneuverability = Maneuverability,
 			HeatProfile = HeatProfile,
 			Heat = Heat,
@@ -141,8 +122,7 @@ public sealed class State
 		};
 		foreach (var (mount, runtime) in MountRuntime)
 			copy.MountRuntime[mount] = runtime.Clone();
-		foreach (var grant in TemporaryShieldGrants)
-			copy.TemporaryShieldGrants.Add(grant.Clone());
+		BattleStatuses.CopyInto(Statuses, copy.Statuses);
 		return copy;
 	}
 

@@ -1,15 +1,15 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.PilotCapabilities;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
-using GrimSpace.Battle.Player;
 using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
@@ -33,24 +33,31 @@ public sealed class HelpABotterOutTests
 		var battle = BeginBattleWithSkill(origin);
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
 		var world = battle.Engine.World;
+		var state = world.StateOf(PlayerId);
 
-		world.StateOf(PlayerId).HealingSkillRangeBonusActive = false;
+		BattleStatuses.RemoveInstance(
+			state.Statuses,
+			BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.HealingSkillRangeBonus), state.Id));
 		var baseline = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).Count;
 
-		world.StateOf(PlayerId).HealingSkillRangeBonusActive = true;
+		BattlePassiveStatusInstaller.InstallFromCapabilities(
+			state,
+			battle.Engine.ActorRuntimes.For(PlayerId));
 		var boosted = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).Count;
 
 		Assert.True(boosted > baseline);
 	}
 
 	[Fact]
-	public void ApplyRangeBonus_ExtendsScrapDroneSwarmBurstByOne()
+	public void EffectiveArea_ExtendsScrapDroneSwarmBurstByOne()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		player.State.HealingSkillRangeBonusActive = true;
-		var boosted = (ScrapDroneSwarmSpec)HealingSkillRange.ApplyRangeBonus(
-			ScrapDroneSwarmSpec.Baseline,
+		BattlePassiveStatusInstaller.InstallFromCapabilities(
 			player.State,
+			ActorRuntimeFromSkill(EPilotSkillId.HelpABotterOut));
+		var boosted = (ScrapDroneSwarmSpec)BattleStatuses.RewriteArea(
+			ScrapDroneSwarmSpec.Baseline,
+			player.State.Statuses,
 			[BattleActionTags.Heal]);
 
 		Assert.Equal(
@@ -80,6 +87,9 @@ public sealed class HelpABotterOutTests
 
 		Assert.Equal(150, battle.PlayerAgent.Sim.StateOf<State>("ally").HullPoints);
 	}
+
+	private static GrimSpace.Battle.Runtime.ActorRuntime ActorRuntimeFromSkill(EPilotSkillId skillId) =>
+		GrimSpace.Battle.Runtime.ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [skillId]));
 
 	private static Coord ExtraBurstCell(State firer, ESpatialOrientation mountedOn)
 	{

@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -112,7 +113,7 @@ public sealed class ApplyAreaDamageEffect(
 		};
 		var detonator = UnitRegistry.For(world).UnitOf(actorId);
 		var voidBombFriendlyImmunity = cause == EImpactCause.VoidBombBlast
-			&& detonator.State.OneWithTheVoidActive;
+			&& BattleStatuses.HasOneWithTheVoid(detonator.State);
 		foreach (var unit in UnitRegistry.For(world).All)
 		{
 			if (!unit.State.IsAlive || !cells.Contains(unit.State.Position))
@@ -168,25 +169,27 @@ public sealed class ApplyAreaDamageEffect(
 		var appliedDamage = damage;
 		if (damageBonusPercent != 0)
 			appliedDamage = ScalePercent(appliedDamage, 100 + damageBonusPercent);
+		else
+			appliedDamage = ApplyOverdriveCrossingBonus(world.StateOf(actorId), appliedDamage);
 		if (origin.ManhattanDistanceTo(unit.Position) == adjacentHitDamageRangeCells
 			&& adjacentHitDamagePercent != 100)
 			appliedDamage = ScalePercent(appliedDamage, adjacentHitDamagePercent);
+
+		appliedDamage = BattleStatuses.RewriteIncomingDamage(unit.Statuses, appliedDamage);
 
 		var appliedShieldDamageBonus = shieldDamageBonus;
 		if (shieldDamageBonusPercent > 0)
 			appliedShieldDamageBonus += PortionOf(appliedDamage, shieldDamageBonusPercent);
 
-		Defense.ApplyInTheFrayReduction(
+		var hit = BattleStatuses.RewriteIncomingHit(
+			unit.Statuses,
 			world,
 			targetUnit,
-			ref appliedDamage,
-			ref appliedShieldDamageBonus);
+			cause,
+			new IncomingHit(appliedDamage, appliedShieldDamageBonus));
 
-		if (damage > 0)
-			Defense.ApplyDeflectionRolls(unit, cause, ref appliedDamage, ref appliedShieldDamageBonus);
-
-		if (appliedDamage > 0)
-			Defense.ApplyDamage(unit, appliedDamage, face, appliedShieldDamageBonus);
+		if (hit.Damage > 0)
+			Defense.ApplyDamage(unit, hit.Damage, face, hit.ShieldDamageBonus);
 		if (forceDestroy)
 			unit.HullPoints = 0;
 
@@ -203,6 +206,21 @@ public sealed class ApplyAreaDamageEffect(
 			Face: face,
 			ShieldDamage: shieldDamage,
 			HullDamage: hullDamage);
+	}
+
+	/// <summary>
+	/// Crossing-shot only: HeatChange sets Overdrive before damage Apply, but RewriteOutgoing already ran.
+	/// Skips when the status pass already stamped <see cref="DamageBonusPercent"/>.
+	/// </summary>
+	internal static int ApplyOverdriveCrossingBonus(State actor, int appliedDamage)
+	{
+		if (appliedDamage <= 0
+			|| !actor.HeatProfile.Participates
+			|| !actor.Overdrive
+			|| BattleStatuses.HasOverheat(actor))
+			return appliedDamage;
+
+		return ScalePercent(appliedDamage, 100 + HeatChangeEffect.OverdriveDamageBonusPercent);
 	}
 
 	private static int ScalePercent(int amount, int percent) =>

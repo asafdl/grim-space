@@ -1,6 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -58,7 +59,7 @@ public sealed class ShieldsUpDef
 			return false;
 
 		var state = world.StateOf(action.ActorId);
-		return !state.Overheat && !state.ShieldsUpUsedThisTurn;
+		return !BattleStatuses.HasOverheat(state) && !state.ShieldsUpUsedThisTurn;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

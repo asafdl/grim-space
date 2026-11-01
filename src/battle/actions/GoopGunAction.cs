@@ -3,6 +3,7 @@ using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -84,7 +85,7 @@ public sealed class GoopGunDef
 	public bool IsLegal(GoopGunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (state.Overheat)
+		if (BattleStatuses.HasOverheat(state))
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.GoopGun, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).CooldownRemaining > 0)

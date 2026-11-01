@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 
@@ -22,6 +23,8 @@ public sealed class EnterOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 
 		actor.Overdrive = false;
 		actor.Overheat = true;
+		BattleStatuses.SyncOverdrive(actor);
+		BattleStatuses.SyncOverheat(actor);
 		_applied = true;
 		return
 		[
@@ -41,5 +44,7 @@ public sealed class EnterOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 		var actor = world.StateOf(actorId);
 		actor.Overdrive = _previousOverdrive;
 		actor.Overheat = _previousOverheat;
+		BattleStatuses.SyncOverdrive(actor);
+		BattleStatuses.SyncOverheat(actor);
 	}
 }

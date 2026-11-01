@@ -4,6 +4,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
@@ -73,7 +74,7 @@ public sealed class LightningCannonDef
 	public bool IsLegal(LightningCannonAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (state.Overheat)
+		if (BattleStatuses.HasOverheat(state))
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)

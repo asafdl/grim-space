@@ -1,6 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Targeting;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -71,14 +72,16 @@ public sealed class ProtectionDroneDef
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		if (actor.Overheat || actor.ProtectionDroneCooldownRemaining > 0)
+		if (BattleStatuses.HasOverheat(actor) || actor.ProtectionDroneCooldownRemaining > 0)
 			return false;
 
 		if (!TargetPickSpec.IsLiving(world, action.TargetId))
 			return false;
 
 		var target = world.StateOf(action.TargetId);
-		if (target.ProtectionDroneBuffActive)
+		if (target.Statuses.Any(status =>
+			status.InstanceId
+				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), target.Id)))
 			return false;
 
 		return TargetPick.Filters.All(filter =>

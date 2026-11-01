@@ -1,6 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
@@ -155,9 +156,12 @@ public sealed class InTheFrayTests
 	public void StateClone_PreservesPublishedCondition()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.InTheFrayActive = true;
+		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.InTheFray, state.Id));
 
-		Assert.True(state.Clone().InTheFrayActive);
+		Assert.Contains(
+			state.Clone().Statuses,
+			status => status.InstanceId
+				== BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.InTheFray), state.Id));
 	}
 
 	private static BattleOrchestrator BeginBattle(

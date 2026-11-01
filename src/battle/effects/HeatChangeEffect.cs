@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 
@@ -11,6 +12,7 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 	public const int PerMpSpent = 5;
 	public const int PerAbilityUse = 20;
 	public const int OverheatDelayTicks = 1;
+	public const int OverdriveDamageBonusPercent = 80;
 
 	private int _previousHeat;
 	private bool _previousOverdrive;
@@ -28,7 +30,7 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 		_applied = false;
 		_scheduledOverheat = null;
 
-		if (!actor.HeatProfile.Participates || actor.Overheat || delta == 0)
+		if (!actor.HeatProfile.Participates || BattleStatuses.HasOverheat(actor) || delta == 0)
 			return [];
 
 		var appliedDelta = delta > 0
@@ -48,6 +50,7 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 		if (appliedDelta > 0 && _previousHeat < capacity && next >= capacity)
 		{
 			actor.Overdrive = true;
+			BattleStatuses.SyncOverdrive(actor);
 			_scheduledOverheat = new EnterOverheatAction(actorId);
 			_scheduledTick = world.Timeline.Clock.Current + OverheatDelayTicks;
 			world.Timeline.Schedule(OverheatDelayTicks, _scheduledOverheat);
@@ -78,5 +81,6 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 		var actor = world.StateOf(actorId);
 		actor.Heat = _previousHeat;
 		actor.Overdrive = _previousOverdrive;
+		BattleStatuses.SyncOverdrive(actor);
 	}
 }

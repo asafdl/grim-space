@@ -1,4 +1,7 @@
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math;
 using GrimSpace.Math.Grid;
@@ -16,10 +19,14 @@ public sealed class ProtectionDroneDeflectionTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
-		enemy.State.DefensiveManeuversActive = true;
+		BattlePassiveStatusInstaller.InstallFromCapabilities(
+			enemy.State,
+			ActorRuntime.From(PilotBattleSnapshot.FromSkills(
+				"pilot",
+				[EPilotSkillId.DefensiveManeuvers])));
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = 6;
-		enemy.State.ProtectionDroneBuffActive = true;
+		GrantProtectionDroneBuff(enemy.State, battle);
 		var droneIndex = SucceedingProtectionDroneIndex(
 			enemy.State.Id,
 			EImpactCause.LightningCannonBurst);
@@ -47,7 +54,7 @@ public sealed class ProtectionDroneDeflectionTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
-		enemy.State.ProtectionDroneBuffActive = true;
+		GrantProtectionDroneBuff(enemy.State, battle);
 		enemy.State.ProtectionDroneRollIndex = SucceedingProtectionDroneIndex(
 			enemy.State.Id,
 			EImpactCause.LightningCannonBurst);
@@ -65,6 +72,12 @@ public sealed class ProtectionDroneDeflectionTests
 
 		Assert.Equal(hullBefore - 100, enemy.State.HullPoints);
 	}
+
+	private static void GrantProtectionDroneBuff(State target, BattleOrchestrator battle) =>
+		_ = new SetProtectionDroneBuffActiveEffect(target.Id, active: true).Apply(
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(target.Id),
+			target.Id);
 
 	private static int SucceedingProtectionDroneIndex(string unitId, EImpactCause cause)
 	{

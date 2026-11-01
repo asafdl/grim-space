@@ -219,7 +219,7 @@ internal static class BattleHudCopy
 		return new(
 			"Heat",
 			$"When reaching max [icon: {Icon.Heat}] enter [icon: {Icon.Overdrive}] for this turn then [icon: {Icon.Overheat}] next turn.",
-			$"[icon: {Icon.Heat}, text: -{profile.ClearPerTurn} / turn ]\n[icon: {Icon.Overdrive}][icon: {Icon.Damage}, text: +{OverdriveDamageBonusModifier.BonusPercent}%]\n[icon: {Icon.Overheat}, text: All abilities go on][icon: {Icon.Cooldown}]");
+			$"[icon: {Icon.Heat}, text: -{profile.ClearPerTurn} / turn ]\n[icon: {Icon.Overdrive}][icon: {Icon.Damage}, text: +{HeatChangeEffect.OverdriveDamageBonusPercent}%]\n[icon: {Icon.Overheat}, text: All abilities go on][icon: {Icon.Cooldown}]");
 	}
 
 	public static BattleHudTooltipContent ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>

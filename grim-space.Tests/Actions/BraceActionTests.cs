@@ -28,7 +28,7 @@ public sealed class BraceActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.True(player.State.ShieldBraceActive);
+		Assert.True(ShieldBrace.IsActive(player.State));
 		Assert.True(player.State.ShieldBraceUsedThisTurn);
 		Assert.Contains(
 			battle.Engine.World.ActivationRoundLists.EntriesFor(PlayerId),
@@ -36,7 +36,7 @@ public sealed class BraceActionTests
 
 		BattleTestApply.CommitActivationRoundEndPasses(battle, PlayerId, BraceDef.ExpiryEndPasses);
 
-		Assert.False(player.State.ShieldBraceActive);
+		Assert.False(ShieldBrace.IsActive(player.State));
 		Assert.True(player.State.ShieldBraceUsedThisTurn);
 
 		battle.Engine.AdvanceTick();
@@ -80,12 +80,13 @@ public sealed class BraceActionTests
 			ESpatialOrientation.Forward,
 			40);
 
-		Assert.Equal(40, player.State.ShieldBraceDamagePending);
+		Assert.Equal(40, ShieldBrace.TryPayload(player.State)!.DamagePending);
+		Assert.True(ShieldBrace.IsActive(player.State));
 
 		BattleTestApply.CommitActivationRoundEndPasses(battle, PlayerId, BraceDef.ExpiryEndPasses);
 
-		Assert.False(player.State.ShieldBraceActive);
-		Assert.Equal(0, player.State.ShieldBraceDamagePending);
+		Assert.False(ShieldBrace.IsActive(player.State));
+		Assert.Null(ShieldBrace.TryPayload(player.State));
 		Assert.True(player.State.ShieldPoints[ESpatialOrientation.Port] < 100);
 	}
 

@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 
@@ -15,7 +16,7 @@ public sealed class MpChangeEffect(int delta) : IEffect<BattleWorld, ActorRuntim
 		_previousManeuverPoints = actor.ManeuverPoints;
 		_previousMpUsed = actor.DefensiveManeuversMpUsed;
 		actor.ManeuverPoints += delta;
-		if (actor.DefensiveManeuversActive)
+		if (BattleStatuses.HasDefensiveManeuvers(actor))
 			actor.DefensiveManeuversMpUsed = SyncDefensiveManeuversMpUsedFromPoolEffect.MpUsedFromPool(actor);
 		return [];
 	}

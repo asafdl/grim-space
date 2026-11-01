@@ -1,6 +1,7 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -68,8 +69,8 @@ public sealed class BraceDef
 			return false;
 
 		var state = world.StateOf(action.ActorId);
-		return !state.Overheat
-			&& !state.ShieldBraceActive
+		return !BattleStatuses.HasOverheat(state)
+			&& !ShieldBrace.IsActive(state)
 			&& !state.ShieldBraceUsedThisTurn
 			&& ShieldBrace.TotalPermanentShields(state) > 0;
 	}
