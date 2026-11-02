@@ -114,6 +114,7 @@ public partial class UnitView : Node3D
 		SetMovementTrailEmitting(false);
 		VisualState = UnitVisualState.Hidden;
 		Visible = false;
+		ClearHeatIndicator();
 	}
 
 	public void ConfigureMovementTrail(Color color)
@@ -584,7 +585,11 @@ public partial class UnitView : Node3D
 			PresentationSfx.ShipDeathPitchScale);
 	}
 
-	void HideHullForDeath() => _visualRoot.Visible = false;
+	void HideHullForDeath()
+	{
+		_visualRoot.Visible = false;
+		ClearHeatIndicator();
+	}
 
 	/// <summary>Shows a simulation-dead unit only until its replay death animation finishes.</summary>
 	public void ShowPendingDeath(State state) => Present(state, UnitVisualState.PendingDeath);
@@ -599,9 +604,14 @@ public partial class UnitView : Node3D
 	/// <summary>Updates heat VFX without interrupting pose animation.</summary>
 	public void RefreshHeat(State state) => UpdateHeatIndicator(state);
 
+	private void ClearHeatIndicator() =>
+		_flameHalo?.SetHeat(0, 0, overdrive: false, overheat: false, visible: false);
+
 	private void UpdateHeatIndicator(State state)
 	{
-		var showOnUnit = VisualState is UnitVisualState.Live or UnitVisualState.PendingDeath;
+		// FlameHalo is TopLevel and lives outside _visualRoot, so it must not stay
+		// active through PendingDeath / HideHullForDeath.
+		var showOnUnit = VisualState == UnitVisualState.Live;
 		_flameHalo?.SetHeat(
 			state.Heat,
 			state.HeatProfile.EffectiveCapacity,

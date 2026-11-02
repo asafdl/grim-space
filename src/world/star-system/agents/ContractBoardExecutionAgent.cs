@@ -461,16 +461,21 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				additions.Add(addition);
 				queuedContracts.Add(addition.Contract);
 			}
-
-			if (TryBuildLeadAddition(map, tick, additions, out var leadAddition))
-				additions.Add(leadAddition);
 		}
+
+		if (_generationEnabled()
+			&& IsLeadTick(tick)
+			&& TryBuildLeadAddition(map, tick, additions, out var leadAddition))
+			additions.Add(leadAddition);
 
 		return new MaintainContractBoardAction(StarSystemActorIds.Contracts, tick, additions);
 	}
 
 	private bool IsCadenceTick(int tick) =>
 		_config.CadenceTicks > 0 && tick % _config.CadenceTicks == 0;
+
+	private bool IsLeadTick(int tick) =>
+		_config.Leads.IntervalTicks > 0 && tick > 0 && tick % _config.Leads.IntervalTicks == 0;
 
 	private int SlotsToFill(StarMap map)
 	{
@@ -528,18 +533,6 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			candidate.Contract.Category == EContractCategory.Lead);
 		if (map.ContractRegistry.CountLeadOccupancy(tick) + queuedLeadCount
 			>= _config.Leads.MaxOccupancy)
-			return false;
-
-		if (map.ContractRegistry.LatestLeadSaleDeadlineTick() is int lastDeadline
-			&& tick < lastDeadline + _config.Leads.MinGapTicks)
-			return false;
-
-		var chanceRandom = new StableRandom(
-			StableSeedMixer.From(map.Seed)
-				.Add(tick)
-				.Add("lead-generation-chance")
-				.Value);
-		if (chanceRandom.NextDouble() >= _config.Leads.GenerationChance)
 			return false;
 
 		var kind = PickLeadKind(map.Seed, tick, _config.Leads.KindWeights);
@@ -615,12 +608,6 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 	private static void ValidateLeadGenerationConfig(LeadGenerationConfig config)
 	{
 		ArgumentNullException.ThrowIfNull(config);
-		if (!double.IsFinite(config.GenerationChance)
-			|| config.GenerationChance is < 0 or > 1)
-			throw new ArgumentOutOfRangeException(
-				nameof(config),
-				config.GenerationChance,
-				"Lead generation chance must be between zero and one.");
 		if (!double.IsFinite(config.SpaceMeetingChance)
 			|| config.SpaceMeetingChance is < 0 or > 1)
 			throw new ArgumentOutOfRangeException(
@@ -628,7 +615,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				config.SpaceMeetingChance,
 				"Lead space meeting chance must be between zero and one.");
 		ArgumentOutOfRangeException.ThrowIfNegative(config.MaxOccupancy);
-		ArgumentOutOfRangeException.ThrowIfNegative(config.MinGapTicks);
+		ArgumentOutOfRangeException.ThrowIfNegative(config.IntervalTicks);
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(config.SaleDurationTicks);
 		ArgumentNullException.ThrowIfNull(config.KindWeights);
 
@@ -643,7 +630,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 					"Lead kind weights must be finite and non-negative.");
 		}
 
-		if (config.GenerationChance > 0
+		if (config.IntervalTicks > 0
 			&& config.MaxOccupancy > 0
 			&& !config.KindWeights.Any(entry => entry.Value > 0))
 			throw new ArgumentException(

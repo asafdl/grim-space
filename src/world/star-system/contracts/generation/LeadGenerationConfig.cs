@@ -4,20 +4,17 @@ namespace GrimSpace.World.StarSystem.Contracts.Generation;
 
 public sealed class LeadGenerationConfig
 {
-	public const double DefaultGenerationChance = 0.22;
 	public const double DefaultSpaceMeetingChance = 0.2;
 	public const int DefaultMaxOccupancy = 1;
 	public const int DefaultSaleDurationTicks = 300;
-	public const int DefaultMinGapTicks = 50;
+	public const int DefaultIntervalTicks = 400;
 
-	public double GenerationChance { get; init; } = DefaultGenerationChance;
+	/// <summary>A lead is offered on every positive multiple of this tick count; zero disables leads.</summary>
+	public int IntervalTicks { get; init; } = DefaultIntervalTicks;
 
 	public int MaxOccupancy { get; init; } = DefaultMaxOccupancy;
 
 	public int SaleDurationTicks { get; init; } = DefaultSaleDurationTicks;
-
-	/// <summary>Ticks after the previous accepted sale's deadline before another lead may roll.</summary>
-	public int MinGapTicks { get; init; } = DefaultMinGapTicks;
 
 	public double SpaceMeetingChance { get; init; } = DefaultSpaceMeetingChance;
 

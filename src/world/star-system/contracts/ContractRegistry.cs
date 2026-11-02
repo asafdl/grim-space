@@ -54,14 +54,6 @@ public sealed class ContractRegistry
 		return pending + activeSales;
 	}
 
-	/// <summary>Deadline of the most recent accepted lead sale, or null when none has run.</summary>
-	public int? LatestLeadSaleDeadlineTick() =>
-		_states.Values
-			.OfType<LeadContractState>()
-			.Where(lead => lead.Status != EContractStatus.Rejected)
-			.Select(lead => (int?)lead.DeadlineTick)
-			.Max();
-
 	public bool Contains(string contractId) => _contracts.ContainsKey(contractId);
 
 	public bool IsPending(string contractId) =>

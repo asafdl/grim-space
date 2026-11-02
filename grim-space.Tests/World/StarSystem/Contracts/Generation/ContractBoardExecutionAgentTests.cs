@@ -375,7 +375,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void Plan_LeadChancePasses_AddsOneLeadWithoutChangingStandardTarget()
+	public void Plan_LeadIntervalTick_AddsOneLeadWithoutChangingStandardTarget()
 	{
 		var map = maps.Fresh(42);
 		var config = new ContractBoardConfig
@@ -385,7 +385,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			Placement = new ContractPlacementConfig { TargetGeneratedCount = 3 },
 			Leads = new LeadGenerationConfig
 			{
-				GenerationChance = 1,
+				IntervalTicks = 5,
 				SaleDurationTicks = 120,
 				SpaceMeetingChance = 1,
 			},
@@ -421,7 +421,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
 			Leads = new LeadGenerationConfig
 			{
-				GenerationChance = 1,
+				IntervalTicks = 5,
 				MaxOccupancy = 1,
 			},
 		};
@@ -433,33 +433,18 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Theory]
-	[InlineData(149, false)]
-	[InlineData(150, true)]
-	public void Plan_PreviousSaleDeadline_BlocksLeadsUntilMinGapElapses(int tick, bool expectLead)
+	[InlineData(0, false)]
+	[InlineData(399, false)]
+	[InlineData(400, true)]
+	[InlineData(405, false)]
+	[InlineData(800, true)]
+	public void Plan_DefaultInterval_OffersLeadOnlyOnMultiplesOf400(int tick, bool expectLead)
 	{
 		var map = maps.Fresh(42);
-		var previous = ContractFactory.Build(
-			map,
-			"previous-lead",
-			EContractKind.Lead,
-			new LeadCreateArgs(
-				ELeadKind.BlackMarketSale,
-				new ContractNarrative("Previous lead", "Already run."),
-				300));
-		Assert.True(map.ContractRegistry.TryAdd(previous));
-		Assert.True(map.ContractRegistry.Activate(new LeadContractState(
-			previous.Id,
-			EContractStatus.Active,
-			AcceptedAtTick: 0,
-			map.FleetRegistry.Ids.First(),
-			"Quartermaster",
-			DeadlineTick: 100)));
-		map.ContractRegistry.Complete(previous.Id);
 		var config = new ContractBoardConfig
 		{
 			CadenceTicks = 1,
 			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
-			Leads = new LeadGenerationConfig { GenerationChance = 1, MinGapTicks = 50 },
 		};
 
 		var action = PlanAtTick(map, tick, generationEnabled: true, config);
@@ -476,7 +461,7 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		{
 			CadenceTicks = 1,
 			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
-			Leads = new LeadGenerationConfig { GenerationChance = 1 },
+			Leads = new LeadGenerationConfig { IntervalTicks = 5 },
 		};
 
 		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);
@@ -495,12 +480,12 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		var disabledConfig = new ContractBoardConfig
 		{
 			CadenceTicks = 1,
-			Leads = new LeadGenerationConfig { GenerationChance = 0 },
+			Leads = new LeadGenerationConfig { IntervalTicks = 0 },
 		};
 		var enabledConfig = new ContractBoardConfig
 		{
 			CadenceTicks = 1,
-			Leads = new LeadGenerationConfig { GenerationChance = 1 },
+			Leads = new LeadGenerationConfig { IntervalTicks = 10 },
 		};
 
 		var disabled = PlanAtTick(withoutLead, tick: 10, generationEnabled: true, disabledConfig);
@@ -513,28 +498,6 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 			StandardAdditions(enabled).Select(StandardSignature));
 		Assert.Empty(LeadAdditions(disabled));
 		Assert.Single(LeadAdditions(enabled));
-	}
-
-	[Fact]
-	public void Plan_SameSeedAndTick_ProducesSameLeadChanceResult()
-	{
-		var firstMap = maps.Fresh(91);
-		var secondMap = maps.Fresh(91);
-		var config = new ContractBoardConfig
-		{
-			CadenceTicks = 1,
-			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
-			Leads = new LeadGenerationConfig { GenerationChance = 0.5 },
-		};
-
-		var first = PlanAtTick(firstMap, tick: 15, generationEnabled: true, config);
-		var second = PlanAtTick(secondMap, tick: 15, generationEnabled: true, config);
-
-		Assert.NotNull(first);
-		Assert.NotNull(second);
-		Assert.Equal(
-			LeadAdditions(first).Select(addition => addition.Contract.Id),
-			LeadAdditions(second).Select(addition => addition.Contract.Id));
 	}
 
 	[Fact]
