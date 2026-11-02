@@ -48,11 +48,22 @@ public partial class UnitView : Node3D
 	private Vector3? _movementTangent;
 	private FlameHaloView? _flameHalo;
 	private ProtectionDroneView? _protectionDrone;
+	private RamChargeEffect? _ramCharge;
+	private bool _ramAnimating;
+	private Sprite3D? _ramBillboard;
+	private AudioStreamPlayer3D? _ramLaunchSound;
+	private AudioStreamPlayer3D? _ramImpactSound;
+	private RamChargeEffect? _overchargeGlow;
+	private Tween? _overchargeTween;
+	private AudioStreamPlayer3D? _overchargeSound;
 
 	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
+	public Aabb HullBounds => _hullBounds;
 
 	public override void _ExitTree()
 	{
+		StopEngineOvercharge();
+		StopRamAnimation();
 		StopShieldAnimation();
 		_poseTween?.Kill();
 		_poseTween = null;
@@ -101,6 +112,8 @@ public partial class UnitView : Node3D
 
 	public void Present(State state, UnitVisualState visualState)
 	{
+		StopEngineOvercharge();
+		StopRamAnimation();
 		_poseTween?.Kill();
 		_poseTween = null;
 		_movementTangent = null;
@@ -129,6 +142,9 @@ public partial class UnitView : Node3D
 
 	public void HideVisual()
 	{
+		StopEngineOvercharge();
+		StopRamAnimation();
+		ClearHeatVentFumes();
 		ClearProtectionDrone();
 		StopShieldAnimation();
 		_poseTween?.Kill();
@@ -610,6 +626,9 @@ public partial class UnitView : Node3D
 
 	void HideHullForDeath()
 	{
+		StopEngineOvercharge();
+		StopRamAnimation();
+		ClearHeatVentFumes();
 		StopShieldAnimation();
 		_visualRoot.Visible = false;
 		ClearHeatIndicator();
@@ -725,6 +744,199 @@ public partial class UnitView : Node3D
 			PresentationLayers.MarkUx(instance);
 			_shieldFaces[(int)face] = instance;
 			_visualRoot.AddChild(instance);
+		}
+	}
+
+	public const double EngineOverchargeSeconds = 0.8;
+
+	public void AnimateEngineOvercharge()
+	{
+		StopEngineOvercharge();
+		var glow = new RamChargeEffect { Name = "EngineOverchargeGlow" };
+		_visualRoot.AddChild(glow);
+		glow.BuildEngineGlow(_hullBounds);
+		_overchargeGlow = glow;
+		var sound = PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.RamLaunchPath);
+		sound.VolumeDb = -6f;
+		_overchargeSound = sound;
+		_overchargeTween = CreateTween();
+		_overchargeTween.TweenMethod(Callable.From<float>(seconds =>
+			glow.SetCharge(seconds)), 0f, (float)RamChargeEffect.RevealSeconds, 0.45);
+		_overchargeTween.TweenInterval(0.1);
+		_overchargeTween.TweenMethod(Callable.From<float>(fade =>
+		{
+			foreach (var mesh in glow.GetChildren().OfType<MeshInstance3D>())
+				mesh.Transparency = fade;
+		}), 0f, 1f, 0.25)
+			.SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+		_overchargeTween.TweenCallback(Callable.From(() =>
+		{
+			glow.QueueFree();
+			_overchargeGlow = null;
+			_overchargeTween = null;
+		}));
+		var fade = sound.CreateTween();
+		fade.TweenInterval(0.35);
+		fade.TweenMethod(Callable.From<float>(gain =>
+			sound.VolumeDb = -6f + Mathf.LinearToDb(Mathf.Max(gain, 0.0001f))), 1f, 0f, 0.8)
+			.SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+		fade.TweenCallback(Callable.From(sound.QueueFree));
+	}
+
+	public void StopEngineOvercharge()
+	{
+		_overchargeTween?.Kill();
+		_overchargeTween = null;
+		if (IsInstanceValid(_overchargeGlow))
+		{
+			_overchargeGlow!.Visible = false;
+			_overchargeGlow.QueueFree();
+		}
+		_overchargeGlow = null;
+		if (IsInstanceValid(_overchargeSound))
+		{
+			_overchargeSound!.Stop();
+			_overchargeSound.QueueFree();
+		}
+		_overchargeSound = null;
+	}
+
+	public void AnimateRam(State destination)
+	{
+		StopRamAnimation();
+		_poseTween?.Kill();
+		_shakeTween?.Kill();
+		_visualRoot.Position = Vector3.Zero;
+		_movementTangent = null;
+		SetMovementTrailEmitting(false);
+		var charge = new RamChargeEffect { Name = "RamCharge" };
+		_visualRoot.AddChild(charge);
+		charge.Build(_hullBounds);
+		_ramCharge = charge;
+		_ramAnimating = true;
+		var start = Position;
+		var end = WorldMapping.ToWorld(destination.Position);
+		var buildup = RamChargeEffect.RevealSeconds + RamChargeEffect.HoldSeconds;
+		_ramLaunchSound = PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.RamLaunchPath);
+		var engine = _ramLaunchSound;
+		var engineFade = engine.CreateTween();
+		engineFade.TweenInterval(buildup - 0.3);
+		engineFade.TweenMethod(Callable.From<float>(gain =>
+			engine.VolumeDb = Mathf.LinearToDb(Mathf.Max(gain, 0.0001f))), 1f, 0f, 0.8)
+			.SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+		engineFade.TweenCallback(Callable.From(engine.QueueFree));
+		_poseTween = CreateTween();
+		_poseTween.TweenMethod(Callable.From<float>(seconds =>
+		{
+			charge.SetCharge(seconds);
+			var strength = Mathf.Min(1, seconds / (float)RamChargeEffect.RevealSeconds);
+			_visualRoot.Position = Vector3.Right * (0.055f * strength * Mathf.Sin(seconds * Mathf.Tau * 18f));
+		}), 0f, (float)buildup, buildup);
+		_poseTween.TweenCallback(Callable.From(() =>
+		{
+			charge.Visible = false;
+			charge.QueueFree();
+			_ramCharge = null;
+			_visualRoot.Position = Vector3.Zero;
+			SetMovementTrailEmitting(true);
+		}));
+		_poseTween.TweenProperty(this, "position", end, RamChargeEffect.DashSeconds)
+			.From(start).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+		_poseTween.TweenCallback(Callable.From(() =>
+		{
+			Position = end;
+			PlayRamBillboard();
+			_ramImpactSound = PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.RamImpactPath);
+			_ramImpactSound.VolumeDb = 3f;
+			SetMovementTrailEmitting(false);
+			_ramAnimating = false;
+			_poseTween = null;
+		}));
+	}
+
+	public void StopRamAnimation()
+	{
+		if (IsInstanceValid(_ramImpactSound))
+		{
+			_ramImpactSound!.Stop();
+			_ramImpactSound.QueueFree();
+		}
+		_ramImpactSound = null;
+		if (IsInstanceValid(_ramLaunchSound))
+		{
+			_ramLaunchSound!.Stop();
+			_ramLaunchSound.QueueFree();
+		}
+		_ramLaunchSound = null;
+		if (IsInstanceValid(_ramBillboard))
+		{
+			_ramBillboard!.Visible = false;
+			_ramBillboard.QueueFree();
+		}
+		_ramBillboard = null;
+		if (!_ramAnimating)
+			return;
+		_poseTween?.Kill();
+		_poseTween = null;
+		if (IsInstanceValid(_ramCharge))
+		{
+			_ramCharge!.Visible = false;
+			_ramCharge.QueueFree();
+		}
+		_ramCharge = null;
+		_ramAnimating = false;
+		_visualRoot.Position = Vector3.Zero;
+		SetMovementTrailEmitting(false);
+	}
+
+	private void PlayRamBillboard()
+	{
+		const string path = "res://assets/vfx/ram_baam.png";
+		var sprite = new Sprite3D
+		{
+			Name = "RamBaam",
+			Texture = GD.Load<Texture2D>(path)
+				?? throw new InvalidOperationException($"Could not load Ram artwork '{path}'."),
+			Position = new Vector3(_hullBounds.GetCenter().X, _hullBounds.End.Y + 0.85f,
+				_hullBounds.GetCenter().Z),
+			PixelSize = 2.4f / 714f,
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			Shaded = false,
+			NoDepthTest = false,
+			TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
+			Scale = Vector3.One * 0.75f,
+		};
+		PresentationLayers.MarkWorld(sprite);
+		AddChild(sprite);
+		_ramBillboard = sprite;
+		var tween = sprite.CreateTween();
+		tween.TweenProperty(sprite, "scale", Vector3.One, 0.08)
+			.SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+		tween.TweenInterval(0.12);
+		tween.TweenProperty(sprite, "modulate:a", 0f, 0.2);
+		tween.TweenCallback(Callable.From(() =>
+		{
+			if (_ramBillboard == sprite)
+				_ramBillboard = null;
+			sprite.QueueFree();
+		}));
+	}
+
+	public void PlayHeatVentFumes()
+	{
+		var effect = new HeatVentFumesEffect { Name = "HeatVentFumes" };
+		AddChild(effect);
+		effect.Attach(this);
+		effect.Play();
+	}
+
+	public void ClearHeatVentFumes()
+	{
+		foreach (var effect in GetChildren().OfType<HeatVentFumesEffect>())
+		{
+			effect.Visible = false;
+			effect.ProcessMode = ProcessModeEnum.Disabled;
+			effect.QueueFree();
 		}
 	}
 

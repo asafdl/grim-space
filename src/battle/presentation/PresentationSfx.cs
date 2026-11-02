@@ -27,10 +27,16 @@ public static class PresentationSfx
 		"res://assets/sfx/abilities/shield_static_hum.wav";
 	public const string ShieldPowerDownPath =
 		"res://assets/sfx/abilities/shield_power_down.wav";
+	public const string HeatVentsReleasePath =
+		"res://assets/sfx/abilities/heat_vents_air_release.wav";
+	public const string RamLaunchPath =
+		"res://assets/sfx/abilities/ram_engine_ignition.mp3";
+	public const string RamImpactPath =
+		"res://assets/sfx/abilities/ram_metal_impact.wav";
 
 	private static readonly Dictionary<string, AudioStream> Streams = new();
 
-	public static void PlayWorldOneShot(
+	public static AudioStreamPlayer3D PlayWorldOneShot(
 		Node parent,
 		Vector3 localPosition,
 		string path,
@@ -48,6 +54,7 @@ public static class PresentationSfx
 		parent.AddChild(player);
 		player.Play();
 		player.Finished += player.QueueFree;
+		return player;
 	}
 
 	public static void PlayScrapDroneMount(Node parent, Vector3 localPosition)

@@ -283,6 +283,47 @@ Battle bloom is enabled with a 1.5 HDR threshold and no baseline bloom so the em
 Run [`shield_glow_preview.tscn`](scenes/dev/shield_glow_preview.tscn) with F6 to inspect gains, damage,
 healing, expiry, Brace, and release alongside an unchanged control ship.
 
+### Overcharge Engines presentation
+
+Overcharge Engines reuses Ram's exhaust geometry only: two smaller orange glows brighten and
+settle over 0.8 seconds, without drawn trails, ship movement, or impact effects. The same ignition
+recording plays 6 dB quieter with a smooth amplitude fade, allowing its tail to finish after the
+visual. This is activation feedback, not a persistent buff; AP and cooldown rules are unchanged.
+Replay resets, synchronization, hiding and death clear the glow and audio.
+
+### Ram presentation
+
+Ram reveals six ship-aligned curved 3D speed strokes over 0.6 seconds with lateral hull vibration
+and temporary exhaust glow at the movement-trail anchor locations. A 0.25-second charged hold
+precedes a 0.1-second dash to the resolved destination. Replay processes damage after arrival;
+the animation changes no gameplay rules. Reset, synchronization, hiding and death cancel the buildup.
+Run [`ram_preview.tscn`](scenes/dev/ram_preview.tscn) with F6 for a side-on replay preview.
+Space replays; P pauses the loop.
+The supplied [`ram_baam.png`](assets/vfx/ram_baam.png) appears as a camera-facing billboard above
+the attacker when the dash reaches its destination, popping in and fading over 0.4 seconds without extending
+replay timing. It follows the ship and is cleared by cancellation/reset.
+The supplied engine-ignition SFX (`716972__newlocknew__expldsgn_engine-ignition-burstengine-startnitroflareblast.mp3`)
+is preserved as `assets/sfx/abilities/ram_engine_ignition.mp3`. It starts with the 0.85-second buildup,
+starts fading 0.3 seconds before the dash, and fades signal amplitude smoothly over 0.8 seconds
+(rather than rapidly dropping decibels), leaving an audible tail through the dash and past impact.
+Cancellation/reset also stops it.
+At dash arrival, BAAM is accompanied by `assets/sfx/abilities/ram_metal_impact.wav`:
+only the first donk from the supplied `582025__eminyildirim__metal-impact.wav`, with the quiet
+lead-in and subsequent hits removed and a 30ms tail fade. The source recording is untouched.
+
+### Heat Vents presentation
+
+Run [`heat_vents_preview.tscn`](scenes/dev/heat_vents_preview.tscn) with F6 to review the supplied
+transparent [`heat_vent_fumes.png`](assets/vfx/heat_vent_fumes.png) at the port/starboard hull bounds.
+Both copies face the camera with depth testing; one is mirrored so the drawing extends away from
+each side, with a 50-texture-pixel upward offset. Heat Vents replay starts a 0.8-second outward
+drift, expansion and fade without an extra replay pause. Puffs detach from the ship's pose;
+reset, hiding and death clear them. One air-release excerpt plays per activation, fading over
+the final 0.2 seconds, skipping the source's 0.4-second quiet lead-in.
+The supplied `131934__mcpable__slips-air-release-v1.wav` has a runtime copy with that lead-in removed at
+`assets/sfx/abilities/heat_vents_air_release.wav`.
+Left/Right orbit the preview camera, Up/Down change elevation, Space replays, and P pauses the loop.
+
 ### Protection Drone presentation
 
 Protection Drone activation and removal emit [`ProtectionDroneChangedFacts`](src/battle/effects/facts/ProtectionDroneChangedFacts.cs)

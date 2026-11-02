@@ -107,7 +107,12 @@ public partial class TurnReplayPlayer : Node3D
 			_showGoop,
 			_removeGoop);
 		foreach (var view in _unitViews.Values)
+		{
+			view.ClearHeatVentFumes();
+			view.StopRamAnimation();
+			view.StopEngineOvercharge();
 			view.ClearMovementTrail();
+		}
 		_hazardBursts.Clear();
 		_synchronizeViews(turnStart);
 	}

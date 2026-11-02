@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Core.Actions;
 
@@ -18,10 +19,7 @@ public sealed class RamActionClip : IReplayClip
 
 		var impact = area.Cells.First();
 		state.Position = impact - state.Fore;
-		context.UnitViews[ram.ActorId].AnimatePoseTo(
-			state,
-			ReplayTiming.MoveStepSeconds,
-			context.NextMovePosition(ram.ActorId));
-		return ClipPlayback.Pause(ReplayTiming.MoveStepSeconds);
+		context.UnitViews[ram.ActorId].AnimateRam(state);
+		return ClipPlayback.Pause(RamChargeEffect.DurationSeconds);
 	}
 }

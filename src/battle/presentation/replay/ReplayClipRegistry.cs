@@ -18,6 +18,8 @@ public sealed class ReplayClipRegistry
 		new ScrapDroneSwarmActionClip(),
 		new DetonateActionClip(),
 		new RamActionClip(),
+		new HeatVentsActionClip(),
+		new OverchargeEnginesActionClip(),
 	]);
 
 	private readonly Dictionary<Type, IReplayClip> _clips;
