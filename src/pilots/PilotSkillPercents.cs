@@ -83,6 +83,13 @@ public static class PilotSkillPercents
 		public const int ExperienceGainBonusPercent = 20;
 	}
 
+	public static class HeatVents
+	{
+		public const int HeatReleased = 40;
+
+		public const int ApCost = 2;
+	}
+
 	public static class HelpABotterOut
 	{
 		public const int HealingRangeBonusCells = 1;

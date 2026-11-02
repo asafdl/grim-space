@@ -35,6 +35,7 @@ public static class PilotCapabilityActionDefs
 		{
 			EPilotCapabilityId.ShieldBoost => ShieldsUpDef.Instance,
 			EPilotCapabilityId.OverchargeEngines => OverchargeEnginesDef.Instance,
+			EPilotCapabilityId.HeatVents => HeatVentsDef.Instance,
 			EPilotCapabilityId.ShieldBrace => BraceDef.Instance,
 			EPilotCapabilityId.ProtectionDrone => ProtectionDroneDef.Instance,
 			_ => null,

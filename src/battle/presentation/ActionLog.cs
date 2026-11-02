@@ -270,6 +270,7 @@ public static class ActionLog
 			ExpireTemporaryShieldGrantAction => null,
 			ApDeltaAction => null,
 			ResetShieldsUpUsedThisTurnAction => null,
+			ResetHeatVentsUsedThisTurnAction => null,
 			ReleaseShieldBraceAction => null,
 			ResetShieldBraceUsedThisTurnAction => null,
 			EnterOverheatAction => null,

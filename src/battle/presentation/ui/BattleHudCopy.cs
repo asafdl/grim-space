@@ -179,6 +179,20 @@ internal static class BattleHudCopy
 			details);
 	}
 
+	public static BattleHudTooltipContent HeatVentsTooltipFor(UnitDisplayState unit)
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.HeatVents);
+		var mechanics =
+			$"[icon: {Icon.ActionPoints}, text: -{PilotSkillPercents.HeatVents.ApCost}]\n[icon: {Icon.Heat}, text: -{PilotSkillPercents.HeatVents.HeatReleased}]\n[icon: {Icon.Cooldown}, text: 1 per turn]";
+		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
+			? mechanics
+			: $"{definition.Tooltip.Details}\n{mechanics}";
+		return new BattleHudTooltipContent(
+			definition.Tooltip.Title,
+			definition.Tooltip.Body,
+			details);
+	}
+
 	public static BattleHudTooltipContent BraceTooltipFor(UnitDisplayState unit)
 	{
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.Brace);

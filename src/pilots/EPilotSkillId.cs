@@ -14,6 +14,7 @@ public enum EPilotSkillId
 	DronesYearnForMines,
 	ReinforcedHull,
 	BetterRam,
+	HeatVents,
 	HelpABotterOut,
 	IKnowABot,
 }

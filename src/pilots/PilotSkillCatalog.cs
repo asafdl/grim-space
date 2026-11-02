@@ -26,6 +26,15 @@ public static class PilotSkillCatalog
 				tier: 1,
 				minimumEarnedLevel: 1,
 				audience: PilotSkillAudience.Global),
+			[EPilotSkillId.HeatVents] = new(
+				EPilotSkillId.HeatVents,
+				[EPilotCapabilityId.HeatVents],
+				new HudTooltipContent(
+					"Heat Vents",
+					$"Release {PilotSkillPercents.HeatVents.HeatReleased} heat."),
+				tier: 1,
+				minimumEarnedLevel: 2,
+				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.ShieldsUp] = new(
 				EPilotSkillId.ShieldsUp,
 				[EPilotCapabilityId.ShieldBoost],
@@ -79,7 +88,9 @@ public static class PilotSkillCatalog
 					$"If you spend no maneuver points during your turn, gain a {PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent}% chance to deflect {PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent}% damage from each hit until your next turn ends."),
 				tier: 2,
 				minimumEarnedLevel: 3,
-				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
+				audience: PilotSkillAudience.ForOperatorClasses(
+					EOperatorClassId.Support,
+					EOperatorClassId.Tank)),
 			[EPilotSkillId.ProtectionDrone] = new(
 				EPilotSkillId.ProtectionDrone,
 				[EPilotCapabilityId.ProtectionDrone],
@@ -106,7 +117,9 @@ public static class PilotSkillCatalog
 					$"If at least {PilotSkillPercents.InTheFray.MinimumDistanceCells} km from at least {PilotSkillPercents.InTheFray.MinimumEnemyCount} enemies, take {100 - PilotSkillPercents.InTheFray.DamageTakenPercent}% less damage from hits."),
 				tier: 4,
 				minimumEarnedLevel: 5,
-				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
+				audience: PilotSkillAudience.ForOperatorClasses(
+					EOperatorClassId.SpaceRanger,
+					EOperatorClassId.Tank)),
 			[EPilotSkillId.OneWithTheVoid] = new(
 				EPilotSkillId.OneWithTheVoid,
 				[EPilotCapabilityId.OneWithTheVoid],

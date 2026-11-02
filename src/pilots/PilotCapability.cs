@@ -13,6 +13,7 @@ public enum EPilotCapabilityId
 	InTheFray,
 	ReinforcedHull,
 	ExperienceGainBonus,
+	HeatVents,
 	HealingSkillRangeBonus,
 	OneWithTheVoid,
 	MinorScrapRewardBonus,

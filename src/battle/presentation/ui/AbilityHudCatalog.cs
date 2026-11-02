@@ -201,6 +201,19 @@ public static class AbilityHudCatalog
 					unit.OverchargeEnginesCooldownRemaining == 0 ? 1 : 0,
 					1),
 				legality => legality.OverchargeEngines),
+			HeatVentsDef => new(
+				EPlayerMode.HeatVents,
+				def,
+				new AbilityTargetingSpec(
+					SelfSource<HeatVentsAction>,
+					AbilitySourceMeshes.CreateDetonation,
+					new Color(0.78f, 0.3f, 0.08f, 0.5f)),
+				"res://assets/ui/battle/heat.png",
+				BattleHudCopy.HeatVentsTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.HeatVentsUsedThisTurn ? 0 : 1,
+					1),
+				legality => legality.HeatVents),
 			BraceDef => new(
 				EPlayerMode.Brace,
 				def,

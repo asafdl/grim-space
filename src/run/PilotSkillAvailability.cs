@@ -9,7 +9,7 @@ public static class PilotSkillAvailability
 		{
 			EPilotSkillAudience.Global => true,
 			EPilotSkillAudience.OperatorClass =>
-				pilot.ClassId == definition.Audience.OperatorClassId,
+				definition.Audience.OperatorClassIds!.Contains(pilot.ClassId),
 			EPilotSkillAudience.Background =>
 				pilot.BackgroundId == definition.Audience.BackgroundId,
 			_ => false,

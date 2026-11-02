@@ -28,6 +28,7 @@ public sealed record BattleUnitSaveDto(
 	int ProtectionDroneCooldownRemaining = 0,
 	int ProtectionDroneRollIndex = 0,
 	bool ShieldBraceUsedThisTurn = false,
+	bool HeatVentsUsedThisTurn = false,
 	int DefensiveManeuversMpUsed = 0,
 	int DefensiveManeuversRollIndex = 0,
 	int Heat = 0,

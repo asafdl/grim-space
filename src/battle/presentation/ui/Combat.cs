@@ -11,6 +11,7 @@ public enum EPlayerMode
 	Detonate,
 	ShieldsUp,
 	OverchargeEngines,
+	HeatVents,
 	Brace,
 	ProtectionDrone,
 	Ram,

@@ -30,6 +30,7 @@ public sealed class State
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public List<BattleStatus> Statuses { get; } = [];
 	public bool ShieldsUpUsedThisTurn { get; set; }
+	public bool HeatVentsUsedThisTurn { get; set; }
 	public bool ShieldBraceUsedThisTurn { get; set; }
 	public int OverchargeEnginesCooldownRemaining { get; set; }
 	public int ProtectionDroneCooldownRemaining { get; set; }
@@ -108,6 +109,7 @@ public sealed class State
 			Projectile = Projectile,
 			ParentId = ParentId,
 			ShieldsUpUsedThisTurn = ShieldsUpUsedThisTurn,
+			HeatVentsUsedThisTurn = HeatVentsUsedThisTurn,
 			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
 			ProtectionDroneCooldownRemaining = ProtectionDroneCooldownRemaining,
