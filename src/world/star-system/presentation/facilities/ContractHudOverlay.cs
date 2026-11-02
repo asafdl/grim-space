@@ -139,7 +139,7 @@ public sealed partial class ContractHudOverlay : Control
 		_shell.SetTitle(ContractDisplay.TypeDisplayName(_selected));
 		_shell.SetSubtitle(
 			$"Issued by {ContractDisplay.Issuer(_selected)}");
-		_shell.SetHeader(HudHeaderMode.Back, ShowList);
+		_shell.SetHeader(HudHeaderMode.Back, ShowList, "Back");
 		_shell.SetBackHandler(ShowList);
 
 		var details = new UiCard(

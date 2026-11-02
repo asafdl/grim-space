@@ -10,10 +10,11 @@ namespace GrimSpace.World.StarSystem.Contracts;
 /// </summary>
 public static class ContractRewardCalculator
 {
-	private const int HuntBaseCredits = 100;
-	private const int DeliveryBaseCredits = 65;
-	private const int WreckageBaseCredits = 75;
-	private const float MaxDangerCreditMultiplier = 2.2f;
+	private const int HuntBaseCredits = 140;
+	private const int DeliveryBaseCredits = 100;
+	private const int WreckageBaseCredits = 110;
+	// Each danger step is a full tier. 1.5x keeps ±10% rolls from overlapping the next tier.
+	private const float DangerStepMultiplier = 1.5f;
 	private const float CreditVariance = 0.1f;
 
 	public static ContractTerms Roll(
@@ -58,14 +59,8 @@ public static class ContractRewardCalculator
 		return System.Math.Max(1, (int)System.Math.Round(scaled * variance));
 	}
 
-	private static float DangerCreditMultiplier(EDangerLevel danger)
-	{
-		var steps = (int)danger;
-		if (steps == 0)
-			return 1f;
-
-		return MathF.Pow(MaxDangerCreditMultiplier, steps / (float)(int)EDangerLevel.VeryHigh);
-	}
+	private static float DangerCreditMultiplier(EDangerLevel danger) =>
+		MathF.Pow(DangerStepMultiplier, (int)danger);
 
 	private static int RollIndustrialCores(StableRandom rng, EDangerLevel danger)
 	{

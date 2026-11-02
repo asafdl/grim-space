@@ -8,6 +8,7 @@ public enum EOperatorRoleIndicator
 	Contract,
 	Lead,
 	HealingStation,
+	Delivery,
 }
 
 public static class OperatorDisplayLabels
@@ -31,6 +32,7 @@ public static class OperatorDisplayLabels
 				EOperatorRoleIndicator.Contract,
 			EFacilityOperatorRole.LeadContact => EOperatorRoleIndicator.Lead,
 			EFacilityOperatorRole.HealingStation => EOperatorRoleIndicator.HealingStation,
+			EFacilityOperatorRole.DeliveryTurnIn => EOperatorRoleIndicator.Delivery,
 			_ => EOperatorRoleIndicator.None,
 		};
 

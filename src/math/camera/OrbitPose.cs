@@ -97,6 +97,18 @@ public struct OrbitPose
 		Pivot += Vector3.Up * axis * speed * delta;
 	}
 
+	/// <summary>
+	/// Slides the pivot along the current view axis to the depth nearest <paramref name="focus"/>,
+	/// keeping the camera position and orientation unchanged.
+	/// </summary>
+	public void ReanchorAlongView(Vector3 focus, in OrbitLimits limits)
+	{
+		var camera = CameraPosition();
+		var view = -Offset().Normalized();
+		Distance = Mathf.Clamp((focus - camera).Dot(view), limits.MinDistance, limits.MaxDistance);
+		Pivot = camera + view * Distance;
+	}
+
 	public void Zoom(float amount, in OrbitLimits limits) =>
 		Distance = Mathf.Clamp(Distance + amount, limits.MinDistance, limits.MaxDistance);
 

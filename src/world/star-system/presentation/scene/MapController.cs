@@ -71,6 +71,7 @@ public partial class MapController : Node3D
 	private bool _hidePlayerBeacon;
 	private bool _revealAllUnits;
 	private ESimMode _pauseMenuPreviousSimMode;
+	private bool _pausedForRosterModal;
 	private string? _settledPresentationModeId;
 	private IReadOnlySet<string> _playerVisibleFleetIds = new HashSet<string>(StringComparer.Ordinal);
 
@@ -334,6 +335,7 @@ public partial class MapController : Node3D
 	public override void _Process(double delta)
 	{
 		_view.SetCameraDistance(_camera.Distance);
+		SyncRosterModalPause();
 
 		if (_orchestrator.CanAdvance && !_director.IsTransitioning)
 			AdvanceSimulation(delta);
@@ -798,9 +800,32 @@ public partial class MapController : Node3D
 		else if (previousModeId == OverviewPresentationMode.ModeId)
 		{
 			ClearHyperlinkWorldIndicators();
-			if (currentModeId == CinematicPresentationMode.ModeId)
+			if (currentModeId == CinematicPresentationMode.ModeId
+				&& !_strategicHud.IsBlockingModalOpen)
 				_orchestrator.SetRunning();
 		}
+	}
+
+	private void SyncRosterModalPause()
+	{
+		if (_strategicHud.IsBlockingModalOpen)
+		{
+			if (_pausedForRosterModal || !_orchestrator.IsRunning)
+				return;
+
+			_pausedForRosterModal = true;
+			_orchestrator.SetStepped();
+			return;
+		}
+
+		if (!_pausedForRosterModal)
+			return;
+
+		_pausedForRosterModal = false;
+		if (_pauseMenu.Visible || _director.CurrentModeId == OverviewPresentationMode.ModeId)
+			return;
+
+		_orchestrator.SetRunning();
 	}
 
 	private void ClearHyperlinkWorldIndicators()

@@ -39,18 +39,20 @@ public class AdvanceDeliveryLegEffect(string contractId, int legIndex) : IEffect
 		else if (world.ContractRegistry.TryGet(contractId, out var contract)
 			&& contract.Objective is DeliveryObjective objective)
 		{
-			var origin = DeliveryContractState.CoordinateOf(
-				world,
-				objective.Route.Legs[legIndex]);
+			var holder = world.FleetRegistry.FleetOf(
+				delivery.HolderUnitId
+				?? throw new InvalidOperationException(
+					$"Delivery '{contractId}' has no holder."));
 			var currentTick = world.Timeline.Clock.Current;
 			var deadlineTick = DeliveryContractState.ResolveDeadlineTickForLeg(
 				world,
 				contractId,
 				objective,
 				next.Progress.CurrentLegIndex,
-				origin,
+				DeliveryContractState.PositionOf(holder.State),
 				currentTick,
-				DeliveryContractState.TimedLegChanceFor(contract, objective.Config));
+				DeliveryContractState.TimedLegChanceFor(contract, objective.Config),
+				holder.State.SpeedPerTick);
 			next = next.WithDeadlineTick(deadlineTick);
 			if (deadlineTick is int tick)
 			{

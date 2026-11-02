@@ -10,12 +10,15 @@ public partial class FacilityOperatorButtonView : TextureButton
 	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
 	private const string LeadIndicatorPath = "res://assets/ui/map/lead-contact-icon.svg";
 	private const string HealingStationIndicatorPath = "res://assets/ui/map/healing-station-icon.svg";
+	private const string DeliveryIndicatorPath = "res://assets/ui/map/delivery-target-icon.png";
+	private static readonly Color DeliveryIndicatorTint = new(0x4a / 255f, 0xd5 / 255f, 0xf0 / 255f);
 	private const int IndicatorPx = 48;
 	private const int IndicatorGapPx = 4;
 	private ShaderMaterial _haloMaterial = null!;
 	private Texture2D _contractIndicatorTexture = null!;
 	private Texture2D _leadIndicatorTexture = null!;
 	private Texture2D _healingStationIndicatorTexture = null!;
+	private Texture2D _deliveryIndicatorTexture = null!;
 	private TextureRect _roleIndicator = null!;
 	private Func<EFacilityOperatorRole>? _roleResolver;
 	private Func<EFacilityOperatorRole, string>? _titleResolver;
@@ -47,6 +50,10 @@ public partial class FacilityOperatorButtonView : TextureButton
 		_leadIndicatorTexture = SvgIconLoader.LoadRaw(LeadIndicatorPath, IndicatorPx);
 		_healingStationIndicatorTexture = SvgIconLoader.LoadRaw(
 			HealingStationIndicatorPath,
+			IndicatorPx);
+		_deliveryIndicatorTexture = SvgIconLoader.Load(
+			DeliveryIndicatorPath,
+			DeliveryIndicatorTint,
 			IndicatorPx);
 		_roleIndicator = new TextureRect
 		{
@@ -103,6 +110,7 @@ public partial class FacilityOperatorButtonView : TextureButton
 			EOperatorRoleIndicator.Contract => _contractIndicatorTexture,
 			EOperatorRoleIndicator.Lead => _leadIndicatorTexture,
 			EOperatorRoleIndicator.HealingStation => _healingStationIndicatorTexture,
+			EOperatorRoleIndicator.Delivery => _deliveryIndicatorTexture,
 			_ => null,
 		};
 		_roleIndicator.Visible = indicator != EOperatorRoleIndicator.None;

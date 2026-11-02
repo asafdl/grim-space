@@ -1,15 +1,19 @@
 using GrimSpace.Core.Engine;
+using RunState = GrimSpace.Run.State;
 using GrimSpace.Tutorials;
 using GrimSpace.Math.Grid;
+using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Ids;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Runtime;
+using GrimSpace.World.StarSystem.Units;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Poi;
 
@@ -67,31 +71,31 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void EstimateLegTravelTicks_UsesManhattanDistanceFromLegOrigin()
+	public void EstimateLegTravelTicks_MatchesFlightToDestinationDock()
 	{
 		var map = maps.Fresh(42);
 		var plan = map.Blueprint.SupplyPlan;
-		var pickup = map.GetPointOfInterest(plan.StoragePoiId).PlacedCenter;
-		var dropoff = map.GetPointOfInterest(plan.ExitPoiId).PlacedCenter;
+		var origin = map.DocksByPoiId[plan.TradeHubPoiId].Position;
+		var destination = map.DocksByPoiId[plan.ExitPoiId].Position;
 		var route = new DeliveryRoute(
 		[
-			new FacilityDeliveryLeg(
-				plan.StoragePoiId,
-				Facility.ScopedId(plan.StoragePoiId, StorageFacility.WarehouseFacilitySlug),
-				"pickup"),
 			new FacilityDeliveryLeg(
 				plan.ExitPoiId,
 				Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug),
 				"dropoff"),
 		]);
+		var speed = UnitDefaults.SpeedPerTick(EType.PlayerFleet);
 
 		var travelTicks = DeliveryContractState.EstimateLegTravelTicks(
 			map,
 			route,
-			legIndex: 1,
-			pickup);
-		var expectedDistance = pickup.ManhattanDistanceTo(dropoff);
-		Assert.Equal(expectedDistance / 6d, travelTicks);
+			legIndex: 0,
+			origin,
+			speed);
+
+		var flight = Assert.IsType<PathfindingResult.Found>(
+			new GridPathfinder(map.PathfindingTerrain).FindPath(origin, destination));
+		Assert.Equal(flight.Path.TicksRequired(speed), travelTicks);
 	}
 
 	[Fact]
@@ -112,7 +116,8 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 				DropoffOperatorName: MapFacilityOperators.TravelOperatorName(map),
 				Generation: new DeliveryGenerationConfig(timedLegChance: 1.0)));
 		map.ContractRegistry.TryAdd(contract);
-		var unit = map.FleetRegistry.All.First();
+		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
+		var unit = map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var runtimes = new ActorRuntimes<ActorRuntime>();
 		runtimes.For(unit.State.Id);
 		runtimes.For(StarSystemActorIds.Contracts);
@@ -125,17 +130,18 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 		var delivery = Assert.IsType<DeliveryContractState>(state);
 		Assert.Equal(acceptedAtTick, delivery.Progress.ActivationTick);
 		var objective = Assert.IsType<DeliveryObjective>(contract.Objective);
-		var origin = map.GetPointOfInterest(objective.PickupPoiId).PlacedCenter;
-		Assert.Equal(
-			DeliveryContractState.ResolveDeadlineTickForLeg(
-				map,
-				contract.Id,
-				objective,
-				legIndex: 0,
-				origin,
-				acceptedAtTick,
-				DeliveryContractState.TimedLegChanceFor(contract, objective.Config)),
-			delivery.Progress.DeadlineTick);
+		var origin = map.DocksByPoiId[plan.TradeHubPoiId].Position;
+		var destination = map.DocksByPoiId[plan.ExitPoiId].Position;
+		Assert.Equal(origin, DeliveryContractState.PositionOf(unit.State));
+		var flight = Flight(map, origin, destination);
+		var expectedDeadline = acceptedAtTick
+			+ (int)System.Math.Ceiling(
+				flight.TicksRequired(unit.State.SpeedPerTick) * objective.Config.DeadlineSlackMultiplier)
+			+ objective.Config.InterruptionBufferTicks;
+		Assert.Equal(expectedDeadline, delivery.Progress.DeadlineTick);
+		Assert.True(
+			delivery.Progress.DeadlineTick
+			>= acceptedAtTick + flight.DurationTicks(unit.State.SpeedPerTick));
 		Assert.Equal(
 			delivery.Progress.InterceptionState == EDeliveryInterceptionState.Pending,
 			engine.World.Timeline.ContainsPending(action =>
@@ -220,6 +226,10 @@ public sealed class DeliveryAcceptanceTests(StarMapFixture maps)
 		Assert.Equal(EContractStatus.Failed, delivery.Status);
 		Assert.Equal(EDeliveryFailureReason.Deadline, delivery.Progress.FailureReason);
 	}
+
+	private static TransitPath Flight(StarMap map, Coord origin, Coord destination) =>
+		Assert.IsType<PathfindingResult.Found>(
+			new GridPathfinder(map.PathfindingTerrain).FindPath(origin, destination)).Path;
 
 	private (Engine<StarMap, ActorRuntime> engine, string unitId, string contractId) CreateHuntEngine(
 		int seed = 42)

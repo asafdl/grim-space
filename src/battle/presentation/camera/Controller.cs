@@ -27,6 +27,8 @@ public partial class Controller : Camera3D, ICameraRig
 	private Tween? _impactShakeTween;
 	private Vector3 _impactShakeLocalOffset;
 	private Vector3? _automationTarget;
+	private Vector3? _orbitFocus;
+	private bool _pivotDetached;
 
 	public Vector3 Pivot => _pose.Pivot;
 	public OrbitPose CurrentPose => _pose;
@@ -37,10 +39,14 @@ public partial class Controller : Camera3D, ICameraRig
 	public bool IsManualGestureActive => _orbiting || _panning;
 	public Vector3? AutomationTarget => _automationTarget;
 
+	/// <summary>World point used to re-anchor orbit depth after the pivot was panned off its target.</summary>
+	public void SetOrbitFocus(Vector3 focus) => _orbitFocus = focus;
+
 	public void SetPivot(Vector3 pivot)
 	{
 		CancelAutomation();
 		_pose.Pivot = pivot;
+		_pivotDetached = false;
 		ApplyTransform();
 	}
 
@@ -49,6 +55,7 @@ public partial class Controller : Camera3D, ICameraRig
 		CancelAutomation();
 		_pose.SetFocus(pivot, distance, yaw, pitch, Limits);
 		_automationTarget = null;
+		_pivotDetached = false;
 		ApplyTransform();
 	}
 
@@ -98,6 +105,7 @@ public partial class Controller : Camera3D, ICameraRig
 			return;
 
 		_automationTarget = target;
+		_pivotDetached = false;
 		_pivotTween = CreateTween();
 		_pivotTween.TweenMethod(
 			Callable.From<Vector3>(SetPivotInternal),
@@ -153,6 +161,7 @@ public partial class Controller : Camera3D, ICameraRig
 		targetDistance = Mathf.Clamp(targetDistance, Limits.MinDistance, Limits.MaxDistance);
 		targetPitch = Mathf.Clamp(targetPitch, Limits.MinPitch, Limits.MaxPitch);
 		_automationTarget = targetPivot;
+		_pivotDetached = false;
 
 		_pivotTween = CreateTween();
 		_pivotTween.TweenMethod(
@@ -182,12 +191,14 @@ public partial class Controller : Camera3D, ICameraRig
 		if (responseTime <= 0f)
 		{
 			_pose.Pivot = target;
+			_pivotDetached = false;
 			ApplyTransform();
 			return;
 		}
 
 		var t = Mathf.Clamp(delta / responseTime, 0f, 1f);
 		_pose.Pivot += (target - _pose.Pivot) * t;
+		_pivotDetached = false;
 		ApplyTransform();
 	}
 
@@ -392,6 +403,7 @@ public partial class Controller : Camera3D, ICameraRig
 		if (verticalPan != 0f)
 			_pose.VerticalPan(Mathf.Sign(verticalPan), panSpeed, deltaF);
 
+		_pivotDetached = true;
 		ApplyTransform();
 	}
 
@@ -407,6 +419,7 @@ public partial class Controller : Camera3D, ICameraRig
 				_orbiting = true;
 				_lastMousePosition = orbitStart.Position;
 				NotifyManualInput();
+				ReanchorDetachedPivot();
 				break;
 
 			case InputEventMouseButton orbitEnd
@@ -453,11 +466,14 @@ public partial class Controller : Camera3D, ICameraRig
 				if (_orbiting)
 					_pose.Orbit(delta, OrbitControls.OrbitSensitivity, Limits);
 				else
+				{
 					_pose.ScreenPan(
 						delta,
 						GlobalTransform.Basis.X,
 						GlobalTransform.Basis.Y,
 						OrbitControls.PanSensitivity);
+					_pivotDetached = true;
+				}
 
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
@@ -478,6 +494,15 @@ public partial class Controller : Camera3D, ICameraRig
 		_orbiting = false;
 		_panning = false;
 		CancelAutomation();
+	}
+
+	private void ReanchorDetachedPivot()
+	{
+		if (!_pivotDetached || _orbitFocus is not { } focus)
+			return;
+
+		_pose.ReanchorAlongView(focus, Limits);
+		_pivotDetached = false;
 	}
 
 	private void SetPivotInternal(Vector3 pivot)

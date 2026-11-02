@@ -8,6 +8,8 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Encounter;
 using GrimSpace.World.StarSystem.Ids;
+using GrimSpace.Math.Grid;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
@@ -206,6 +208,7 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 					timedLegChance: 1.0)));
 		var delivery = Assert.IsType<DeliveryObjective>(contract.Objective);
 		var firstLeg = Assert.IsType<FacilityDeliveryLeg>(delivery.Route.Legs[0]);
+		var secondLeg = Assert.IsType<FacilityDeliveryLeg>(delivery.Route.Legs[1]);
 		var engine = new Engine<StarMap, ActorRuntime>(
 			map,
 			new ActorRuntimes<ActorRuntime>());
@@ -216,7 +219,14 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 		var firstState = Assert.IsType<DeliveryContractState>(
 			map.ContractRegistry.TryGetState(contract.Id, out var state) ? state : null);
 		var firstDeadline = firstState.Progress.DeadlineTick!.Value;
-		map.Timeline.Clock.Set(firstDeadline - 1);
+		var turnedInAt = map.DocksByPoiId[firstLeg.PoiId].Position;
+		var nextDock = map.DocksByPoiId[secondLeg.PoiId].Position;
+		UpdateLocationEffect.StopAt(State.PlayerFleetUnitId, turnedInAt).Apply(
+			map,
+			engine.ActorRuntimes.For(State.PlayerFleetUnitId),
+			State.PlayerFleetUnitId);
+		var turnInTick = firstDeadline - 1;
+		map.Timeline.Clock.Set(turnInTick);
 
 		engine.Commit(new CompleteDeliveryFacilityLegAction(
 			State.PlayerFleetUnitId,
@@ -229,7 +239,14 @@ public sealed class CompleteDeliveryFacilityLegActionTests(StarMapFixture maps)
 		var nextState = Assert.IsType<DeliveryContractState>(
 			map.ContractRegistry.TryGetState(contract.Id, out state) ? state : null);
 		Assert.Equal(1, nextState.Progress.CurrentLegIndex);
-		Assert.True(nextState.Progress.DeadlineTick > firstDeadline);
+		var speed = map.FleetRegistry.FleetOf(State.PlayerFleetUnitId).State.SpeedPerTick;
+		var flight = Assert.IsType<PathfindingResult.Found>(
+			new GridPathfinder(map.PathfindingTerrain).FindPath(turnedInAt, nextDock)).Path;
+		var expectedDeadline = turnInTick
+			+ (int)System.Math.Ceiling(flight.TicksRequired(speed) * delivery.Config.DeadlineSlackMultiplier)
+			+ delivery.Config.InterruptionBufferTicks;
+		Assert.Equal(expectedDeadline, nextState.Progress.DeadlineTick);
+		Assert.True(nextState.Progress.DeadlineTick >= turnInTick + flight.DurationTicks(speed));
 		map.Timeline.Clock.Set(firstDeadline + 1);
 		Assert.False(FailDeliveryDeadlineDef.Instance.IsLegal(
 			new FailDeliveryDeadlineAction(StarSystemActorIds.Contracts, contract.Id),

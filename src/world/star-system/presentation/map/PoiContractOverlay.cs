@@ -11,6 +11,8 @@ public sealed partial class PoiContractOverlay : Control
 {
 	private const string ContractBadgePath = "res://assets/ui/map/contract-offer-icon.svg";
 	private const string LeadBadgePath = "res://assets/ui/map/lead-contact-icon.svg";
+	private const string DeliveryBadgePath = "res://assets/ui/map/delivery-target-icon.png";
+	private static readonly Color DeliveryBadgeTint = new(0x4a / 255f, 0xd5 / 255f, 0xf0 / 255f);
 	private const float BadgePx = 32f;
 	private const float BadgeGap = 4f;
 	private const float VerticalScreenOffsetPx = 10f;
@@ -22,8 +24,11 @@ public sealed partial class PoiContractOverlay : Control
 	private Func<bool> _isVisible = null!;
 	private Texture2D? _contractBadgeTexture;
 	private Texture2D? _leadBadgeTexture;
+	private Texture2D? _deliveryBadgeTexture;
 	private readonly Dictionary<string, RoleBadge> _contractBadges = new(StringComparer.Ordinal);
 	private readonly Dictionary<string, RoleBadge> _leadBadges = new(StringComparer.Ordinal);
+	private readonly Dictionary<string, RoleBadge> _deliveryBadges = new(StringComparer.Ordinal);
+	private readonly Dictionary<string, RoleBadge> _meetingBadges = new(StringComparer.Ordinal);
 
 	public void Configure(
 		MapCamera camera,
@@ -37,6 +42,7 @@ public sealed partial class PoiContractOverlay : Control
 		_isVisible = isVisible;
 		_contractBadgeTexture = SvgIconLoader.LoadRaw(ContractBadgePath, (int)BadgePx);
 		_leadBadgeTexture = SvgIconLoader.LoadRaw(LeadBadgePath, (int)BadgePx);
+		_deliveryBadgeTexture = SvgIconLoader.Load(DeliveryBadgePath, DeliveryBadgeTint, (int)BadgePx);
 		MouseFilter = MouseFilterEnum.Ignore;
 		SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 	}
@@ -52,6 +58,8 @@ public sealed partial class PoiContractOverlay : Control
 		var map = _world();
 		var contractCounts = ContractMapIndicators.CountPendingByPresenterPoi(map);
 		var leadCounts = LeadMapIndicators.CountPendingByPresenterPoi(map);
+		var deliveryCounts = DeliveryMapIndicators.CountActiveByPresenterPoi(map);
+		var meetings = DeliveryMapIndicators.ActiveMeetings(map);
 		SyncBadgeLayer(
 			contractCounts,
 			_contractBadges,
@@ -62,9 +70,16 @@ public sealed partial class PoiContractOverlay : Control
 			_leadBadges,
 			_leadBadgeTexture!,
 			poiId => LeadMapIndicators.TooltipForPoi(map, poiId));
+		SyncBadgeLayer(
+			deliveryCounts,
+			_deliveryBadges,
+			_deliveryBadgeTexture!,
+			poiId => DeliveryMapIndicators.TooltipForPoi(map, poiId));
+		SyncMeetingBadges(meetings);
 
 		var activePoiIds = contractCounts.Keys
 			.Concat(leadCounts.Keys)
+			.Concat(deliveryCounts.Keys)
 			.ToHashSet(StringComparer.Ordinal);
 		foreach (var poiId in activePoiIds)
 		{
@@ -72,23 +87,29 @@ public sealed partial class PoiContractOverlay : Control
 			{
 				HideBadge(_contractBadges, poiId);
 				HideBadge(_leadBadges, poiId);
+				HideBadge(_deliveryBadges, poiId);
 				continue;
 			}
 
-			var hasContract = contractCounts.ContainsKey(poiId);
-			var hasLead = leadCounts.ContainsKey(poiId);
-			var centerX = screen.X;
-			var topY = screen.Y - BadgePx - VerticalScreenOffsetPx;
-			if (hasContract && hasLead)
+			PlacePoiRow(
+				screen,
+				contractCounts.ContainsKey(poiId) ? _contractBadges[poiId] : null,
+				leadCounts.ContainsKey(poiId) ? _leadBadges[poiId] : null,
+				deliveryCounts.ContainsKey(poiId) ? _deliveryBadges[poiId] : null);
+		}
+
+		foreach (var meeting in meetings)
+		{
+			if (!TryProjectMeetingPosition(map, meeting, out var screen))
 			{
-				var rowLeft = centerX - (BadgePx * 2f + BadgeGap) * 0.5f;
-				PlaceBadge(_contractBadges[poiId], rowLeft, topY);
-				PlaceBadge(_leadBadges[poiId], rowLeft + BadgePx + BadgeGap, topY);
+				HideBadge(_meetingBadges, meeting.MeetingId);
+				continue;
 			}
-			else if (hasContract)
-				PlaceBadge(_contractBadges[poiId], centerX - BadgePx * 0.5f, topY);
-			else
-				PlaceBadge(_leadBadges[poiId], centerX - BadgePx * 0.5f, topY);
+
+			PlaceBadge(
+				_meetingBadges[meeting.MeetingId],
+				screen.X - BadgePx * 0.5f,
+				screen.Y - BadgePx - VerticalScreenOffsetPx);
 		}
 	}
 
@@ -111,6 +132,42 @@ public sealed partial class PoiContractOverlay : Control
 		}
 	}
 
+	private void SyncMeetingBadges(IReadOnlyList<DeliveryMapIndicators.MeetingMarker> meetings)
+	{
+		var activeIds = meetings
+			.Select(meeting => meeting.MeetingId)
+			.ToHashSet(StringComparer.Ordinal);
+		foreach (var meetingId in _meetingBadges.Keys.ToArray())
+		{
+			if (!activeIds.Contains(meetingId))
+				RemoveBadge(_meetingBadges, meetingId);
+		}
+
+		foreach (var meeting in meetings)
+		{
+			var badge = GetOrCreateBadge(_meetingBadges, meeting.MeetingId, _deliveryBadgeTexture!);
+			HudTooltipCard.SetTooltip(badge, DeliveryMapIndicators.TooltipForCount(1));
+		}
+	}
+
+	private static void PlacePoiRow(
+		Vector2 anchor,
+		RoleBadge? contract,
+		RoleBadge? lead,
+		RoleBadge? delivery)
+	{
+		var count = (contract is null ? 0 : 1) + (lead is null ? 0 : 1) + (delivery is null ? 0 : 1);
+		var rowLeft = anchor.X - (BadgePx * count + BadgeGap * (count - 1)) * 0.5f;
+		var topY = anchor.Y - BadgePx - VerticalScreenOffsetPx;
+		var index = 0;
+		if (contract is not null)
+			PlaceBadge(contract, rowLeft + index++ * (BadgePx + BadgeGap), topY);
+		if (lead is not null)
+			PlaceBadge(lead, rowLeft + index++ * (BadgePx + BadgeGap), topY);
+		if (delivery is not null)
+			PlaceBadge(delivery, rowLeft + index * (BadgePx + BadgeGap), topY);
+	}
+
 	private static void PlaceBadge(RoleBadge badge, float leftX, float topY)
 	{
 		badge.Position = new Vector2(leftX, topY);
@@ -127,6 +184,17 @@ public sealed partial class PoiContractOverlay : Control
 	{
 		var clearance = _view.GetIndicatorClearance(poiId, map) + WorldClearancePadding;
 		var worldPos = _view.GetPoiWorldPosition(poiId, map.Width, map.Height)
+			+ Vector3.Up * clearance;
+		return MapScreenAnchor.TryProject(_camera, worldPos, out screen);
+	}
+
+	private bool TryProjectMeetingPosition(
+		StarMap map,
+		DeliveryMapIndicators.MeetingMarker meeting,
+		out Vector2 screen)
+	{
+		var clearance = _view.GetIndicatorClearance(meeting.MeetingId, map) + WorldClearancePadding;
+		var worldPos = MapMapping.ToWorld(meeting.Position, map.Width, map.Height)
 			+ Vector3.Up * clearance;
 		return MapScreenAnchor.TryProject(_camera, worldPos, out screen);
 	}
@@ -158,6 +226,10 @@ public sealed partial class PoiContractOverlay : Control
 		foreach (var badge in _contractBadges.Values)
 			badge.Visible = false;
 		foreach (var badge in _leadBadges.Values)
+			badge.Visible = false;
+		foreach (var badge in _deliveryBadges.Values)
+			badge.Visible = false;
+		foreach (var badge in _meetingBadges.Values)
 			badge.Visible = false;
 	}
 

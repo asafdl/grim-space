@@ -329,12 +329,15 @@ public sealed class FacadePresentationMode : IPresentationMode
 				pendingLeadIds,
 				poi,
 				facility);
+			var hasDelivery = DeliveryMapIndicators.HasActiveAtFacility(world, poi, facility.Id);
 			_facilityCallouts[i].SetContractIndicatorVisible(hasContracts);
 			_facilityCallouts[i].SetLeadIndicatorVisible(hasLeads);
+			_facilityCallouts[i].SetDeliveryIndicatorVisible(hasDelivery);
 			HudTooltipCard.SetTooltip(_facilityCallouts[i].Button, TooltipForFacility(
 				facility.DisplayName,
 				hasContracts,
-				hasLeads));
+				hasLeads,
+				hasDelivery));
 			_facilityCallouts[i].UpdateLayout(
 				anchorScreens[i],
 				separatedCenters[i],
@@ -370,15 +373,22 @@ public sealed class FacadePresentationMode : IPresentationMode
 	private static string TooltipForFacility(
 		string displayName,
 		bool hasContracts,
-		bool hasLeads)
+		bool hasLeads,
+		bool hasDelivery)
 	{
-		if (!hasContracts && !hasLeads)
+		if (!hasContracts && !hasLeads && !hasDelivery)
 			return displayName;
+
+		var notes = new List<string>(2);
 		if (hasContracts && hasLeads)
-			return $"{displayName}\nContracts and leads available";
-		return hasLeads
-			? $"{displayName}\nLeads available"
-			: $"{displayName}\nContracts available";
+			notes.Add("Contracts and leads available");
+		else if (hasLeads)
+			notes.Add("Leads available");
+		else if (hasContracts)
+			notes.Add("Contracts available");
+		if (hasDelivery)
+			notes.Add("Delivery");
+		return $"{displayName}\n{string.Join("\n", notes)}";
 	}
 
 	private void SetFacilityButtonsVisible(bool visible)

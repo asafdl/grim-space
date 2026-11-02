@@ -4,6 +4,7 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Encounter;
+using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Contracts;
@@ -222,15 +223,16 @@ public sealed record DeliveryContractState(
 		int acceptedAtTick)
 	{
 		var config = delivery.Config;
-		var origin = world.GetPointOfInterest(delivery.PickupPoiId).PlacedCenter;
+		var holder = world.FleetRegistry.FleetOf(holderUnitId);
 		int? deadlineTick = ResolveDeadlineTickForLeg(
 			world,
 			contract.Id,
 			delivery,
 			legIndex: 0,
-			origin,
+			PositionOf(holder.State),
 			acceptedAtTick,
-			TimedLegChanceFor(contract, config));
+			TimedLegChanceFor(contract, config),
+			holder.State.SpeedPerTick);
 		var interceptionState = contract.IsStoryObjective
 			? EDeliveryInterceptionState.None
 			: RollInterception(world.Seed, contract.Id, contract.Danger, config)
@@ -259,9 +261,10 @@ public sealed record DeliveryContractState(
 		int legIndex,
 		Coord origin,
 		int startsAtTick,
-		double timedLegChance) =>
+		double timedLegChance,
+		double speedPerTick) =>
 		RollTimedLeg(world.Seed, contractId, legIndex, timedLegChance)
-			? DeadlineTickForLeg(world, delivery, legIndex, origin, startsAtTick)
+			? DeadlineTickForLeg(world, delivery, legIndex, origin, startsAtTick, speedPerTick)
 			: null;
 
 	internal static int DeadlineTickForLeg(
@@ -269,9 +272,15 @@ public sealed record DeliveryContractState(
 		DeliveryObjective delivery,
 		int legIndex,
 		Coord origin,
-		int startsAtTick)
+		int startsAtTick,
+		double speedPerTick)
 	{
-		var travelTicks = EstimateLegTravelTicks(world, delivery.Route, legIndex, origin);
+		var travelTicks = EstimateLegTravelTicks(
+			world,
+			delivery.Route,
+			legIndex,
+			origin,
+			speedPerTick);
 		return startsAtTick
 			+ (int)System.Math.Ceiling(
 				travelTicks * delivery.Config.DeadlineSlackMultiplier)
@@ -303,18 +312,54 @@ public sealed record DeliveryContractState(
 		return random.NextDouble() < timedLegChance;
 	}
 
+	internal static Coord PositionOf(State state) =>
+		state.Travel switch
+		{
+			FleetTravel.AtRest atRest => atRest.Position,
+			FleetTravel.Journey journey => journey.Origin,
+			_ => throw new ArgumentOutOfRangeException(nameof(state), state.Travel, null),
+		};
+
 	internal static double EstimateLegTravelTicks(
 		StarMap world,
 		DeliveryRoute route,
 		int legIndex,
-		Coord origin)
+		Coord origin,
+		double speedPerTick)
 	{
 		if (legIndex < 0 || legIndex >= route.Legs.Count)
 			throw new ArgumentOutOfRangeException(nameof(legIndex));
+		if (speedPerTick <= 0 || !double.IsFinite(speedPerTick))
+			throw new ArgumentOutOfRangeException(nameof(speedPerTick));
 
-		var destination = CoordinateOf(world, route.Legs[legIndex]);
-		var speed = UnitDefaults.SpeedPerTick(EType.PlayerFleet);
-		return origin.ManhattanDistanceTo(destination) / speed;
+		var terrain = world.PathfindingTerrain;
+		var start = Traversable(terrain, origin);
+		var destination = Traversable(terrain, ArrivalCoordinate(world, route.Legs[legIndex]));
+		if (new GridPathfinder(terrain).FindPath(start, destination) is not PathfindingResult.Found found)
+			throw new InvalidOperationException(
+				$"No flight path from {start} to {destination} for delivery leg {legIndex}.");
+
+		return found.Path.TicksRequired(speedPerTick);
+	}
+
+	internal static Coord ArrivalCoordinate(StarMap world, DeliveryLeg leg) =>
+		leg switch
+		{
+			FacilityDeliveryLeg facility when world.DocksByPoiId.TryGetValue(facility.PoiId, out var dock) =>
+				dock.Position,
+			FacilityDeliveryLeg facility => world.GetPointOfInterest(facility.PoiId).PlacedCenter,
+			SpaceMeetingDeliveryLeg meeting => meeting.Position,
+			_ => throw new InvalidOperationException(
+				$"Unsupported delivery leg type '{leg.GetType().Name}'."),
+		};
+
+	private static Coord Traversable(PathfindingTerrain terrain, Coord point)
+	{
+		if (terrain.IsTraversable(point))
+			return point;
+
+		return terrain.NearestTraversable(point)
+			?? throw new InvalidOperationException($"No traversable cell near {point}.");
 	}
 
 	internal static bool RollInterception(
@@ -332,14 +377,6 @@ public sealed record DeliveryContractState(
 		return random.NextDouble() < chance;
 	}
 
-	internal static Coord CoordinateOf(StarMap world, DeliveryLeg leg) =>
-		leg switch
-		{
-			FacilityDeliveryLeg facility => world.GetPointOfInterest(facility.PoiId).PlacedCenter,
-			SpaceMeetingDeliveryLeg meeting => meeting.Position,
-			_ => throw new InvalidOperationException(
-				$"Unsupported delivery leg type '{leg.GetType().Name}'."),
-		};
 }
 
 public sealed record WreckageContractState(

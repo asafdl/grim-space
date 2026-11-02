@@ -19,7 +19,7 @@ public sealed partial class UiFramedPortrait : Control, IUiSized
 		"res://assets/ui/components/runtime/list_item_image_frame_base.png";
 	private const string PaletteShaderPath =
 		"res://assets/ui/components/runtime/button_palette.gdshader";
-	private const float ImageDiameterRatio = 0.66f;
+	private const float ImageDiameterRatio = 0.60f;
 
 	private readonly TextureRect _frame;
 	private readonly TextureRect _image;

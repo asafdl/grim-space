@@ -17,19 +17,36 @@ public sealed class ContractRewardCalculatorTests
 	}
 
 	[Fact]
-	public void Roll_HigherDanger_PaysMoreCreditsOnAverage()
+	public void Roll_EachDangerTier_PaysClearlyMoreThanThePrevious()
 	{
 		const int samples = 40;
-		var lowTotal = 0;
-		var highTotal = 0;
-		for (var index = 0; index < samples; index++)
+		var dangers = new[]
 		{
-			var contractId = $"contract-{index}";
-			lowTotal += Credits(ContractRewardCalculator.Roll(7, contractId, EContractKind.Hunt, EDangerLevel.Low));
-			highTotal += Credits(ContractRewardCalculator.Roll(7, contractId, EContractKind.Hunt, EDangerLevel.VeryHigh));
-		}
+			EDangerLevel.VeryLow,
+			EDangerLevel.Low,
+			EDangerLevel.Moderate,
+			EDangerLevel.High,
+			EDangerLevel.VeryHigh,
+		};
 
-		Assert.True(highTotal > lowTotal);
+		foreach (var kind in new[] { EContractKind.Hunt, EContractKind.Delivery, EContractKind.Wreckage })
+		{
+			var previous = 0;
+			for (var tier = 0; tier < dangers.Length; tier++)
+			{
+				var total = 0;
+				for (var index = 0; index < samples; index++)
+					total += Credits(ContractRewardCalculator.Roll(
+						7,
+						$"{kind}-{tier}-{index}",
+						kind,
+						dangers[tier]));
+
+				if (tier > 0)
+					Assert.True(total > previous * 13 / 10, $"{kind} tier {tier} did not clear 1.3x the previous tier.");
+				previous = total;
+			}
+		}
 	}
 
 	[Fact]

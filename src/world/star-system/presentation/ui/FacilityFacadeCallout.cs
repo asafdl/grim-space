@@ -18,6 +18,8 @@ public partial class FacilityFacadeCallout : Control
 
 	private const string ContractIndicatorPath = "res://assets/ui/map/contract-offer-icon.svg";
 	private const string LeadIndicatorPath = "res://assets/ui/map/lead-contact-icon.svg";
+	private const string DeliveryIndicatorPath = "res://assets/ui/map/delivery-target-icon.png";
+	private static readonly Color DeliveryIndicatorTint = new(0x4a / 255f, 0xd5 / 255f, 0xf0 / 255f);
 	private const float RoleIndicatorSize = 32f;
 	private const float RoleIndicatorGap = 3f;
 	private const float RoleIndicatorRowGap = 4f;
@@ -28,8 +30,10 @@ public partial class FacilityFacadeCallout : Control
 	private readonly Button _button;
 	private readonly TextureRect _contractIndicator;
 	private readonly TextureRect _leadIndicator;
+	private readonly TextureRect _deliveryIndicator;
 	private bool _contractIndicatorEnabled;
 	private bool _leadIndicatorEnabled;
+	private bool _deliveryIndicatorEnabled;
 	private Vector2 _pinStart;
 	private Vector2 _pinEnd;
 	private bool _pinVisible;
@@ -50,8 +54,10 @@ public partial class FacilityFacadeCallout : Control
 		AddChild(_button);
 		_contractIndicator = CreateRoleIndicator(ContractIndicatorPath);
 		_leadIndicator = CreateRoleIndicator(LeadIndicatorPath);
+		_deliveryIndicator = CreateRoleIndicator(DeliveryIndicatorPath, DeliveryIndicatorTint);
 		AddChild(_contractIndicator);
 		AddChild(_leadIndicator);
+		AddChild(_deliveryIndicator);
 	}
 
 	public void SetContractIndicatorVisible(bool visible) =>
@@ -60,10 +66,15 @@ public partial class FacilityFacadeCallout : Control
 	public void SetLeadIndicatorVisible(bool visible) =>
 		_leadIndicatorEnabled = visible;
 
-	private static TextureRect CreateRoleIndicator(string path) =>
+	public void SetDeliveryIndicatorVisible(bool visible) =>
+		_deliveryIndicatorEnabled = visible;
+
+	private static TextureRect CreateRoleIndicator(string path, Color? tint = null) =>
 		new()
 		{
-			Texture = SvgIconLoader.LoadRaw(path, (int)RoleIndicatorSize),
+			Texture = tint is { } color
+				? SvgIconLoader.Load(path, color, (int)RoleIndicatorSize)
+				: SvgIconLoader.LoadRaw(path, (int)RoleIndicatorSize),
 			CustomMinimumSize = new Vector2(RoleIndicatorSize, RoleIndicatorSize),
 			Size = new Vector2(RoleIndicatorSize, RoleIndicatorSize),
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -85,6 +96,7 @@ public partial class FacilityFacadeCallout : Control
 			_button.Visible = false;
 			_contractIndicator.Visible = false;
 			_leadIndicator.Visible = false;
+			_deliveryIndicator.Visible = false;
 			QueueRedraw();
 			return;
 		}
@@ -102,6 +114,7 @@ public partial class FacilityFacadeCallout : Control
 		LayoutRoleIndicators(position, size);
 		_contractIndicator.Visible = _contractIndicatorEnabled;
 		_leadIndicator.Visible = _leadIndicatorEnabled;
+		_deliveryIndicator.Visible = _deliveryIndicatorEnabled;
 
 		_pinStart = anchorScreen;
 		_pinEnd = position + new Vector2(size.X * 0.5f, size.Y);
@@ -120,21 +133,24 @@ public partial class FacilityFacadeCallout : Control
 
 	private void LayoutRoleIndicators(Vector2 buttonPosition, Vector2 buttonSize)
 	{
-		var top = buttonPosition.Y - RoleIndicatorSize - RoleIndicatorGap;
-		var centerX = buttonPosition.X + buttonSize.X * 0.5f;
-		if (_contractIndicatorEnabled && _leadIndicatorEnabled)
-		{
-			var rowLeft = centerX - (RoleIndicatorSize * 2f + RoleIndicatorRowGap) * 0.5f;
-			_contractIndicator.Position = new Vector2(rowLeft, top);
-			_leadIndicator.Position = new Vector2(
-				rowLeft + RoleIndicatorSize + RoleIndicatorRowGap,
-				top);
-			return;
-		}
+		var shown = new List<TextureRect>(3);
+		if (_contractIndicatorEnabled)
+			shown.Add(_contractIndicator);
+		if (_leadIndicatorEnabled)
+			shown.Add(_leadIndicator);
+		if (_deliveryIndicatorEnabled)
+			shown.Add(_deliveryIndicator);
 
-		var single = new Vector2(centerX - RoleIndicatorSize * 0.5f, top);
-		_contractIndicator.Position = single;
-		_leadIndicator.Position = single;
+		var top = buttonPosition.Y - RoleIndicatorSize - RoleIndicatorGap;
+		var gapCount = shown.Count > 0 ? shown.Count - 1 : 0;
+		var rowWidth = shown.Count * RoleIndicatorSize + gapCount * RoleIndicatorRowGap;
+		var left = buttonPosition.X + buttonSize.X * 0.5f - rowWidth * 0.5f;
+		for (var i = 0; i < shown.Count; i++)
+		{
+			shown[i].Position = new Vector2(
+				left + i * (RoleIndicatorSize + RoleIndicatorRowGap),
+				top);
+		}
 	}
 
 	private static Vector2[] DiamondPoints(Vector2 center)
