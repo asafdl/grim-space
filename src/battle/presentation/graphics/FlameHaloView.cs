@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Components;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -12,8 +13,8 @@ public sealed partial class FlameHaloView : Node3D
 	private const float FramesPerSecond = 10f;
 	private const float WarmupVisualCap = 0.28f;
 	private static readonly Color WarmupFlame = new(0.12f, 0.78f, 1f);
-	private static readonly Color OverdriveFlame = new(1f, 0.42f, 0.1f);
-	private static readonly Color OverheatFlame = new(0.04f, 0.58f, 1f);
+	private static readonly Color OverdriveFlame = HudTooltipIconCatalog.Resolve("Overdrive").Color;
+	private static readonly Color OverheatFlame = HudTooltipIconCatalog.Resolve("Overheat").Color;
 	private static Texture2D[]? _frames;
 
 	private Node3D _flameRoot = null!;

@@ -6,6 +6,7 @@ internal enum EMerchantPresentation
 {
 	Recruitment,
 	PilotHiring,
+	BlackMarket,
 }
 
 internal static class MerchantSubtypeRouting
@@ -15,6 +16,7 @@ internal static class MerchantSubtypeRouting
 		{
 			EMerchantSubtype.Ships => EMerchantPresentation.Recruitment,
 			EMerchantSubtype.Pilots => EMerchantPresentation.PilotHiring,
+			EMerchantSubtype.BlackMarket => EMerchantPresentation.BlackMarket,
 			_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),
 		};
 

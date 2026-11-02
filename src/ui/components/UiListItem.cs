@@ -47,6 +47,11 @@ public partial class UiListItem : BaseButton, IUiSized
 	private bool _affordable = true;
 	private Color? _trailingColorOverride;
 	private Color? _detailColorOverride;
+	private HudTooltipContent? _tooltip;
+
+	private static readonly Theme TooltipTheme =
+		GD.Load<Theme>("res://assets/ui/themes/hud_tooltip_host_theme.tres")
+		?? throw new InvalidOperationException("Could not load the shared tooltip host theme.");
 
 	protected ShaderMaterial PaletteMaterial => _paletteMaterial;
 
@@ -274,6 +279,24 @@ public partial class UiListItem : BaseButton, IUiSized
 		UpdateMinimumSize();
 	}
 
+	public void SetTooltip(HudTooltipContent content)
+	{
+		ArgumentNullException.ThrowIfNull(content);
+		_tooltip = content;
+		Theme = TooltipTheme;
+		TooltipText = content.TriggerText;
+	}
+
+	public override Control _MakeCustomTooltip(string forText)
+	{
+		// Godot calls this even when tooltip text is empty. Returning a card then
+		// shows a blank popup; null keeps the default (hidden) empty-text behavior.
+		if (_tooltip is null && string.IsNullOrEmpty(forText))
+			return null!;
+
+		return HudTooltipCard.Create(_tooltip ?? HudTooltipContent.Plain(forText), _palette);
+	}
+
 	public void SetEnabled(bool enabled)
 	{
 		Disabled = !enabled;
@@ -307,6 +330,7 @@ public partial class UiListItem : BaseButton, IUiSized
 		_paletteMaterial.SetShaderParameter("edge_color", edge);
 		_paletteMaterial.SetShaderParameter("palette_mix", 1f);
 		_paletteMaterial.SetShaderParameter("brightness", brightness);
+		OnPaletteRefreshed(surface, brightness);
 		_titleLabel.AddThemeColorOverride("font_color", _palette.Primary);
 		_metadataLabel.AddThemeColorOverride(
 			"font_color",
@@ -357,6 +381,10 @@ public partial class UiListItem : BaseButton, IUiSized
 	}
 
 	public override Vector2 _GetMinimumSize() => _margin.GetCombinedMinimumSize();
+
+	private protected virtual void OnPaletteRefreshed(Color surface, float brightness)
+	{
+	}
 
 	protected void HideBackground() => _background.Hide();
 

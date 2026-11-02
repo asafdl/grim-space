@@ -47,6 +47,7 @@ public static class LeadContactMessageCatalog
 		{
 			EMerchantSubtype.Ships => "ships",
 			EMerchantSubtype.Pilots => "pilots",
+			EMerchantSubtype.BlackMarket => "pilots and ships",
 			_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),
 		};
 }

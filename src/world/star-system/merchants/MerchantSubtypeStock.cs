@@ -9,6 +9,8 @@ public static class MerchantSubtypeStock
 		{
 			EMerchantSubtype.Pilots => PilotRecruitment.RecruitableBackgroundIds.Count > 0,
 			EMerchantSubtype.Ships => map.Market.ListRecruitmentOffers().Count > 0,
+			EMerchantSubtype.BlackMarket =>
+				HasOffers(map, EMerchantSubtype.Pilots) || HasOffers(map, EMerchantSubtype.Ships),
 			_ => throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null),
 		};
 	}

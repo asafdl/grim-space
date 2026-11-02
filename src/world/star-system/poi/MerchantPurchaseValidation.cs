@@ -11,7 +11,7 @@ public static class MerchantPurchaseValidation
 		MerchantEndpoint endpoint,
 		EMerchantSubtype subtype) =>
 		TryResolveMerchantSubtype(map, endpoint, out var resolved)
-		&& resolved == subtype;
+		&& (resolved == subtype || resolved == EMerchantSubtype.BlackMarket);
 
 	public static bool EndpointServesHealingStation(StarMap map, MerchantEndpoint endpoint) =>
 		endpoint is FacilityMerchantEndpoint facility

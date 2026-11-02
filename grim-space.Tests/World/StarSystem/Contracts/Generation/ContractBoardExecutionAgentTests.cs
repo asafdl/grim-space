@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Landmarks;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Poi;
@@ -429,6 +430,61 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 
 		Assert.NotNull(action);
 		Assert.Empty(action.Additions);
+	}
+
+	[Theory]
+	[InlineData(149, false)]
+	[InlineData(150, true)]
+	public void Plan_PreviousSaleDeadline_BlocksLeadsUntilMinGapElapses(int tick, bool expectLead)
+	{
+		var map = maps.Fresh(42);
+		var previous = ContractFactory.Build(
+			map,
+			"previous-lead",
+			EContractKind.Lead,
+			new LeadCreateArgs(
+				ELeadKind.BlackMarketSale,
+				new ContractNarrative("Previous lead", "Already run."),
+				300));
+		Assert.True(map.ContractRegistry.TryAdd(previous));
+		Assert.True(map.ContractRegistry.Activate(new LeadContractState(
+			previous.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 0,
+			map.FleetRegistry.Ids.First(),
+			"Quartermaster",
+			DeadlineTick: 100)));
+		map.ContractRegistry.Complete(previous.Id);
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
+			Leads = new LeadGenerationConfig { GenerationChance = 1, MinGapTicks = 50 },
+		};
+
+		var action = PlanAtTick(map, tick, generationEnabled: true, config);
+
+		Assert.NotNull(action);
+		Assert.Equal(expectLead, LeadAdditions(action).Count == 1);
+	}
+
+	[Fact]
+	public void Plan_GeneratedLead_SellsPilotsAndShips()
+	{
+		var map = maps.Fresh(42);
+		var config = new ContractBoardConfig
+		{
+			CadenceTicks = 1,
+			Placement = new ContractPlacementConfig { TargetGeneratedCount = 0 },
+			Leads = new LeadGenerationConfig { GenerationChance = 1 },
+		};
+
+		var action = PlanAtTick(map, tick: 5, generationEnabled: true, config);
+
+		Assert.NotNull(action);
+		var objective = Assert.IsType<BlackMarketSaleObjective>(
+			Assert.Single(LeadAdditions(action)).Contract.Objective);
+		Assert.Equal(EMerchantSubtype.BlackMarket, objective.MerchantSubtype);
 	}
 
 	[Fact]

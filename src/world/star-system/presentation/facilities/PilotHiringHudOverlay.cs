@@ -62,112 +62,12 @@ public sealed partial class PilotHiringHudOverlay : Control
 
 	private void ShowMain()
 	{
-		var map = _run.StarSystem.Map;
 		_shell.SetTitle("Pilot broker");
 		_shell.SetSubtitle(_facilityTitle);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
 
-		var body = HudWidgets.CreateCardList();
-		body.AddThemeConstantOverride("separation", 10);
-
-		IReadOnlyList<PilotRecruitment.PilotHireCandidate> candidates;
-		try
-		{
-			var purchased = PurchasedSlots(map, _contractId);
-			candidates = PilotRecruitment.RollAvailableCandidates(map, _contractId, purchased);
-		}
-		catch (InvalidOperationException error)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, error.Message));
-			_shell.SetBody(body);
-			return;
-		}
-
-		if (candidates.Count == 0)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"All pilot hire slots on this lead have been filled."));
-			_shell.SetBody(body);
-			return;
-		}
-
-		var rosterFull = !_run.PilotRegistry.CanRegister;
-		if (rosterFull)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				$"Roster full ({RunPilotRegistry.MaxPilots}/{RunPilotRegistry.MaxPilots})."));
-		}
-
-		foreach (var candidate in candidates)
-		{
-			var captured = candidate;
-			var cost = PilotRecruitment.Price(map, captured);
-			var canAfford = !rosterFull && map.PlayerResources.CanApply(cost.Negate());
-			body.AddChild(BuildCandidateCard(captured, cost, canAfford));
-		}
-
-		_shell.SetBody(body);
+		_shell.SetBody(PilotHireCardList.Build(_run, _contractId, slot => HireRequested?.Invoke(slot)));
 	}
-
-	private UiListItem BuildCandidateCard(
-		PilotRecruitment.PilotHireCandidate candidate,
-		ResourceBundle cost,
-		bool canAfford)
-	{
-		var profile = candidate.Profile;
-		var item = new UiImageListItem(
-			profile.Name,
-			"",
-			"",
-			ShipPilotPortraitCatalog.TextureFor(profile.PortraitId))
-		{
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-		};
-		item.SetDetailContent(PilotIdentityIconRail.BuildFor(profile));
-		item.SetTrailingContent(BuildHireAndSalaryCost(cost, profile));
-		item.SetAffordable(canAfford);
-		item.SetEnabled(canAfford);
-		if (canAfford)
-			item.Pressed += () => HireRequested?.Invoke(candidate.Slot);
-
-		return item;
-	}
-
-	private static Control BuildHireAndSalaryCost(
-		ResourceBundle hireCost,
-		PilotRecruitProfile profile)
-	{
-		var row = new HBoxContainer
-		{
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-		};
-		row.AddThemeConstantOverride("separation", 12);
-		row.AddChild(ResourceCostDisplay.CreateBundleInline(hireCost));
-
-		row.AddChild(ResourceCostDisplay.CreateAmountWithBadgeIcon(
-			PilotHireDisplay.SalaryAmount(profile),
-			EconomyIconCatalog.SalaryIconPath,
-			EconomyIconCatalog.SalaryTooltip));
-		row.AddChild(ResourceCostDisplay.CreateAmountWithBadgeIcon(
-			StrategicEconomyConfig.HazardPayCreditsPerPilot,
-			EconomyIconCatalog.HazardPayIconPath,
-			EconomyIconCatalog.HazardPayTooltip));
-
-		return row;
-	}
-
-	private static IReadOnlyCollection<int> PurchasedSlots(StarMap map, string contractId)
-	{
-		if (!map.ContractRegistry.TryGetState(contractId, out var state)
-			|| state is not LeadContractState lead)
-			return [];
-
-		return lead.PurchasedPilotHireSlots;
-	}
-
 }

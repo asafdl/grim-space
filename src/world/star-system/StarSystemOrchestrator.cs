@@ -16,6 +16,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Ids;
+using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
@@ -422,7 +423,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			return false;
 		}
 
-		if (!DevPilotRecruitmentLeadSpawner.TrySpawn(Map, out failureReason))
+		if (!DevBlackMarketLeadSpawner.TrySpawn(Map, EMerchantSubtype.BlackMarket, out _, out failureReason))
 			return false;
 
 		NotifyWorldUpdated();

@@ -252,32 +252,6 @@ internal static class ChassisBuffCatalog
 			baseline.GainMultiplier);
 	}
 
-	public static string Describe(EChassisBuffOffer offer) =>
-		offer switch
-		{
-			EChassisBuffOffer.ShieldFlat => "+30 shields",
-			EChassisBuffOffer.ShieldPercent => "+15% shields",
-			EChassisBuffOffer.HullPercent => "+15% hull",
-			EChassisBuffOffer.HeatCapacity => "+20% heat capacity",
-			EChassisBuffOffer.HeatRecovery => "+20% heat recovery",
-			EChassisBuffOffer.OverdriveDamage => "+20 overdrive damage",
-			EChassisBuffOffer.WeaponDamage => "+20% weapon damage",
-			EChassisBuffOffer.ShieldFlatHeavy => "+80 shields, -15% heat capacity",
-			EChassisBuffOffer.ShieldPercentHeavy => "+40% shields, -15% heat recovery",
-			EChassisBuffOffer.HullPercentHeavy => "+40% hull, -15% heat capacity",
-			EChassisBuffOffer.HeatCapacityHeavy => "+50% heat capacity, -15% shields",
-			EChassisBuffOffer.HeatRecoveryHeavy => "+50% heat recovery, -15% hull",
-			EChassisBuffOffer.OverdriveDamageHeavy => "+50 overdrive damage, -15% weapon damage",
-			EChassisBuffOffer.WeaponDamageHeavy => "+50% weapon damage, -15% heat capacity",
-			EChassisBuffOffer.WeaponRange => "+1 weapon range",
-			EChassisBuffOffer.ManeuverPoint => "+1 maneuver point",
-			EChassisBuffOffer.ActionPoint => "+1 action point",
-			EChassisBuffOffer.WeaponRangeHeat => "+1 weapon range, -10% heat capacity",
-			EChassisBuffOffer.ManeuverPointHeat => "+1 maneuver point, -10% heat capacity",
-			EChassisBuffOffer.ActionPointHeat => "+1 action point, -10% heat capacity",
-			_ => throw new ArgumentOutOfRangeException(nameof(offer), offer, null),
-		};
-
 	public static int Scale(int amount, int percent) =>
 		(int)System.Math.Round(amount * percent / 100m, MidpointRounding.AwayFromZero);
 

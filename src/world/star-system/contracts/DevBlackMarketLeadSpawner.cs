@@ -4,33 +4,38 @@ using GrimSpace.World.StarSystem.Merchants;
 
 namespace GrimSpace.World.StarSystem.Contracts;
 
-/// <summary>Debug helper to add a pending pilot-hire black-market lead to the contract board.</summary>
-public static class DevPilotRecruitmentLeadSpawner
+/// <summary>Debug helper to add a pending black-market sale lead to the contract board.</summary>
+public static class DevBlackMarketLeadSpawner
 {
 	private const int DefaultDurationTicks = 500;
 
-	public static bool TrySpawn(StarMap map, out string? failureReason)
+	public static bool TrySpawn(
+		StarMap map,
+		EMerchantSubtype subtype,
+		out string contractId,
+		out string? failureReason)
 	{
 		ArgumentNullException.ThrowIfNull(map);
+		contractId = "";
 		failureReason = null;
 
-		if (!MerchantSubtypeStock.HasOffers(map, EMerchantSubtype.Pilots))
+		if (!MerchantSubtypeStock.HasOffers(map, subtype))
 		{
-			failureReason = "Pilot recruitment is unavailable (no recruitable backgrounds configured).";
+			failureReason = $"Black-market {subtype} stock is unavailable.";
 			return false;
 		}
 
-		var contractId = TypedIdGenerator.NextId("dev-pilot-lead");
+		var id = TypedIdGenerator.NextId($"dev-{subtype.ToString().ToLowerInvariant()}-lead");
 		var args = new LeadCreateArgs(
 			ELeadKind.BlackMarketSale,
 			new ContractNarrative(
-				"Pilot broker (dev)",
-				"Debug-generated pilot hire lead. Accept to meet the seller."),
+				$"{subtype} broker (dev)",
+				"Debug-generated black-market lead. Accept to meet the seller."),
 			DefaultDurationTicks,
 			SpaceMeetingChance: 1.0,
-			MerchantSubtype: EMerchantSubtype.Pilots);
+			MerchantSubtype: subtype);
 
-		if (!ContractFactory.TryBuildLead(map, contractId, args, out var contract))
+		if (!ContractFactory.TryBuildLead(map, id, args, out var contract))
 		{
 			failureReason =
 				"Could not place a black-market destination (no landmarks or eligible facility).";
@@ -43,6 +48,7 @@ public static class DevPilotRecruitmentLeadSpawner
 			return false;
 		}
 
+		contractId = id;
 		return true;
 	}
 }

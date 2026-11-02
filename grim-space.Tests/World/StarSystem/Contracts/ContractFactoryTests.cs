@@ -100,7 +100,7 @@ public sealed class ContractFactoryTests(StarMapFixture maps)
 		Assert.Contains(
 			facility.Operators,
 			facilityOperator => facilityOperator.Role == EFacilityOperatorRole.Dialog);
-		Assert.Equal(EMerchantSubtype.Ships, objective.MerchantSubtype);
+		Assert.Equal(EMerchantSubtype.BlackMarket, objective.MerchantSubtype);
 	}
 
 	[Fact]

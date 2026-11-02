@@ -100,7 +100,11 @@ public static class PilotProgression
 	public static int CountEnemySpawns(IReadOnlyList<BattleSpawn> spawns) =>
 		spawns.Count(spawn => spawn.Team == ETeam.Enemy);
 
-	public static int EnemyTierXpWeight(EShipGearTier tier) => (int)tier + 1;
+	public static int EnemyXpWeight(EType chassis, EShipGearTier tier)
+	{
+		var power = ShipPowerCatalog.PowerFor(chassis, tier);
+		return power > 0 ? power : UncataloguedEnemyXpWeight(tier);
+	}
 
 	public static int SumEnemyXpWeight(IReadOnlyList<BattleSpawn> spawns)
 	{
@@ -111,12 +115,15 @@ public static class PilotProgression
 			if (spawn.Team != ETeam.Enemy)
 				continue;
 
-			var tier = ShipLoadoutGearTier.FromLoadout(spawn.Ship.Loadout, spawn.Ship.Spec.Chassis);
-			weight += EnemyTierXpWeight(tier);
+			var chassis = spawn.Ship.Spec.Chassis;
+			var tier = ShipLoadoutGearTier.FromLoadout(spawn.Ship.Loadout, chassis);
+			weight += EnemyXpWeight(chassis, tier);
 		}
 
 		return weight;
 	}
+
+	private static int UncataloguedEnemyXpWeight(EShipGearTier tier) => (int)tier + 1;
 
 	public static int BattleXpBase(int enemyXpWeight, int difficulty) =>
 		enemyXpWeight * difficulty;
@@ -141,7 +148,7 @@ public static class PilotProgression
 
 	/// <summary>
 	/// Grade base × battle multiplier. Multiplier is <paramref name="battleBase"/> /
-	/// <see cref="DefaultXpDifficulty"/> so a 1-enemy fight at default difficulty pays the grade base.
+	/// <see cref="DefaultXpDifficulty"/> so 1 power of enemies at default difficulty pays the grade base.
 	/// </summary>
 	public static int ExperienceFromGrade(char grade, int battleBase)
 	{

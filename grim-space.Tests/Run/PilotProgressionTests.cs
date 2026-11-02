@@ -264,7 +264,7 @@ public sealed class PilotProgressionTests
 	}
 
 	[Fact]
-	public void RewardsFor_ScalesXpWithEnemyGearTier()
+	public void RewardsFor_UncataloguedFighter_FallsBackToTierPlusOne()
 	{
 		const int xpDifficulty = 3;
 		var t0Spawns = new[]
@@ -288,10 +288,66 @@ public sealed class PilotProgressionTests
 		var t0Xp = Assert.Single(PilotProgression.RewardsFor(t0Spawns, outcome, xpDifficulty)).Value;
 		var t2Xp = Assert.Single(PilotProgression.RewardsFor(t2Spawns, outcome, xpDifficulty)).Value;
 
-		Assert.Equal(PilotProgression.EnemyTierXpWeight(EShipGearTier.T0), PilotProgression.SumEnemyXpWeight(t0Spawns));
-		Assert.Equal(PilotProgression.EnemyTierXpWeight(EShipGearTier.T2), PilotProgression.SumEnemyXpWeight(t2Spawns));
-		Assert.True(t2Xp > t0Xp);
+		Assert.Equal(0, ShipPowerCatalog.PowerFor(EType.Fighter, EShipGearTier.T0));
+		Assert.Equal(PilotProgression.EnemyXpWeight(EType.Fighter, EShipGearTier.T0), PilotProgression.SumEnemyXpWeight(t0Spawns));
+		Assert.Equal(PilotProgression.EnemyXpWeight(EType.Fighter, EShipGearTier.T2), PilotProgression.SumEnemyXpWeight(t2Spawns));
 		Assert.Equal(t0Xp * 3, t2Xp);
+	}
+
+	[Fact]
+	public void RewardsFor_GooperT0_PaysTripleMinerT0()
+	{
+		const int xpDifficulty = 3;
+		var performance = new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 40 };
+		var minerXp = ExperienceAgainst(
+			EnemySpawn("miner-t0", chassis: EType.RepurposedMiner),
+			performance,
+			xpDifficulty);
+		var gooperXp = ExperienceAgainst(
+			EnemySpawn("gooper-t0", chassis: EType.IndustrialGooper),
+			performance,
+			xpDifficulty);
+
+		Assert.Equal(minerXp * 3, gooperXp);
+	}
+
+	[Fact]
+	public void RewardsFor_MinerT1_MatchesTwoMinerT0()
+	{
+		const int xpDifficulty = 3;
+		var performance = new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 40 };
+		var t1Xp = ExperienceAgainst(
+			EnemySpawn("miner-t1", EShipGearTier.T1, EType.RepurposedMiner),
+			performance,
+			xpDifficulty);
+		var twoT0 = new[]
+		{
+			PlayerSpawn("fighter-a", "pilot-a"),
+			EnemySpawn("miner-a", chassis: EType.RepurposedMiner),
+			EnemySpawn("miner-b", chassis: EType.RepurposedMiner),
+		};
+		var outcome = WinOutcome(
+			[
+				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
+				OutcomeTestKit.Handoff("miner-a", EType.RepurposedMiner, 0),
+				OutcomeTestKit.Handoff("miner-b", EType.RepurposedMiner, 0),
+			],
+			performance);
+
+		Assert.Equal(
+			Assert.Single(PilotProgression.RewardsFor(twoT0, outcome, xpDifficulty)).Value,
+			t1Xp);
+	}
+
+	[Fact]
+	public void SumEnemyXpWeight_UncataloguedChassis_IsNonZero()
+	{
+		var spawns = new[] { EnemySpawn("fighter-enemy") };
+
+		var weight = PilotProgression.SumEnemyXpWeight(spawns);
+
+		Assert.True(weight > 0);
+		Assert.Equal(PilotProgression.EnemyXpWeight(EType.Fighter, EShipGearTier.T0), weight);
 	}
 
 	[Fact]
@@ -320,13 +376,31 @@ public sealed class PilotProgressionTests
 			Team = ETeam.Player,
 		};
 
-	private static BattleSpawn EnemySpawn(string shipId, EShipGearTier gearTier = EShipGearTier.T0) =>
+	private static int ExperienceAgainst(
+		BattleSpawn enemy,
+		IReadOnlyDictionary<string, int> performance,
+		int xpDifficulty)
+	{
+		var spawns = new[] { PlayerSpawn("fighter-a", "pilot-a"), enemy };
+		var outcome = WinOutcome(
+			[
+				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
+				OutcomeTestKit.Handoff(enemy.Ship.Id, enemy.Ship.Spec.Chassis, 0),
+			],
+			performance);
+		return Assert.Single(PilotProgression.RewardsFor(spawns, outcome, xpDifficulty)).Value;
+	}
+
+	private static BattleSpawn EnemySpawn(
+		string shipId,
+		EShipGearTier gearTier = EShipGearTier.T0,
+		EType chassis = EType.Fighter) =>
 		new()
 		{
 			Ship = ShipInstance.FromSpec(
 				shipId,
-				ShipCatalog.SpecFor(EType.Fighter),
-				ShipCatalog.LoadoutForTier(EType.Fighter, gearTier)),
+				ShipCatalog.SpecFor(chassis),
+				ShipCatalog.LoadoutForTier(chassis, gearTier)),
 			Team = ETeam.Enemy,
 		};
 }

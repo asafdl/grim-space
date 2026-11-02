@@ -184,6 +184,55 @@ public sealed class ContractRegistryTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void CountCompleted_ExcludesCompletedLeadSales()
+	{
+		var map = maps.Fresh(42);
+		var registry = map.ContractRegistry;
+		var lead = CreateLead("lead-completed");
+		Assert.True(registry.TryAdd(lead));
+		Assert.True(registry.Activate(new LeadContractState(
+			lead.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 20,
+			map.FleetRegistry.Ids.First(),
+			"Quartermaster",
+			DeadlineTick: 100)));
+
+		registry.Complete(lead.Id);
+
+		Assert.Equal(0, registry.CountCompleted());
+	}
+
+	[Fact]
+	public void LatestLeadSaleDeadlineTick_IgnoresRejectedLeads()
+	{
+		var map = maps.Fresh(42);
+		var registry = map.ContractRegistry;
+		Assert.Null(registry.LatestLeadSaleDeadlineTick());
+
+		var accepted = CreateLead("lead-accepted");
+		var rejected = CreateLead("lead-rejected-latest");
+		Assert.True(registry.TryAdd(accepted));
+		Assert.True(registry.TryAdd(rejected));
+		Assert.True(registry.Activate(new LeadContractState(
+			accepted.Id,
+			EContractStatus.Active,
+			AcceptedAtTick: 20,
+			map.FleetRegistry.Ids.First(),
+			"Quartermaster",
+			DeadlineTick: 100)));
+		Assert.True(registry.Activate(new LeadContractState(
+			rejected.Id,
+			EContractStatus.Rejected,
+			null,
+			null,
+			"Quartermaster",
+			DeadlineTick: 500)));
+
+		Assert.Equal(100, registry.LatestLeadSaleDeadlineTick());
+	}
+
+	[Fact]
 	public void StandardPendingCap_DoesNotBlockLeadSlot()
 	{
 		var map = maps.FreshWithBeatAHunt(42);

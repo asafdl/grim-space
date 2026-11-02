@@ -530,6 +530,10 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			>= _config.Leads.MaxOccupancy)
 			return false;
 
+		if (map.ContractRegistry.LatestLeadSaleDeadlineTick() is int lastDeadline
+			&& tick < lastDeadline + _config.Leads.MinGapTicks)
+			return false;
+
 		var chanceRandom = new StableRandom(
 			StableSeedMixer.From(map.Seed)
 				.Add(tick)
@@ -624,6 +628,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				config.SpaceMeetingChance,
 				"Lead space meeting chance must be between zero and one.");
 		ArgumentOutOfRangeException.ThrowIfNegative(config.MaxOccupancy);
+		ArgumentOutOfRangeException.ThrowIfNegative(config.MinGapTicks);
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(config.SaleDurationTicks);
 		ArgumentNullException.ThrowIfNull(config.KindWeights);
 

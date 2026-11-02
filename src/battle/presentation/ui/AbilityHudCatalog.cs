@@ -11,6 +11,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Components;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
@@ -33,23 +34,8 @@ public static class AbilityHudCatalog
 
 	public static Visual VisualFor(EAbilityKind kind)
 	{
-		var (path, accent) = kind switch
-		{
-			EAbilityKind.ScrapDroneSwarm =>
-				("res://assets/ui/abilities/scrap_drone_swarm.svg", ScrapDroneAccent),
-			EAbilityKind.LightningCannon =>
-				("res://assets/ui/abilities/lightning_cannon.svg", LightningAccent),
-			EAbilityKind.GoopGun =>
-				("res://assets/ui/abilities/goop_gun.svg", GoopGunAccent),
-			EAbilityKind.VoidBombLauncher =>
-				("res://assets/ui/abilities/void_bomb.svg", VoidBombAccent),
-			EAbilityKind.MinerBay =>
-				("res://assets/ui/abilities/repurposed-miner.svg", new Color(0.4f, 0.9f, 0.58f, 0.48f)),
-			EAbilityKind.Ram =>
-				("res://assets/ui/abilities/ram.png", new Color(0.92f, 0.55f, 0.28f, 0.5f)),
-			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
-		};
-		return new Visual(path, OpaqueTint(accent));
+		var icon = HudTooltipIconCatalog.Resolve(kind.ToString());
+		return new Visual(icon.Path, icon.Color);
 	}
 
 	public sealed record Spec(

@@ -4,4 +4,6 @@ public enum EMerchantSubtype
 {
 	Ships,
 	Pilots,
+	/// <summary>Sells both pilots and ships.</summary>
+	BlackMarket,
 }

@@ -66,6 +66,34 @@ public sealed class MerchantPurchaseValidationTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void BlackMarketMerchant_ServesPilotsAndShips()
+	{
+		var map = maps.Fresh(42);
+		var poi = map.GetPointOfInterest(SupplySystemPlan.Copper.AdministrativePoiId);
+		var facility = poi.GetFacility(Facility.ScopedId(
+			poi.Id,
+			AdministrativeCore.ManagementFacilitySlug));
+		var facilityOperator = facility.Operators.Single(candidate =>
+			candidate.Role == EFacilityOperatorRole.Dialog);
+		poi.OperatorTemporaryRoles.Grant(
+			facility.Id,
+			facilityOperator.Name,
+			new OperatorInteraction(
+				EFacilityOperatorRole.Merchant,
+				EMerchantSubtype.BlackMarket),
+			EOperatorAssignmentPriority.Merchant,
+			"merchant-board:black-market:0");
+
+		foreach (var subtype in new[] { EMerchantSubtype.Pilots, EMerchantSubtype.Ships })
+			Assert.True(MerchantPurchaseValidation.OperatorServesMerchantSubtype(
+				map,
+				poi.Id,
+				facility.Id,
+				facilityOperator.Name,
+				subtype));
+	}
+
+	[Fact]
 	public void HigherPriorityAssignment_SuspendsMerchantPurchaseAuthority()
 	{
 		var map = maps.Fresh(42);

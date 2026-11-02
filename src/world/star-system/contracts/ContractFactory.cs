@@ -406,7 +406,7 @@ public static class ContractFactory
 		if (!TryResolveBlackMarketDestination(map, contractId, args, out var destination))
 			return false;
 
-		if (!TryPickMerchantSubtype(map, contractId, args.MerchantSubtype, out var subtype))
+		if (!TryPickMerchantSubtype(map, args.MerchantSubtype, out var subtype))
 			return false;
 		var objective = new BlackMarketSaleObjective(
 			destination,
@@ -549,38 +549,11 @@ public static class ContractFactory
 
 	private static bool TryPickMerchantSubtype(
 		StarMap map,
-		string contractId,
 		EMerchantSubtype? requested,
 		out EMerchantSubtype subtype)
 	{
-		subtype = default;
-		var subtypes = Enum.GetValues<EMerchantSubtype>();
-		if (requested is { } fixedSubtype)
-		{
-			if (!MerchantSubtypeStock.HasOffers(map, fixedSubtype))
-				return false;
-
-			subtype = fixedSubtype;
-			return true;
-		}
-
-		var random = new StableRandom(
-			StableSeedMixer.From(map.Seed)
-				.Add(contractId)
-				.Add("black-market-merchant-subtype")
-				.Value);
-		var start = (int)(random.NextDouble() * subtypes.Length);
-		for (var offset = 0; offset < subtypes.Length; offset++)
-		{
-			var candidate = subtypes[(start + offset) % subtypes.Length];
-			if (!MerchantSubtypeStock.HasOffers(map, candidate))
-				continue;
-
-			subtype = candidate;
-			return true;
-		}
-
-		return false;
+		subtype = requested ?? EMerchantSubtype.BlackMarket;
+		return MerchantSubtypeStock.HasOffers(map, subtype);
 	}
 
 	private static WreckageOutcome RollWreckageOutcome(StarMap map, string contractId, WreckageCreateArgs args)

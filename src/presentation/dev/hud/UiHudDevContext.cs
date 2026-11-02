@@ -141,31 +141,39 @@ public sealed class UiHudDevContext
 	/// <summary>Accepted pilot lead in the same shape production uses before opening <see cref="PilotHiringHudOverlay"/>.</summary>
 	public PilotHirePreviewSetup PreparePilotHirePreview()
 	{
-		var contractId = AcceptDevPilotRecruitmentLead();
+		var contractId = AcceptDevBlackMarketLead(EMerchantSubtype.Pilots);
 		return new(
 			contractId,
 			PilotSalePresentationLabels.Title(Map, contractId),
 			new LeadSaleMerchantEndpoint(contractId));
 	}
 
-	private string AcceptDevPilotRecruitmentLead()
+	public readonly record struct BlackMarketSalePreviewSetup(
+		PilotHirePreviewSetup Pilots,
+		LeadSaleMerchantEndpoint ShipsEndpoint);
+
+	/// <summary>
+	/// Accepted pilot and ship black-market leads. Sales currently carry a single subtype, so each panel needs its own lead endpoint.
+	/// </summary>
+	public BlackMarketSalePreviewSetup PrepareBlackMarketSalePreview()
+	{
+		var pilots = PreparePilotHirePreview();
+		var shipsContractId = AcceptDevBlackMarketLead(EMerchantSubtype.Ships);
+		return new(pilots, new LeadSaleMerchantEndpoint(shipsContractId));
+	}
+
+	private string AcceptDevBlackMarketLead(EMerchantSubtype subtype)
 	{
 		// HUD dev context bumps danger for richer merchant tiers; pilot stock only exists at T0/T0.5.
-		Map.ResetDebugDangerProgression();
+		if (subtype == EMerchantSubtype.Pilots)
+			Map.ResetDebugDangerProgression();
 
-		if (!DevPilotRecruitmentLeadSpawner.TrySpawn(Map, out var failureReason))
-			throw new InvalidOperationException(failureReason ?? "Pilot lead spawn failed.");
-
-		var contractId = Map.ContractRegistry.Pending
-			.LastOrDefault(contract =>
-				contract.Id.StartsWith("dev-pilot-lead", StringComparison.Ordinal)
-				&& contract.Objective is BlackMarketSaleObjective sale
-				&& sale.MerchantSubtype == EMerchantSubtype.Pilots)?.Id
-			?? throw new InvalidOperationException("Pilot lead contract missing after spawn.");
+		if (!DevBlackMarketLeadSpawner.TrySpawn(Map, subtype, out var contractId, out var failureReason))
+			throw new InvalidOperationException(failureReason ?? $"{subtype} lead spawn failed.");
 
 		StarSystem.RefreshPlayerAgent();
-		if (!Intents.TryAcceptContract(contractId) && !IsActivePilotLead(contractId))
-			throw new InvalidOperationException($"Could not accept pilot lead '{contractId}'.");
+		if (!Intents.TryAcceptContract(contractId) && !IsActiveLead(contractId))
+			throw new InvalidOperationException($"Could not accept {subtype} lead '{contractId}'.");
 
 		return contractId;
 	}
@@ -174,7 +182,7 @@ public sealed class UiHudDevContext
 		Map.ContractRegistry.Pending
 			.FirstOrDefault(contract => contract.Objective is HuntObjective);
 
-	private bool IsActivePilotLead(string contractId) =>
+	private bool IsActiveLead(string contractId) =>
 		Map.ContractRegistry.TryGetState(contractId, out var state)
 		&& state is LeadContractState { Status: EContractStatus.Active };
 

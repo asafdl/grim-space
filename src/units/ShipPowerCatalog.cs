@@ -15,8 +15,8 @@ public static class ShipPowerCatalog
 		new(EType.RepurposedMiner, EShipGearTier.T1, 2),
 		new(EType.RepurposedMiner, EShipGearTier.T2, 4),
 		new(EType.IndustrialGooper, EShipGearTier.T0, 3),
+		new(EType.Gunship, EShipGearTier.T0, 3),
 		new(EType.RepurposedMiner, EShipGearTier.T3, 8),
-		new(EType.Gunship, EShipGearTier.T0, 9),
 		new(EType.Carrier, EShipGearTier.T0, 11),
 	];
 

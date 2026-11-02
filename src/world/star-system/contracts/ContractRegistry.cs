@@ -54,6 +54,14 @@ public sealed class ContractRegistry
 		return pending + activeSales;
 	}
 
+	/// <summary>Deadline of the most recent accepted lead sale, or null when none has run.</summary>
+	public int? LatestLeadSaleDeadlineTick() =>
+		_states.Values
+			.OfType<LeadContractState>()
+			.Where(lead => lead.Status != EContractStatus.Rejected)
+			.Select(lead => (int?)lead.DeadlineTick)
+			.Max();
+
 	public bool Contains(string contractId) => _contracts.ContainsKey(contractId);
 
 	public bool IsPending(string contractId) =>
@@ -91,8 +99,12 @@ public sealed class ContractRegistry
 	public bool IsCompleted(string contractId) =>
 		_states.TryGetValue(contractId, out var state) && state.Status == EContractStatus.Completed;
 
+	/// <summary>Completed standard contracts; lead sales end as completed when they expire and are excluded.</summary>
 	public int CountCompleted() =>
-		_states.Values.Count(state => state.Status == EContractStatus.Completed);
+		_states.Values.Count(state =>
+			state.Status == EContractStatus.Completed
+			&& _contracts.TryGetValue(state.ContractId, out var contract)
+			&& contract.Category == EContractCategory.Standard);
 
 	public void Complete(string contractId)
 		=> End(contractId, EContractStatus.Completed);

@@ -20,13 +20,15 @@ public sealed partial class UiImageListItem : UiListItem
 
 	private readonly TextureRect _bracket;
 	private readonly UiFramedPortrait _portrait;
+	private readonly ShaderMaterial? _frameMaterial;
 
 	public UiImageListItem(
 		string title,
 		string metadata,
 		string trailingValue,
 		Texture2D image,
-		HudPalette? palette = null)
+		HudPalette? palette = null,
+		Color? frameEdgeColor = null)
 		: base(title, metadata, trailingValue, palette)
 	{
 		ArgumentNullException.ThrowIfNull(image);
@@ -49,7 +51,13 @@ public sealed partial class UiImageListItem : UiListItem
 		};
 		AddBehindContent(_bracket);
 
-		_portrait = new UiFramedPortrait(image, PaletteMaterial);
+		if (frameEdgeColor is { } edge)
+		{
+			_frameMaterial = (ShaderMaterial)PaletteMaterial.Duplicate();
+			_frameMaterial.SetShaderParameter("edge_color", edge);
+		}
+
+		_portrait = new UiFramedPortrait(image, _frameMaterial ?? PaletteMaterial);
 		AddChild(_portrait);
 
 		Resized += LayoutImage;
@@ -57,6 +65,13 @@ public sealed partial class UiImageListItem : UiListItem
 	}
 
 	public void SetImage(Texture2D image) => _portrait.SetPortrait(image);
+
+	private protected override void OnPaletteRefreshed(Color surface, float brightness)
+	{
+		// Called from the base constructor before _frameMaterial exists.
+		_frameMaterial?.SetShaderParameter("surface_color", surface);
+		_frameMaterial?.SetShaderParameter("brightness", brightness);
+	}
 
 	private void LayoutImage()
 	{

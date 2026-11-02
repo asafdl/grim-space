@@ -125,10 +125,31 @@ public sealed partial class HudTooltipCard : PanelContainer
 
 		if (!string.IsNullOrWhiteSpace(tooltip.Title))
 			_content.AddChild(CreateTitle(tooltip.Title));
-		if (!string.IsNullOrWhiteSpace(tooltip.Details))
-			_content.AddChild(CreateFormattedText(tooltip.Details));
-		if (!string.IsNullOrWhiteSpace(tooltip.Body))
-			_content.AddChild(CreateFormattedText(tooltip.Body));
+		AddSections(tooltip.Details);
+		AddSections(tooltip.Body);
+	}
+
+	private void AddSections(string? template)
+	{
+		if (string.IsNullOrWhiteSpace(template))
+			return;
+
+		var sections = template
+			.Split(HudTooltipContent.Divider)
+			.Select(section => section.Trim('\n'))
+			.Where(section => !string.IsNullOrWhiteSpace(section))
+			.ToArray();
+		for (var i = 0; i < sections.Length; i++)
+		{
+			if (i > 0)
+				_content.AddChild(new ColorRect
+				{
+					MouseFilter = MouseFilterEnum.Ignore,
+					CustomMinimumSize = new Vector2(0f, 1f),
+					Color = HudPalettes.WithAlpha(_palette.Highlight, 0.45f),
+				});
+			_content.AddChild(CreateFormattedText(sections[i]));
+		}
 	}
 
 	private RichTextLabel CreateTitle(string text)

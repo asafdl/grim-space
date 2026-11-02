@@ -15,14 +15,15 @@ public static class PilotSalePresentationLabels
 
 		if (!map.ContractRegistry.TryGet(contractId, out var contract)
 			|| contract.Objective is not BlackMarketSaleObjective sale
-			|| sale.MerchantSubtype != EMerchantSubtype.Pilots)
+			|| (sale.MerchantSubtype != EMerchantSubtype.Pilots
+				&& sale.MerchantSubtype != EMerchantSubtype.BlackMarket))
 		{
 			throw new InvalidOperationException(
 				$"Contract '{contractId}' is not an active pilot black-market sale lead.");
 		}
 
 		if (sale.Destination is BlackMarketSpaceMeetingDestination)
-			return $"Black market - {sale.MerchantSubtype}";
+			return MeetingTitle(sale.MerchantSubtype);
 
 		if (sale.Destination is not BlackMarketFacilityDestination facilityDestination)
 			throw new InvalidOperationException(
@@ -53,4 +54,9 @@ public static class PilotSalePresentationLabels
 
 		return OperatorDisplayLabels.Title(facilityOperator, interaction);
 	}
+
+	public static string MeetingTitle(EMerchantSubtype subtype) =>
+		subtype == EMerchantSubtype.BlackMarket
+			? "Black-market dealer"
+			: $"Black market - {subtype}";
 }

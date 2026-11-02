@@ -1,3 +1,4 @@
+using GrimSpace.Components;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run.Persistence;
@@ -7,6 +8,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
+using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.Tests.Units;
 
@@ -64,7 +66,6 @@ public sealed class ChassisBuffTests
 		Assert.Equal(180, loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(80, loadout.MaxShieldPoints[ESpatialOrientation.Dorsal]);
 		Assert.Equal(85, state.HeatProfile.EffectiveCapacity);
-		Assert.Equal("+80 shields, -15% heat capacity", ChassisBuffCatalog.Describe(EChassisBuffOffer.ShieldFlatHeavy));
 	}
 
 	[Fact]
@@ -155,7 +156,7 @@ public sealed class ChassisBuffTests
 	}
 
 	[Fact]
-	public void RecruitmentOffer_UsesStableListingSeedAndShowsBuffLines()
+	public void RecruitmentOffer_UsesStableListingSeed()
 	{
 		var offers = StarMarketSeed.Create().ListRecruitmentOffers();
 		var again = StarMarketSeed.Create().ListRecruitmentOffers();
@@ -165,8 +166,44 @@ public sealed class ChassisBuffTests
 			offer.Chassis == EType.Fighter && offer.GearTier == EShipGearTier.T1);
 		var loadout = ShipCatalog.LoadoutForTier(fighter.Chassis, fighter.GearTier, fighter.RollSeed);
 		Assert.NotEmpty(loadout.Buffs);
+	}
 
-		var tooltip = ShipRecruitmentDisplay.CompareTooltip(fighter, baseline: null);
-		Assert.Contains(ChassisBuffCatalog.Describe(loadout.Buffs[0]), tooltip);
+	[Fact]
+	public void OfferTooltip_T0ShowsOnlyBaseStats()
+	{
+		var offer = new RecruitmentOffer(EType.Fighter, EShipGearTier.T0, ResourceBundle.Empty);
+
+		var tooltip = ShipRecruitmentDisplay.OfferTooltip(offer);
+
+		Assert.Equal("Fighter T0", tooltip.Title);
+		Assert.StartsWith("[icon: Hull, text: 200]", tooltip.Body);
+		Assert.Contains("[icon: LightningCannon] [icon: Damage, text: 200] [icon: Range, text: 7 km]", tooltip.Body);
+		Assert.DoesNotContain(HudTooltipContent.Divider, tooltip.Body);
+	}
+
+	[Fact]
+	public void OfferTooltip_UpgradedTierShowsNetChangesAgainstSameChassisT0()
+	{
+		var offers = StarMarketSeed.Create().ListRecruitmentOffers();
+		foreach (var offer in offers.Where(offer => offer.GearTier != EShipGearTier.T0))
+		{
+			var stock = ShipCatalog.LoadoutForTier(offer.Chassis, EShipGearTier.T0);
+			var rolled = ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed);
+			var totals = ChassisBuffCatalog.Sum(rolled.Buffs);
+
+			var tooltip = ShipRecruitmentDisplay.OfferTooltip(offer);
+
+			Assert.EndsWith($" {offer.GearTier}", tooltip.Title);
+			var sections = tooltip.Body.Split(HudTooltipContent.Divider);
+			Assert.InRange(sections.Length, 2, 3);
+			if (rolled.MaxHullPoints != stock.MaxHullPoints)
+				Assert.Contains($"[icon: Hull, text: +{rolled.MaxHullPoints - stock.MaxHullPoints}]", tooltip.Body);
+			if (totals.WeaponDamagePercent > 0)
+				Assert.Contains($"[icon: Damage, text: +{totals.WeaponDamagePercent}%]", tooltip.Body);
+			if (totals.ActionPoints > 0)
+				Assert.Contains($"[icon: ActionPoints, text: +{totals.ActionPoints}]", tooltip.Body);
+			if (totals.ManeuverPoints > 0)
+				Assert.Contains($"[icon: ManeuverPoints, text: +{totals.ManeuverPoints}]", tooltip.Body);
+		}
 	}
 }

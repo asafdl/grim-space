@@ -31,6 +31,7 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 | [`contract_hud_preview.tscn`](../scenes/dev/contract_hud_preview.tscn) | Contract board |
 | [`pilot_hiring_hud_preview.tscn`](../scenes/dev/pilot_hiring_hud_preview.tscn) | Pilot broker |
 | [`ship_recruitment_hud_preview.tscn`](../scenes/dev/ship_recruitment_hud_preview.tscn) | Ship broker |
+| [`black_market_sale_hud_preview.tscn`](../scenes/dev/black_market_sale_hud_preview.tscn) | Black-market sale (one modal with pilot and ship sections) |
 | [`healing_station_hud_preview.tscn`](../scenes/dev/healing_station_hud_preview.tscn) | Healing station |
 | [`engagement_hud_preview.tscn`](../scenes/dev/engagement_hud_preview.tscn) | Engagement (with contract) |
 | [`engagement_hud_plain_preview.tscn`](../scenes/dev/engagement_hud_plain_preview.tscn) | Engagement (no contract) |

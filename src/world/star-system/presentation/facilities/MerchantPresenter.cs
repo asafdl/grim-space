@@ -19,6 +19,7 @@ public sealed class MerchantPresenter
 	private readonly CatalogMerchantHudOverlay _catalogHud;
 	private readonly ShipRecruitmentHudOverlay _recruitmentHud;
 	private readonly PilotHiringHudOverlay _pilotHiringHud;
+	private readonly BlackMarketSaleHudOverlay _blackMarketHud;
 	private readonly Action _onStateChanged;
 	private EMerchantCatalog? _activeCatalog;
 	private MerchantEndpoint _endpoint = null!;
@@ -63,15 +64,24 @@ public sealed class MerchantPresenter
 		_pilotHiringHud.HireRequested += OnPilotHireRequested;
 		_pilotHiringHud.Closed += OnShopClosed;
 		layer.AddChild(_pilotHiringHud);
+		_blackMarketHud = new BlackMarketSaleHudOverlay();
+		_blackMarketHud.HireRequested += OnPilotHireRequested;
+		_blackMarketHud.RecruitmentRequested += OnRecruitmentRequested;
+		_blackMarketHud.Closed += OnShopClosed;
+		layer.AddChild(_blackMarketHud);
 	}
 
 	public bool IsOpen =>
-		_catalogHud.IsOpen || _recruitmentHud.IsOpen || _pilotHiringHud.IsOpen;
+		_catalogHud.IsOpen
+		|| _recruitmentHud.IsOpen
+		|| _pilotHiringHud.IsOpen
+		|| _blackMarketHud.IsOpen;
 
 	public bool TryHandleInput(InputEvent @event) =>
 		_catalogHud.TryHandleInput(@event)
 		|| _recruitmentHud.TryHandleInput(@event)
-		|| _pilotHiringHud.TryHandleInput(@event);
+		|| _pilotHiringHud.TryHandleInput(@event)
+		|| _blackMarketHud.TryHandleInput(@event);
 
 	public void Open(FacilityOperator facilityOperator, OperatorInteraction interaction)
 	{
@@ -139,7 +149,7 @@ public sealed class MerchantPresenter
 		_endpoint = new LeadSaleMerchantEndpoint(contract.Id);
 		OpenSubtype(
 			sale.MerchantSubtype,
-			$"Black market - {sale.MerchantSubtype}",
+			PilotSalePresentationLabels.MeetingTitle(sale.MerchantSubtype),
 			_endpoint);
 		_onStateChanged();
 	}
@@ -155,15 +165,19 @@ public sealed class MerchantPresenter
 				_recruitmentHud.Open(Run, title);
 				break;
 			case EMerchantPresentation.PilotHiring:
-				var contractId = _activeLeadContractId
-					?? throw new InvalidOperationException(
-						"Pilot hiring requires an active lead-sale contract.");
-				_pilotHiringHud.Open(Run, title, contractId);
+				_pilotHiringHud.Open(Run, title, RequireLeadContractId());
+				break;
+			case EMerchantPresentation.BlackMarket:
+				_blackMarketHud.Open(Run, title, RequireLeadContractId());
 				break;
 			default:
 				throw new ArgumentOutOfRangeException(nameof(subtype), subtype, null);
 		}
 	}
+
+	private string RequireLeadContractId() =>
+		_activeLeadContractId
+		?? throw new InvalidOperationException("Pilot hiring requires an active lead-sale contract.");
 
 	private void Subscribe(FacilitySceneBinding binding)
 	{
@@ -182,7 +196,10 @@ public sealed class MerchantPresenter
 		_catalogHud.Sync(Run);
 		_recruitmentHud.Sync(Run);
 		if (_activeLeadContractId is not null)
+		{
 			_pilotHiringHud.Sync(Run, _activeLeadContractId);
+			_blackMarketHud.Sync(Run, _activeLeadContractId);
+		}
 	}
 
 	private void OnCatalogPurchaseRequested(
@@ -220,12 +237,12 @@ public sealed class MerchantPresenter
 				PresentSystemError(
 					"Could not purchase ship.",
 					"Ship purchase was rejected despite sufficient resources.");
-			_recruitmentHud.Sync(Run);
+			Sync();
 			_onStateChanged();
 			return;
 		}
 
-		_recruitmentHud.Sync(Run);
+		Sync();
 		_onStateChanged();
 	}
 
@@ -242,12 +259,12 @@ public sealed class MerchantPresenter
 				PresentSystemError(
 					"Could not hire pilot.",
 					"Lead-sale pilot hire was rejected despite sufficient resources.");
-			_pilotHiringHud.Sync(Run, endpoint.ContractId);
+			Sync();
 			_onStateChanged();
 			return;
 		}
 
-		_pilotHiringHud.Sync(Run, endpoint.ContractId);
+		Sync();
 		_onStateChanged();
 	}
 
