@@ -18,14 +18,19 @@ public static class ContractDisplay
 	public static string Issuer(Contract contract) =>
 		FactionCatalog.DisplayName(contract.IssuerFaction);
 
-	public static string DetailsBody(Contract contract, StarMap map, bool includeThreatAssessment = true)
+	public static string DetailsBody(
+		Contract contract,
+		StarMap map,
+		bool includeThreatAssessment = true,
+		string? offerPoiId = null,
+		string? offerFacilityId = null)
 	{
 		var parts = new List<string>();
 		var briefing = Narrative(contract);
 		if (!string.IsNullOrWhiteSpace(briefing))
 			parts.Add(briefing.Trim());
 
-		var searchArea = SearchArea(contract, map);
+		var searchArea = SearchArea(contract, map, offerPoiId, offerFacilityId);
 		if (searchArea != "—")
 			parts.Add(searchArea.Trim());
 
@@ -49,14 +54,22 @@ public static class ContractDisplay
 			_ => "—",
 		};
 
-	public static string SearchArea(Contract contract, StarMap map) =>
+	public static string SearchArea(
+		Contract contract,
+		StarMap map,
+		string? offerPoiId = null,
+		string? offerFacilityId = null) =>
 		contract.Objective switch
 		{
 			HuntObjective hunt when hunt.SpawnGroups.Count > 0 =>
 				FormatSearchAreaIntel(hunt.SpawnGroups[0].SearchArea.Intel, map),
 			WreckageObjective wreckage =>
 				FormatSearchAreaIntel(wreckage.SearchArea.Intel, map),
-			DeliveryObjective delivery => FormatDeliveryRoute(delivery, map),
+			DeliveryObjective delivery => FormatDeliveryRoute(
+				delivery,
+				map,
+				offerPoiId,
+				offerFacilityId),
 			BlackMarketSaleObjective sale => FormatBlackMarketDestination(sale.Destination, map),
 			_ => "—",
 		};
@@ -107,10 +120,16 @@ public static class ContractDisplay
 		return $"Pick up cargo at {pickupName}, then deliver it to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
 	}
 
-	private static string FormatDeliveryRoute(DeliveryObjective delivery, StarMap map)
+	private static string FormatDeliveryRoute(
+		DeliveryObjective delivery,
+		StarMap map,
+		string? offerPoiId,
+		string? offerFacilityId)
 	{
-		var pickupName = ResolvePoiDisplayName(map, delivery.PickupPoiId);
-		return $"From {pickupName} to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
+		var origin = string.IsNullOrEmpty(offerPoiId) || string.IsNullOrEmpty(offerFacilityId)
+			? ResolvePoiDisplayName(map, delivery.PickupPoiId)
+			: FacilityDestination(map, offerPoiId, offerFacilityId);
+		return $"From {origin} to {DeliveryDestination(map, delivery.Route.Legs[0])}.";
 	}
 
 	private static string DeliveryDestination(StarMap map, DeliveryLeg leg) =>

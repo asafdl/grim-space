@@ -101,8 +101,13 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		{
 			foreach (var contractId in assignment.SourceIds)
 			{
-				if (assignedIds.Add(contractId))
+				var duplicate = !assignedIds.Add(contractId);
+				var illegalOffer = IsIllegalDeliveryOffer(map, contractId, location);
+				if (!duplicate && !illegalOffer)
 					continue;
+
+				if (!duplicate)
+					assignedIds.Remove(contractId);
 
 				map.GetPointOfInterest(location.PoiId).OperatorTemporaryRoles.RevokeSource(
 					location.FacilityId,
@@ -209,9 +214,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		if (!map.ContractRegistry.TryGet(contractId, out var contract))
 			return null;
 
-		var deliveryTurnInPoiId = contract.Objective is DeliveryObjective delivery
-			? delivery.TurnInPoiId
-			: null;
+		var delivery = contract.Objective as DeliveryObjective;
 
 		var current = ListRoleOperators(map, EFacilityOperatorRole.Contracts);
 		var viable = current
@@ -221,7 +224,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				|| tick < item.Assignment.AcceptsSourcesUntilTick)
 			.Where(item => !IsPlacementPaused(map, item.Location, tick))
 			.Where(item => item.Assignment.SourceIds.Count < _config.PreferredContractsPerGiver)
-			.Where(item => !IsDeliveryTurnInPoi(deliveryTurnInPoiId, item.Location))
+			.Where(item => !IsIllegalDeliveryOffer(delivery, item.Location))
 			.ToArray();
 		if (viable.Length > 0)
 		{
@@ -235,7 +238,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 				or EFacilityOperatorRole.HealingStation))
 			.Where(candidate => !HasTemporaryRole(map, candidate.Location))
 			.Where(candidate => !IsPlacementPaused(map, candidate.Location, tick))
-			.Where(candidate => !IsDeliveryTurnInPoi(deliveryTurnInPoiId, candidate.Location))
+			.Where(candidate => !IsIllegalDeliveryOffer(delivery, candidate.Location))
 			.ToArray();
 		if (eligible.Length > 0)
 		{
@@ -246,7 +249,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		var fallback = current
 			.Where(item => IsActiveContractOperator(map, item.Location))
 			.Where(item => !IsPlacementPaused(map, item.Location, tick))
-			.Where(item => !IsDeliveryTurnInPoi(deliveryTurnInPoiId, item.Location))
+			.Where(item => !IsIllegalDeliveryOffer(delivery, item.Location))
 			.ToArray();
 		if (fallback.Length == 0)
 			return null;
@@ -404,9 +407,25 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 			location.OperatorName,
 			tick);
 
-	private static bool IsDeliveryTurnInPoi(string? turnInPoiId, OperatorLocation location) =>
-		turnInPoiId is not null
-		&& string.Equals(turnInPoiId, location.PoiId, StringComparison.Ordinal);
+	private static bool IsIllegalDeliveryOffer(
+		StarMap map,
+		string contractId,
+		OperatorLocation location) =>
+		map.ContractRegistry.TryGet(contractId, out var contract)
+		&& IsIllegalDeliveryOffer(contract.Objective as DeliveryObjective, location);
+
+	private static bool IsIllegalDeliveryOffer(DeliveryObjective? delivery, OperatorLocation location)
+	{
+		if (delivery is null)
+			return false;
+
+		if (string.Equals(delivery.TurnInPoiId, location.PoiId, StringComparison.Ordinal))
+			return true;
+
+		// Nothing precedes this stop, so accepting here turns the cargo in at the same station.
+		return delivery.Route.Legs[0] is FacilityDeliveryLeg first
+			&& string.Equals(first.PoiId, location.PoiId, StringComparison.Ordinal);
+	}
 
 	private static T Pick<T>(
 		IReadOnlyList<T> candidates,

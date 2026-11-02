@@ -162,4 +162,42 @@ public sealed class ContractFactoryDeliveryTests(StarMapFixture maps)
 		Assert.Contains($"Dockyard at {dropoff.DisplayName}", ContractDisplay.ObjectivePreview(contract, map));
 		Assert.Contains($"Dockyard at {dropoff.DisplayName}", ContractDisplay.DetailsBody(contract, map));
 	}
+
+	[Fact]
+	public void Display_Delivery_UsesOfferFacilityInsteadOfPickupPoi()
+	{
+		var map = maps.Fresh(42);
+		var plan = map.Blueprint.SupplyPlan;
+		var hub = map.GetPointOfInterest(plan.TradeHubPoiId);
+		var dockyard = hub.GetFacility(
+			Facility.ScopedId(plan.TradeHubPoiId, TradeHub.DockyardFacilitySlug));
+		var refinery = map.GetPointOfInterest(plan.RefineryPoiId);
+		var refineryFacility = refinery.GetFacility(
+			Facility.ScopedId(plan.RefineryPoiId, Refinery.RefineryFacilitySlug));
+		var contract = ContractFactory.Build(
+			map,
+			"delivery-offer-origin",
+			EContractKind.Delivery,
+			new DeliveryCreateArgs(
+				EDangerLevel.VeryLow,
+				ContractNarrative.ForDelivery("Delivery", "Cargo.", "Received."),
+				PickupPoiId: plan.ExtractionPoiId,
+				DropoffPoiId: refinery.Id,
+				DropoffFacilityId: refineryFacility.Id,
+				DropoffOperatorName: refineryFacility.Operators[0].Name));
+
+		var route = ContractDisplay.DetailsBody(
+			contract,
+			map,
+			includeThreatAssessment: false,
+			offerPoiId: hub.Id,
+			offerFacilityId: dockyard.Id);
+
+		Assert.Contains(
+			$"From Dockyard at {hub.DisplayName} to {refineryFacility.DisplayName} at {refinery.DisplayName}.",
+			route);
+		Assert.DoesNotContain(
+			map.GetPointOfInterest(plan.ExtractionPoiId).DisplayName,
+			route);
+	}
 }

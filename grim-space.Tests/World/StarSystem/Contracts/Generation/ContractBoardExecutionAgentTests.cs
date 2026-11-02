@@ -11,6 +11,8 @@ using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Poi;
+using GrimSpace.World.StarSystem.Poi.Concrete;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -655,6 +657,61 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void Reconcile_DirectDelivery_MovesOfferOffTurnInStation()
+	{
+		var map = maps.Fresh(42);
+		var plan = map.Blueprint.SupplyPlan;
+		var hub = map.GetPointOfInterest(plan.TradeHubPoiId);
+		var market = hub.GetFacility(Facility.ScopedId(plan.TradeHubPoiId, TradeHub.MarketFacilitySlug));
+		var dockyard = hub.GetFacility(Facility.ScopedId(plan.TradeHubPoiId, TradeHub.DockyardFacilitySlug));
+		var marketOperator = market.Operators.First(candidate =>
+			candidate.Role == EFacilityOperatorRole.Dialog);
+		var dockyardOperator = dockyard.Operators.First(candidate =>
+			candidate.Role == EFacilityOperatorRole.Dialog);
+		var exit = map.GetPointOfInterest(plan.ExitPoiId);
+		var travel = exit.GetFacility(Facility.ScopedId(plan.ExitPoiId, Wormhole.TravelFacilitySlug));
+		var travelOperator = travel.Operators.First(candidate =>
+			candidate.Role == EFacilityOperatorRole.Dialog);
+		var direct = DeliveryContract(
+			map,
+			"direct-same-station",
+			plan.ExtractionPoiId,
+			[
+				new FacilityDeliveryLeg(hub.Id, market.Id, marketOperator.Name),
+			]);
+		var continued = DeliveryContract(
+			map,
+			"first-stop-same-station",
+			plan.ExtractionPoiId,
+			[
+				new FacilityDeliveryLeg(hub.Id, market.Id, marketOperator.Name),
+				new FacilityDeliveryLeg(exit.Id, travel.Id, travelOperator.Name),
+			]);
+		Assert.True(map.ContractRegistry.TryAdd(direct, expiresAtTick: 100));
+		Assert.True(map.ContractRegistry.TryAdd(continued, expiresAtTick: 100));
+		hub.OperatorTemporaryRoles.Grant(
+			dockyard.Id,
+			dockyardOperator.Name,
+			EFacilityOperatorRole.Contracts,
+			direct.Id);
+		hub.OperatorTemporaryRoles.Grant(
+			dockyard.Id,
+			dockyardOperator.Name,
+			EFacilityOperatorRole.Contracts,
+			continued.Id);
+
+		ReconcilePresentations(map);
+
+		foreach (var contractId in new[] { direct.Id, continued.Id })
+		{
+			var assignment = Assert.Single(
+				ContractAssignments(map),
+				item => item.Assignment.SourceIds.Contains(contractId));
+			Assert.NotEqual(plan.TradeHubPoiId, assignment.PoiId);
+		}
+	}
+
+	[Fact]
 	public void Plan_WreckageOnlyWeight_CanProduceWreckageContracts()
 	{
 		var map = maps.Fresh(55);
@@ -785,6 +842,19 @@ public sealed class ContractBoardExecutionAgentTests(StarMapFixture maps)
 		var agent = CreateAgent(map, () => false, sink, config);
 		agent.ReconcilePresentations();
 	}
+
+	private static Contract DeliveryContract(
+		StarMap map,
+		string contractId,
+		string pickupPoiId,
+		IReadOnlyList<DeliveryLeg> legs) =>
+		new(
+			contractId,
+			new DeliveryObjective(pickupPoiId, new DeliveryRoute(legs)),
+			EDangerLevel.Low,
+			map.ControllingFaction,
+			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 10)),
+			ContractNarrative.ForDelivery(contractId, "Cargo.", "Received."));
 
 	private static HuntCreateArgs CreateGeneratedHuntArgs(StarMap map)
 	{

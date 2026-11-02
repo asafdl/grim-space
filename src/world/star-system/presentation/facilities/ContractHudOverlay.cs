@@ -146,7 +146,12 @@ public sealed partial class ContractHudOverlay : Control
 			ContractDisplay.Title(_selected),
 			$"{ContractDisplay.KindDisplayName(ContractDisplay.Kind(_selected))}"
 				+ $" · Issued by {ContractDisplay.Issuer(_selected)}",
-			ContractDisplay.DetailsBody(_selected, _map, includeThreatAssessment: false),
+			ContractDisplay.DetailsBody(
+				_selected,
+				_map,
+				includeThreatAssessment: false,
+				offerPoiId: _activePoiId,
+				offerFacilityId: _activeFacilityId),
 			"")
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
