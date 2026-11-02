@@ -20,6 +20,8 @@ public sealed partial class MoveGhostView : Node3D
 	private Camera3D _camera = null!;
 	private MoveOrientationOverlay _orientationOverlay = null!;
 
+	public Node3D? GhostShip => _view is { Visible: true } ship ? ship : null;
+
 	public void Configure(Camera3D camera) => _camera = camera;
 
 	public override void _Ready()

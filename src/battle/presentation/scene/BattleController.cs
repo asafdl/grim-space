@@ -650,7 +650,8 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		var playerPosition = _currentFrame.PreviewUnits[_battle.PlayerId].Position;
+		var playerPosition = _currentFrame.MoveGhostState?.Position
+			?? _currentFrame.PreviewUnits[_battle.PlayerId].Position;
 		var enemies = _currentFrame.PreviewUnits
 			.Where(pair =>
 				pair.Value.IsAlive
@@ -868,11 +869,12 @@ public partial class BattleController : Node3D
 			return;
 		}
 
+		var sourceState = frame.MoveGhostState ?? frame.PreviewUnits[_battle.PlayerId];
 		_enemyRangeTether.Apply(
-			player,
+			frame.MoveGhostState is null ? player : _moveGhost.GhostShip ?? player,
 			enemy,
 			closest.SeparationMeters,
-			frame.PreviewUnits[_battle.PlayerId],
+			sourceState,
 			frame.PreviewUnits[closest.EnemyId],
 			pickHotkey: frame.TargetPick is { CanConfirmPick: true }
 				? GameInputBindings.PrimaryLabel("battle_primary_click")

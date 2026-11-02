@@ -493,6 +493,28 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
+	public void RangeTargetOriginFollowsMoveGhost()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(origin);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var options = BattleTestCommands.Frame(battle).MovePaths;
+		var hovered = options.First(option => option.EndPosition == origin + Coord.Forward);
+		var enemyPosition = battle.PlayerAgent.Sim
+			.StateOf<ActorState>(BattleTestFixture.FirstEnemyId(battle))
+			.Position;
+
+		builder.Interaction.SetMoveHover(hovered.EndPosition, options);
+		var target = builder.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true).RangeEnemy;
+
+		Assert.True(target.HasValue);
+		Assert.Equal(
+			BattleDistance.SeparationMeters(hovered.EndPosition, enemyPosition),
+			target.Value.SeparationMeters,
+			3);
+	}
+
+	[Fact]
 	public void RequestedRangeTargetOverridesClosestEnemy()
 	{
 		var battle = BattleTestFixture.BeginSimulation(

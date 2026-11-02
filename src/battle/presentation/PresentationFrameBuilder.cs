@@ -239,7 +239,8 @@ public sealed class PresentationFrameBuilder
 					battle,
 					previewUnits,
 					previewUnitTeams,
-					state.RangeEnemyId),
+					state.RangeEnemyId,
+					activeMovePreview?.ResultState.Position),
 			TargetPick = targetPick,
 			Weapons = weapons,
 			AreaActions = areaActions,
@@ -329,15 +330,17 @@ public sealed class PresentationFrameBuilder
 		BattleOrchestrator battle,
 		IReadOnlyDictionary<string, UnitDisplayState> units,
 		IReadOnlyDictionary<string, ETeam> teams,
-		string? requestedEnemyId)
+		string? requestedEnemyId,
+		Coord? sourcePosition = null)
 	{
 		if (battle.Phase is not (EBattlePhase.PlayerTurn or EBattlePhase.Resolving))
 			return null;
 		if (!units.TryGetValue(battle.PlayerId, out var player))
 			return null;
 
+		var source = sourcePosition ?? player.Position;
 		if (requestedEnemyId is { } enemyId && IsLivingEnemy(units, teams, enemyId))
-			return RangeTarget(enemyId, player.Position, units[enemyId].Position);
+			return RangeTarget(enemyId, source, units[enemyId].Position);
 
 		EnemyRangeTarget? closest = null;
 		foreach (var (id, team) in teams)
@@ -347,7 +350,7 @@ public sealed class PresentationFrameBuilder
 				|| !enemy.IsAlive)
 				continue;
 
-			var candidate = RangeTarget(id, player.Position, enemy.Position);
+			var candidate = RangeTarget(id, source, enemy.Position);
 			var distance = candidate.SeparationMeters;
 			if (closest is null
 				|| distance < closest.Value.SeparationMeters
