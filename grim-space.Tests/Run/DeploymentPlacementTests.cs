@@ -7,9 +7,9 @@ using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Run;
 using GrimSpace.Tutorials;
 using GrimSpace.Tests.World.StarSystem.Traffic;
+using GrimSpace.Pilots;
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
-using GrimSpace.Units.Loadouts.Abilities;
-using GrimSpace.Units.Specs;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
@@ -37,7 +37,7 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void DevDuel_ExpandsMountsAndUpgradesEverySupportedWeapon()
+	public void DevDuel_UsesT0CatalogLoadouts()
 	{
 		var (player, enemy) = DeploymentPlacement.DevDuel(
 			BattleUnitType.Fighter,
@@ -45,41 +45,19 @@ public sealed class DeploymentPlacementTests
 			seed: 42,
 			gridSize: 64);
 
-		var playerCannon = player.Ship.Loadout.InstalledAbilities.Single(
-			ability => ability.Kind == EAbilityKind.LightningCannon);
-		var effective = Assert.IsType<LightningCannonSpec>(playerCannon.Spec);
-		var voidBombs = player.Ship.Loadout.InstalledAbilities
-			.Where(ability => ability.Kind == EAbilityKind.VoidBombLauncher)
-			.Select(ability => Assert.IsType<VoidBombLauncherSpec>(ability.Spec))
-			.ToArray();
-
-		Assert.Equal(FighterSpec.Instance.Slots.Count, player.Ship.Loadout.InstalledAbilities.Count);
+		Assert.Equal(
+			ShipCatalog.LoadoutForTier(BattleUnitType.Fighter, EShipGearTier.T0).InstalledAbilities,
+			player.Ship.Loadout.InstalledAbilities);
+		Assert.Equal(
+			ShipCatalog.LoadoutForTier(BattleUnitType.Carrier, EShipGearTier.T0).InstalledAbilities,
+			enemy.Ship.Loadout.InstalledAbilities);
 		Assert.All(
-			player.Ship.Loadout.InstalledAbilities.Where(
-				ability => ability.Spec.MaxDamageUpgrades > 0),
-			ability => Assert.Equal(1, ability.DamageUpgradeTier));
-		Assert.All(
-			player.Ship.Loadout.InstalledAbilities.Where(
-				ability => ability.Spec.MaxRangeUpgrades > 0),
-			ability => Assert.Equal(1, ability.RangeUpgradeTier));
-		Assert.Equal(LightningCannonSpec.Baseline.Damage + 100, effective.Damage);
-		Assert.Equal(LightningCannonSpec.Baseline.LineLength + 1, effective.LineLength);
-		Assert.All(
-			voidBombs,
-			voidBomb =>
+			player.Ship.Loadout.InstalledAbilities.Concat(enemy.Ship.Loadout.InstalledAbilities),
+			ability =>
 			{
-				Assert.Equal(3, voidBomb.FuelTurns);
-				Assert.Equal(4, voidBomb.BlastRadius);
-				Assert.Equal((3 * 100), voidBomb.BlastDamage);
+				Assert.Equal(0, ability.DamageUpgradeTier);
+				Assert.Equal(0, ability.RangeUpgradeTier);
 			});
-		Assert.All(
-			enemy.Ship.Loadout.InstalledAbilities.Where(
-				ability => ability.Spec.MaxDamageUpgrades > 0),
-			ability => Assert.Equal(1, ability.DamageUpgradeTier));
-		Assert.All(
-			enemy.Ship.Loadout.InstalledAbilities.Where(
-				ability => ability.Spec.MaxRangeUpgrades > 0),
-			ability => Assert.Equal(1, ability.RangeUpgradeTier));
 	}
 
 	[Fact]
@@ -282,39 +260,56 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void DevDefault_UpgradesRepurposedMinerWeaponsAndKeepsGooperGoopGun()
+	public void DevDefault_FieldsThreeClassesAtT0WithFullClassSkills()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
-		var ships = encounter.Spawns.Select(spawn => spawn.Ship).ToArray();
-		var repurposedMiner = ships.Single(ship => ship.Spec.Chassis == BattleUnitType.RepurposedMiner);
-		var gooper = ships.Single(ship => ship.Spec.Chassis == BattleUnitType.IndustrialGooper);
+		var expectedChassis = new[]
+		{
+			BattleUnitType.Fighter,
+			BattleUnitType.RepurposedMiner,
+			BattleUnitType.IndustrialGooper,
+		};
 
-		Assert.All(
-			repurposedMiner.Loadout.InstalledAbilities.Where(
-				ability => ability.Kind == EAbilityKind.ScrapDroneSwarm),
-			swarm =>
+		foreach (var team in new[] { ETeam.Player, ETeam.Enemy })
+		{
+			var teamSpawns = encounter.Spawns.Where(spawn => spawn.Team == team).ToArray();
+			Assert.Equal(
+				expectedChassis,
+				teamSpawns.Select(spawn => spawn.Ship.Spec.Chassis).ToArray());
+
+			foreach (var spawn in teamSpawns)
 			{
-				Assert.Equal(1, swarm.DamageUpgradeTier);
-				Assert.Equal(1, swarm.RangeUpgradeTier);
-			});
-		Assert.Equal(
-			[EAbilityKind.Ram, EAbilityKind.GoopGun],
-			gooper.Loadout.InstalledAbilities.Select(ability => ability.Kind).ToArray());
+				Assert.Equal(
+					ShipCatalog.LoadoutForTier(spawn.Ship.Spec.Chassis, EShipGearTier.T0).InstalledAbilities,
+					spawn.Ship.Loadout.InstalledAbilities);
+				var expectedPilot = PilotBattleSnapshot.FromSkills(
+					$"pilot-{spawn.Ship.Id}",
+					PilotSkillCatalog.IdsForOperatorClass(spawn.Ship.Spec.ClassId));
+				Assert.Equal(expectedPilot.PilotId, spawn.Pilot!.PilotId);
+				Assert.Equal(expectedPilot.CapabilityGrants, spawn.Pilot.CapabilityGrants);
+			}
+		}
 	}
 
 	[Fact]
-	public void DevDefault_AddsIndustrialGooperBesideEnemy()
+	public void DevDefault_PlacesClassmatesBesideAnchors()
 	{
 		for (var seed = 0; seed < 32; seed++)
 		{
 			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
-			var carrier = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == BattleUnitType.Carrier);
-			var gooper = encounter.Spawns.Single(spawn => spawn.Ship.Spec.Chassis == BattleUnitType.IndustrialGooper);
+			var playerFighter = encounter.Spawns.Single(spawn =>
+				spawn.Team == ETeam.Player && spawn.Ship.Spec.Chassis == BattleUnitType.Fighter);
+			var playerGooper = encounter.Spawns.Single(spawn =>
+				spawn.Team == ETeam.Player && spawn.Ship.Spec.Chassis == BattleUnitType.IndustrialGooper);
+			var enemyFighter = encounter.Spawns.Single(spawn =>
+				spawn.Team == ETeam.Enemy && spawn.Ship.Spec.Chassis == BattleUnitType.Fighter);
+			var enemyGooper = encounter.Spawns.Single(spawn =>
+				spawn.Team == ETeam.Enemy && spawn.Ship.Spec.Chassis == BattleUnitType.IndustrialGooper);
 
-			Assert.Equal(ETeam.Enemy, gooper.Team);
-			Assert.Equal(4, carrier.Position.ManhattanDistanceTo(gooper.Position));
-			Assert.Equal(carrier.Fore, gooper.Fore);
-			Assert.Equal(carrier.Dorsal, gooper.Dorsal);
+			Assert.Equal(4, playerFighter.Position.ManhattanDistanceTo(playerGooper.Position));
+			Assert.Equal(4, enemyFighter.Position.ManhattanDistanceTo(enemyGooper.Position));
+			Assert.Equal(playerFighter.Fore, playerGooper.Fore);
+			Assert.Equal(enemyFighter.Fore, enemyGooper.Fore);
 		}
 	}
 
@@ -326,7 +321,7 @@ public sealed class DeploymentPlacementTests
 			gridSize: 32);
 
 		Assert.Equal("fighter-dev-7", battle.PlayerId);
-		Assert.Equal("carrier-dev-7", BattleTestFixture.FirstEnemyId(battle));
+		Assert.Equal("fighter-enemy-dev-7", BattleTestFixture.FirstEnemyId(battle));
 	}
 
 	private static GrimSpace.World.StarSystem.Units.Fleet CreateEnemyFleet(RunState run, string fleetId)

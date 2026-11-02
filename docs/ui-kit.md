@@ -42,6 +42,7 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 | [`narrative_hud_preview.tscn`](../scenes/dev/narrative_hud_preview.tscn) | Narrative pager |
 | [`dev_menu_hud_preview.tscn`](../scenes/dev/dev_menu_hud_preview.tscn) | Dev menu |
 | [`battle_victory_hud_preview.tscn`](../scenes/dev/battle_victory_hud_preview.tscn) | Battle victory scorecard |
+| [`battle_status_hud_preview.tscn`](../scenes/dev/battle_status_hud_preview.tscn) | Battle command HUD with temporary/passive statuses, stack counters, and inspection switching |
 | [`run_over_hud_preview.tscn`](../scenes/dev/run_over_hud_preview.tscn) | Run over (empty roster) |
 
 ## Palettes
@@ -55,6 +56,17 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 `BlueCyan` is the default for production kit components.
 
 Star-map world-object and HUD-control hovers use `HudTooltipCard` so they share one angled outline and blue-cyan palette.
+
+Battle status presentation is projected by [`BattleStatusDisplay`](../src/battle/presentation/ui/BattleStatusDisplay.cs)
+from the focused ship's `UnitDisplayState.Statuses`, including temporary effects and installed pilot passives.
+Skill-backed effects reuse the pilot skill catalog's tooltip copy. Reactive Shields uses its captured gameplay
+stack count (including zero); temporary shield grants share one entry with a grant counter and remaining shields
+per face. Other statuses have no stack counter. The projection is disposable and never changes gameplay state.
+[`BattleStatusBar`](../src/battle/presentation/ui/BattleStatusBar.cs) renders these entries immediately above
+the command console, wraps additional icons upward, and uses the existing purple-red tooltip cards.
+Status icons use the thin white/gray beveled square from the `1-03.png` source sheet,
+extracted as `status_square_frame_neutral.png` and recolored with the shared palette shader.
+The row follows the focused ship, including inspected enemies, and hides when empty or when the HUD is hidden.
 
 Call `SetPalette` on every kit component when the containing HUD changes palette. Components remap their runtime textures through [`palette_remap.gdshader`](../assets/ui/components/runtime/palette_remap.gdshader) or [`button_palette.gdshader`](../assets/ui/components/runtime/button_palette.gdshader); do not tint source textures directly.
 `UiToggle` uses blue-cyan source artwork and applies the active palette's primary color for non-default palettes; subtle hue differences may remain until matching source variants are added.

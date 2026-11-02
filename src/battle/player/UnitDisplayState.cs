@@ -42,7 +42,8 @@ public sealed record UnitDisplayState(
 	int ProtectionDroneCooldownRemaining = 0,
 	bool ShieldBraceUsedThisTurn = false,
 	bool HeatVentsUsedThisTurn = false,
-	IReadOnlyList<BattleStatus>? Statuses = null)
+	IReadOnlyList<BattleStatus>? Statuses = null,
+	int ReactiveShieldsStacks = 0)
 {
 	public static UnitDisplayState Capture(State state, ActorRuntime runtime) =>
 		new(
@@ -78,7 +79,8 @@ public sealed record UnitDisplayState(
 			state.ProtectionDroneCooldownRemaining,
 			state.ShieldBraceUsedThisTurn,
 			state.HeatVentsUsedThisTurn,
-			state.Statuses.Select(status => status.DeepCopy()).ToArray());
+			state.Statuses.Select(status => status.DeepCopy()).ToArray(),
+			state.ReactiveShieldsStacks);
 
 	public bool ShieldBraceActive => Statuses?.Any(status => status.Payload is ShieldBracePayload) == true;
 
@@ -136,6 +138,7 @@ public sealed record UnitDisplayState(
 			ProtectionDroneCooldownRemaining = ProtectionDroneCooldownRemaining,
 			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 			HeatVentsUsedThisTurn = HeatVentsUsedThisTurn,
+			ReactiveShieldsStacks = ReactiveShieldsStacks,
 		};
 		foreach (var mount in Mounts)
 		{

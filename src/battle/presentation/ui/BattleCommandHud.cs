@@ -75,6 +75,7 @@ public sealed partial class BattleCommandHud : Control
 	public HBoxContainer UtilityActions { get; }
 	public CenterContainer ExecuteAction { get; }
 	public VBoxContainer ResourceMeters { get; }
+	public BattleStatusBar StatusBar { get; }
 
 	public BattleCommandHud()
 	{
@@ -94,6 +95,19 @@ public sealed partial class BattleCommandHud : Control
 			GrowVertical = GrowDirection.Begin,
 		};
 		AddChild(_console);
+		StatusBar = new BattleStatusBar
+		{
+			Name = "BattleStatuses",
+			AnchorTop = 1f,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			OffsetTop = -ConsoleHeight - 48f,
+			OffsetBottom = -ConsoleHeight - 8f,
+			GrowHorizontal = GrowDirection.Both,
+			GrowVertical = GrowDirection.Begin,
+			Visible = false,
+		};
+		AddChild(StatusBar);
 		_shieldBar = new BattlePortraitShieldBar
 		{
 			Name = "PortraitShieldBar",

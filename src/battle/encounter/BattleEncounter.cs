@@ -6,6 +6,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.Factions;
@@ -23,36 +24,24 @@ public sealed class BattleEncounter
 	public int XpDifficulty { get; init; } = DefaultXpDifficulty;
 	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
 
+	private static readonly EType[] DevClassChassis =
+	[
+		EType.Fighter,
+		EType.RepurposedMiner,
+		EType.IndustrialGooper,
+	];
+
 	public static BattleEncounter DevDefault(int seed = 42, int gridSize = 64)
 	{
-		var (playerSpawn, enemySpawn) = DeploymentPlacement.DevDuel(
-			EType.Fighter,
-			EType.Carrier,
+		var (playerAnchor, enemyAnchor) = DeploymentPlacement.DevDuel(
+			ShipInstance.FromCatalog($"fighter-dev-{seed}", EType.Fighter),
+			ShipInstance.FromCatalog($"fighter-enemy-dev-{seed}", EType.Fighter),
 			seed,
-			gridSize,
-			$"fighter-dev-{seed}",
-			$"carrier-dev-{seed}");
-		var repurposedMinerSpawn = new BattleSpawn
-		{
-			Ship = DeploymentPlacement.UpgradeDevShip(
-				ShipInstance.FromCatalog($"repurposed-miner-dev-{seed}", EType.RepurposedMiner)),
-			Team = ETeam.Player,
-			Position = playerSpawn.Position + new Coord(0, 4, 0),
-			Fore = playerSpawn.Fore,
-			Dorsal = playerSpawn.Dorsal,
-			ExecutionAgent = new UserExecutionAgent(),
-		};
-		var gooperSpawn = new BattleSpawn
-		{
-			Ship = DeploymentPlacement.UpgradeDevShip(
-				ShipInstance.FromCatalog($"industrial-gooper-dev-{seed}", EType.IndustrialGooper)),
-			Team = ETeam.Enemy,
-			Position = FlankPosition(enemySpawn, gridSize),
-			Fore = enemySpawn.Fore,
-			Dorsal = enemySpawn.Dorsal,
-			ExecutionAgent = new AiController(),
-		};
-		var spawns = new[] { playerSpawn, repurposedMinerSpawn, enemySpawn, gooperSpawn };
+			gridSize);
+
+		var playerSpawns = DevClassFormation(seed, playerSide: true, playerAnchor);
+		var enemySpawns = DevClassFormation(seed, playerSide: false, enemyAnchor);
+		var spawns = playerSpawns.Concat(enemySpawns).ToArray();
 		var fieldMargin = 2;
 		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
 
@@ -75,23 +64,50 @@ public sealed class BattleEncounter
 		};
 	}
 
-	private static Coord FlankPosition(BattleSpawn spawn, int gridSize)
+	private static BattleSpawn[] DevClassFormation(int seed, bool playerSide, BattleSpawn anchor)
 	{
-		var lateral = Coord.Cross(spawn.Dorsal, spawn.Fore);
+		var lateral = Coord.Cross(anchor.Dorsal, anchor.Fore);
 		if (lateral == Coord.Zero)
-			lateral = new Coord(1, 0, 0);
+			lateral = new Coord(0, 1, 0);
 
-		var distance = System.Math.Min(4, gridSize - 1);
-		var positive = spawn.Position + lateral * distance;
-		if (IsInBounds(positive, gridSize))
-			return positive;
+		var offsets = new[]
+		{
+			Coord.Zero,
+			lateral * 4,
+			lateral * -4,
+		};
 
-		var negative = spawn.Position - lateral * distance;
-		return IsInBounds(negative, gridSize) ? negative : spawn.Position;
+		var side = playerSide ? "dev" : "enemy-dev";
+		var spawns = new BattleSpawn[DevClassChassis.Length];
+		for (var index = 0; index < DevClassChassis.Length; index++)
+		{
+			var chassis = DevClassChassis[index];
+			var id = index == 0
+				? anchor.Ship.Id
+				: $"{UnitTypeSlug.For(chassis)}-{side}-{seed}";
+			var ship = index == 0
+				? anchor.Ship
+				: ShipInstance.FromCatalog(id, chassis);
+
+			spawns[index] = new BattleSpawn
+			{
+				Ship = ship,
+				Pilot = DevFullySkilledPilot(ship.Id, ship.Spec.ClassId),
+				Team = playerSide ? ETeam.Player : ETeam.Enemy,
+				Position = anchor.Position + offsets[index],
+				Fore = anchor.Fore,
+				Dorsal = anchor.Dorsal,
+				ExecutionAgent = playerSide
+					? new UserExecutionAgent()
+					: new AiController(),
+			};
+		}
+
+		return spawns;
 	}
 
-	private static bool IsInBounds(Coord position, int gridSize) =>
-		position.X >= 0 && position.X < gridSize
-		&& position.Y >= 0 && position.Y < gridSize
-		&& position.Z >= 0 && position.Z < gridSize;
+	private static PilotBattleSnapshot DevFullySkilledPilot(string shipId, EOperatorClassId classId) =>
+		PilotBattleSnapshot.FromSkills(
+			$"pilot-{shipId}",
+			PilotSkillCatalog.IdsForOperatorClass(classId));
 }

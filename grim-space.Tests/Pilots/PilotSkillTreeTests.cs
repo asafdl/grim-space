@@ -86,6 +86,27 @@ public sealed class PilotSkillTreeTests
 	}
 
 	[Fact]
+	public void IdsForOperatorClass_IncludesGlobalAndClassSkillsOnly()
+	{
+		var ranger = PilotSkillCatalog.IdsForOperatorClass(EOperatorClassId.SpaceRanger);
+		var support = PilotSkillCatalog.IdsForOperatorClass(EOperatorClassId.Support);
+		var tank = PilotSkillCatalog.IdsForOperatorClass(EOperatorClassId.Tank);
+
+		Assert.Contains(EPilotSkillId.ReinforcedHull, ranger);
+		Assert.Contains(EPilotSkillId.DodgeThis, ranger);
+		Assert.DoesNotContain(EPilotSkillId.Brace, ranger);
+		Assert.DoesNotContain(EPilotSkillId.DronesYearnForMines, ranger);
+
+		Assert.Contains(EPilotSkillId.Brace, support);
+		Assert.Contains(EPilotSkillId.DefensiveManeuvers, support);
+		Assert.DoesNotContain(EPilotSkillId.DodgeThis, support);
+
+		Assert.Contains(EPilotSkillId.ReactiveShields, tank);
+		Assert.Contains(EPilotSkillId.InTheFray, tank);
+		Assert.DoesNotContain(EPilotSkillId.Brace, tank);
+	}
+
+	[Fact]
 	public void Tree_FiltersSupportClassSkills()
 	{
 		var supportPilot = Pilot.FromRecruitProfile(

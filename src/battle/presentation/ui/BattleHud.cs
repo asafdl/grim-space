@@ -390,6 +390,7 @@ public partial class BattleHud : Node
 			focusState.ShieldPoints,
 			focusState.Loadout.MaxShieldPoints);
 		CommandHud.ApplyPilotPortrait(focusState.PilotPortraitId);
+		CommandHud.StatusBar.Apply(focusState);
 		CommandHud.ApplyMainActions(
 			frame.Mode,
 			frame.CanAct,

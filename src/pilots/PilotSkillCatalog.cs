@@ -158,4 +158,22 @@ public static class PilotSkillCatalog
 		Definitions.TryGetValue(id, out definition!);
 
 	public static IEnumerable<PilotSkillDefinition> All => Definitions.Values;
+
+	/// <summary>Global + class skills for an operator class (excludes background-gated skills).</summary>
+	public static IReadOnlyList<EPilotSkillId> IdsForOperatorClass(EOperatorClassId classId)
+	{
+		if (!Enum.IsDefined(classId) || classId == EOperatorClassId.Unclassified)
+			throw new ArgumentOutOfRangeException(nameof(classId), classId, null);
+
+		return All
+			.Where(definition => definition.Audience.Kind switch
+			{
+				EPilotSkillAudience.Global => true,
+				EPilotSkillAudience.OperatorClass =>
+					definition.Audience.OperatorClassIds!.Contains(classId),
+				_ => false,
+			})
+			.Select(definition => definition.Id)
+			.ToArray();
+	}
 }
