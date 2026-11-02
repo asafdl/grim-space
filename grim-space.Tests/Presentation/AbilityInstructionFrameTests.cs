@@ -37,9 +37,7 @@ public sealed class AbilityInstructionFrameTests
 	public void ScrapDroneSwarmShowsPassiveMountInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(
-			origin,
-			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
+		var battle = BattleTestFixture.BeginScrapSimulation(origin);
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForActor(
 				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId),
@@ -60,9 +58,7 @@ public sealed class AbilityInstructionFrameTests
 	public void AbilityHoverPublishesResolvedChoice()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = TurnOrchestrationTests.CreateOrchestrator(
-			origin,
-			TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
+		var battle = BattleTestFixture.BeginScrapSimulation(origin);
 		var frames = new PresentationFrameBuilder();
 		var spec = AbilityHudCatalog.ForActor(
 				battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId),
@@ -87,7 +83,7 @@ public sealed class AbilityInstructionFrameTests
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
 		var (blockedMount, _, _) = VoidBombMount.LaunchPose(
 			player.State,
-			ESpatialOrientation.Dorsal);
+			ESpatialOrientation.Ventral);
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			enemy,

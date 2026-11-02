@@ -164,7 +164,7 @@ public sealed class OneWithTheVoidTests
 		};
 
 		var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 12);
-		battle.Engine.Commit(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro));
+		battle.Engine.Commit(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral));
 		var torpedo = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
 			unit => unit.State.Type == EType.VoidBomb);

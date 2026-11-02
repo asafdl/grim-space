@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
@@ -31,8 +32,10 @@ public sealed class VoidBombActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var shipFore = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Fore;
-		var action = VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
+		var pose = VoidBombMount.LaunchPose(
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId),
+			ESpatialOrientation.Ventral);
+		var action = VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
@@ -42,18 +45,12 @@ public sealed class VoidBombActionTests
 			StateMountTestKit.CooldownRemaining(
 				ship,
 				EAbilityKind.VoidBombLauncher,
-				ESpatialOrientation.Retro));
-		Assert.Equal(
-			0,
-			StateMountTestKit.CooldownRemaining(
-				ship,
-				EAbilityKind.VoidBombLauncher,
 				ESpatialOrientation.Ventral));
 
 		var torpedo = Assert.Single(UnitRegistry.For(battle.PlayerAgent.Sim.World).All, unit => unit.State.Type == EType.VoidBomb);
 		Assert.Equal(CatalogExpectations.DefaultVoidBombLauncher().FuelTurns, torpedo.State.FuelRemaining);
-		Assert.Equal(origin + (Coord.Zero - shipFore), torpedo.State.Position);
-		Assert.Equal(Coord.Zero - shipFore, torpedo.State.Fore);
+		Assert.Equal(pose.Position, torpedo.State.Position);
+		Assert.Equal(pose.Fore, torpedo.State.Fore);
 		Assert.Equal(ETeam.Player, torpedo.Team);
 		Assert.Equal(PlayerId, torpedo.State.ParentId);
 	}
@@ -65,17 +62,18 @@ public sealed class VoidBombActionTests
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
-			VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Dorsal)));
-		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(
-			VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Dorsal)));
-		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
 			VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral)));
+		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(
+			VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral)));
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 	}
 
 	[Theory]
 	[InlineData(ESpatialOrientation.Forward)]
 	[InlineData(ESpatialOrientation.Port)]
 	[InlineData(ESpatialOrientation.Starboard)]
+	[InlineData(ESpatialOrientation.Retro)]
+	[InlineData(ESpatialOrientation.Dorsal)]
 	public void FireIllegalFromUnsupportedMount(ESpatialOrientation mountedOn)
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
@@ -108,9 +106,11 @@ public sealed class VoidBombActionTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(origin, new Coord(0, 0, 0));
-		var shipFore = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Fore;
+		var launch = VoidBombMount.LaunchPose(
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId),
+			ESpatialOrientation.Ventral);
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(
-			VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro)));
+			VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral)));
 
 		var replay = BattleTestActions.CommitAndResolve(battle);
 
@@ -118,7 +118,7 @@ public sealed class VoidBombActionTests
 			UnitRegistry.For(battle.Engine.World).All,
 			unit => unit.State.Type == EType.VoidBomb && unit.Team == ETeam.Player);
 		Assert.Equal(CatalogExpectations.DefaultVoidBombLauncher().FuelTurns - 1, torpedo.State.FuelRemaining);
-		Assert.NotEqual(origin - shipFore, torpedo.State.Position);
+		Assert.NotEqual(launch.Position, torpedo.State.Position);
 		Assert.Contains(replay.Actions, action => action is VoidBombAction);
 		Assert.Contains(
 			replay.History,
@@ -144,7 +144,7 @@ public sealed class VoidBombActionTests
 			new Coord(5, 5, 5),
 			new Coord(0, 0, 0));
 		var sim = battle.PlayerAgent.Sim;
-		var action = VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
+		var action = VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral);
 
 		Assert.True(sim.TryEnqueue(action));
 		AssertSpawned(sim.World, action.SpawnedUnitId);

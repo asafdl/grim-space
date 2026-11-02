@@ -9,7 +9,7 @@ namespace GrimSpace.Tests.Units;
 public sealed class ShipInstanceSupportTests
 {
 	private static ShipInstance FullCatalogFighter(string id) =>
-		ShipInstance.FromSpec(id, FighterSpec.Instance, ShipCatalog.FullFighterLoadout());
+		ShipInstance.FromCatalog(id, EType.RepurposedMiner);
 
 	private static ShipInstance LightningCannonFighter(
 		string id,
@@ -154,7 +154,7 @@ public sealed class ShipInstanceSupportTests
 	[Fact]
 	public void TryWithInstalledAbility_AddsMountWhenFacetIsOpen()
 	{
-		var mount = new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port);
+		var mount = new AbilityMount(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
 			FighterSpec.Instance.DefaultMaxHullPoints,
@@ -165,7 +165,7 @@ public sealed class ShipInstanceSupportTests
 					ESpatialOrientation.Forward),
 			]);
 		var ship = ShipInstance.FromSpec("fighter-partial", FighterSpec.Instance, loadout);
-		var installed = new InstalledAbility(mount.Kind, ESpatialOrientation.Port);
+		var installed = new InstalledAbility(mount.Kind, ESpatialOrientation.Ventral);
 
 		Assert.True(ship.TryWithInstalledAbility(installed, out var after));
 		Assert.Contains(after.Loadout.InstalledAbilities, a => a.Mount == installed.Mount);

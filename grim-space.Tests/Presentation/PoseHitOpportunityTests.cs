@@ -82,12 +82,12 @@ public sealed class PoseHitOpportunityTests
 	public void GroupedScrapDroneSwarmMountsEmitOneEntryPerTarget()
 	{
 		var origin = new Coord(5, 5, 5);
-		var probe = BattleTestFixture.BeginSimulation(origin);
+		var probe = BattleTestFixture.BeginScrapSimulation(origin);
 		var swarmBurstCell = ScrapDroneSwarmDef.Instance.AffectedCells(
 			new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard),
 			probe.PlayerAgent.Sim.World).First();
 		var battle = BattleTestFixture.BeginSimulation(
-			BattleTestFixture.Player(origin),
+			BattleTestFixture.ScrapPlayer(origin),
 			BattleTestFixture.Enemy(swarmBurstCell),
 			BattleTestFixture.Grid(20));
 		var sim = battle.PlayerAgent.Sim;

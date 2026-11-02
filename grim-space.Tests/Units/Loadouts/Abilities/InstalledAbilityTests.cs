@@ -32,9 +32,9 @@ public sealed class InstalledAbilityTests
 	{
 		var swarm = ScrapDroneSwarmSpec.Baseline;
 		var loadout = ShipLoadout.Create(
-			FighterSpec.Instance,
+			RepurposedMinerSpec.Instance,
 			maxHullPoints: 2,
-			ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
+			ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).MaxShieldPoints,
 			[
 				new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Port),
 				new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Starboard),
@@ -46,10 +46,7 @@ public sealed class InstalledAbilityTests
 	[Fact]
 	public void EachFacetMount_YieldsIndependentRuntime()
 	{
-		var snapshot = ShipInstance.FromSpec(
-			"fighter-a",
-			FighterSpec.Instance,
-			ShipCatalog.FullFighterLoadout());
+		var snapshot = ShipInstance.FromCatalog("miner-a", EType.RepurposedMiner);
 		var swarm = snapshot.Loadout.InstalledAbilities
 			.Where(ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm)
 			.ToArray();
@@ -83,11 +80,11 @@ public sealed class InstalledAbilityTests
 	{
 		var installed = ShipCatalog.FullFighterLoadout().InstalledAbilities;
 
-		Assert.Equal(7, installed.Count);
-		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm);
+		Assert.Equal(2, installed.Count);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.LightningCannon);
-		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.GoopGun);
 		Assert.Contains(installed, ability => ability.Spec.Kind == EAbilityKind.VoidBombLauncher);
+		Assert.DoesNotContain(installed, ability => ability.Spec.Kind == EAbilityKind.ScrapDroneSwarm);
+		Assert.DoesNotContain(installed, ability => ability.Spec.Kind == EAbilityKind.GoopGun);
 	}
 
 	[Fact]

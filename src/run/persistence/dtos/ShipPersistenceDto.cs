@@ -1,3 +1,4 @@
+using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Run.Persistence;
@@ -12,4 +13,5 @@ public sealed record ShipPersistenceDto(
 	FaceShieldDto ShieldUpgradeTiers,
 	int HullUpgradeTier,
 	IReadOnlyList<InstalledAbilityDto> InstalledAbilities,
-	string? OwnerId = null);
+	string? OwnerId = null,
+	IReadOnlyList<EChassisBuffOffer>? ChassisBuffs = null);

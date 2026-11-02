@@ -19,19 +19,15 @@ public static class EncounterBudgetRoller
 		var budget = EncounterPowerCatalog.EncounterPowerBudget(danger);
 		var rng = new StableRandom(
 			StableSeedMixer.From(mapSeed).Add(contractId).Add(scope).Value);
-		var ships = new List<(EType Chassis, EShipGearTier GearTier)>();
-		var remaining = budget;
-
-		while (remaining > 0)
-		{
-			var affordable = ShipPowerCatalog.Affordable(remaining).ToArray();
-			if (affordable.Length == 0)
-				break;
-
-			var pick = affordable[(int)(rng.NextDouble() * affordable.Length)];
-			ships.Add((pick.Chassis, pick.Tier));
-			remaining -= pick.Power;
-		}
+		var picked = PowerBudgetRoller.Spend(
+			budget,
+			_ => ShipPowerCatalog.All.ToArray(),
+			level => level.Power,
+			count => (int)(rng.NextDouble() * count),
+			canonicalOrder: null);
+		var ships = picked
+			.Select(level => (level.Chassis, level.Tier))
+			.ToList();
 
 		if (ships.Count == 0)
 			ships.Add((EType.RepurposedMiner, EShipGearTier.T0));

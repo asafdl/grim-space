@@ -6,6 +6,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.Units.Specs;
 
 namespace GrimSpace.Tests.Weapons;
 
@@ -19,7 +20,14 @@ public sealed class WeaponSpecOverrideTests
 	{
 		var installed = WithScrapDroneSwarmRangeUpgrade(rangeUpgradeTier: 1);
 		var player = Factory.Create(
-			BattleSpawnTestKit.FighterWithInstalledAbilities(PlayerId, installed),
+			ShipInstance.FromSpec(
+				PlayerId,
+				RepurposedMinerSpec.Instance,
+				ShipLoadout.Create(
+					RepurposedMinerSpec.Instance,
+					RepurposedMinerSpec.Instance.DefaultMaxHullPoints,
+					RepurposedMinerSpec.Instance.DefaultMaxShieldPoints,
+					installed)),
 			ETeam.Player,
 			new Coord(10, 10, 10),
 			new UserExecutionAgent());
@@ -62,7 +70,7 @@ public sealed class WeaponSpecOverrideTests
 	}
 
 	private static IReadOnlyList<InstalledAbility> WithScrapDroneSwarmRangeUpgrade(int rangeUpgradeTier) =>
-		ShipCatalog.FullFighterLoadout().InstalledAbilities
+		ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).InstalledAbilities
 			.Select(ability => ability.Kind == EAbilityKind.ScrapDroneSwarm
 				? new InstalledAbility(
 					ability.Kind,

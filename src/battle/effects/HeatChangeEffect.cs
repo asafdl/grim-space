@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Units;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.World;
@@ -12,7 +13,7 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 	public const int PerMpSpent = 5;
 	public const int PerAbilityUse = 20;
 	public const int OverheatDelayTicks = 1;
-	public const int OverdriveDamageBonusPercent = 80;
+	public const int OverdriveDamageBonusPercent = ShipLoadout.BaselineOverdriveDamageBonusPercent;
 
 	private int _previousHeat;
 	private bool _previousOverdrive;

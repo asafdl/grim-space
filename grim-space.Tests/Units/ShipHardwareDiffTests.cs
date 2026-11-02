@@ -58,10 +58,7 @@ public sealed class ShipHardwareDiffTests
 			FighterSpec.Instance,
 			FighterSpec.Instance.DefaultMaxHullPoints,
 			FighterSpec.Instance.DefaultMaxShieldPoints,
-			[
-				new InstalledAbility(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
-				new InstalledAbility(EAbilityKind.GoopGun, ESpatialOrientation.Forward),
-			]);
+			[new InstalledAbility(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral)]);
 
 		var diff = ShipHardwareDiff.Compare(EType.Fighter, baseline, EType.Fighter, candidate);
 
@@ -70,10 +67,7 @@ public sealed class ShipHardwareDiffTests
 			ability => ability.Mount == new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward));
 		Assert.Contains(
 			diff.AddedAbilities,
-			ability => ability.Mount == new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port));
-		Assert.Contains(
-			diff.AddedAbilities,
-			ability => ability.Mount == new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Forward));
+			ability => ability.Mount == new AbilityMount(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral));
 		Assert.Empty(diff.ChangedMounts);
 	}
 

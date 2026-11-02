@@ -121,7 +121,9 @@ public sealed class StarMarketTests
 		var t0 = ShipCatalog.LoadoutForTier(EType.RepurposedMiner, EShipGearTier.T0, rollSeed: 17);
 		var purchased = ShipCatalog.LoadoutForTier(EType.RepurposedMiner, tier, rollSeed: 17);
 
-		Assert.True(LoadoutStrength(purchased) > LoadoutStrength(t0));
+		Assert.True(
+			ShipLoadoutGearTier.FromLoadout(purchased, EType.RepurposedMiner)
+			> ShipLoadoutGearTier.FromLoadout(t0, EType.RepurposedMiner));
 	}
 
 	[Theory]
@@ -162,14 +164,10 @@ public sealed class StarMarketTests
 		var t0 = ShipCatalog.LoadoutForTier(EType.Fighter, EShipGearTier.T0, rollSeed: 17);
 		var purchased = ShipCatalog.LoadoutForTier(EType.Fighter, tier, rollSeed: 17);
 
-		Assert.True(LoadoutStrength(purchased) > LoadoutStrength(t0));
+		Assert.True(
+			ShipLoadoutGearTier.FromLoadout(purchased, EType.Fighter)
+			> ShipLoadoutGearTier.FromLoadout(t0, EType.Fighter));
 	}
-
-	private static int LoadoutStrength(ShipLoadout loadout) =>
-		loadout.MaxHullPoints
-		+ Enum.GetValues<ESpatialOrientation>().Sum(face => loadout.MaxShieldPoints[face])
-		+ loadout.InstalledAbilities.Sum(ability =>
-			ability.Spec.DamageUpgradeTier + ability.Spec.RangeUpgradeTier);
 
 	private static int Credits(ResourceBundle bundle) => Amount(bundle, ResourceId.Credits);
 

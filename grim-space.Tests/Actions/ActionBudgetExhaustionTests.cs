@@ -42,7 +42,7 @@ public sealed class ActionBudgetExhaustionTests
 		for (var i = 0; i < 4; i++)
 			Assert.True(session.TryEnqueue(new MoveStepAction(PlayerId)));
 
-		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, ScrapDroneSwarmDef.Instance));
+		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, VoidBombDef.Instance));
 		Assert.True(LegalActionProbe.HasAnyLegal(session, PlayerId, LightningCannonDef.Instance));
 	}
 }

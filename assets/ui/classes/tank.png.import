@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bq7tankclass01"
-path="res://.godot/imported/tank.png-a1b2c3d4e5f6789012345678abcdef0.ctex"
+uid="uid://yixytebw6f53"
+path="res://.godot/imported/tank.png-682e50535d597031fb03e4df80de1442.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/classes/tank.png"
-dest_files=["res://.godot/imported/tank.png-a1b2c3d4e5f6789012345678abcdef0.ctex"]
+dest_files=["res://.godot/imported/tank.png-682e50535d597031fb03e4df80de1442.ctex"]
 
 [params]
 

@@ -10,10 +10,16 @@ public sealed record ShipLoadout(
 	FaceShieldPoints MaxShieldPoints,
 	IReadOnlyList<InstalledAbility> InstalledAbilities,
 	FaceShieldPoints ShieldUpgradeTiers,
-	int HullUpgradeTier = 0)
+	int HullUpgradeTier = 0,
+	IReadOnlyList<EChassisBuffOffer>? ChassisBuffs = null,
+	int WeaponDamagePercent = 0,
+	int OverdriveDamageBonusPercent = 80)
 {
 	public const int MaxShieldUpgradeTier = 3;
 	public const int MaxHullUpgradeTier = 3;
+	public const int BaselineOverdriveDamageBonusPercent = 80;
+
+	public IReadOnlyList<EChassisBuffOffer> Buffs => ChassisBuffs ?? [];
 
 	public ShipLoadout DeepCopy() =>
 		new(
@@ -21,7 +27,10 @@ public sealed record ShipLoadout(
 			MaxShieldPoints.Clone(),
 			InstalledAbilities.ToArray(),
 			ShieldUpgradeTiers.Clone(),
-			HullUpgradeTier);
+			HullUpgradeTier,
+			ChassisBuffs?.ToArray(),
+			WeaponDamagePercent,
+			OverdriveDamageBonusPercent);
 
 	public ShipLoadout WithInstalledAbility(ShipSpec spec, InstalledAbility installed)
 	{
@@ -35,7 +44,8 @@ public sealed record ShipLoadout(
 			MaxShieldPoints,
 			updated,
 			ShieldUpgradeTiers,
-			HullUpgradeTier);
+			HullUpgradeTier,
+			ChassisBuffs);
 	}
 
 	public ShipLoadout WithReplacedMount(ShipSpec spec, AbilityMount mount, InstalledAbility replacement)
@@ -69,7 +79,8 @@ public sealed record ShipLoadout(
 			MaxShieldPoints,
 			updated,
 			ShieldUpgradeTiers,
-			HullUpgradeTier);
+			HullUpgradeTier,
+			ChassisBuffs);
 	}
 
 	public ShipLoadout WithUpgradedMaxShields(ShipSpec spec, ESpatialOrientation face)
@@ -89,7 +100,8 @@ public sealed record ShipLoadout(
 			max,
 			InstalledAbilities,
 			tiers,
-			HullUpgradeTier);
+			HullUpgradeTier,
+			ChassisBuffs);
 	}
 
 	public ShipLoadout WithMaxShieldUpgradeTier(ShipSpec spec, ESpatialOrientation face, int targetTier)
@@ -111,7 +123,8 @@ public sealed record ShipLoadout(
 			max,
 			InstalledAbilities,
 			tiers,
-			HullUpgradeTier);
+			HullUpgradeTier,
+			ChassisBuffs);
 	}
 
 	public ShipLoadout WithUpgradedMaxHull(ShipSpec spec)
@@ -123,7 +136,8 @@ public sealed record ShipLoadout(
 			MaxShieldPoints,
 			InstalledAbilities,
 			ShieldUpgradeTiers,
-			HullUpgradeTier + 1);
+			HullUpgradeTier + 1,
+			ChassisBuffs);
 	}
 
 	public ShipLoadout WithMaxHullUpgradeTier(ShipSpec spec, int targetTier)
@@ -136,7 +150,8 @@ public sealed record ShipLoadout(
 			MaxShieldPoints,
 			InstalledAbilities,
 			ShieldUpgradeTiers,
-			targetTier);
+			targetTier,
+			ChassisBuffs);
 	}
 
 	public static ShipLoadout Create(
@@ -145,7 +160,8 @@ public sealed record ShipLoadout(
 		FaceShieldPoints maxShieldPoints,
 		IReadOnlyList<InstalledAbility> installedAbilities,
 		FaceShieldPoints? shieldUpgradeTiers = null,
-		int hullUpgradeTier = 0)
+		int hullUpgradeTier = 0,
+		IReadOnlyList<EChassisBuffOffer>? chassisBuffs = null)
 	{
 		ArgumentNullException.ThrowIfNull(spec);
 		ArgumentNullException.ThrowIfNull(maxShieldPoints);
@@ -157,12 +173,17 @@ public sealed record ShipLoadout(
 				throw new ArgumentOutOfRangeException(nameof(shieldUpgradeTiers), $"Shield upgrade tier on {face} must be between 0 and {MaxShieldUpgradeTier}.");
 		}
 
+		var buffs = chassisBuffs?.ToArray() ?? [];
+		var bonuses = ChassisBuffCatalog.DamageBonuses(buffs);
 		return new ShipLoadout(
 			maxHullPoints,
 			maxShieldPoints.Clone(),
 			installedAbilities,
 			tiers,
-			hullUpgradeTier);
+			hullUpgradeTier,
+			buffs,
+			bonuses.WeaponDamagePercent,
+			bonuses.OverdriveDamageBonusPercent);
 	}
 
 	public static void EnsureCompatibleWith(ShipSpec spec, ShipLoadout loadout)

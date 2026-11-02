@@ -197,6 +197,7 @@ public static class SaveDtoMapper
 					installed.RangeUpgradeTier))
 				.ToArray(),
 			OwnerId = ownerId,
+			ChassisBuffs = loadout.Buffs.ToArray(),
 		});
 	}
 
@@ -213,7 +214,8 @@ public static class SaveDtoMapper
 			RestoreFaces(dto.MaxShieldPoints),
 			installed,
 			RestoreFaces(dto.ShieldUpgradeTiers),
-			dto.HullUpgradeTier);
+			dto.HullUpgradeTier,
+			dto.ChassisBuffs);
 		return new ShipInstance(
 			dto.Id,
 			spec,

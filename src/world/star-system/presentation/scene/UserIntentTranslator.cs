@@ -116,7 +116,8 @@ public sealed class UserIntentTranslator
 			new ShipSpawnDeclaration(
 				TypedIdGenerator.NextId(UnitTypeSlug.For(offer.Chassis)),
 				offer.Chassis,
-				offer.GearTier)));
+				offer.GearTier,
+				offer.RollSeed)));
 
 	public bool TryHirePilot(LeadSaleMerchantEndpoint endpoint, int slot) =>
 		TrySubmitImmediately(new HirePilotAction(FacilityActorId(), endpoint, slot));

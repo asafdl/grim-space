@@ -31,20 +31,30 @@ public static class ShipLoadoutGearTier
 				* ShipLoadoutTierRoller.CostShieldMax;
 		}
 
+		var rangeSteps = ChassisBuffCatalog.Sum(loadout.Buffs).RangeSteps;
 		var baselineByMount = baseline.InstalledAbilities.ToDictionary(installed => installed.Mount);
 		foreach (var installed in loadout.InstalledAbilities)
 		{
 			if (!baselineByMount.TryGetValue(installed.Mount, out var baselineInstalled))
 			{
 				spent += ShipLoadoutTierRoller.CostInstallWeapon;
+				spent += installed.DamageUpgradeTier * ShipLoadoutTierRoller.CostWeaponDamage;
+				spent += installed.RangeUpgradeTier * ShipLoadoutTierRoller.CostWeaponRange;
 				continue;
 			}
 
 			spent += (installed.DamageUpgradeTier - baselineInstalled.DamageUpgradeTier)
 				* ShipLoadoutTierRoller.CostWeaponDamage;
-			spent += (installed.RangeUpgradeTier - baselineInstalled.RangeUpgradeTier)
-				* ShipLoadoutTierRoller.CostWeaponRange;
+			var rangeDelta = installed.RangeUpgradeTier - baselineInstalled.RangeUpgradeTier;
+			if (rangeDelta > 0)
+			{
+				var covered = System.Math.Min(rangeDelta, rangeSteps);
+				spent += (rangeDelta - covered) * ShipLoadoutTierRoller.CostWeaponRange;
+			}
 		}
+
+		foreach (var offer in loadout.Buffs)
+			spent += ChassisBuffCatalog.NetCostOf(offer);
 
 		return spent;
 	}

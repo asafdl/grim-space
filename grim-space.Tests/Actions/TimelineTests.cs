@@ -184,7 +184,7 @@ public sealed class TimelineTests
 	public void CommitAppendsActionThenSpawnRecord()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		battle.Engine.Commit(VoidBombDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Retro));
+		battle.Engine.Commit(VoidBombDef.Instance.Bind(battle.PlayerId, ESpatialOrientation.Ventral));
 
 		var history = battle.Engine.History();
 		var torpedoIndex = history.ToList().FindIndex(entry => entry is VoidBombAction);
@@ -206,7 +206,7 @@ public sealed class TimelineTests
 	public void CommitAppendsImpactRecordAfterScrapDroneSwarm()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
+		var battle = BattleTestFixture.BeginScrapSimulation(origin);
 		var action = new ScrapDroneSwarmAction(battle.PlayerId, ESpatialOrientation.Starboard);
 		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(action, battle.Engine.World);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.State.Id != battle.PlayerId);

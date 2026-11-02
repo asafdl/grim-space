@@ -14,7 +14,7 @@ public sealed class OverheatAbilityGateTests
 	[Fact]
 	public void Overheat_BlocksScrapDroneAbility()
 	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginScrapSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
 		EnterOverheat(state);
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);

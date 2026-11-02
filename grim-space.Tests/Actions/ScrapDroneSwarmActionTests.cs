@@ -29,12 +29,12 @@ public sealed class ScrapDroneSwarmActionTests
 	public void ScrapDroneSwarmAppliesResolveImmediately()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
+		var battle = BattleTestFixture.BeginScrapSimulation(origin);
 		var swarm = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port);
 
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.ScrapDroneSwarm));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.RepurposedMiner, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.ScrapDroneSwarm));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(swarm));
-		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm) - 1, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.ScrapDroneSwarm));
+		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.RepurposedMiner, EAbilityKind.ScrapDroneSwarm) - 1, StateMountTestKit.UsesRemaining(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId), EAbilityKind.ScrapDroneSwarm));
 		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(swarm));
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard)));
 		Assert.Equal(0, StateMountTestKit.UsesRemaining(
@@ -47,7 +47,7 @@ public sealed class ScrapDroneSwarmActionTests
 	{
 		var grid = BattleTestFixture.Grid(1);
 		var battle = BattleTestFixture.BeginSimulation(
-			BattleTestFixture.Player(Coord.Zero),
+			BattleTestFixture.ScrapPlayer(Coord.Zero),
 			BattleTestFixture.Enemy(Coord.Zero),
 			grid);
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port);
@@ -59,7 +59,7 @@ public sealed class ScrapDroneSwarmActionTests
 	public void ScrapDroneSwarmAppliesDamageWithoutApPenalty()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
+		var battle = BattleTestFixture.BeginScrapSimulation(origin);
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
 		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World);
 		var enemy = UnitRegistry.For(battle.PlayerAgent.Sim.World).All.First(unit => unit.State.Id != PlayerId);
@@ -75,7 +75,7 @@ public sealed class ScrapDroneSwarmActionTests
 	public void AsteroidBetweenActorAndEnemyDoesNotSuppressSwarmDamage()
 	{
 		var origin = new Coord(5, 5, 5);
-		var battle = BattleTestFixture.BeginSimulation(origin);
+		var battle = BattleTestFixture.BeginScrapSimulation(origin);
 		var grid = battle.PlayerAgent.Sim.World.Grid;
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
 		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World);
@@ -101,7 +101,7 @@ public sealed class ScrapDroneSwarmActionTests
 	public void ScrapDroneSwarmHealsAlliesInBurst()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
+		var player = BattleTestFixture.ScrapPlayer(origin);
 		var ally = Factory.Create(
 			ShipInstance.FromCatalog("ally", EType.Fighter),
 			ETeam.Player,

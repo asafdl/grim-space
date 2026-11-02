@@ -69,7 +69,7 @@ public sealed class HelpABotterOutTests
 	public void Resolve_HealsAllyInExtendedBurstRing()
 	{
 		var origin = new Coord(5, 5, 5);
-		var player = BattleTestFixture.Player(origin);
+		var player = BattleTestFixture.ScrapPlayer(origin);
 		var mountedOn = ESpatialOrientation.Starboard;
 		var extraCell = ExtraBurstCell(player.State, mountedOn);
 		var ally = Factory.Create(
@@ -110,7 +110,7 @@ public sealed class HelpABotterOutTests
 	}
 
 	private static BattleOrchestrator BeginBattleWithSkill(Coord origin) =>
-		BeginBattleWithSkill(BattleTestFixture.Player(origin), []);
+		BeginBattleWithSkill(BattleTestFixture.ScrapPlayer(origin), []);
 
 	private static BattleOrchestrator BeginBattleWithSkill(Unit player, IReadOnlyList<Unit> extras)
 	{

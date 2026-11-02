@@ -54,14 +54,27 @@ internal static class BattleSpawnTestKit
 
 	public static ShipInstance FighterWithGoopGun(
 		string id,
-		ESpatialOrientation mountedOn = ESpatialOrientation.Forward,
+		ESpatialOrientation mountedOn = ESpatialOrientation.Retro,
 		GoopGunSpec? spec = null)
 	{
 		spec ??= new GoopGunSpec();
-		var installed = ShipCatalog.NewRunLoadoutFor(EType.Fighter).InstalledAbilities
-			.Where(ability => ability.Mount != new AbilityMount(EAbilityKind.GoopGun, mountedOn))
-			.Append(new InstalledAbility(spec, mountedOn))
+		var gooper = IndustrialGooperSpec.Instance;
+		if (!gooper.Supports(new AbilityMount(EAbilityKind.GoopGun, mountedOn)))
+			throw new ArgumentException($"Goop gun mount '{mountedOn}' is not on the industrial gooper.", nameof(mountedOn));
+
+		var baseline = gooper.NewDefaultLoadout();
+		var installed = baseline.InstalledAbilities
+			.Select(ability => ability.Kind == EAbilityKind.GoopGun
+				? new InstalledAbility(spec, ability.MountedOn)
+				: ability)
 			.ToArray();
-		return FighterWithInstalledAbilities(id, installed);
+		return ShipInstance.FromSpec(
+			id,
+			gooper,
+			ShipLoadout.Create(
+				gooper,
+				baseline.MaxHullPoints,
+				baseline.MaxShieldPoints,
+				installed));
 	}
 }

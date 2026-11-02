@@ -34,7 +34,7 @@ public sealed class SimulationSearchTests
 	[Fact]
 	public void ScrapDroneSwarmBudgetEnforcedBySimulationTryEnqueue()
 	{
-		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var battle = BattleTestFixture.BeginScrapSimulation(new Coord(5, 5, 5));
 		var session = battle.PlayerAgent.Sim;
 
 		Assert.True(session.TryEnqueue(new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Port)));
@@ -73,7 +73,7 @@ public sealed class SimulationSearchTests
 
 		var actions = Capabilities.LegalCapabilities(session, PlayerId);
 
-		Assert.Equal(3, actions.Count(action => action is VoidBombAction));
+		Assert.Equal(1, actions.Count(action => action is VoidBombAction));
 		Assert.Empty(session.Actions);
 		Assert.Equal(0, StateMountTestKit.CooldownRemaining(session.StateOf<ActorState>(PlayerId), EAbilityKind.VoidBombLauncher));
 		Assert.DoesNotContain(

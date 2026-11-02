@@ -65,10 +65,10 @@ public sealed class HeatAccountingTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
-		var mountedOn = state.FindInstalled(EAbilityKind.ScrapDroneSwarm)!.MountedOn;
+		var mountedOn = state.FindInstalled(EAbilityKind.LightningCannon)!.MountedOn;
 
 		Assert.True(BattleTestApply.TryApplyOne(
-			ScrapDroneSwarmDef.Instance.Bind(PlayerId, mountedOn),
+			LightningCannonDef.Instance.Bind(PlayerId, mountedOn),
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId));

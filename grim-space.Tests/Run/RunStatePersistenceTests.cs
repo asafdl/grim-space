@@ -33,10 +33,10 @@ public sealed class RunStatePersistenceTests
 		Assert.True(ship.TryWithUpgradedMaxHull(out ship));
 		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out ship));
 		Assert.True(ship.TryWithDamageUpgraded(
-			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
+			new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward),
 			out ship));
 		Assert.True(ship.TryWithRangeUpgraded(
-			new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port),
+			new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward),
 			out ship));
 		ship.HullPoints = 3;
 		run.ItemInventory.Update(ship);

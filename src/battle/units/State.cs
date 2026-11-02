@@ -143,8 +143,15 @@ public sealed class State
 		var projectile = ship.Spec.Chassis == EType.VoidBomb
 			? VoidBombProjectile.CatalogDefault()
 			: null;
-		var maneuverability = ship.Spec.Maneuverability;
-		var heatProfile = ship.Spec.Heat;
+		var buffs = ChassisBuffCatalog.Sum(ship.Loadout.Buffs);
+		var maneuverability = buffs.ActionPoints == 0 && buffs.ManeuverPoints == 0
+			? ship.Spec.Maneuverability
+			: ship.Spec.Maneuverability.WithBudgets(
+				ship.Spec.Maneuverability.MaxActionPoints + buffs.ActionPoints,
+				ship.Spec.Maneuverability.MaxManeuverPoints + buffs.ManeuverPoints);
+		var heatProfile = buffs.HeatCapacityPercent == 0 && buffs.HeatRecoveryPercent == 0
+			? ship.Spec.Heat
+			: ChassisBuffCatalog.ScaleHeat(ship.Spec.Heat, buffs);
 		var state = new State
 		{
 			Id = ship.Id,

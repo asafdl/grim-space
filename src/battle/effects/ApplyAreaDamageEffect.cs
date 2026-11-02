@@ -20,7 +20,8 @@ public sealed class ApplyAreaDamageEffect(
 	int adjacentHitDamageRangeCells = 1,
 	int damageBonusPercent = 0,
 	bool destroySource = false,
-	bool alliesTakeDamage = true) : IEffect<BattleWorld, ActorRuntime>
+	bool alliesTakeDamage = true,
+	bool overdriveBonusIncluded = false) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> Cells => cells;
@@ -31,6 +32,7 @@ public sealed class ApplyAreaDamageEffect(
 	public int AdjacentHitDamagePercent => adjacentHitDamagePercent;
 	public int AdjacentHitDamageRangeCells => adjacentHitDamageRangeCells;
 	public int DamageBonusPercent => damageBonusPercent;
+	public bool OverdriveBonusIncluded => overdriveBonusIncluded;
 
 	public ApplyAreaDamageEffect WithAdditionalDamage(int amount) =>
 		new(
@@ -44,7 +46,8 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamageRangeCells,
 			damageBonusPercent,
 			destroySource,
-			alliesTakeDamage);
+			alliesTakeDamage,
+			overdriveBonusIncluded);
 
 	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
@@ -58,7 +61,8 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamageRangeCells,
 			damageBonusPercent,
 			destroySource,
-			alliesTakeDamage);
+			alliesTakeDamage,
+			overdriveBonusIncluded);
 
 	public ApplyAreaDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
@@ -72,7 +76,8 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamageRangeCells,
 			damageBonusPercent,
 			destroySource,
-			alliesTakeDamage);
+			alliesTakeDamage,
+			overdriveBonusIncluded);
 
 	public ApplyAreaDamageEffect WithAdjacentHitDamagePercent(int percent, int rangeCells = 1) =>
 		new(
@@ -86,7 +91,8 @@ public sealed class ApplyAreaDamageEffect(
 			rangeCells,
 			damageBonusPercent,
 			destroySource,
-			alliesTakeDamage);
+			alliesTakeDamage,
+			overdriveBonusIncluded);
 
 	public ApplyAreaDamageEffect WithDamageBonusPercent(int percent) =>
 		new(
@@ -100,7 +106,23 @@ public sealed class ApplyAreaDamageEffect(
 			adjacentHitDamageRangeCells,
 			percent,
 			destroySource,
-			alliesTakeDamage);
+			alliesTakeDamage,
+			overdriveBonusIncluded);
+
+	public ApplyAreaDamageEffect WithAddedDamageBonusPercent(int percent, bool includesOverdrive = false) =>
+		new(
+			cause,
+			cells,
+			damage,
+			origin,
+			shieldDamageBonus,
+			shieldDamageBonusPercent,
+			adjacentHitDamagePercent,
+			adjacentHitDamageRangeCells,
+			damageBonusPercent + percent,
+			destroySource,
+			alliesTakeDamage,
+			overdriveBonusIncluded || includesOverdrive);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -166,11 +188,12 @@ public sealed class ApplyAreaDamageEffect(
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.HullPoints;
-		var appliedDamage = damage;
-		if (damageBonusPercent != 0)
-			appliedDamage = ScalePercent(appliedDamage, 100 + damageBonusPercent);
-		else
-			appliedDamage = ApplyOverdriveCrossingBonus(world.StateOf(actorId), appliedDamage);
+		var bonus = damageBonusPercent;
+		if (!overdriveBonusIncluded)
+			bonus += CrossingOverdriveBonusPercent(world.StateOf(actorId));
+		var appliedDamage = bonus == 0
+			? damage
+			: ScalePercent(damage, 100 + bonus);
 		if (origin.ManhattanDistanceTo(unit.Position) == adjacentHitDamageRangeCells
 			&& adjacentHitDamagePercent != 100)
 			appliedDamage = ScalePercent(appliedDamage, adjacentHitDamagePercent);
@@ -208,19 +231,26 @@ public sealed class ApplyAreaDamageEffect(
 			HullDamage: hullDamage);
 	}
 
+	internal static int CrossingOverdriveBonusPercent(State actor)
+	{
+		if (!actor.HeatProfile.Participates
+			|| !actor.Overdrive
+			|| BattleStatuses.HasOverheat(actor))
+			return 0;
+
+		return actor.Loadout.OverdriveDamageBonusPercent;
+	}
+
 	/// <summary>
 	/// Crossing-shot only: HeatChange sets Overdrive before damage Apply, but RewriteOutgoing already ran.
-	/// Skips when the status pass already stamped <see cref="DamageBonusPercent"/>.
 	/// </summary>
 	internal static int ApplyOverdriveCrossingBonus(State actor, int appliedDamage)
 	{
-		if (appliedDamage <= 0
-			|| !actor.HeatProfile.Participates
-			|| !actor.Overdrive
-			|| BattleStatuses.HasOverheat(actor))
+		if (appliedDamage <= 0)
 			return appliedDamage;
 
-		return ScalePercent(appliedDamage, 100 + HeatChangeEffect.OverdriveDamageBonusPercent);
+		var bonus = CrossingOverdriveBonusPercent(actor);
+		return bonus == 0 ? appliedDamage : ScalePercent(appliedDamage, 100 + bonus);
 	}
 
 	private static int ScalePercent(int amount, int percent) =>

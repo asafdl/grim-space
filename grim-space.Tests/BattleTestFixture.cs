@@ -169,6 +169,12 @@ internal static class BattleTestFixture
 		int actionPoints = 4) =>
 		WithAp(Create(ETeam.Player, "player", position), actionPoints);
 
+	public static Unit ScrapPlayer(Coord position, int actionPoints = 4) =>
+		WithAp(Create(ETeam.Player, "player", position, EType.RepurposedMiner), actionPoints);
+
+	public static BattleOrchestrator BeginScrapSimulation(Coord origin) =>
+		BeginSimulation(ScrapPlayer(origin), Enemy(origin + Coord.Forward * 6));
+
 	public static Unit Enemy(Coord position) =>
 		Create(ETeam.Enemy, "enemy", position);
 

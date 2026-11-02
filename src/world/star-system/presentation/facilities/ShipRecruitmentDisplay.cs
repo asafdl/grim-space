@@ -29,11 +29,14 @@ internal static class ShipRecruitmentDisplay
 
 		if (baseline is null)
 		{
-			return $"{PilotHireDisplay.ShipPackageLine(offer.Chassis, offer.GearTier)}\n"
-				+ "No current ship to compare";
+			var standalone = new StringBuilder();
+			standalone.Append(PilotHireDisplay.ShipPackageLine(offer.Chassis, offer.GearTier));
+			standalone.Append('\n').Append("No current ship to compare");
+			AppendBuffLines(standalone, offer);
+			return standalone.ToString();
 		}
 
-		var candidate = ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier);
+		var candidate = ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed);
 		var diff = ShipHardwareDiff.Compare(
 			baseline.Spec.Chassis,
 			baseline.Loadout,
@@ -45,10 +48,16 @@ internal static class ShipRecruitmentDisplay
 			.Append(PilotHireDisplay.ShipPackageLine(diff.BaselineChassis, diff.BaselineGearTier));
 
 		if (diff.IsEmpty)
-		{
 			text.Append("\nNo hardware changes");
-			return text.ToString();
-		}
+		else
+			AppendHardwareDiff(text, diff);
+
+		AppendBuffLines(text, offer);
+		return text.ToString();
+	}
+
+	private static void AppendHardwareDiff(StringBuilder text, ShipHardwareDiff diff)
+	{
 
 		if (diff.ChassisChanged)
 			text.Append('\n').Append("Chassis → ").Append(PilotHireDisplay.ShipChassisLabel(diff.CandidateChassis));
@@ -99,8 +108,13 @@ internal static class ShipRecruitmentDisplay
 			if (mount.RangeTiersDelta != 0)
 				text.Append(" range ").Append(Signed(mount.RangeTiersDelta));
 		}
+	}
 
-		return text.ToString();
+	private static void AppendBuffLines(StringBuilder text, RecruitmentOffer offer)
+	{
+		var loadout = ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed);
+		foreach (var buff in loadout.Buffs)
+			text.Append('\n').Append(ChassisBuffCatalog.Describe(buff));
 	}
 
 	private static string Signed(int value) =>

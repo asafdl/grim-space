@@ -40,7 +40,7 @@ public sealed class GoopGunActionTests
 			BattleTestFixture.Enemy(Coord.Zero),
 			BattleTestFixture.Grid(size: 30));
 		var spec = CatalogExpectations.DefaultGoopGunSpec();
-		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward);
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
@@ -49,13 +49,13 @@ public sealed class GoopGunActionTests
 			StateMountTestKit.CooldownRemaining(
 				battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId),
 				EAbilityKind.GoopGun,
-				ESpatialOrientation.Forward));
+				ESpatialOrientation.Retro));
 	}
 
 	[Fact]
 	public void BindAllocatesTypedGoopHazardId()
 	{
-		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward);
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
 
 		Assert.StartsWith($"{NonUnitTypeSlug.Goop}-", action.GoopHazardId);
 	}
@@ -65,7 +65,7 @@ public sealed class GoopGunActionTests
 	{
 		var preview = new GoopGunAction(
 			PlayerId,
-			ESpatialOrientation.Forward,
+			ESpatialOrientation.Retro,
 			Capabilities.PreviewGoopHazardId);
 		var choice = new AbilityActivationChoice(
 			preview,
@@ -106,7 +106,7 @@ public sealed class GoopGunActionTests
 	{
 		var playerPos = new Coord(5, 5, 5);
 		var battle = CreateGoopGunOrchestrator(playerPos, playerPos + Coord.Forward * 10);
-		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward);
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
 		var expectedCells = GoopGunDef.Instance.AffectedCells(action, battle.PlayerAgent.Sim.World);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(keepRecords: true, action));
@@ -116,7 +116,7 @@ public sealed class GoopGunActionTests
 		Assert.Equal(expectedCells, hazard.Cells);
 		Assert.Equal(hazard.Center, hazard.Frame.Origin);
 		var burstAxis = BodyFrame.From(battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId))
-			.Step(ESpatialOrientation.Forward);
+			.Step(ESpatialOrientation.Retro);
 		Assert.Equal(burstAxis, hazard.Frame.Fore);
 		Assert.All(
 			hazard.Cells,
@@ -135,7 +135,7 @@ public sealed class GoopGunActionTests
 	{
 		var playerPos = new Coord(5, 5, 5);
 		var battle = CreateGoopGunOrchestrator(playerPos, playerPos + Coord.Forward * 10);
-		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward);
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 		BattleTestActions.CommitAndResolve(battle);
@@ -151,12 +151,12 @@ public sealed class GoopGunActionTests
 	public void AffectedCellsExcludeCellsBehindGoopOnBurstAxis()
 	{
 		var playerPos = new Coord(5, 5, 5);
-		var pathGoop = playerPos + Coord.Forward * 2;
-		var behindPathGoop = playerPos + Coord.Forward * 4;
+		var pathGoop = playerPos - Coord.Forward * 2;
+		var behindPathGoop = playerPos - Coord.Forward * 4;
 		var battle = CreateGoopGunOrchestrator(playerPos, playerPos + Coord.Forward * 10);
 		var world = battle.PlayerAgent.Sim.World;
 		BattleTestWorld.InjectNonUnit(world, CreateGoop("path-goop", pathGoop));
-		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward);
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
 		var affected = GoopGunDef.Instance.AffectedCells(action, world);
 
 		Assert.DoesNotContain(behindPathGoop, affected);
@@ -166,15 +166,15 @@ public sealed class GoopGunActionTests
 	public void AffectedCellsExcludeAsteroidOnBurstAndShadowedCells()
 	{
 		var playerPos = new Coord(5, 5, 5);
-		var asteroidPos = playerPos + Coord.Forward * 3;
-		var behind = playerPos + Coord.Forward * 6;
+		var asteroidPos = playerPos - Coord.Forward * 3;
+		var behind = playerPos - Coord.Forward * 6;
 		var battle = CreateGoopGunOrchestrator(playerPos, behind);
 		var grid = battle.Engine.World.Grid;
 		var world = battle.PlayerAgent.Sim.World;
 		BattleTestWorld.InjectNonUnit(
 			world,
 			Asteroid.Create("asteroid", asteroidPos, grid, [asteroidPos]));
-		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward);
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
 		var affected = GoopGunDef.Instance.AffectedCells(action, world);
 
 		Assert.DoesNotContain(asteroidPos, affected);
@@ -194,28 +194,21 @@ public sealed class GoopGunActionTests
 
 	private static BattleOrchestrator CreateGoopGunOrchestrator(Coord playerPos, Coord enemyPos)
 	{
-		var encounter = new BattleEncounter
-		{
-			Id = "goop-gun-test",
-			Seed = 1,
-			Objective = EObjective.EliminateOpponents,
-			Spawns =
-			[
-				BattleSpawnTestKit.Create(
-					BattleSpawnTestKit.FighterWithGoopGun(PlayerId),
-					ETeam.Player,
-					playerPos,
-					new UserExecutionAgent()),
-				BattleSpawnTestKit.Create(
-					"enemy",
-					EType.Fighter,
-					ETeam.Enemy,
-					enemyPos,
-					new IdleEnemyAgent()),
-			],
-		};
-
-		return BattleOrchestrator.FromEncounter(encounter, gridSize: 30);
+		var player = Factory.Create(
+			BattleSpawnTestKit.FighterWithGoopGun(PlayerId),
+			ETeam.Player,
+			playerPos,
+			new UserExecutionAgent());
+		var enemy = Factory.Create(
+			ShipInstance.FromCatalog("enemy", EType.Fighter),
+			ETeam.Enemy,
+			enemyPos,
+			new IdleEnemyAgent());
+		enemy.State.Initiative = 1;
+		return BattleTestFixture.BeginSimulation(
+			player,
+			enemy,
+			BattleTestFixture.Grid(size: 30));
 	}
 
 	/// <summary>Ends the enemy activation immediately (no action search).</summary>

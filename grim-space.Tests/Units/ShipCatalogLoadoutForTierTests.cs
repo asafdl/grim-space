@@ -165,16 +165,12 @@ public sealed class ShipCatalogLoadoutForTierTests
 
 	private static int UpgradeWeight(ShipLoadout loadout)
 	{
-		var weight = loadout.HullUpgradeTier;
+		var weight = loadout.MaxHullPoints;
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-			weight += loadout.ShieldUpgradeTiers[face];
-
-		foreach (var installed in loadout.InstalledAbilities)
-		{
-			weight += installed.Spec.DamageUpgradeTier;
-			weight += installed.Spec.RangeUpgradeTier;
-		}
-
+			weight += loadout.MaxShieldPoints[face];
+		weight += loadout.WeaponDamagePercent;
+		weight += loadout.OverdriveDamageBonusPercent;
+		weight += loadout.Buffs.Count;
 		return weight;
 	}
 }

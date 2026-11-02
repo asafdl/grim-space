@@ -866,7 +866,7 @@ public sealed class SaveGamePersistenceTests
 			},
 			gridSize: 30);
 
-		var action = GoopGunDef.Instance.Bind(playerId, ESpatialOrientation.Forward);
+		var action = GoopGunDef.Instance.Bind(playerId, ESpatialOrientation.Retro);
 		var world = battle.Engine.World;
 		var runtime = new ActorRuntime();
 		Assert.True(BattleTestApply.TryApplyOne(action, world, runtime, action.ActorId));

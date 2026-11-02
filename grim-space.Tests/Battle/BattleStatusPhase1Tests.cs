@@ -35,7 +35,7 @@ public sealed class BattleStatusPhase1Tests
 			[PlayerId] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.HelpABotterOut]),
 		};
 		var battle = BattleTestFixture.BeginSimulation(
-			BattleTestFixture.Player(origin),
+			BattleTestFixture.ScrapPlayer(origin),
 			[BattleTestFixture.Enemy(origin + Coord.Forward * 8)],
 			pilotsByActorId: pilots);
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
@@ -128,7 +128,7 @@ public sealed class BattleStatusPhase1Tests
 					EPilotBackgroundId.ScrapDrone,
 					BattlePilotCapabilityPipelineFactory.Supports)),
 		};
-		var player = BattleTestFixture.Player(origin);
+		var player = BattleTestFixture.ScrapPlayer(origin);
 		var ally = Factory.Create(
 			ShipInstance.FromCatalog("ally", EType.Fighter),
 			ETeam.Player,
@@ -214,7 +214,7 @@ public sealed class BattleStatusPhase1Tests
 					EPilotBackgroundId.ScrapDrone,
 					BattlePilotCapabilityPipelineFactory.Supports)),
 		};
-		var player = BattleTestFixture.Player(origin);
+		var player = BattleTestFixture.ScrapPlayer(origin);
 		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward);
 		var battle = BattleTestFixture.BeginSimulation(player, [enemy], pilotsByActorId: pilots);
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);

@@ -130,15 +130,18 @@ public static class BattleStatuses
 			Priority = 50,
 			ActionTags = [BattleActionTags.Attack],
 			Polarity = EStatusPolarity.Buff,
-			RewriteOutgoing = (_, _, effect) =>
-				effect switch
+			RewriteOutgoing = (_, world, effect) =>
+			{
+				var bonus = world.StateOf(actorId).Loadout.OverdriveDamageBonusPercent;
+				return effect switch
 				{
-					ApplyAreaDamageEffect area => area.WithDamageBonusPercent(
-						HeatChangeEffect.OverdriveDamageBonusPercent),
-					ApplyChainLightningDamageEffect chain => chain.WithDamageBonusPercent(
-						HeatChangeEffect.OverdriveDamageBonusPercent),
+					ApplyAreaDamageEffect area => area.WithAddedDamageBonusPercent(bonus, includesOverdrive: true),
+					ApplyChainLightningDamageEffect chain => chain.WithAddedDamageBonusPercent(
+						bonus,
+						includesOverdrive: true),
 					_ => effect,
-				},
+				};
+			},
 		};
 
 	public static BattleStatus CreateOverheat(string actorId) =>
@@ -225,31 +228,51 @@ public static class BattleStatuses
 			return effects;
 		}
 
-		if (actor.Statuses.Count == 0)
-			return effects;
-
-		var ordered = Ordered(actor.Statuses)
-			.Where(status => status.MatchesAction(action.Tags) && status.RewriteOutgoing is not null)
-			.ToArray();
-		if (ordered.Length == 0)
-			return effects;
-
-		var rewritten = new List<IEffect<BattleWorld, ActorRuntime>>(effects.Count);
-		foreach (var effect in effects)
+		IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> rewritten = effects;
+		if (actor.Statuses.Count > 0)
 		{
-			var current = effect;
-			foreach (var status in ordered)
+			var ordered = Ordered(actor.Statuses)
+				.Where(status => status.MatchesAction(action.Tags) && status.RewriteOutgoing is not null)
+				.ToArray();
+			if (ordered.Length > 0)
 			{
-				current = status.RewriteOutgoing!(action, world, current)
-					?? throw new InvalidOperationException(
-						$"Status '{status.InstanceId}' returned a null effect rewrite.");
-			}
+				var folded = new List<IEffect<BattleWorld, ActorRuntime>>(effects.Count);
+				foreach (var effect in effects)
+				{
+					var current = effect;
+					foreach (var status in ordered)
+					{
+						current = status.RewriteOutgoing!(action, world, current)
+							?? throw new InvalidOperationException(
+								$"Status '{status.InstanceId}' returned a null effect rewrite.");
+					}
 
-			rewritten.Add(current);
+					folded.Add(current);
+				}
+
+				rewritten = folded;
+			}
 		}
 
-		return rewritten;
+		var weaponPercent = actor.Loadout.WeaponDamagePercent;
+		if (weaponPercent == 0)
+			return rewritten;
+
+		var withWeaponDamage = new List<IEffect<BattleWorld, ActorRuntime>>(rewritten.Count);
+		foreach (var effect in rewritten)
+			withWeaponDamage.Add(AddWeaponDamagePercent(effect, weaponPercent));
+		return withWeaponDamage;
 	}
+
+	private static IEffect<BattleWorld, ActorRuntime> AddWeaponDamagePercent(
+		IEffect<BattleWorld, ActorRuntime> effect,
+		int percent) =>
+		effect switch
+		{
+			ApplyAreaDamageEffect area => area.WithAddedDamageBonusPercent(percent),
+			ApplyChainLightningDamageEffect chain => chain.WithAddedDamageBonusPercent(percent),
+			_ => effect,
+		};
 
 	public static int RewriteIncomingDamage(IEnumerable<BattleStatus> statuses, int damage) =>
 		FoldChannel(statuses, damage, status => status.RewriteIncomingDamage);

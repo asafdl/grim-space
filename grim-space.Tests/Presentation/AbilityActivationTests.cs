@@ -46,12 +46,15 @@ public sealed class AbilityActivationTests
 	[Fact]
 	public void ResolveChoicesFiltersCapabilitiesAndPlacesScrapDroneSwarmMounts()
 	{
-		var actor = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
+		var actor = State.FromShipInstance(
+			GrimSpace.Units.ShipInstance.FromCatalog("player", EType.RepurposedMiner),
+			new Coord(5, 5, 5));
 		var port = new ScrapDroneSwarmAction(actor.Id, ESpatialOrientation.Port);
 		var starboard = new ScrapDroneSwarmAction(actor.Id, ESpatialOrientation.Starboard);
 		IAction[] capabilities = [port, new LightningCannonAction(actor.Id), starboard];
 
-		var spec = Spec(EPlayerMode.ScrapDroneSwarm);
+		var spec = AbilityHudCatalog.ForUnit(EType.RepurposedMiner)
+			.Single(entry => entry.Mode == EPlayerMode.ScrapDroneSwarm);
 		var choices = AbilityActivation.ResolveChoices(spec, actor, capabilities);
 
 		var frame = BodyFrame.From(actor);

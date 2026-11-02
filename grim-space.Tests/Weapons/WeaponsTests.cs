@@ -50,7 +50,7 @@ public sealed class WeaponsTests
 	[InlineData(ESpatialOrientation.Starboard)]
 	public void ScrapDroneSwarmBurstIsThreeDimensionalPyramidFromMountTip(ESpatialOrientation mountedOn)
 	{
-		var (world, frame) = CreateWorld();
+		var (world, frame) = CreateWorld(EType.RepurposedMiner);
 		var swarm = CatalogExpectations.DefaultScrapDroneSwarmSpec();
 		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(new ScrapDroneSwarmAction(PlayerId, mountedOn), world);
 		var apexPort = mountedOn == ESpatialOrientation.Port ? 1 : -1;

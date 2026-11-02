@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://breactiveshield01"
-path="res://.godot/imported/reactive_shields.png-a1b2c3d4e5f60718293a4b5c6d7e8f90.ctex"
+uid="uid://drd0n3qo8lldw"
+path="res://.godot/imported/reactive_shields.png-c110e720fd9b53e3f3700c48f9838980.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/abilities/reactive_shields.png"
-dest_files=["res://.godot/imported/reactive_shields.png-a1b2c3d4e5f60718293a4b5c6d7e8f90.ctex"]
+dest_files=["res://.godot/imported/reactive_shields.png-c110e720fd9b53e3f3700c48f9838980.ctex"]
 
 [params]
 

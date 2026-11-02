@@ -33,13 +33,8 @@ public sealed class FighterSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)),
-		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard)),
 		new(new(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)),
-		new(new(EAbilityKind.GoopGun, ESpatialOrientation.Forward)),
-		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Retro)),
 		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral)),
-		new(new(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Dorsal)),
 	];
 
 	public override ShipLoadout NewDefaultLoadout()

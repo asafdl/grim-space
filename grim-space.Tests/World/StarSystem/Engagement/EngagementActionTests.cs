@@ -119,7 +119,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		map.PilotRegistry.Register(unassigned);
 
 		Assert.Equal(1, inactive.ClaimedLevel);
-		Assert.Equal(48, FleeDef.FuelCost(map));
+		Assert.Equal(40, FleeDef.FuelCost(map));
 	}
 
 	[Theory]
@@ -162,8 +162,8 @@ public sealed class FleeActionTests(StarMapFixture maps)
 	}
 
 	[Theory]
-	[InlineData(55, false)]
-	[InlineData(56, true)]
+	[InlineData(39, false)]
+	[InlineData(40, true)]
 	public void PendingEngagement_ProjectsCostAndAffordability(int availableFuel, bool canFlee)
 	{
 		using var orchestrator = CreateAwaitingDecisionScenario();
@@ -177,7 +177,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 			availableFuel - map.PlayerResources.GetBalance(ResourceId.Fuel))));
 
 		Assert.True(EngagementQueries.TryGetPendingPlayerEngagement(map, RunState.PlayerFleetUnitId, out var pending));
-		Assert.Equal(56, pending.FleeFuelCost);
+		Assert.Equal(40, pending.FleeFuelCost);
 		Assert.Equal(availableFuel, pending.AvailableFuel);
 		Assert.Equal(canFlee, pending.CanFlee);
 	}

@@ -156,12 +156,12 @@ public sealed class MovePreviewSearchTests
 		var initial = cache.GetPaths(sim, PlayerId);
 		var (launchCell, _, _) = VoidBombMount.LaunchPose(
 			sim.World.StateOf(PlayerId),
-			ESpatialOrientation.Retro);
+			ESpatialOrientation.Ventral);
 		Assert.Contains(
 			initial,
 			route => route.Session.EndPosition == launchCell);
 
-		Assert.True(sim.TryEnqueue(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro)));
+		Assert.True(sim.TryEnqueue(VoidBombDef.Instance.Bind(PlayerId, ESpatialOrientation.Ventral)));
 		var afterSpawn = cache.GetPaths(sim, PlayerId);
 		var fresh = MovePathEndpoints.DiscoverExtensions(sim, PlayerId);
 

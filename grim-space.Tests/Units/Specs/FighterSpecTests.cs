@@ -9,14 +9,15 @@ namespace GrimSpace.Tests.Units.Specs;
 public sealed class FighterSpecTests
 {
 	[Fact]
-	public void Slots_IncludeSevenWeaponMounts()
+	public void Slots_AreTheTwoStarterMounts()
 	{
 		var spec = FighterSpec.Instance;
 
-		Assert.Equal(7, spec.Slots.Count);
+		Assert.Equal(2, spec.Slots.Count);
 		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)));
-		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Forward)));
-		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
+		Assert.True(spec.Supports(new AbilityMount(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral)));
+		Assert.False(spec.Supports(new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Forward)));
+		Assert.False(spec.Supports(new AbilityMount(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)));
 	}
 
 	[Fact]
