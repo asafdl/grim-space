@@ -217,7 +217,8 @@ public partial class TurnReplayPlayer : Node3D
 					break;
 				case Record<HealFacts> { Value: var heal }:
 					BeginPhase(ReplayActorPhase.Classify(heal.SourceId, _participants));
-					ApplyHeal(heal);
+					if (PlayHeal(heal))
+						return;
 					break;
 				case Record<HeatChangedFacts> { Value: var heat }:
 					ApplyHeatChanged(heat);
@@ -282,19 +283,31 @@ public partial class TurnReplayPlayer : Node3D
 		view.RefreshHeat(_clipContext.ReplayState.StateOf(heat.ActorId));
 	}
 
-	private void ApplyHeal(HealFacts heal)
+	private bool PlayHeal(HealFacts heal)
 	{
 		_clipContext.ReplayState.ApplyHeal(heal);
 		if (!_clipContext.ReplayState.Contains(heal.TargetId))
-			return;
+			return false;
 
 		var state = _clipContext.ReplayState.StateOf(heal.TargetId);
 		_stateChanged(state);
-		if (_clipContext.UnitViews.TryGetValue(heal.TargetId, out var view))
+		if (!_clipContext.UnitViews.TryGetValue(heal.TargetId, out var view))
+			return false;
+
+		view.Sync(state);
+		view.PlayHealPopup(heal.ShieldRestored, heal.HullRestored);
+		_clipContext.ReportInterest?.Invoke(new CameraInterest(
+			UnitInterestPoints(_clipContext.ReplayState, heal.SourceId, heal.TargetId),
+			CameraImportance.Combat));
+
+		var waitStart = Stopwatch.GetTimestamp();
+		_scheduledWaitMs += ReplayTiming.ImpactPauseSeconds * 1000;
+		GetTree().CreateTimer(ReplayTiming.ImpactPauseSeconds).Timeout += () =>
 		{
-			view.Sync(state);
-			view.PlayHealPopup(heal.ShieldRestored, heal.HullRestored);
-		}
+			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
+			PlayNext();
+		};
+		return true;
 	}
 
 	private bool PlayImpact(ImpactFacts impact)
@@ -458,19 +471,20 @@ public partial class TurnReplayPlayer : Node3D
 		if (_clipContext.ReportInterest is null)
 			return;
 
-		var points = ImpactInterestPoints(_clipContext.ReplayState, impact);
+		var points = UnitInterestPoints(_clipContext.ReplayState, impact.SourceId, impact.TargetId);
 		_clipContext.ReportInterest(new CameraInterest(points, CameraImportance.Combat));
 	}
 
-	internal static IReadOnlyList<Vector3> ImpactInterestPoints(
+	internal static IReadOnlyList<Vector3> UnitInterestPoints(
 		ReplayState replayState,
-		ImpactFacts impact)
+		string sourceId,
+		string targetId)
 	{
-		var target = replayState.StateOf(impact.TargetId).Position;
+		var target = replayState.StateOf(targetId).Position;
 		var points = new List<Vector3>(2);
-		if (replayState.Contains(impact.SourceId))
+		if (replayState.Contains(sourceId))
 		{
-			var source = replayState.StateOf(impact.SourceId).Position;
+			var source = replayState.StateOf(sourceId).Position;
 			points.Add(WorldMapping.ToWorld(source));
 		}
 

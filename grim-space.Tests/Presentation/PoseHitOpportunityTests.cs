@@ -4,8 +4,12 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.World;
+using GrimSpace.Battle.Units;
+using GrimSpace.Components;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
+using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Presentation;
 
@@ -122,6 +126,64 @@ public sealed class PoseHitOpportunityTests
 		Assert.DoesNotContain(
 			opportunities,
 			opportunity => opportunity.IconPath == "res://assets/ui/abilities/lightning_cannon.svg");
+	}
+
+	[Theory]
+	[InlineData(false, true)]
+	[InlineData(true, true)]
+	[InlineData(false, false)]
+	public void ScrapDroneSwarmUsesHealingHeartForRestoredAlliesAndAttackIconForEnemies(
+		bool shieldDamage,
+		bool injured)
+	{
+		var origin = new Coord(5, 5, 5);
+		var probe = BattleTestFixture.BeginScrapSimulation(origin);
+		var burstCells = ScrapDroneSwarmDef.Instance.AffectedCells(
+			new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard),
+			probe.PlayerAgent.Sim.World).Where(cell => cell != origin).Take(2).ToArray();
+		var ally = Factory.Create(
+			ShipInstance.FromCatalog("ally", EType.Fighter),
+			ETeam.Player,
+			burstCells[0],
+			new UserExecutionAgent());
+		if (injured)
+		{
+			if (shieldDamage)
+				ally.State.ShieldPoints[ESpatialOrientation.Forward] -= 100;
+			else
+				ally.State.HullPoints -= 100;
+		}
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.ScrapPlayer(origin),
+			[ally, BattleTestFixture.Enemy(burstCells[1])]);
+		var sim = battle.PlayerAgent.Sim;
+		var before = sim.World.StateOf(ally.State.Id).Clone();
+		var worldVersion = sim.WorldVersion;
+		var route = new RouteHitPreview(BattleTestFixture.ForwardPath(PlayerId, origin, steps: 0));
+
+		var opportunities = route.GetHitOpportunities(sim, PlayerId);
+
+		var enemy = Assert.Single(opportunities,
+			opportunity => opportunity.TargetId == BattleTestFixture.FirstEnemyId(battle));
+		Assert.Equal("res://assets/ui/abilities/scrap_drone_swarm.svg", enemy.IconPath);
+		Assert.True(enemy.TintIcon);
+		if (injured)
+		{
+			var heart = Assert.Single(opportunities, opportunity => opportunity.TargetId == ally.State.Id);
+			var healIcon = HudTooltipIconCatalog.Resolve("Heal");
+			Assert.Equal("res://assets/ui/battle/heal.png", heart.IconPath);
+			Assert.Equal(healIcon.Color, heart.IconTint);
+			Assert.False(heart.TintIcon);
+		}
+		else
+		{
+			Assert.DoesNotContain(opportunities, opportunity => opportunity.TargetId == ally.State.Id);
+		}
+		Assert.Equal(worldVersion, sim.WorldVersion);
+		Assert.Empty(sim.Actions);
+		Assert.Equal(before.HullPoints, sim.World.StateOf(ally.State.Id).HullPoints);
+		Assert.Equal(before.ShieldPoints[ESpatialOrientation.Forward],
+			sim.World.StateOf(ally.State.Id).ShieldPoints[ESpatialOrientation.Forward]);
 	}
 
 	[Fact]

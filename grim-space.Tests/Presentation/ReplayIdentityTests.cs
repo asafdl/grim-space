@@ -76,9 +76,58 @@ public sealed class ReplayIdentityTests
 			ShieldDamage: 1,
 			HullDamage: 0);
 
-		var points = TurnReplayPlayer.ImpactInterestPoints(replayState, impact);
+		var points = TurnReplayPlayer.UnitInterestPoints(replayState, impact.SourceId, impact.TargetId);
 
 		Assert.Equal([WorldMapping.ToWorld(target.Position)], points);
+	}
+
+	[Fact]
+	public void HealingInterestIncludesHealerAndAlly()
+	{
+		var healer = State.FromShipInstance(
+			ShipInstance.FromCatalog("healer", EType.Fighter),
+			new Coord(2, 3, 4));
+		var ally = State.FromShipInstance(
+			ShipInstance.FromCatalog("ally", EType.Fighter),
+			new Coord(3, 3, 4));
+		var replayState = new ReplayState(new Dictionary<string, State>
+		{
+			[healer.Id] = healer,
+			[ally.Id] = ally,
+		});
+		var heal = new HealFacts(
+			healer.Id, ally.Id, EImpactCause.ScrapDroneSwarmBurst,
+			ESpatialOrientation.Forward, 100, 0);
+
+		var points = TurnReplayPlayer.UnitInterestPoints(replayState, heal.SourceId, heal.TargetId);
+
+		Assert.Equal(
+			[WorldMapping.ToWorld(healer.Position), WorldMapping.ToWorld(ally.Position)],
+			points);
+	}
+
+	[Fact]
+	public void ApplyHealRestoresRecordedShieldAndHullWithoutChangingSourceState()
+	{
+		var ally = State.FromShipInstance(
+			ShipInstance.FromCatalog("ally", EType.Fighter),
+			Coord.Zero);
+		ally.ShieldPoints[ESpatialOrientation.Forward] -= 100;
+		ally.HullPoints -= 100;
+		var replayState = new ReplayState(new Dictionary<string, State>
+		{
+			[ally.Id] = ally,
+		});
+		var heal = new HealFacts(
+			"healer", ally.Id, EImpactCause.ScrapDroneSwarmBurst,
+			ESpatialOrientation.Forward, 100, 100);
+
+		replayState.ApplyHeal(heal);
+
+		var restored = replayState.StateOf(ally.Id);
+		Assert.Equal(ally.ShieldPoints[ESpatialOrientation.Forward] + 100,
+			restored.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(ally.HullPoints + 100, restored.HullPoints);
 	}
 
 	[Fact]

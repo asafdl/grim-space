@@ -314,6 +314,9 @@ Persistence stores statuses as [`BattleStatusDto`](src/run/persistence/dtos/Batt
 
 `BattleOrchestrator` owns phase transitions, activation order, outcome evaluation, and the engine commit boundary. Godot-facing [`BattleController`](src/battle/presentation/scene/BattleController.cs), [`BattleHud`](src/battle/presentation/ui/BattleHud.cs), and [`PresentationFrameBuilder`](src/battle/presentation/PresentationFrameBuilder.cs) consume previews and committed history but do not implement battle rules.
 
+Tactical replay presents committed healing records with green `+amount` popups, camera interest in the healer and recipient, and the same feedback pause as damage impacts before advancing to the next event.
+Movement-pose opportunity previews show a green healing heart for simulated healing recipients and retain ability icons for damage targets. Fully restored allies emit no healing record and therefore no healing opportunity badge.
+
 ### Ship spec, loadout, and ability spec (`src/units/`)
 
 Combat configuration is split in the units package (no Godot, no battle imports):

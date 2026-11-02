@@ -5,6 +5,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Components;
 
 namespace GrimSpace.Battle.Movement;
 
@@ -57,15 +58,24 @@ public sealed class RouteHitPreview
 		var world = fork.World;
 		var specsByDef = AbilityHudCatalog.ForActor(actor, runtime).ToDictionary(spec => spec.Def);
 		var opportunities = new List<PoseHitOpportunity>();
+		var healIcon = HudTooltipIconCatalog.Resolve("Heal");
 
 		foreach (var def in Capabilities.AbilityDefsFor(actor, runtime))
 		{
 			var spec = specsByDef[def];
 			var hitTargets = new HashSet<string>(StringComparer.Ordinal);
+			var healTargets = new HashSet<string>(StringComparer.Ordinal);
 			foreach (var action in def.Discover(world, runtime, playerId))
 			{
 				if (fork.Peek(action) is { } peek)
+				{
 					GetImpactIds(peek.Records, hitTargets);
+					foreach (var record in peek.Records)
+					{
+						if (record is Record<HealFacts> { Value.TargetId: var targetId })
+							healTargets.Add(targetId);
+					}
+				}
 			}
 
 			foreach (var targetId in hitTargets.OrderBy(id => id, StringComparer.Ordinal))
@@ -74,6 +84,14 @@ public sealed class RouteHitPreview
 					targetId,
 					spec.IconPath,
 					spec.IconTint));
+			}
+			foreach (var targetId in healTargets.OrderBy(id => id, StringComparer.Ordinal))
+			{
+				opportunities.Add(new PoseHitOpportunity(
+					targetId,
+					healIcon.Path,
+					healIcon.Color,
+					healIcon.TintIcon));
 			}
 		}
 
