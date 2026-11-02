@@ -161,7 +161,7 @@ public sealed partial class ContractHudOverlay : Control
 		details.SetInteractive(false);
 		details.SetTrailingAlignment(HorizontalAlignment.Left);
 		details.SetTrailingColor(HudPalettes.Gold.Primary);
-		details.SetTrailingContent(BuildContractDetailsTrailing(_selected));
+		details.SetTrailingContent(BuildContractDetailsTrailing(_selected, _map, _activePoiId));
 
 		_shell.SetBody(details);
 		var footer = new List<HudAction>();
@@ -204,7 +204,10 @@ public sealed partial class ContractHudOverlay : Control
 		return item;
 	}
 
-	private static Control BuildContractDetailsTrailing(Contract contract)
+	private static Control BuildContractDetailsTrailing(
+		Contract contract,
+		StarMap map,
+		string originPoiId)
 	{
 		var trailing = new VBoxContainer
 		{
@@ -215,20 +218,12 @@ public sealed partial class ContractHudOverlay : Control
 		trailing.AddThemeConstantOverride("separation", 8);
 
 		if (!contract.Terms.Payment.IsEmpty)
-		{
-			var reward = new RichTextLabel
-			{
-				BbcodeEnabled = true,
-				FitContent = true,
-				ScrollActive = false,
-				AutowrapMode = TextServer.AutowrapMode.Off,
-				MouseFilter = MouseFilterEnum.Ignore,
-				Text = ResourceRewardDisplay.FormatListDetailBbcode(contract.Terms.Payment),
-				ThemeTypeVariation = HudStyles.InformativeItemDescriptionRichTextLabelType,
-			};
-			reward.AddThemeFontSizeOverride("normal_font_size", 16);
-			trailing.AddChild(reward);
-		}
+			trailing.AddChild(CreateDetailLine(
+				ResourceRewardDisplay.FormatListDetailBbcode(contract.Terms.Payment)));
+
+		if (ContractDisplay.TryEstimateFuelDistance(contract, map, originPoiId, out var fuel))
+			trailing.AddChild(CreateDetailLine(
+				ResourceRewardDisplay.FormatEstimatedDistanceBbcode(fuel)));
 
 		var threat = new Label
 		{
@@ -238,6 +233,22 @@ public sealed partial class ContractHudOverlay : Control
 		HudStyles.ApplyTextRole(threat, HudTextRole.Emphasis);
 		trailing.AddChild(threat);
 		return trailing;
+	}
+
+	private static RichTextLabel CreateDetailLine(string bbcode)
+	{
+		var line = new RichTextLabel
+		{
+			BbcodeEnabled = true,
+			FitContent = true,
+			ScrollActive = false,
+			AutowrapMode = TextServer.AutowrapMode.Off,
+			MouseFilter = MouseFilterEnum.Ignore,
+			Text = bbcode,
+			ThemeTypeVariation = HudStyles.InformativeItemDescriptionRichTextLabelType,
+		};
+		line.AddThemeFontSizeOverride("normal_font_size", 16);
+		return line;
 	}
 
 	private static string Pluralize(int count, string singular, string plural) =>

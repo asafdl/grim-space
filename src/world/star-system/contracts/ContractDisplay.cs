@@ -1,5 +1,8 @@
+using GrimSpace.Math.Grid;
+using GrimSpace.Math.Routes;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Encounter;
@@ -78,6 +81,106 @@ public static class ContractDisplay
 		AreaIntelDisplay.FormatPlain(
 			intel,
 			id => AreaBorderAnchor.TryGetDisplayName(id) ?? MapLandmarkQueries.GetDisplayName(map, id));
+
+	public static bool TryEstimateFuelDistance(
+		Contract contract,
+		StarMap map,
+		string originPoiId,
+		out int fuel)
+	{
+		ArgumentNullException.ThrowIfNull(contract);
+		ArgumentNullException.ThrowIfNull(map);
+		fuel = 0;
+		if (string.IsNullOrEmpty(originPoiId)
+			|| !map.TryGetPointOfInterest(originPoiId, out var origin)
+			|| !TryEstimateDistance(contract, map, origin.PlacedCenter, out var distance))
+			return false;
+
+		fuel = TravelFuelAccounting.FuelUnitsForDistance(distance);
+		return true;
+	}
+
+	private static bool TryEstimateDistance(
+		Contract contract,
+		StarMap map,
+		Coord origin,
+		out double distance)
+	{
+		switch (contract.Objective)
+		{
+			case HuntObjective hunt:
+			{
+				var points = hunt.SpawnGroups
+					.SelectMany(group => group.SearchArea.SpawnPoints)
+					.ToArray();
+				if (points.Length == 0)
+					break;
+
+				distance = points.Min(point => RouteGeometry.Distance(origin, point));
+				return true;
+			}
+			case WreckageObjective wreckage when wreckage.SearchArea.SpawnPoints.Count > 0:
+				distance = RouteGeometry.Distance(origin, wreckage.Position);
+				return true;
+			case DeliveryObjective delivery:
+				distance = DeliveryDistance(map, origin, delivery);
+				return true;
+			case BlackMarketSaleObjective sale
+				when TryBlackMarketDistance(map, origin, sale.Destination, out distance):
+				return true;
+		}
+
+		distance = 0;
+		return false;
+	}
+
+	private static bool TryBlackMarketDistance(
+		StarMap map,
+		Coord origin,
+		BlackMarketSaleDestination destination,
+		out double distance)
+	{
+		switch (destination)
+		{
+			case BlackMarketFacilityDestination facility:
+				distance = RouteGeometry.Distance(
+					origin,
+					map.GetPointOfInterest(facility.PoiId).PlacedCenter);
+				return true;
+			case BlackMarketSpaceMeetingDestination meeting
+				when meeting.SearchArea.SpawnPoints.Count > 0:
+				distance = RouteGeometry.Distance(origin, meeting.Position);
+				return true;
+			default:
+				distance = 0;
+				return false;
+		}
+	}
+
+	private static double DeliveryDistance(StarMap map, Coord origin, DeliveryObjective delivery)
+	{
+		var total = 0d;
+		var cursor = origin;
+		var pickup = map.GetPointOfInterest(delivery.PickupPoiId).PlacedCenter;
+		total += RouteGeometry.Distance(cursor, pickup);
+		cursor = pickup;
+		foreach (var leg in delivery.Route.Legs)
+		{
+			var next = LegCoordinate(map, leg);
+			total += RouteGeometry.Distance(cursor, next);
+			cursor = next;
+		}
+
+		return total;
+	}
+
+	private static Coord LegCoordinate(StarMap map, DeliveryLeg leg) =>
+		leg switch
+		{
+			FacilityDeliveryLeg facility => map.GetPointOfInterest(facility.PoiId).PlacedCenter,
+			SpaceMeetingDeliveryLeg meeting => meeting.Position,
+			_ => throw new ArgumentOutOfRangeException(nameof(leg), leg, null),
+		};
 
 	public static string Reward(Contract contract) =>
 		contract.Terms.Payment.IsEmpty

@@ -21,6 +21,9 @@ public static class ResourceRewardDisplay
 		return $"Payment: {string.Join(", ", payouts)}";
 	}
 
+	public static string FormatEstimatedDistanceBbcode(int fuel) =>
+		$"Est distance: {fuel} [img={IconSize}x{IconSize}]{ResourceIconCatalog.IconPath(ResourceId.Fuel)}[/img]";
+
 	public static Control CreateCompact(ResourceBundle reward)
 	{
 		var column = new VBoxContainer
