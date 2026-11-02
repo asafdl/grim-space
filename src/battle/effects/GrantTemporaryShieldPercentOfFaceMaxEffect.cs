@@ -12,12 +12,10 @@ public sealed class GrantTemporaryShieldPercentOfFaceMaxEffect(string grantId, i
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		TemporaryShields.GrantPerFacePercentOfMax(
-			world.StateOf(actorId),
-			grantId,
-			percentOfFaceMax);
+		var actor = world.StateOf(actorId);
+		TemporaryShields.GrantPerFacePercentOfMax(actor, grantId, percentOfFaceMax);
 		_applied = true;
-		return [];
+		return [new Record<ShieldsChangedFacts>(ShieldsChangedFacts.Capture(actor))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

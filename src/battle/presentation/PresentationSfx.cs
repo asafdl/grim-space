@@ -23,6 +23,10 @@ public static class PresentationSfx
 	public const string ShipDeathPath =
 		"res://assets/sfx/ships/ship_death_enhanced_v2.wav";
 	public const float ShipDeathPitchScale = 1.6f;
+	public const string ShieldChangeHumPath =
+		"res://assets/sfx/abilities/shield_static_hum.wav";
+	public const string ShieldPowerDownPath =
+		"res://assets/sfx/abilities/shield_power_down.wav";
 
 	private static readonly Dictionary<string, AudioStream> Streams = new();
 
@@ -55,6 +59,27 @@ public static class PresentationSfx
 
 		tree.CreateTimer(0.08).Timeout += () =>
 			PlayWorldOneShot(parent, localPosition, ScrapDroneMountBeepsPath);
+	}
+
+	public static AudioStreamPlayer3D PlayShieldChangeHum(Node parent, double duration)
+	{
+		var player = new AudioStreamPlayer3D
+		{
+			Stream = Load(ShieldChangeHumPath),
+			Bus = AudioBuses.Sfx,
+			VolumeDb = -26f,
+			MaxDistance = 4096f,
+			AttenuationModel = AudioStreamPlayer3D.AttenuationModelEnum.Disabled,
+		};
+		parent.AddChild(player);
+		player.Play();
+		var fade = player.CreateTween();
+		fade.TweenProperty(player, "volume_db", -12f, 0.08);
+		fade.TweenProperty(player, "volume_db", -60f, duration - 0.08)
+			.SetTrans(Tween.TransitionType.Quad)
+			.SetEase(Tween.EaseType.In);
+		fade.TweenCallback(Callable.From(player.QueueFree));
+		return player;
 	}
 
 	private static AudioStream Load(string path) =>

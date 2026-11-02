@@ -55,6 +55,10 @@ public sealed partial class SpaceBackdrop : Node3D
 				AmbientLightEnergy = 0.025f,
 				ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled,
 				TonemapMode = Godot.Environment.ToneMapper.Filmic,
+				GlowEnabled = true,
+				GlowIntensity = 0.5f,
+				GlowBloom = 0f,
+				GlowHdrThreshold = 1.5f,
 				FogEnabled = false,
 			},
 		};

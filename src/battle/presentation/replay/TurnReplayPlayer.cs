@@ -223,6 +223,10 @@ public partial class TurnReplayPlayer : Node3D
 				case Record<HeatChangedFacts> { Value: var heat }:
 					ApplyHeatChanged(heat);
 					break;
+				case Record<ShieldsChangedFacts> { Value: var shields }:
+					if (PlayShieldChange(shields))
+						return;
+					break;
 			}
 		}
 
@@ -294,7 +298,7 @@ public partial class TurnReplayPlayer : Node3D
 		if (!_clipContext.UnitViews.TryGetValue(heal.TargetId, out var view))
 			return false;
 
-		view.Sync(state);
+		view.AnimateShields(state);
 		view.PlayHealPopup(heal.ShieldRestored, heal.HullRestored);
 		_clipContext.ReportInterest?.Invoke(new CameraInterest(
 			UnitInterestPoints(_clipContext.ReplayState, heal.SourceId, heal.TargetId),
@@ -303,6 +307,33 @@ public partial class TurnReplayPlayer : Node3D
 		var waitStart = Stopwatch.GetTimestamp();
 		_scheduledWaitMs += ReplayTiming.ImpactPauseSeconds * 1000;
 		GetTree().CreateTimer(ReplayTiming.ImpactPauseSeconds).Timeout += () =>
+		{
+			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
+			PlayNext();
+		};
+		return true;
+	}
+
+	private bool PlayShieldChange(ShieldsChangedFacts shields)
+	{
+		_clipContext.ReplayState.ApplyShields(shields);
+		if (!_clipContext.ReplayState.Contains(shields.TargetId))
+			return false;
+
+		var state = _clipContext.ReplayState.StateOf(shields.TargetId);
+		_stateChanged(state);
+		if (!_clipContext.UnitViews.TryGetValue(shields.TargetId, out var view))
+			return false;
+
+		var duration = view.AnimateShields(state);
+		if (duration <= 0)
+			return false;
+		_clipContext.ReportInterest?.Invoke(new CameraInterest(
+			UnitInterestPoints(_clipContext.ReplayState, shields.TargetId, shields.TargetId),
+			CameraImportance.Combat));
+		var waitStart = Stopwatch.GetTimestamp();
+		_scheduledWaitMs += duration * 1000;
+		GetTree().CreateTimer(duration).Timeout += () =>
 		{
 			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
 			PlayNext();
@@ -341,7 +372,7 @@ public partial class TurnReplayPlayer : Node3D
 			ClearReplayMovementTrail(impact.TargetId);
 
 		if (state.IsAlive)
-			view.Sync(state);
+			view.AnimateShields(state);
 		else
 			view.ShowPendingDeath(state);
 		view.PlayImpactSparks(

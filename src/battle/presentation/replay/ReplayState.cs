@@ -61,6 +61,16 @@ public sealed class ReplayState
 			Defense.RestoreHull(state, heal.HullRestored);
 	}
 
+	public void ApplyShields(ShieldsChangedFacts shields)
+	{
+		if (!_states.TryGetValue(shields.TargetId, out var state))
+			return;
+
+		state.ShieldPoints = shields.ShieldPoints.Clone();
+		TemporaryShields.ReplaceGrants(state, shields.TemporaryShieldGrants);
+		ShieldBrace.Restore(state, shields.BraceStatus?.DeepCopy());
+	}
+
 	public void ApplyHeat(HeatChangedFacts heat)
 	{
 		if (!_states.TryGetValue(heat.ActorId, out var state))

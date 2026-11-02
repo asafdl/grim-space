@@ -23,7 +23,7 @@ public sealed class RevokeTemporaryShieldGrantEffect(string grantId) : IEffect<B
 			return [];
 		}
 
-		return [];
+		return [new Record<ShieldsChangedFacts>(ShieldsChangedFacts.Capture(actor))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

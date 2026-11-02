@@ -21,7 +21,7 @@ public sealed class ActivateShieldBraceEffect(ESpatialOrientation face) : IEffec
 		_previousUsedThisTurn = actor.ShieldBraceUsedThisTurn;
 		_previousShieldPoints = actor.ShieldPoints.Clone();
 		ShieldBrace.Activate(actor, face);
-		return [];
+		return [new Record<ShieldsChangedFacts>(ShieldsChangedFacts.Capture(actor))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

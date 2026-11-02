@@ -12,9 +12,10 @@ public sealed class GrantTemporaryShieldPerFaceEffect(string grantId, int perFac
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		TemporaryShields.GrantPerFace(world.StateOf(actorId), grantId, perFace);
+		var actor = world.StateOf(actorId);
+		TemporaryShields.GrantPerFace(actor, grantId, perFace);
 		_applied = true;
-		return [];
+		return [new Record<ShieldsChangedFacts>(ShieldsChangedFacts.Capture(actor))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

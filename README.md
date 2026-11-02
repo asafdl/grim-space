@@ -264,6 +264,25 @@ Strategic engagements deploy as seeded 3D interceptions. The initiating fleet st
 
 Movement uses two independently refilled resources. Action points (AP) pay for translation, while maneuver points (MP) pay for yaw, pitch, and roll. Each chassis owns its AP/MP allotments, supported translations and rotations, and their costs through [`ManeuverabilitySpec`](src/units/maneuvering/ManeuverabilitySpec.cs); battle [`State`](src/battle/units/State.cs) holds the effective profile and current pools. Void bombs derive a zero-MP profile from their launcher snapshot. Path selection ranks exact destination poses by AP cost first, then MP cost.
 
+### Shield presentation
+
+Shield-changing abilities and expiry effects emit [`ShieldsChangedFacts`](src/battle/effects/facts/ShieldsChangedFacts.cs)
+with detached per-face shield points, temporary grants, and Brace state. Replay applies those resolved snapshots
+rather than re-running ability rules. Damage and healing retain their existing `ImpactFacts` / `HealFacts` paths.
+All three paths refresh ship shield visuals; Brace overflow is displayed without clamping to the loadout maximum.
+Regular faces are icy blue, continuously dimming and desaturating with their remaining permanent-shield
+fraction. Any remaining temporary shields override that face's resting tint with violet until consumed or expired.
+During replay, changed faces pulse for 0.52 seconds: gains brighten cyan, losses brighten amber, and depleted
+faces fade out before hiding. Materials are per-face/per-ship; planning refreshes and replay resets are silent.
+One electric hum per changed ship fades with the pulse on the SFX bus. The supplied source is
+`197993__jjhouse4__static-fast-hum.wav`, preserved as `assets/sfx/abilities/shield_static_hum.wav`.
+When one or more faces drop from positive total shields to zero, one power-down sound plays per ship update
+alongside the fade, without extending replay timing. The supplied `348250__newagesoup__power-down-03.wav`
+is preserved as `assets/sfx/abilities/shield_power_down.wav`.
+Battle bloom is enabled with a 1.5 HDR threshold and no baseline bloom so the emission pulse can glow.
+Run [`shield_glow_preview.tscn`](scenes/dev/shield_glow_preview.tscn) with F6 to inspect gains, damage,
+healing, expiry, Brace, and release alongside an unchanged control ship.
+
 ### Heat, overdrive, and overheat
 
 Chassis that participate in heat ([`HeatSpec`](src/units/heat/HeatSpec.cs) on [`ShipSpec.Heat`](src/units/specs/ShipSpec.cs), copied to `State.HeatProfile`) track a heat pool capped at capacity (`Standard` is 100, clear 20/turn, gain multiplier 1). Opt-out with `HeatSpec.None` (e.g. void bombs)—gate with `Participates` only, never type branches.
@@ -344,7 +363,7 @@ Capability interfaces (metadata + helpers, still in units):
 
 [`BattleSpawn.Ship`](src/battle/encounter/BattleSpawn.cs) carries a **cloned** `ShipInstance` at layout time; strategic player spawns also snapshot **`PilotId`** on the spawn (encounter save/load), so battle portraits use deployment identity rather than live ship assignment. Battle [`State`](src/battle/units/State.cs) holds [`ShipLoadout`](src/units/ShipLoadout.cs) and creates one runtime counter set per mount. Spawns use [`ISpawnable.ChildSpec`](src/units/loadouts/abilities/ISpawnable.cs) (chassis spec for the child) via [`Factory.ChildFromSpawnableMount`](src/battle/units/Factory.cs). Battle reads each mount's effective [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs); spawned torpedoes snapshot those effective values onto battle [`State.Projectile`](src/battle/units/VoidBombProjectile.cs).
 
-Catalog loadouts are baseline ship configurations and may leave permissible mounts empty. DevDefault/DevDuel use T0 catalog loadouts for the three playable classes (Fighter, Repurposed Miner, Industrial Gooper), each with every global and class pilot skill learned.
+Catalog loadouts are baseline ship configurations and may leave permissible mounts empty. DevDefault fields the three playable classes on the player side and Fighter/Carrier/Gooper on the enemy side, all on T0 catalog loadouts; classified pilots get every global and class skill learned.
 
 **Upgrade target identity:** run-level **`shipId`** plus either ability kind + facet or a shield face. Merchant packs set an explicit target level on that target; they do not blindly increment it. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
 

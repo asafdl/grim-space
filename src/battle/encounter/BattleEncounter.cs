@@ -24,10 +24,17 @@ public sealed class BattleEncounter
 	public int XpDifficulty { get; init; } = DefaultXpDifficulty;
 	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
 
-	private static readonly EType[] DevClassChassis =
+	private static readonly EType[] DevPlayerChassis =
 	[
 		EType.Fighter,
 		EType.RepurposedMiner,
+		EType.IndustrialGooper,
+	];
+
+	private static readonly EType[] DevEnemyChassis =
+	[
+		EType.Fighter,
+		EType.Carrier,
 		EType.IndustrialGooper,
 	];
 
@@ -39,8 +46,8 @@ public sealed class BattleEncounter
 			seed,
 			gridSize);
 
-		var playerSpawns = DevClassFormation(seed, playerSide: true, playerAnchor);
-		var enemySpawns = DevClassFormation(seed, playerSide: false, enemyAnchor);
+		var playerSpawns = DevClassFormation(seed, playerSide: true, playerAnchor, DevPlayerChassis);
+		var enemySpawns = DevClassFormation(seed, playerSide: false, enemyAnchor, DevEnemyChassis);
 		var spawns = playerSpawns.Concat(enemySpawns).ToArray();
 		var fieldMargin = 2;
 		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
@@ -64,7 +71,11 @@ public sealed class BattleEncounter
 		};
 	}
 
-	private static BattleSpawn[] DevClassFormation(int seed, bool playerSide, BattleSpawn anchor)
+	private static BattleSpawn[] DevClassFormation(
+		int seed,
+		bool playerSide,
+		BattleSpawn anchor,
+		EType[] chassisList)
 	{
 		var lateral = Coord.Cross(anchor.Dorsal, anchor.Fore);
 		if (lateral == Coord.Zero)
@@ -78,10 +89,10 @@ public sealed class BattleEncounter
 		};
 
 		var side = playerSide ? "dev" : "enemy-dev";
-		var spawns = new BattleSpawn[DevClassChassis.Length];
-		for (var index = 0; index < DevClassChassis.Length; index++)
+		var spawns = new BattleSpawn[chassisList.Length];
+		for (var index = 0; index < chassisList.Length; index++)
 		{
-			var chassis = DevClassChassis[index];
+			var chassis = chassisList[index];
 			var id = index == 0
 				? anchor.Ship.Id
 				: $"{UnitTypeSlug.For(chassis)}-{side}-{seed}";
@@ -106,8 +117,10 @@ public sealed class BattleEncounter
 		return spawns;
 	}
 
-	private static PilotBattleSnapshot DevFullySkilledPilot(string shipId, EOperatorClassId classId) =>
-		PilotBattleSnapshot.FromSkills(
-			$"pilot-{shipId}",
-			PilotSkillCatalog.IdsForOperatorClass(classId));
+	private static PilotBattleSnapshot? DevFullySkilledPilot(string shipId, EOperatorClassId classId) =>
+		classId == EOperatorClassId.Unclassified
+			? null
+			: PilotBattleSnapshot.FromSkills(
+				$"pilot-{shipId}",
+				PilotSkillCatalog.IdsForOperatorClass(classId));
 }

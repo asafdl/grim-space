@@ -18,7 +18,9 @@ public sealed class ReleaseShieldBraceEffect : IEffect<BattleWorld, ActorRuntime
 		_previousStatus = ShieldBrace.TryStatus(actor)?.DeepCopy();
 		_previousShieldPoints = actor.ShieldPoints.Clone();
 		ShieldBrace.Release(actor);
-		return [];
+		return _previousStatus is null
+			? []
+			: [new Record<ShieldsChangedFacts>(ShieldsChangedFacts.Capture(actor))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

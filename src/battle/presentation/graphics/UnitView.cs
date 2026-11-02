@@ -10,6 +10,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public partial class UnitView : Node3D
 {
+	public const double ShieldChangeSeconds = 0.52;
+	private const double ShieldGlowRiseSeconds = 0.12;
 	private static readonly FontFile DamagePopupFont = GD.Load<FontFile>(
 		"res://assets/ui/fonts/AnakManja.ttf")
 		?? throw new InvalidOperationException("Could not load the damage popup font.");
@@ -30,7 +32,10 @@ public partial class UnitView : Node3D
 	private Node3D _visualRoot = null!;
 	private EType _type;
 	private readonly int[] _shieldPoints = new int[Faces.Length];
+	private readonly Color[] _shieldTints = new Color[Faces.Length];
 	private readonly MeshInstance3D?[] _shieldFaces = new MeshInstance3D?[Faces.Length];
+	private readonly Tween?[] _shieldGlowTweens = new Tween?[Faces.Length];
+	private AudioStreamPlayer3D? _shieldHum;
 	private Aabb _hullBounds;
 	private Tween? _poseTween;
 	private Tween? _shakeTween;
@@ -45,6 +50,7 @@ public partial class UnitView : Node3D
 
 	public override void _ExitTree()
 	{
+		StopShieldAnimation();
 		_poseTween?.Kill();
 		_poseTween = null;
 		_shakeTween?.Kill();
@@ -108,6 +114,7 @@ public partial class UnitView : Node3D
 
 	public void HideVisual()
 	{
+		StopShieldAnimation();
 		_poseTween?.Kill();
 		_poseTween = null;
 		_movementTangent = null;
@@ -587,6 +594,7 @@ public partial class UnitView : Node3D
 
 	void HideHullForDeath()
 	{
+		StopShieldAnimation();
 		_visualRoot.Visible = false;
 		ClearHeatIndicator();
 	}
@@ -695,6 +703,7 @@ public partial class UnitView : Node3D
 			{
 				Name = $"Shield{face}",
 				Mesh = ShieldBubbleMesh.CreateFace(_hullBounds, face),
+				MaterialOverride = ShieldFaceMaterials.Create(),
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			};
 			PresentationLayers.MarkUx(instance);
@@ -703,14 +712,45 @@ public partial class UnitView : Node3D
 		}
 	}
 
-	private void ApplyShields(State state)
+	public double AnimateShields(State state)
 	{
+		if (!state.IsAlive || VisualState != UnitVisualState.Live)
+			return 0;
+		if (!ApplyShields(state, animate: true))
+			return 0;
+
+		if (IsInstanceValid(_shieldHum))
+			_shieldHum!.QueueFree();
+		_shieldHum = PresentationSfx.PlayShieldChangeHum(this, ShieldChangeSeconds);
+		return ShieldChangeSeconds;
+	}
+
+	private void StopShieldAnimation()
+	{
+		for (var i = 0; i < _shieldGlowTweens.Length; i++)
+		{
+			_shieldGlowTweens[i]?.Kill();
+			_shieldGlowTweens[i] = null;
+			if (_shieldFaces[i] is { } face)
+				face.Scale = Vector3.One;
+		}
+		if (IsInstanceValid(_shieldHum))
+			_shieldHum!.QueueFree();
+		_shieldHum = null;
+	}
+
+	private bool ApplyShields(State state, bool animate = false)
+	{
+		if (!animate)
+			StopShieldAnimation();
 		var hideForGhost = VisualState is
 			UnitVisualState.Ghost
 			or UnitVisualState.SelectedGhost
 			or UnitVisualState.MoveGhost
 			or UnitVisualState.SelectedMoveGhost;
 		var maxProfile = state.Loadout.MaxShieldPoints;
+		var changed = false;
+		var depleted = false;
 		foreach (var face in Faces)
 		{
 			var index = (int)face;
@@ -726,15 +766,68 @@ public partial class UnitView : Node3D
 
 			var maxOnFace = maxProfile[face];
 			var temporary = TemporaryShields.TotalOnFace(state, face);
-			var points = System.Math.Clamp(state.ShieldPoints[face] + temporary, 0, maxOnFace + temporary);
-			if (_shieldPoints[index] == points)
+			var points = System.Math.Max(0, state.ShieldPoints[face] + temporary);
+			var previous = _shieldPoints[index];
+			var material = (StandardMaterial3D)instance.MaterialOverride;
+			var tint = ShieldFaceMaterials.TintFor(state.ShieldPoints[face], maxOnFace, temporary);
+			if (previous == points && _shieldTints[index] == tint && animate)
 				continue;
 
+			_shieldGlowTweens[index]?.Kill();
+			_shieldGlowTweens[index] = null;
+			instance.Scale = Vector3.One;
 			_shieldPoints[index] = points;
-			instance.Visible = points > 0;
-			if (instance.Visible)
-				instance.MaterialOverride = ShieldFaceMaterials.For(points, maxOnFace);
+			_shieldTints[index] = tint;
+			if (!animate || previous < 0 || previous == points)
+			{
+				instance.Visible = points > 0;
+				material.AlbedoColor = tint;
+				material.EmissionEnergyMultiplier = 0f;
+				continue;
+			}
+
+			changed = true;
+			depleted |= previous > 0 && points == 0;
+			instance.Visible = true;
+			var pulse = points > previous
+				? new Color(0.32f, 0.85f, 1f)
+				: new Color(1f, 0.5f, 0.12f);
+			var glowTint = new Color(pulse.R * 3f, pulse.G * 3f, pulse.B * 3f);
+			material.Emission = pulse;
+			if (previous == 0)
+				material.AlbedoColor = new Color(pulse, 0f);
+			var finalTint = points > 0 ? tint : new Color(tint, 0f);
+			var changeFraction = Mathf.Clamp(
+				(float)System.Math.Abs(points - previous) / System.Math.Max(1, maxOnFace), 0f, 1f);
+			var amplitude = Mathf.Lerp(0.012f, 0.06f, Mathf.Sqrt(changeFraction));
+			var vibrate = Callable.From<float>(seconds =>
+			{
+				var progress = seconds / (float)ShieldChangeSeconds;
+				var envelope = Mathf.Sin(Mathf.Pi * progress) * (1f - progress);
+				instance.Scale = Vector3.One * (
+					1f + amplitude * envelope * Mathf.Sin(Mathf.Tau * 14f * seconds));
+			});
+			var tween = CreateTween();
+			_shieldGlowTweens[index] = tween;
+			tween.SetTrans(Tween.TransitionType.Sine);
+			tween.SetEase(Tween.EaseType.InOut);
+			tween.TweenProperty(material, "emission_energy_multiplier", 4f, ShieldGlowRiseSeconds);
+			tween.Parallel().TweenProperty(material, "albedo_color", glowTint, ShieldGlowRiseSeconds);
+			tween.Parallel().TweenMethod(vibrate, 0f, (float)ShieldGlowRiseSeconds, ShieldGlowRiseSeconds);
+			tween.TweenProperty(material, "emission_energy_multiplier", 0f, ShieldChangeSeconds - ShieldGlowRiseSeconds);
+			tween.Parallel().TweenProperty(material, "albedo_color", finalTint, ShieldChangeSeconds - ShieldGlowRiseSeconds);
+			tween.Parallel().TweenMethod(vibrate, (float)ShieldGlowRiseSeconds, (float)ShieldChangeSeconds,
+				ShieldChangeSeconds - ShieldGlowRiseSeconds);
+			tween.TweenCallback(Callable.From(() =>
+			{
+				instance.Scale = Vector3.One;
+				instance.Visible = points > 0;
+				_shieldGlowTweens[index] = null;
+			}));
 		}
+		if (depleted)
+			PresentationSfx.PlayWorldOneShot(this, Vector3.Zero, PresentationSfx.ShieldPowerDownPath);
+		return changed;
 	}
 
 	private Aabb LocalVisualBounds()

@@ -263,31 +263,41 @@ public sealed class DeploymentPlacementTests
 	public void DevDefault_FieldsThreeClassesAtT0WithFullClassSkills()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
-		var expectedChassis = new[]
-		{
-			BattleUnitType.Fighter,
-			BattleUnitType.RepurposedMiner,
-			BattleUnitType.IndustrialGooper,
-		};
+		Assert.Equal(
+			[
+				BattleUnitType.Fighter,
+				BattleUnitType.RepurposedMiner,
+				BattleUnitType.IndustrialGooper,
+			],
+			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player)
+				.Select(spawn => spawn.Ship.Spec.Chassis)
+				.ToArray());
+		Assert.Equal(
+			[
+				BattleUnitType.Fighter,
+				BattleUnitType.Carrier,
+				BattleUnitType.IndustrialGooper,
+			],
+			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy)
+				.Select(spawn => spawn.Ship.Spec.Chassis)
+				.ToArray());
 
-		foreach (var team in new[] { ETeam.Player, ETeam.Enemy })
+		foreach (var spawn in encounter.Spawns)
 		{
-			var teamSpawns = encounter.Spawns.Where(spawn => spawn.Team == team).ToArray();
 			Assert.Equal(
-				expectedChassis,
-				teamSpawns.Select(spawn => spawn.Ship.Spec.Chassis).ToArray());
-
-			foreach (var spawn in teamSpawns)
+				ShipCatalog.LoadoutForTier(spawn.Ship.Spec.Chassis, EShipGearTier.T0).InstalledAbilities,
+				spawn.Ship.Loadout.InstalledAbilities);
+			if (spawn.Ship.Spec.ClassId == EOperatorClassId.Unclassified)
 			{
-				Assert.Equal(
-					ShipCatalog.LoadoutForTier(spawn.Ship.Spec.Chassis, EShipGearTier.T0).InstalledAbilities,
-					spawn.Ship.Loadout.InstalledAbilities);
-				var expectedPilot = PilotBattleSnapshot.FromSkills(
-					$"pilot-{spawn.Ship.Id}",
-					PilotSkillCatalog.IdsForOperatorClass(spawn.Ship.Spec.ClassId));
-				Assert.Equal(expectedPilot.PilotId, spawn.Pilot!.PilotId);
-				Assert.Equal(expectedPilot.CapabilityGrants, spawn.Pilot.CapabilityGrants);
+				Assert.Null(spawn.Pilot);
+				continue;
 			}
+
+			var expectedPilot = PilotBattleSnapshot.FromSkills(
+				$"pilot-{spawn.Ship.Id}",
+				PilotSkillCatalog.IdsForOperatorClass(spawn.Ship.Spec.ClassId));
+			Assert.Equal(expectedPilot.PilotId, spawn.Pilot!.PilotId);
+			Assert.Equal(expectedPilot.CapabilityGrants, spawn.Pilot.CapabilityGrants);
 		}
 	}
 
