@@ -2,8 +2,10 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Presentation.Replay;
@@ -79,5 +81,16 @@ public sealed class ReplayState
 		state.Heat = heat.Heat;
 		state.Overdrive = heat.Overdrive;
 		state.Overheat = heat.Overheat;
+	}
+
+	public void ApplyProtectionDrone(ProtectionDroneChangedFacts drone)
+	{
+		if (!_states.TryGetValue(drone.TargetId, out var state))
+			return;
+
+		BattleStatuses.RemoveInstance(state.Statuses,
+			BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), drone.TargetId));
+		if (drone.Status is { } status)
+			state.Statuses.Add(status.DeepCopy());
 	}
 }

@@ -283,6 +283,18 @@ Battle bloom is enabled with a 1.5 HDR threshold and no baseline bloom so the em
 Run [`shield_glow_preview.tscn`](scenes/dev/shield_glow_preview.tscn) with F6 to inspect gains, damage,
 healing, expiry, Brace, and release alongside an unchanged control ship.
 
+### Protection Drone presentation
+
+Protection Drone activation and removal emit [`ProtectionDroneChangedFacts`](src/battle/effects/facts/ProtectionDroneChangedFacts.cs)
+with the source, target, and detached resolved status (null on removal). Replay applies that status snapshot
+without re-running the ability. Buff presence remains authoritative; no separate drone lifetime or caster
+reference is persisted for presentation.
+One scrap-drone model flies from the caster to the target over 0.75 seconds, then hovers beside the
+target and follows its rendered pose. Buff removal fades the drone over 0.3 seconds; target death
+also starts the fade. Silent refreshes and loaded battles restore an active drone directly to hover.
+Run [`protection_drone_preview.tscn`](scenes/dev/protection_drone_preview.tscn) with F6 for replay-driven
+launch, movement, hover, expiry, and target-death cases. Space pauses cycling; N advances to the next stage.
+
 ### Heat, overdrive, and overheat
 
 Chassis that participate in heat ([`HeatSpec`](src/units/heat/HeatSpec.cs) on [`ShipSpec.Heat`](src/units/specs/ShipSpec.cs), copied to `State.HeatProfile`) track a heat pool capped at capacity (`Standard` is 100, clear 20/turn, gain multiplier 1). Opt-out with `HeatSpec.None` (e.g. void bombs)—gate with `Participates` only, never type branches.

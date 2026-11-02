@@ -1,8 +1,10 @@
 using Godot;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Components;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 
@@ -45,6 +47,7 @@ public partial class UnitView : Node3D
 	private MovementTrailView? _movementTrail;
 	private Vector3? _movementTangent;
 	private FlameHaloView? _flameHalo;
+	private ProtectionDroneView? _protectionDrone;
 
 	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
 
@@ -106,14 +109,27 @@ public partial class UnitView : Node3D
 		Visible = visualState != UnitVisualState.Hidden;
 		UpdateHeatIndicator(state);
 		if (!Visible)
+		{
+			ClearProtectionDrone();
 			return;
+		}
 
 		ApplyPose(state);
 		ApplyVisualState();
+		if (visualState == UnitVisualState.PendingDeath)
+		{
+			if (IsInstanceValid(_protectionDrone))
+				_protectionDrone!.FadeOut();
+		}
+		else if (visualState == UnitVisualState.Live && HasProtectionDrone(state))
+			EnsureProtectionDrone().SnapToHover();
+		else
+			ClearProtectionDrone();
 	}
 
 	public void HideVisual()
 	{
+		ClearProtectionDrone();
 		StopShieldAnimation();
 		_poseTween?.Kill();
 		_poseTween = null;
@@ -710,6 +726,50 @@ public partial class UnitView : Node3D
 			_shieldFaces[(int)face] = instance;
 			_visualRoot.AddChild(instance);
 		}
+	}
+
+	public double AnimateProtectionDrone(State state, Vector3? launchOrigin)
+	{
+		if (state.IsAlive && HasProtectionDrone(state))
+		{
+			var drone = EnsureProtectionDrone();
+			if (launchOrigin is { } origin)
+			{
+				drone.LaunchFrom(origin);
+				return ProtectionDroneView.FlightSeconds;
+			}
+			drone.SnapToHover();
+			return 0;
+		}
+		if (!IsInstanceValid(_protectionDrone))
+			return 0;
+		_protectionDrone!.FadeOut();
+		return ProtectionDroneView.FadeSeconds;
+	}
+
+	private static bool HasProtectionDrone(State state) =>
+		state.Statuses.Exists(status => status.InstanceId ==
+			BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), state.Id));
+
+	private ProtectionDroneView EnsureProtectionDrone()
+	{
+		if (IsInstanceValid(_protectionDrone) && !_protectionDrone!.IsQueuedForDeletion())
+			return _protectionDrone;
+		_protectionDrone = new ProtectionDroneView { Name = "ProtectionDrone" };
+		AddChild(_protectionDrone);
+		_protectionDrone.Attach(this, new Vector3(
+			_hullBounds.End.X + 0.6f, _hullBounds.End.Y + 0.3f, _hullBounds.GetCenter().Z));
+		return _protectionDrone;
+	}
+
+	private void ClearProtectionDrone()
+	{
+		if (IsInstanceValid(_protectionDrone))
+		{
+			_protectionDrone!.Visible = false;
+			_protectionDrone.QueueFree();
+		}
+		_protectionDrone = null;
 	}
 
 	public double AnimateShields(State state)

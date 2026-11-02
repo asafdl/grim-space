@@ -227,6 +227,10 @@ public partial class TurnReplayPlayer : Node3D
 					if (PlayShieldChange(shields))
 						return;
 					break;
+				case Record<ProtectionDroneChangedFacts> { Value: var drone }:
+					if (PlayProtectionDrone(drone))
+						return;
+					break;
 			}
 		}
 
@@ -307,6 +311,37 @@ public partial class TurnReplayPlayer : Node3D
 		var waitStart = Stopwatch.GetTimestamp();
 		_scheduledWaitMs += ReplayTiming.ImpactPauseSeconds * 1000;
 		GetTree().CreateTimer(ReplayTiming.ImpactPauseSeconds).Timeout += () =>
+		{
+			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
+			PlayNext();
+		};
+		return true;
+	}
+
+	private bool PlayProtectionDrone(ProtectionDroneChangedFacts drone)
+	{
+		_clipContext.ReplayState.ApplyProtectionDrone(drone);
+		if (!_clipContext.ReplayState.Contains(drone.TargetId))
+			return false;
+
+		var state = _clipContext.ReplayState.StateOf(drone.TargetId);
+		_stateChanged(state);
+		if (!_clipContext.UnitViews.TryGetValue(drone.TargetId, out var view))
+			return false;
+
+		Vector3? origin = drone.Status is not null
+			&& _clipContext.UnitViews.TryGetValue(drone.SourceId, out var source)
+				? source.GlobalPosition + Vector3.Up * 0.4f
+				: null;
+		var duration = view.AnimateProtectionDrone(state, origin);
+		if (duration <= 0)
+			return false;
+		_clipContext.ReportInterest?.Invoke(new CameraInterest(
+			UnitInterestPoints(_clipContext.ReplayState, drone.SourceId, drone.TargetId),
+			CameraImportance.Combat));
+		var waitStart = Stopwatch.GetTimestamp();
+		_scheduledWaitMs += duration * 1000;
+		GetTree().CreateTimer(duration).Timeout += () =>
 		{
 			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
 			PlayNext();

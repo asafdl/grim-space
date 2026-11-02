@@ -16,10 +16,14 @@ public sealed class SetProtectionDroneBuffActiveEffect(string targetId, bool act
 		var target = world.StateOf(targetId);
 		var instanceId = BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), targetId);
 		_previous = target.Statuses.Find(status => status.InstanceId == instanceId)?.DeepCopy();
+		if (!active && _previous is null)
+			return [];
+
 		BattleStatuses.RemoveInstance(target.Statuses, instanceId);
-		if (active)
-			target.Statuses.Add(BattleStatuses.CreateProtectionDrone(targetId));
-		return [];
+		var status = active ? BattleStatuses.CreateProtectionDrone(targetId) : null;
+		if (status is not null)
+			target.Statuses.Add(status);
+		return [new Record<ProtectionDroneChangedFacts>(new(actorId, targetId, status?.DeepCopy()))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)

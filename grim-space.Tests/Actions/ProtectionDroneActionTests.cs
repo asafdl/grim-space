@@ -3,8 +3,10 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
@@ -75,6 +77,49 @@ public sealed class ProtectionDroneActionTests
 			ally.State.Statuses,
 			status => status.InstanceId
 				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), AllyId));
+	}
+
+	[Fact]
+	public void BuffFactsReplayActivationAndExpiryIndependentlyOfUndo()
+	{
+		var (_, ally, battle) = BattleWithAlly();
+		var world = battle.Engine.World;
+		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+		var replay = new ReplayState(new Dictionary<string, State> { [AllyId] = ally.State });
+		var grant = new SetProtectionDroneBuffActiveEffect(AllyId, active: true);
+		var activated = Assert.IsType<Record<ProtectionDroneChangedFacts>>(
+			Assert.Single(grant.Apply(world, runtime, PlayerId))).Value;
+
+		Assert.Equal(PlayerId, activated.SourceId);
+		Assert.Equal(AllyId, activated.TargetId);
+		Assert.NotNull(activated.Status);
+		grant.Undo(world, runtime, PlayerId);
+		Assert.DoesNotContain(ally.State.Statuses, status => status.InstanceId == activated.Status.InstanceId);
+
+		replay.ApplyProtectionDrone(activated);
+		var replayed = Assert.Single(replay.StateOf(AllyId).Statuses,
+			status => status.InstanceId == activated.Status.InstanceId);
+		Assert.NotSame(activated.Status, replayed);
+		replay.ApplyProtectionDrone(activated);
+		Assert.Single(replay.StateOf(AllyId).Statuses, status => status.InstanceId == replayed.InstanceId);
+
+		grant.Apply(world, runtime, PlayerId);
+		var expiry = new SetProtectionDroneBuffActiveEffect(AllyId, active: false);
+		var expired = Assert.IsType<Record<ProtectionDroneChangedFacts>>(
+			Assert.Single(expiry.Apply(world, runtime, AllyId))).Value;
+		Assert.Null(expired.Status);
+		expiry.Undo(world, runtime, AllyId);
+		replay.ApplyProtectionDrone(expired);
+		Assert.DoesNotContain(replay.StateOf(AllyId).Statuses, status => status.InstanceId == replayed.InstanceId);
+		Assert.Contains(ally.State.Statuses, status => status.InstanceId == replayed.InstanceId);
+	}
+
+	[Fact]
+	public void ClearingMissingBuffEmitsNoDroneFact()
+	{
+		var (_, _, battle) = BattleWithAlly();
+		Assert.Empty(new SetProtectionDroneBuffActiveEffect(AllyId, active: false).Apply(
+			battle.Engine.World, battle.Engine.ActorRuntimes.For(PlayerId), AllyId));
 	}
 
 	[Fact]
