@@ -9,6 +9,7 @@ public static class AbilityReach
 			ScrapDroneSwarmSpec swarm => swarm.BurstRange * 3 + 1,
 			LightningCannonSpec lightningCannon =>
 				lightningCannon.LineLength + lightningCannon.MaxChains * lightningCannon.ChainRange,
+			RamSpec ram => ram.Range,
 			_ => 0,
 		};
 

@@ -229,7 +229,7 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent RamTooltipFor(RamSpec ram) =>
 		new(
 			"Ram",
-			$"Charge up to {ram.Range} cells forward. Stop at the first enemy and end adjacent to them.",
+			$"Smash into an enemy up to {BattleDistance.ApproximateCells(ram.Range)}.",
 			$"[icon: {Icon.Damage}, text: {ram.Damage}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 
 	public static BattleHudTooltipContent SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>

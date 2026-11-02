@@ -120,7 +120,8 @@ internal static class EnemySearchInput
 
 	private static bool HasOffensiveCharges(State state) =>
 		state.UsesRemaining(EAbilityKind.LightningCannon) > 0
-		|| state.UsesRemaining(EAbilityKind.ScrapDroneSwarm) > 0;
+		|| state.UsesRemaining(EAbilityKind.ScrapDroneSwarm) > 0
+		|| state.UsesRemaining(EAbilityKind.Ram) > 0;
 
 	private static int OptimisticWeaponReach(State state)
 	{
@@ -147,6 +148,9 @@ internal static class EnemySearchInput
 				return true;
 
 			if (actions[i] is ScrapDroneSwarmAction { ActorId: var swarmActorId } && swarmActorId == actorId)
+				return true;
+
+			if (actions[i] is RamAction { ActorId: var ramActorId } && ramActorId == actorId)
 				return true;
 		}
 
@@ -210,7 +214,7 @@ internal static class EnemySearchInput
 
 			adjustment += action switch
 			{
-				LightningCannonAction or ScrapDroneSwarmAction =>
+				LightningCannonAction or ScrapDroneSwarmAction or RamAction =>
 					WouldDamage(anchor, actions, actorId, i, searchStartDepth)
 						? DamageHitBonus
 						: -DamageHitBonus,
@@ -273,6 +277,8 @@ internal static class EnemySearchInput
 				WouldLightningCannonDamage(world, actorId, mountedOn),
 			ScrapDroneSwarmAction { ActorId: var swarmActorId, MountedOn: var mountedOn } when swarmActorId == actorId =>
 				WouldScrapDroneSwarmDamage(world, actorId, mountedOn),
+			RamAction { ActorId: var ramActorId } when ramActorId == actorId =>
+				WouldRamDamage(world, actorId),
 			_ => false,
 		};
 
@@ -290,6 +296,10 @@ internal static class EnemySearchInput
 
 			if (installed.Spec.Kind == EAbilityKind.ScrapDroneSwarm
 				&& WouldScrapDroneSwarmDamage(world, actorId, installed.MountedOn))
+				return true;
+
+			if (installed.Spec.Kind == EAbilityKind.Ram
+				&& WouldRamDamage(world, actorId))
 				return true;
 		}
 
@@ -314,6 +324,9 @@ internal static class EnemySearchInput
 		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(new ScrapDroneSwarmAction(actorId, mountedOn), world);
 		return world.AnyOpponentInCells(actorId, cells);
 	}
+
+	private static bool WouldRamDamage(BattleWorld world, string actorId) =>
+		RamDef.TryFindTarget(world, actorId, out _, out _);
 
 	// Counts threats against the actor and its allies, since a goop shot that shields a
 	// squadmate is just as valuable as one that shields the shooter.
