@@ -15,7 +15,8 @@ public partial class HazardBurstView : Node3D
 
 	public void Clear()
 	{
-		// Transient VFX free themselves; nothing to retain between turns.
+		foreach (var spray in GetChildren().OfType<GoopSprayEffect>())
+			spray.Cancel();
 	}
 
 	public void PlayShotBurst(

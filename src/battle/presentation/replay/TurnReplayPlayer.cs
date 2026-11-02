@@ -42,6 +42,7 @@ public partial class TurnReplayPlayer : Node3D
 	private IReadOnlyList<string> _activationOrder = [];
 	private int _flowCompletedCount;
 	private int _entryIndex;
+	private string? _activeActorId;
 
 	private int _turnNumber;
 	private Dictionary<string, ETeam> _participants = new(StringComparer.Ordinal);
@@ -108,11 +109,14 @@ public partial class TurnReplayPlayer : Node3D
 			_removeGoop);
 		foreach (var view in _unitViews.Values)
 		{
+			view.SetReplayActive(false);
 			view.ClearHeatVentFumes();
+			view.StopMovementSound();
 			view.StopRamAnimation();
 			view.StopEngineOvercharge();
 			view.ClearMovementTrail();
 		}
+		_activeActorId = null;
 		_hazardBursts.Clear();
 		_synchronizeViews(turnStart);
 	}
@@ -167,6 +171,14 @@ public partial class TurnReplayPlayer : Node3D
 					break;
 				case IAction action:
 				{
+					if (_activeActorId != action.ActorId)
+					{
+						if (_activeActorId is not null && _unitViews.TryGetValue(_activeActorId, out var previous))
+							previous.SetReplayActive(false);
+						_activeActorId = action.ActorId;
+						if (_unitViews.TryGetValue(action.ActorId, out var active))
+							active.SetReplayActive(true);
+					}
 					BeginPhase(ReplayActorPhase.Classify(action.ActorId, _participants));
 					ReportActionInterest(action);
 					_clipContext.FollowingActions = _history
@@ -565,6 +577,9 @@ public partial class TurnReplayPlayer : Node3D
 
 	private void Finish()
 	{
+		if (_activeActorId is not null && _unitViews.TryGetValue(_activeActorId, out var active))
+			active.SetReplayActive(false);
+		_activeActorId = null;
 		FlushPhase();
 		IsPlaying = false;
 		EmitTurnFlowIndexChanged();

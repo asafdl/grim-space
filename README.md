@@ -283,6 +283,49 @@ Battle bloom is enabled with a 1.5 HDR threshold and no baseline bloom so the em
 Run [`shield_glow_preview.tscn`](scenes/dev/shield_glow_preview.tscn) with F6 to inspect gains, damage,
 healing, expiry, Brace, and release alongside an unchanged control ship.
 
+### Goop Gun presentation
+
+Goop Gun replay fires along the installed mount's direction in the actor's current body
+frame, matching gameplay rather than always aiming forward. The projectile approximates
+the supplied rough sludge sketch as eight uneven, overlapping green tube strokes with
+shallow depth; the narrow end trails behind the broad leading end. It follows the existing
+arc to the patch center over 0.6768 seconds and fades by 0.72 seconds. The persistent goop
+field and gameplay rules are unchanged. The supplied [`goop_sploosh.png`](assets/vfx/goop_sploosh.png)
+appears as a camera-facing caption 3.5 world units above the patch center at arrival,
+three world units wide, popping in and fading over 0.4 seconds without extending replay.
+Replay reset cancels both sludge geometry and caption.
+Run [`goop_vfx_preview.tscn`](scenes/dev/goop_vfx_preview.tscn) with F6 for a Gooper
+firing through the real replay clip. Space fires again, 1/2/3 change ship orientation,
+arrow keys orbit the camera, and R reseeds the persistent field.
+
+### Ship idle motion
+
+Live battle ships hover through a four-second sideways cycle with independent starting
+phases: 0.06 world units to either side and two upward arcs reaching 0.04 world units.
+Gentle banking up to 2.5 degrees follows sideways velocity, becoming level at turnarounds
+rather than rocking in phase with displacement. Each completed idle cycle
+has a 1% chance of a three-second 360-degree barrel roll around the ship's forward axis.
+The roll adds a small lateral sweep and upward drift, easing back into normal hover at its end.
+The motion rotates about the hull center on a separate visual parent; grid positions,
+gameplay facing, targeting, Ram buildup, and hit-shake transforms remain unchanged.
+Planning ghosts and projectiles stay still. During replay, the active actor settles out
+of idle motion while other ships continue; idle resumes afterward. Local movement,
+orientation, hit shake, and Overcharge activation also suppress idle motion.
+An interrupted barrel roll settles by the shortest rotation back to neutral.
+Run [`ship_idle_preview.tscn`](scenes/dev/ship_idle_preview.tscn) with F6 to inspect one
+Fighter. Press B to trigger a barrel roll, or Space to replay Overcharge and movement
+and inspect idle interruption and resumption.
+
+### Normal movement audio
+
+Normal ship movement in battle replay loops the supplied
+`214663__hykenfreak__deep-space-ship-effect.mp3`, preserved as
+`assets/sfx/ships/ship_movement_loop.mp3`. Consecutive movement steps reuse the same
+player without restarting the recording. It fades in over 0.08 seconds at -12 dB
+and fades out over 0.18 seconds after the final step. Planning previews, orientation-only
+actions, Ram, and projectile movement do not start this loop. Live-state synchronization
+preserves the fade at replay completion; replay reset, hiding, death, and removal stop it immediately.
+
 ### Overcharge Engines presentation
 
 Overcharge Engines reuses Ram's exhaust geometry only: two smaller orange glows brighten and

@@ -23,7 +23,7 @@ public sealed class GoopGunActionClip : IReplayClip
 				$"Goop gun replay actor '{goopGun.ActorId}' has no goop gun installed on {goopGun.MountedOn}.");
 		var frame = BodyFrame.From(state);
 		var sourceCell = state.Position + frame.Step(goopGun.MountedOn);
-		var targetCell = state.Position + frame.Fore * spec.Range;
+		var targetCell = state.Position + frame.Step(goopGun.MountedOn) * spec.Range;
 		var source = WorldMapping.ToWorld(sourceCell);
 		var target = WorldMapping.ToWorld(targetCell);
 

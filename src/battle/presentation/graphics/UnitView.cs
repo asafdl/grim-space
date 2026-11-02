@@ -32,6 +32,13 @@ public partial class UnitView : Node3D
 
 	private MeshInstance3D? _hull;
 	private Node3D _visualRoot = null!;
+	private Node3D _idleRoot = null!;
+	private double _idleCycleTime;
+	private double _idleRollTime = -1;
+	private bool _replayActive;
+	private bool CanAnimateIdle => VisualState == UnitVisualState.Live && _visualRoot.Visible
+		&& _type != EType.VoidBomb && !_replayActive && _poseTween?.IsRunning() != true
+		&& _shakeTween?.IsRunning() != true && _overchargeTween?.IsRunning() != true;
 	private EType _type;
 	private readonly int[] _shieldPoints = new int[Faces.Length];
 	private readonly Color[] _shieldTints = new Color[Faces.Length];
@@ -56,12 +63,80 @@ public partial class UnitView : Node3D
 	private RamChargeEffect? _overchargeGlow;
 	private Tween? _overchargeTween;
 	private AudioStreamPlayer3D? _overchargeSound;
+	private AudioStreamPlayer3D? _movementSound;
+	private Tween? _movementSoundTween;
+	private bool _movementSoundFading;
 
 	public UnitVisualState VisualState { get; private set; } = UnitVisualState.Hidden;
 	public Aabb HullBounds => _hullBounds;
 
+	public override void _Process(double delta)
+	{
+		if (_idleRoot is null)
+			return;
+		if (VisualState != UnitVisualState.Live || !_visualRoot.Visible || _type == EType.VoidBomb)
+		{
+			_idleRoot.Transform = Transform3D.Identity;
+			_idleRollTime = -1;
+			return;
+		}
+
+		var idle = CanAnimateIdle;
+		var hover = Vector3.Zero;
+		var angle = 0f;
+		if (idle)
+		{
+			_idleCycleTime += delta;
+			if (_idleCycleTime >= 4)
+			{
+				_idleCycleTime %= 4;
+				if (_idleRollTime < 0 && GD.Randf() < 0.01f)
+					_idleRollTime = 0;
+			}
+			var phase = (float)(_idleCycleTime / 4) * Mathf.Tau;
+			var wave = Mathf.Sin(phase);
+			hover = new Vector3(wave * 0.06f, wave * wave * 0.04f, 0);
+			angle = -Mathf.Cos(phase) * Mathf.DegToRad(2.5f);
+			if (_idleRollTime >= 0)
+			{
+				_idleRollTime += delta;
+				var progress = (float)System.Math.Min(_idleRollTime / 3, 1);
+				var envelope = Mathf.Sin(Mathf.Pi * progress);
+				hover += new Vector3(
+					0.1f * Mathf.Sin(Mathf.Tau * progress) * envelope,
+					0.05f * envelope * envelope,
+					0);
+				angle += Mathf.Tau * progress * progress * (3 - 2 * progress);
+				if (progress >= 1)
+					_idleRollTime = -1;
+			}
+		}
+		else
+			_idleRollTime = -1;
+
+		var blend = (float)(1 - System.Math.Exp(-12 * delta));
+		var rotation = _idleRoot.Basis.GetRotationQuaternion()
+			.Slerp(new Quaternion(Vector3.Back, angle), blend).Normalized();
+		var basis = new Basis(rotation);
+		var center = _hullBounds.GetCenter();
+		var currentHover = _idleRoot.Position - center + _idleRoot.Basis * center;
+		var offset = currentHover.Lerp(hover, blend);
+		_idleRoot.Transform = new Transform3D(basis, center - basis * center + offset);
+	}
+
+	public void SetReplayActive(bool active) => _replayActive = active;
+
+	public bool TryPlayIdleBarrelRoll()
+	{
+		if (!CanAnimateIdle || _idleRollTime >= 0)
+			return false;
+		_idleRollTime = 0;
+		return true;
+	}
+
 	public override void _ExitTree()
 	{
+		StopMovementSound();
 		StopEngineOvercharge();
 		StopRamAnimation();
 		StopShieldAnimation();
@@ -78,8 +153,11 @@ public partial class UnitView : Node3D
 		_type = state.Type;
 		_bindColor = color;
 		Array.Fill(_shieldPoints, -1);
+		_idleCycleTime = GD.Randf() * 4;
+		_idleRoot = new Node3D { Name = "IdleMotion" };
+		AddChild(_idleRoot);
 		_visualRoot = new Node3D { Name = "VisualRoot" };
-		AddChild(_visualRoot);
+		_idleRoot.AddChild(_visualRoot);
 
 		if (state.Type == EType.VoidBomb)
 			BindVoidBomb();
@@ -112,6 +190,7 @@ public partial class UnitView : Node3D
 
 	public void Present(State state, UnitVisualState visualState)
 	{
+		StopMovementSound(immediate: visualState != UnitVisualState.Live);
 		StopEngineOvercharge();
 		StopRamAnimation();
 		_poseTween?.Kill();
@@ -119,6 +198,11 @@ public partial class UnitView : Node3D
 		_movementTangent = null;
 		SetMovementTrailEmitting(false);
 		VisualState = visualState;
+		if (visualState != UnitVisualState.Live)
+		{
+			_idleRoot.Transform = Transform3D.Identity;
+			_idleRollTime = -1;
+		}
 		Visible = visualState != UnitVisualState.Hidden;
 		UpdateHeatIndicator(state);
 		if (!Visible)
@@ -142,6 +226,7 @@ public partial class UnitView : Node3D
 
 	public void HideVisual()
 	{
+		StopMovementSound();
 		StopEngineOvercharge();
 		StopRamAnimation();
 		ClearHeatVentFumes();
@@ -152,6 +237,8 @@ public partial class UnitView : Node3D
 		_movementTangent = null;
 		SetMovementTrailEmitting(false);
 		VisualState = UnitVisualState.Hidden;
+		_idleRoot.Transform = Transform3D.Identity;
+		_idleRollTime = -1;
 		Visible = false;
 		ClearHeatIndicator();
 	}
@@ -174,6 +261,45 @@ public partial class UnitView : Node3D
 		_movementTrail?.SetEmitting(emitting);
 
 	public void ClearMovementTrail() => _movementTrail?.Clear();
+
+	public void PlayMovementSound(double duration)
+	{
+		_movementSoundTween?.Kill();
+		_movementSoundFading = false;
+		if (!IsInstanceValid(_movementSound))
+			_movementSound = PresentationSfx.PlayShipMovementLoop(this);
+
+		var sound = _movementSound!;
+		_movementSoundTween = CreateTween();
+		var attack = System.Math.Min(0.08, duration);
+		_movementSoundTween.TweenProperty(sound, "volume_linear", Mathf.DbToLinear(-12f), attack);
+		_movementSoundTween.TweenInterval(duration - attack);
+		_movementSoundTween.TweenCallback(Callable.From(() => StopMovementSound(immediate: false)));
+	}
+
+	public void StopMovementSound(bool immediate = true)
+	{
+		if (!immediate && _movementSoundFading)
+			return;
+		_movementSoundTween?.Kill();
+		_movementSoundTween = null;
+		_movementSoundFading = false;
+		if (IsInstanceValid(_movementSound))
+		{
+			if (!immediate)
+			{
+				_movementSoundFading = true;
+				_movementSoundTween = CreateTween();
+				_movementSoundTween.TweenProperty(_movementSound, "volume_linear", 0f, 0.18)
+					.SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+				_movementSoundTween.TweenCallback(Callable.From(() => StopMovementSound()));
+				return;
+			}
+			_movementSound!.Stop();
+			_movementSound.QueueFree();
+		}
+		_movementSound = null;
+	}
 
 	private void ApplyVisualState()
 	{
@@ -626,11 +752,14 @@ public partial class UnitView : Node3D
 
 	void HideHullForDeath()
 	{
+		StopMovementSound();
 		StopEngineOvercharge();
 		StopRamAnimation();
 		ClearHeatVentFumes();
 		StopShieldAnimation();
 		_visualRoot.Visible = false;
+		_idleRoot.Transform = Transform3D.Identity;
+		_idleRollTime = -1;
 		ClearHeatIndicator();
 	}
 
@@ -803,6 +932,7 @@ public partial class UnitView : Node3D
 
 	public void AnimateRam(State destination)
 	{
+		StopMovementSound();
 		StopRamAnimation();
 		_poseTween?.Kill();
 		_shakeTween?.Kill();

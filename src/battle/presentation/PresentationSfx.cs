@@ -22,6 +22,8 @@ public static class PresentationSfx
 		"res://assets/sfx/abilities/void_bomb_explosion.wav";
 	public const string ShipDeathPath =
 		"res://assets/sfx/ships/ship_death_enhanced_v2.wav";
+	public const string ShipMovementPath =
+		"res://assets/sfx/ships/ship_movement_loop.mp3";
 	public const float ShipDeathPitchScale = 1.6f;
 	public const string ShieldChangeHumPath =
 		"res://assets/sfx/abilities/shield_static_hum.wav";
@@ -66,6 +68,24 @@ public static class PresentationSfx
 
 		tree.CreateTimer(0.08).Timeout += () =>
 			PlayWorldOneShot(parent, localPosition, ScrapDroneMountBeepsPath);
+	}
+
+	public static AudioStreamPlayer3D PlayShipMovementLoop(Node parent)
+	{
+		var stream = (AudioStreamMP3)Load(ShipMovementPath).Duplicate();
+		stream.Loop = true;
+		var player = new AudioStreamPlayer3D
+		{
+			Name = "ShipMovementSound",
+			Stream = stream,
+			Bus = AudioBuses.Sfx,
+			VolumeLinear = 0f,
+			MaxDistance = 4096f,
+			AttenuationModel = AudioStreamPlayer3D.AttenuationModelEnum.Disabled,
+		};
+		parent.AddChild(player);
+		player.Play();
+		return player;
 	}
 
 	public static AudioStreamPlayer3D PlayShieldChangeHum(Node parent, double duration)

@@ -19,6 +19,8 @@ public sealed class MoveStepClip : IReplayClip
 			state,
 			ReplayTiming.MoveStepSeconds,
 			context.NextMovePosition(move.ActorId));
+		if (state.IsAlive)
+			context.UnitViews[move.ActorId].PlayMovementSound(ReplayTiming.MoveStepSeconds);
 		return ClipPlayback.Pause(ReplayTiming.MoveStepSeconds);
 	}
 }
