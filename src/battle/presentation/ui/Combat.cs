@@ -15,5 +15,4 @@ public enum EPlayerMode
 	Brace,
 	ProtectionDrone,
 	Ram,
-	DevMarkTargets,
 }

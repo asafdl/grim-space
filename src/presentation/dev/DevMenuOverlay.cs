@@ -22,7 +22,6 @@ public sealed partial class DevMenuOverlay : Control
 	private Action? _grantMaxPilotExperience;
 
 	public event Action? StartBattleRequested;
-	public event Action? StartTargetPickShowcaseRequested;
 
 	public DevMenuOverlay()
 	{
@@ -50,9 +49,6 @@ public sealed partial class DevMenuOverlay : Control
 
 		var items = HudWidgets.CreateModalButtonColumn();
 		items.AddChild(HudWidgets.CreateModalMenuButton("Start Battle", OnStartBattle));
-		items.AddChild(HudWidgets.CreateModalMenuButton(
-			"Target Pick Showcase",
-			OnStartTargetPickShowcase));
 
 		var canForceBattleOutcome = _canForceBattleOutcome?.Invoke() == true;
 		items.AddChild(HudWidgets.CreateModalMenuButton(
@@ -164,12 +160,6 @@ public sealed partial class DevMenuOverlay : Control
 	}
 
 	private void OnStartBattle() => StartBattleRequested?.Invoke();
-
-	private void OnStartTargetPickShowcase()
-	{
-		Close();
-		StartTargetPickShowcaseRequested?.Invoke();
-	}
 
 	private void OnWinBattle()
 	{

@@ -207,12 +207,6 @@ internal static class BattleHudCopy
 			details);
 	}
 
-	public static BattleHudTooltipContent DevMarkTargetsTooltip =>
-		new(
-			"Mark Targets (dev)",
-			"Dev-only range pick: select 1–3 enemies, then click this skill again to queue.",
-			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
-
 	public static BattleHudTooltipContent ProtectionDroneTooltipFor(UnitDisplayState unit)
 	{
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.ProtectionDrone);

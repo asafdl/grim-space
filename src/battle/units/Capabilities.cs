@@ -6,7 +6,6 @@ using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Dev;
 using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Math.Grid;
 
@@ -58,12 +57,9 @@ public static class Capabilities
 		if (state.Type == EType.VoidBomb)
 			return [DetonateDef.Instance];
 
-		var defs = MergeAbilityDefs(
+		return MergeAbilityDefs(
 			CollectAbilityDefs(state.Loadout.InstalledAbilities),
 			PilotCapabilityActionDefs.DefsFor(runtime.PilotCapabilities));
-		if (TargetPickShowcase.Enabled)
-			defs = MergeAbilityDefs(defs, [DevMarkTargetsDef.Instance]);
-		return defs;
 	}
 
 	/// <summary>

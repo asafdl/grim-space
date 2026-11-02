@@ -1,7 +1,6 @@
 using Godot;
 using GrimSpace.Application;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Dev;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Player;
@@ -110,9 +109,7 @@ public partial class BattleController : Node3D
 		else
 		{
 			var seed = Random.Shared.Next();
-			var devEncounter = TargetPickShowcase.Enabled
-				? BattleEncounter.TargetPickShowcase(seed)
-				: BattleEncounter.DevDefault(seed);
+			var devEncounter = BattleEncounter.DevDefault(seed);
 			_encounterSpawns = devEncounter.Spawns;
 			_xpDifficulty = devEncounter.XpDifficulty;
 			_battle = BattleOrchestrator.FromEncounter(devEncounter);
