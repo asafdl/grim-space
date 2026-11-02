@@ -33,7 +33,11 @@ public sealed class SetEngagementIntentEffect : IEffect<StarMap, Runtime.ActorRu
 				new FleetPursuitChanged(_initiatorId, priorTargetId, false)));
 		}
 
-		var engagementId = initiator.CurrentEngagement?.Id ?? TypedIdGenerator.NextId("engagement");
+		// A different fight must not inherit this id. Ambush and retarget both arrive
+		// while another pursuit is still on the initiator.
+		var engagementId = string.Equals(priorTargetId, _targetId, StringComparison.Ordinal)
+			? initiator.CurrentEngagement!.Id
+			: TypedIdGenerator.NextId("engagement");
 		initiator.CurrentEngagement = new Engagement(
 			engagementId,
 			EEngagementPhase.Pursuing,

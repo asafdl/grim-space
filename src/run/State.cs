@@ -207,7 +207,17 @@ public sealed class State : IDisposable
 		}
 
 		if (_resolvedBattleIds.Contains(outcome.BattleId))
+		{
+			if (ActiveBattle is not null
+				&& string.Equals(ActiveBattle.Id, outcome.BattleId, StringComparison.Ordinal))
+			{
+				ReleaseResolvedBattle(outcome.BattleId);
+				GameLog.Log(
+					$"Ignored duplicate outcome for '{outcome.BattleId}' and released the active battle.");
+			}
+
 			return;
+		}
 
 		ValidateOutcomeHandoffs(outcome);
 
@@ -230,6 +240,46 @@ public sealed class State : IDisposable
 		_resolvedBattleIds.Add(outcome.BattleId);
 		PendingBattleOutcome = null;
 		ActiveBattle = null;
+		ReleaseBattleOutcomeSubscription();
+	}
+
+	internal bool TryReturnFromBattle(string battleId)
+	{
+		if (ActiveBattle is null)
+			return true;
+
+		if (!string.Equals(ActiveBattle.Id, battleId, StringComparison.Ordinal))
+		{
+			GameLog.Log(
+				$"Return to star map ignored; battle '{battleId}' is not the active engagement '{ActiveBattle.Id}'.");
+			return false;
+		}
+
+		if (!_resolvedBattleIds.Contains(battleId))
+		{
+			GameLog.Log($"Return to star map ignored; engagement '{battleId}' is not resolved.");
+			return false;
+		}
+
+		ReleaseResolvedBattle(battleId);
+		GameLog.Log($"Released already-resolved engagement '{battleId}'.");
+		return true;
+	}
+
+	private void ReleaseResolvedBattle(string engagementId)
+	{
+		foreach (var fleet in StarSystem.Map.FleetRegistry.All)
+		{
+			if (string.Equals(fleet.State.CurrentEngagement?.Id, engagementId, StringComparison.Ordinal))
+				fleet.State.CurrentEngagement = null;
+		}
+
+		if (ActiveBattle is null
+			|| !string.Equals(ActiveBattle.Id, engagementId, StringComparison.Ordinal))
+			return;
+
+		ActiveBattle = null;
+		PendingBattleOutcome = null;
 		ReleaseBattleOutcomeSubscription();
 	}
 
@@ -980,6 +1030,14 @@ public sealed class State : IDisposable
 		if (ActiveBattle is { Id: var activeBattleId }
 			&& string.Equals(activeBattleId, fact.EngagementId, StringComparison.Ordinal))
 			return;
+
+		if (_resolvedBattleIds.Contains(fact.EngagementId))
+		{
+			ReleaseResolvedBattle(fact.EngagementId);
+			GameLog.Log(
+				$"Ignored relaunch of resolved engagement '{fact.EngagementId}'.");
+			return;
+		}
 
 		if (ActiveBattle is not null)
 		{

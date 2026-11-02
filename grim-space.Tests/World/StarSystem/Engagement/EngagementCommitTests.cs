@@ -86,6 +86,55 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void ResolvedEngagement_DoesNotRelaunchOrStayEngaged()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var battleReady = 0;
+		run.BattleReady += () => battleReady++;
+		var fact = CommitPlayerEngagement(run);
+		using (var orchestrator = run.CreateActiveBattleOrchestrator())
+			orchestrator.ForceOutcome(EBattleResult.Win);
+
+		Assert.Null(run.ActiveBattle);
+		var launchesAfterResolution = battleReady;
+
+		run.ReceiveEngagementFact(new Record<EngagementCommitted>(fact));
+
+		Assert.Null(run.ActiveBattle);
+		Assert.Equal(launchesAfterResolution, battleReady);
+		Assert.NotEqual(
+			EEngagementPhase.Engaged,
+			EngagementAssertions.Phase(run.StarSystem.Map.StateOf(RunState.PlayerFleetUnitId)));
+	}
+
+	[Fact]
+	public void DuplicateResolvedOutcome_ReleasesActiveBattle()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var fact = CommitPlayerEngagement(run);
+		var battle = run.ActiveBattle;
+		using (var orchestrator = run.CreateActiveBattleOrchestrator())
+			orchestrator.ForceOutcome(EBattleResult.Win);
+
+		run.ActiveBattle = battle;
+		run.StarSystem.Map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement =
+			new GrimSpace.World.StarSystem.Units.Engagement(
+			fact.EngagementId,
+			EEngagementPhase.Engaged,
+			RunState.PlayerFleetUnitId,
+			[RunState.PlayerFleetUnitId],
+			HuntedBy: null,
+			Hunting: null);
+
+		run.OnCommittedBattleOutcome(new Record<BattleOutcome>(
+			new BattleOutcome(fact.EngagementId, EBattleResult.Win, [])));
+
+		Assert.Null(run.ActiveBattle);
+		Assert.Null(run.StarSystem.Map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement);
+		Assert.True(run.TryReturnFromBattle(fact.EngagementId));
+	}
+
+	[Fact]
 	public void NonPlayerEngagement_DoesNotLaunchPlayerBattle()
 	{
 		using var run = RunState.CreateNewRun(42);

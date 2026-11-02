@@ -32,8 +32,8 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Heat Vents",
 					$"Release {PilotSkillPercents.HeatVents.HeatReleased} heat."),
-				tier: 1,
-				minimumEarnedLevel: 2,
+				tier: 2,
+				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.ShieldsUp] = new(
 				EPilotSkillId.ShieldsUp,
@@ -59,8 +59,8 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Dodge This",
 					$"Deal {PilotSkillPercents.DodgeThis.AdditionalDamagePercent}% additional damage when hitting a target at {PilotSkillPercents.DodgeThis.BonusRangeCells} km range ({PilotSkillPercents.DodgeThis.BonusHitDamagePercent}% total weapon damage)."),
-				tier: 1,
-				minimumEarnedLevel: 2,
+				tier: 2,
+				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
 			[EPilotSkillId.IonizedPayload] = new(
 				EPilotSkillId.IonizedPayload,

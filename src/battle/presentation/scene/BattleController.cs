@@ -1002,7 +1002,7 @@ public partial class BattleController : Node3D
 		if (!_battle.IsBattleOver)
 			return;
 
-		if (Session.Instance.Run.ActiveBattle is not null)
+		if (!Session.Instance.Run.TryReturnFromBattle(_battle.Engine.World.BattleId))
 			return;
 
 		GetTree().ChangeSceneToFile("res://scenes/map.tscn");

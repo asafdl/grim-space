@@ -118,6 +118,46 @@ public sealed class UnitEngagementStateTests(StarMapFixture maps)
 		Assert.Equal(secondTarget, EngagementAssertions.Hunting(map.StateOf(hunter)));
 		Assert.Null(EngagementAssertions.HuntedBy(map.StateOf(firstTarget)));
 		Assert.Equal(hunter, EngagementAssertions.HuntedBy(map.StateOf(secondTarget)));
+		Assert.NotEqual(
+			map.StateOf(firstTarget).CurrentEngagement?.Id,
+			map.StateOf(hunter).CurrentEngagement!.Id);
+	}
+
+	[Fact]
+	public void SetEngagementIntentEffect_SameTarget_KeepsEngagementId()
+	{
+		var map = maps.Fresh(42);
+		var runtime = new ActorRuntime();
+		var hunter = map.FleetRegistry.Ids.First();
+		var target = AddPirate(map, "pirate-a", new GrimSpace.Math.Grid.Coord(10, 0, 10));
+		var effect = new SetEngagementIntentEffect(hunter, target);
+		effect.Apply(map, runtime, hunter);
+		var engagementId = map.StateOf(hunter).CurrentEngagement!.Id;
+
+		effect.Apply(map, runtime, hunter);
+
+		Assert.Equal(engagementId, map.StateOf(hunter).CurrentEngagement!.Id);
+		Assert.Equal(engagementId, map.StateOf(target).CurrentEngagement!.Id);
+	}
+
+	[Fact]
+	public void SetEngagementIntentEffect_NewFight_DoesNotStealExistingPursuitId()
+	{
+		var map = maps.Fresh(42);
+		var runtime = new ActorRuntime();
+		var player = map.FleetRegistry.Ids.First();
+		var pursuer = AddPirate(map, "pursuer", new GrimSpace.Math.Grid.Coord(10, 0, 10));
+		var ambush = AddPirate(map, "ambush", new GrimSpace.Math.Grid.Coord(20, 0, 20));
+		new SetEngagementIntentEffect(pursuer, player).Apply(map, runtime, pursuer);
+		var pursuitId = map.StateOf(pursuer).CurrentEngagement!.Id;
+
+		new SetEngagementIntentEffect(player, ambush).Apply(map, runtime, player);
+
+		Assert.Equal(pursuitId, map.StateOf(pursuer).CurrentEngagement!.Id);
+		Assert.NotEqual(pursuitId, map.StateOf(player).CurrentEngagement!.Id);
+		Assert.Equal(
+			map.StateOf(player).CurrentEngagement!.Id,
+			map.StateOf(ambush).CurrentEngagement!.Id);
 	}
 
 	[Fact]
