@@ -252,6 +252,7 @@ public static class SaveDtoMapper
 			state.HeatVentsUsedThisTurn,
 			state.DefensiveManeuversMpUsed,
 			state.DefensiveManeuversRollIndex,
+			state.ReactiveShieldsStacks,
 			state.Heat,
 			state.Overdrive,
 			state.Overheat,
@@ -296,6 +297,7 @@ public static class SaveDtoMapper
 		state.HeatVentsUsedThisTurn = dto.HeatVentsUsedThisTurn;
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
+		state.ReactiveShieldsStacks = dto.ReactiveShieldsStacks;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
@@ -374,6 +376,7 @@ public static class SaveDtoMapper
 				state.HeatVentsUsedThisTurn,
 				state.DefensiveManeuversMpUsed,
 				state.DefensiveManeuversRollIndex,
+				state.ReactiveShieldsStacks,
 				state.Heat,
 				state.Overdrive,
 				state.Overheat,
@@ -901,6 +904,7 @@ public static class SaveDtoMapper
 			state.HeatVentsUsedThisTurn = unitDto.HeatVentsUsedThisTurn;
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
+			state.ReactiveShieldsStacks = unitDto.ReactiveShieldsStacks;
 			RestoreHeat(
 				state,
 				unitDto.Heat,

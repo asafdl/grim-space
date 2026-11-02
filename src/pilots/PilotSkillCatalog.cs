@@ -120,6 +120,15 @@ public static class PilotSkillCatalog
 				audience: PilotSkillAudience.ForOperatorClasses(
 					EOperatorClassId.SpaceRanger,
 					EOperatorClassId.Tank)),
+			[EPilotSkillId.ReactiveShields] = new(
+				EPilotSkillId.ReactiveShields,
+				[EPilotCapabilityId.ReactiveShields],
+				new HudTooltipContent(
+					"Reactive Shields",
+					$"After each hit, gain damage resistance {100 - PilotSkillPercents.ReactiveShields.DamageTakenPercentPerStack}%."),
+				tier: 2,
+				minimumEarnedLevel: 3,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Tank)),
 			[EPilotSkillId.OneWithTheVoid] = new(
 				EPilotSkillId.OneWithTheVoid,
 				[EPilotCapabilityId.OneWithTheVoid],

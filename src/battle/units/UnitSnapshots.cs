@@ -7,14 +7,16 @@ public readonly record struct UnitCombatSnapshot(
 	int HullPoints,
 	FaceShieldPoints ShieldPoints,
 	IReadOnlyList<TemporaryShieldGrant> TemporaryShieldGrants,
-	int DefensiveManeuversRollIndex)
+	int DefensiveManeuversRollIndex,
+	int ReactiveShieldsStacks = 0)
 {
 	public static UnitCombatSnapshot Capture(State unit) =>
 		new(
 			unit.HullPoints,
 			unit.ShieldPoints.Clone(),
 			TemporaryShields.ExtractGrants(unit),
-			unit.DefensiveManeuversRollIndex);
+			unit.DefensiveManeuversRollIndex,
+			unit.ReactiveShieldsStacks);
 
 	public void Restore(State unit)
 	{
@@ -22,6 +24,7 @@ public readonly record struct UnitCombatSnapshot(
 		unit.ShieldPoints = ShieldPoints.Clone();
 		TemporaryShields.ReplaceGrants(unit, TemporaryShieldGrants);
 		unit.DefensiveManeuversRollIndex = DefensiveManeuversRollIndex;
+		unit.ReactiveShieldsStacks = ReactiveShieldsStacks;
 	}
 }
 

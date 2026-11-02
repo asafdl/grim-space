@@ -15,6 +15,7 @@ public enum EPilotCapabilityId
 	ExperienceGainBonus,
 	HeatVents,
 	HealingSkillRangeBonus,
+	ReactiveShields,
 	OneWithTheVoid,
 	MinorScrapRewardBonus,
 	ScrapRewardBonus,

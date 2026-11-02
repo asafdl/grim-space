@@ -17,4 +17,5 @@ public enum EPilotSkillId
 	HeatVents,
 	HelpABotterOut,
 	IKnowABot,
+	ReactiveShields,
 }

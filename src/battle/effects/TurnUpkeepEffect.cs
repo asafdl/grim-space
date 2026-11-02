@@ -12,6 +12,7 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	private int _previousActionPoints;
 	private int _previousManeuverPoints;
 	private int _previousHeat;
+	private int _previousReactiveShieldsStacks;
 	private Dictionary<AbilityMount, MountRuntimeCounters>? _previousMountRuntime;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -20,12 +21,14 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		_previousActionPoints = actor.ActionPoints;
 		_previousManeuverPoints = actor.ManeuverPoints;
 		_previousHeat = actor.Heat;
+		_previousReactiveShieldsStacks = actor.ReactiveShieldsStacks;
 		_previousMountRuntime = actor.MountRuntime.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.Clone());
 
 		actor.ActionPoints = actor.Maneuverability.MaxActionPoints;
 		actor.ManeuverPoints = actor.Maneuverability.MaxManeuverPoints;
+		actor.ReactiveShieldsStacks = 0;
 		foreach (var installed in actor.Loadout.InstalledAbilities)
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
@@ -63,6 +66,7 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.ActionPoints = _previousActionPoints;
 		actor.ManeuverPoints = _previousManeuverPoints;
 		actor.Heat = _previousHeat;
+		actor.ReactiveShieldsStacks = _previousReactiveShieldsStacks;
 		if (_previousMountRuntime is null)
 			return;
 

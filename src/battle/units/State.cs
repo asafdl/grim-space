@@ -37,6 +37,7 @@ public sealed class State
 	public int ProtectionDroneRollIndex { get; set; }
 	public int DefensiveManeuversMpUsed { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
+	public int ReactiveShieldsStacks { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public required HeatSpec HeatProfile { get; set; }
 	public int Heat { get; set; }
@@ -116,6 +117,7 @@ public sealed class State
 			ProtectionDroneRollIndex = ProtectionDroneRollIndex,
 			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
+			ReactiveShieldsStacks = ReactiveShieldsStacks,
 			Maneuverability = Maneuverability,
 			HeatProfile = HeatProfile,
 			Heat = Heat,

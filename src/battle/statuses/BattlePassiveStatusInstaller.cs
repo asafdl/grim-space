@@ -18,6 +18,7 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.AdjacentDamageBonus,
 		EPilotCapabilityId.ReinforcedHull,
 		EPilotCapabilityId.InTheFray,
+		EPilotCapabilityId.ReactiveShields,
 		EPilotCapabilityId.StationaryDamageDeflection,
 		EPilotCapabilityId.OneWithTheVoid,
 	];
@@ -125,6 +126,30 @@ public static class BattlePassiveStatusInstaller
 						: Defense.ScaleHitDamageTaken(
 							hit,
 							PilotSkillPercents.InTheFray.DamageTakenPercent),
+			},
+			EPilotCapabilityId.ReactiveShields => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteIncomingHit = (_, target, _, hit) =>
+				{
+					if (hit.Damage <= 0)
+						return hit;
+
+					var unit = target.State;
+					var scaled = hit;
+					for (var i = 0; i < unit.ReactiveShieldsStacks; i++)
+					{
+						scaled = Defense.ScaleHitDamageTaken(
+							scaled,
+							PilotSkillPercents.ReactiveShields.DamageTakenPercentPerStack);
+					}
+
+					unit.ReactiveShieldsStacks++;
+					return scaled;
+				},
 			},
 			EPilotCapabilityId.StationaryDamageDeflection => new BattleStatus
 			{

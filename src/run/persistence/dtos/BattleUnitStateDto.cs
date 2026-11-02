@@ -27,6 +27,7 @@ public sealed record BattleUnitStateDto(
 	bool HeatVentsUsedThisTurn = false,
 	int DefensiveManeuversMpUsed = 0,
 	int DefensiveManeuversRollIndex = 0,
+	int ReactiveShieldsStacks = 0,
 	int Heat = 0,
 	int? HeatCapacity = null,
 	int? HeatClearPerTurn = null,

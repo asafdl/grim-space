@@ -90,6 +90,12 @@ public static class PilotSkillPercents
 		public const int ApCost = 2;
 	}
 
+	public static class ReactiveShields
+	{
+		/// <summary>Fraction of hit damage retained per stack (80 = each stack reduces by 20%, multiplicative).</summary>
+		public const int DamageTakenPercentPerStack = 80;
+	}
+
 	public static class HelpABotterOut
 	{
 		public const int HealingRangeBonusCells = 1;

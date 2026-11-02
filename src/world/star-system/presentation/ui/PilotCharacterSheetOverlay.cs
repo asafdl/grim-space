@@ -21,6 +21,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string HullIconPath = "res://assets/ui/battle/hull.png";
 	private const string HeatIconPath = "res://assets/ui/battle/heat.png";
 	private const string BetterRamIconPath = "res://assets/ui/abilities/better_ram.png";
+	private const string ReactiveShieldsIconPath = "res://assets/ui/abilities/reactive_shields.png";
 	private const string HealIconPath = "res://assets/ui/battle/heal.png";
 	private const string SkillReticlePath =
 		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
@@ -434,6 +435,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			EPilotSkillId.ReinforcedHull => HullIconPath,
 			EPilotSkillId.BetterRam => BetterRamIconPath,
 			EPilotSkillId.HeatVents => HeatIconPath,
+			EPilotSkillId.ReactiveShields => ReactiveShieldsIconPath,
 			EPilotSkillId.HelpABotterOut => HealIconPath,
 			EPilotSkillId.IKnowABot => BotIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(skillId), skillId, null),

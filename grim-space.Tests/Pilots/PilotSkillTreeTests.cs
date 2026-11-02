@@ -102,6 +102,7 @@ public sealed class PilotSkillTreeTests
 		Assert.Contains(EPilotSkillId.DefensiveManeuvers, tree);
 		Assert.Contains(EPilotSkillId.ProtectionDrone, tree);
 		Assert.DoesNotContain(EPilotSkillId.DodgeThis, tree);
+		Assert.DoesNotContain(EPilotSkillId.ReactiveShields, tree);
 	}
 
 	[Fact]
@@ -119,6 +120,7 @@ public sealed class PilotSkillTreeTests
 
 		Assert.Contains(EPilotSkillId.InTheFray, tree);
 		Assert.Contains(EPilotSkillId.DefensiveManeuvers, tree);
+		Assert.Contains(EPilotSkillId.ReactiveShields, tree);
 		Assert.DoesNotContain(EPilotSkillId.DodgeThis, tree);
 		Assert.DoesNotContain(EPilotSkillId.Brace, tree);
 	}
