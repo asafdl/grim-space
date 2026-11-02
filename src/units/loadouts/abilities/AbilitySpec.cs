@@ -20,6 +20,7 @@ public abstract record AbilitySpec
 			EAbilityKind.MinerBay => MinerBaySpec.Baseline,
 			EAbilityKind.VoidBombLauncher => VoidBombLauncherSpec.Baseline,
 			EAbilityKind.GoopGun => GoopGunSpec.Baseline,
+			EAbilityKind.Ram => RamSpec.Baseline,
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 
@@ -257,6 +258,42 @@ public sealed record GoopGunSpec(
 				cells.Add(center + starboard * (-port) + dorsal * dorsalOffset);
 		}
 
+		return cells;
+	}
+}
+
+public sealed record RamSpec(
+	int UsesPerTurn,
+	int Damage,
+	int Range) : AbilitySpec, IPerTurnAbility, IAreaDamage
+{
+	public const int MaxDamageUpgradeTier = 3;
+	public const int MaxRangeUpgradeTier = 3;
+	public static RamSpec Baseline { get; } = new(
+		UsesPerTurn: 1,
+		Damage: 300,
+		Range: 3);
+
+	public override EAbilityKind Kind => EAbilityKind.Ram;
+	public override int MaxDamageUpgrades => MaxDamageUpgradeTier;
+	public override int MaxRangeUpgrades => MaxRangeUpgradeTier;
+	int IPerTurnAbility.UsesPerTurn => UsesPerTurn;
+	int IAreaDamage.Damage => Damage;
+
+	protected override AbilitySpec ApplyUpgrades(int damageUpgradeTier, int rangeUpgradeTier) =>
+		this with
+		{
+			Damage = Baseline.Damage + damageUpgradeTier * 100,
+			Range = Baseline.Range + rangeUpgradeTier,
+			DamageUpgradeTier = damageUpgradeTier,
+			RangeUpgradeTier = rangeUpgradeTier,
+		};
+
+	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal)
+	{
+		var cells = new List<Coord>(Range);
+		for (var along = 1; along <= Range; along++)
+			cells.Add(origin + direction * along);
 		return cells;
 	}
 }

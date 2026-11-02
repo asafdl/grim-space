@@ -303,6 +303,7 @@ public static class ActionLog
 		cause switch
 		{
 			EImpactCause.ScrapDroneSwarmBurst => "Scrap Drone Swarm",
+			EImpactCause.RamImpact => "Ram",
 			_ => FormatEnum(cause),
 		};
 

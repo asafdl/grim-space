@@ -130,6 +130,7 @@ internal static class FleetManagementProjection
 			EAbilityKind.MinerBay => "Miner Bay",
 			EAbilityKind.VoidBombLauncher => "Void Bomb Launcher",
 			EAbilityKind.GoopGun => "Goop Gun",
+			EAbilityKind.Ram => "Ram",
 			_ => kind.ToString(),
 		};
 
@@ -166,6 +167,12 @@ internal static class FleetManagementProjection
 				new("RANGE", goop.Range.ToString()),
 				new("AREA", $"{goop.HalfWidth * 2 + 1} × {goop.HalfHeight * 2 + 1}"),
 				new("COOLDOWN", goop.UnavailableTurns.ToString()),
+			],
+			RamSpec ram =>
+			[
+				new("DAMAGE", ram.Damage.ToString()),
+				new("RANGE", ram.Range.ToString()),
+				new("USES PER TURN", ram.UsesPerTurn.ToString()),
 			],
 			_ => [],
 		};

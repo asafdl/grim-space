@@ -5,4 +5,5 @@ public enum EImpactCause
 	ScrapDroneSwarmBurst,
 	LightningCannonBurst,
 	VoidBombBlast,
+	RamImpact,
 }

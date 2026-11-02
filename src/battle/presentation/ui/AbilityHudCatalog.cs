@@ -46,6 +46,8 @@ public static class AbilityHudCatalog
 				("res://assets/ui/abilities/void_bomb.svg", VoidBombAccent),
 			EAbilityKind.MinerBay =>
 				("res://assets/ui/abilities/repurposed-miner.svg", new Color(0.4f, 0.9f, 0.58f, 0.48f)),
+			EAbilityKind.Ram =>
+				("res://assets/ui/abilities/ram.png", new Color(0.92f, 0.55f, 0.28f, 0.5f)),
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 		return new Visual(path, OpaqueTint(accent));
@@ -226,6 +228,19 @@ public static class AbilityHudCatalog
 					1),
 				legality => legality.ProtectionDrone,
 				ProtectionDroneDef.TargetPick),
+			RamDef => new(
+				EPlayerMode.Ram,
+				def,
+				new AbilityTargetingSpec(
+					AdjacentMountedSource,
+					AbilitySourceMeshes.CreateDetonation,
+					new Color(0.92f, 0.55f, 0.28f, 0.5f)),
+				"res://assets/ui/abilities/ram.png",
+				BattleHudCopy.RamTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.UsesRemaining(EAbilityKind.Ram),
+					unit.MaxUsesPerTurn(EAbilityKind.Ram)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.Ram)),
 			DevMarkTargetsDef => new(
 				EPlayerMode.DevMarkTargets,
 				def,

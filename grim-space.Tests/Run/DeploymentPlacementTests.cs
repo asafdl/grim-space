@@ -298,7 +298,7 @@ public sealed class DeploymentPlacementTests
 				Assert.Equal(1, swarm.RangeUpgradeTier);
 			});
 		Assert.Equal(
-			[EAbilityKind.GoopGun],
+			[EAbilityKind.Ram, EAbilityKind.GoopGun],
 			gooper.Loadout.InstalledAbilities.Select(ability => ability.Kind).ToArray());
 	}
 

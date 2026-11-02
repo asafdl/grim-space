@@ -114,6 +114,7 @@ internal static class ShipRecruitmentDisplay
 			EAbilityKind.MinerBay => "Miner Bay",
 			EAbilityKind.VoidBombLauncher => "Void Bomb Launcher",
 			EAbilityKind.GoopGun => "Goop Gun",
+			EAbilityKind.Ram => "Ram",
 			_ => kind.ToString(),
 		};
 }

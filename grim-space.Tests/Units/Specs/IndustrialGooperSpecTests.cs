@@ -9,13 +9,16 @@ namespace GrimSpace.Tests.Units.Specs;
 public sealed class IndustrialGooperSpecTests
 {
 	[Fact]
-	public void Slots_AreRetroGoopGunOnly()
+	public void Slots_AreForwardRamAndRetroGoopGun()
 	{
 		var spec = IndustrialGooperSpec.Instance;
 
 		Assert.Equal(EOperatorClassId.Tank, spec.ClassId);
 		Assert.Equal(
-			[new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Retro)],
+			[
+				new AbilityMount(EAbilityKind.Ram, ESpatialOrientation.Forward),
+				new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Retro),
+			],
 			spec.Slots.Select(slot => slot.Mount).ToArray());
 	}
 
@@ -29,7 +32,10 @@ public sealed class IndustrialGooperSpecTests
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 			Assert.Equal((3 * 100), loadout.MaxShieldPoints[face]);
 		Assert.Equal(
-			[new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Retro)],
+			[
+				new AbilityMount(EAbilityKind.Ram, ESpatialOrientation.Forward),
+				new AbilityMount(EAbilityKind.GoopGun, ESpatialOrientation.Retro),
+			],
 			loadout.InstalledAbilities.Select(ability => ability.Mount).ToArray());
 	}
 

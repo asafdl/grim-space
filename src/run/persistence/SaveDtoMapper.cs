@@ -976,6 +976,7 @@ public static class SaveDtoMapper
 				dto.Data.GetProperty("MaxLivingChildren").GetInt32()),
 			EAbilityKind.VoidBombLauncher => Deserialize<VoidBombLauncherSpec>(dto.Data),
 			EAbilityKind.GoopGun => Deserialize<GoopGunSpec>(dto.Data),
+			EAbilityKind.Ram => Deserialize<RamSpec>(dto.Data),
 			_ => throw new InvalidDataException($"Unsupported ability kind '{dto.Kind}'."),
 		};
 	}

@@ -17,6 +17,7 @@ public sealed class ReplayClipRegistry
 		new LightningCannonActionClip(),
 		new ScrapDroneSwarmActionClip(),
 		new DetonateActionClip(),
+		new RamActionClip(),
 	]);
 
 	private readonly Dictionary<Type, IReplayClip> _clips;

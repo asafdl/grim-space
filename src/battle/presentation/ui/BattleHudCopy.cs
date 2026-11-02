@@ -213,6 +213,17 @@ internal static class BattleHudCopy
 			details);
 	}
 
+	public static BattleHudTooltipContent RamTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<RamSpec>(unit, EAbilityKind.Ram) is { } ram
+			? RamTooltipFor(ram)
+			: new BattleHudTooltipContent("Ram", string.Empty);
+
+	public static BattleHudTooltipContent RamTooltipFor(RamSpec ram) =>
+		new(
+			"Ram",
+			$"Charge up to {ram.Range} cells forward. Stop at the first enemy and end adjacent to them.",
+			$"[icon: {Icon.Damage}, text: {ram.Damage}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
+
 	public static BattleHudTooltipContent SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<MinerBaySpec>(unit, EAbilityKind.MinerBay) is { } bay
 			? SpawnRepurposedMinerTooltipFor(bay)

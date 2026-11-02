@@ -6,4 +6,5 @@ public enum EWeaponKind
 	LightningCannon,
 	GoopGun,
 	VoidBomb,
+	Ram,
 }

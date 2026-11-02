@@ -122,6 +122,7 @@ public sealed class PlanningPreview
 		var starboardScrapDroneSwarm = false;
 		var lightningCannon = false;
 		var goopGun = false;
+		var ram = false;
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 
 		foreach (var action in actions)
@@ -140,6 +141,9 @@ public sealed class PlanningPreview
 				case GoopGunAction:
 					goopGun = true;
 					break;
+				case RamAction:
+					ram = true;
+					break;
 				case VoidBombAction torpedo:
 					torpedoMounts.Add(torpedo.MountedOn);
 					break;
@@ -151,7 +155,8 @@ public sealed class PlanningPreview
 			starboardScrapDroneSwarm,
 			lightningCannon,
 			goopGun,
-			torpedoMounts);
+			torpedoMounts,
+			ram);
 	}
 
 	public AreaActionPreviews AreaPreviews(

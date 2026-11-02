@@ -123,6 +123,7 @@ public static class Capabilities
 			EAbilityKind.MinerBay => SpawnRepurposedMinerDef.Instance,
 			EAbilityKind.VoidBombLauncher => VoidBombDef.Instance,
 			EAbilityKind.GoopGun => GoopGunDef.Instance,
+			EAbilityKind.Ram => RamDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),
 		};
 

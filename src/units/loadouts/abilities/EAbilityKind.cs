@@ -7,4 +7,5 @@ public enum EAbilityKind
 	MinerBay,
 	VoidBombLauncher,
 	GoopGun,
+	Ram,
 }

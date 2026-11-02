@@ -33,6 +33,7 @@ public sealed class IndustrialGooperSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
+		new(new(EAbilityKind.Ram, ESpatialOrientation.Forward)),
 		new(new(EAbilityKind.GoopGun, ESpatialOrientation.Retro)),
 	];
 }
