@@ -25,7 +25,6 @@ public sealed record BattleUnitSaveDto(
 	IReadOnlyList<BattleStatusDto>? Statuses = null,
 	bool ShieldsUpUsedThisTurn = false,
 	int OverchargeEnginesCooldownRemaining = 0,
-	int ProtectionDroneCooldownRemaining = 0,
 	int ProtectionDroneRollIndex = 0,
 	bool ShieldBraceUsedThisTurn = false,
 	bool HeatVentsUsedThisTurn = false,

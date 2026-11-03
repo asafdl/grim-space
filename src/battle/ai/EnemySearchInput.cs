@@ -87,6 +87,50 @@ internal static class EnemySearchInput
 		action is not GoopGunAction goop
 		|| CountThreatsBlockedByGoop(simulation.World, actorId, goop) > 0;
 
+	public static ProtectionDroneAction? BestProtectionDroneAction(
+		BattleWorld world,
+		ActorRuntime runtime,
+		string actorId)
+	{
+		ProtectionDroneAction? best = null;
+		var bestThreats = 0;
+		foreach (var action in ProtectionDroneDef.Instance.Discover(world, runtime, actorId))
+		{
+			if (action is not ProtectionDroneAction drone)
+				continue;
+
+			var threats = CountThreatsAgainst(world, actorId, drone.TargetId);
+			if (threats <= bestThreats)
+				continue;
+
+			bestThreats = threats;
+			best = drone;
+		}
+
+		return bestThreats > 0 ? best : null;
+	}
+
+	internal static int CountThreatsAgainst(BattleWorld world, string actorId, string targetId)
+	{
+		var units = UnitRegistry.For(world);
+		var actor = units.UnitOf(actorId);
+		var targets = new[] { world.StateOf(targetId).Position };
+		var threats = 0;
+		foreach (var unit in units.Except(actorId))
+		{
+			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Opponent)
+				continue;
+
+			threats += CountBlockableThreatsFromAttacker(
+				world,
+				unit.State,
+				targets,
+				world.AbilityBlockingCells);
+		}
+
+		return threats;
+	}
+
 	private static int EngagementAdjustment(
 		BattleWorld world,
 		string actorId,

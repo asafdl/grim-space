@@ -354,6 +354,37 @@ At dash arrival, BAAM is accompanied by `assets/sfx/abilities/ram_metal_impact.w
 only the first donk from the supplied `582025__eminyildirim__metal-impact.wav`, with the quiet
 lead-in and subsequent hits removed and a 30ms tail fade. The source recording is untouched.
 
+### High Velocity Rod presentation
+
+Run [`high_velocity_rod_preview.tscn`](scenes/dev/high_velocity_rod_preview.tscn)
+with F6 to inspect the supplied sketch approximated as thin 3D strokes with slight
+depth offsets. Both original gray shades are preserved; the orange flare blooms.
+The orange trail brightens from dim to glowing over 1 second, then a 0.01-second
+Tween reveals the stationary gray rod from right to left. The glow fades over
+0.25 seconds after firing. Space toggles the animation
+loop/static inspection, P pauses/resumes, arrows orbit, T rotates the effect, and R
+resets the view. Battle replay uses the same strokes and timings, stretching only
+the gray shaft from the firing cell to the last resolved ray cell; the orange
+flare remains at the source without stretching. Impacts play after the reveal,
+while the 0.25-second cosmetic tail does not delay replay. Replay reset cancels
+active rods and their audio. Firing plays the supplied 0.83-second
+`high_velocity_rod_ricochet.wav` unchanged, after buildup; its tail finishes
+independently of the visual without delaying impacts.
+The supplied `high_velocity_rod_ping.png` appears camera-facing above the shaft
+midpoint at firing, popping in and fading with the firing glow without extra replay delay.
+For runtime-path captures, pass `-- --battle-shot`, optionally with
+`--short`, `--oblique`, or `--rotated`.
+
+### Roads teleport presentation
+
+Run [`roads_teleport_preview.tscn`](scenes/dev/roads_teleport_preview.tscn) with F6
+to inspect a Rogue pixel-dissolving at departure and revealing at arrival.
+Space restarts the loop; P pauses/resumes. The screen-space block shader keeps
+the model's base colors/textures and highlights dissolving blocks in purple.
+The preview and Roads battle replay share the same pixel teleport effect:
+0.325 seconds to dissolve, a 0.06-second hidden jump, then 0.325 seconds to reveal.
+Original hull materials are restored on completion or interruption.
+
 ### Heat Vents presentation
 
 Run [`heat_vents_preview.tscn`](scenes/dev/heat_vents_preview.tscn) with F6 to review the supplied
@@ -473,16 +504,18 @@ that model; the class icon temporarily uses the generic hull icon.
 
 Rogue has two chassis abilities, both costing 0 AP and generating 20 base heat:
 
-- **High-Speed Rod:** independent dorsal and ventral mounts, each firing once
+- **High Velocity Rod:** independent dorsal and ventral mounts, each firing once
   per turn along a 4-cell (4 km) line stopped by the first living ship or obstacle.
   Normal damage is 70. If the normal outgoing hit exceeds the struck face's
   effective shields (including temporary shields), multiply the entire hit by
   3.5 before incoming defense modifiers. Equality does not trigger the bonus.
   Gear weapon-damage and overdrive bonuses apply through the existing damage
   pipeline; the hull-breach multiplier is preserved by effect rewrites.
-- **Roads? We Don't Need Roads:** teleport 1-4 cells along a single world-grid
+- **Roads? We Don't Need Roads:** teleport exactly 4 cells along a single world-grid
   axis, ignoring intervening obstacles/ships. The landing cell must be empty,
-  passable, and in bounds. Heading and roll are preserved. Cooldown is 3 turns,
+  passable, and in bounds. The attack direction selector previews the landing
+  cell; directions with invalid landings are disabled rather than shortened.
+  Heading and roll are preserved. Cooldown is 3 turns,
   using normal mount cooldown upkeep; a kill credited to the ship or one of its
   owned child units resets it immediately. Damage resolution owns the reset in
   both simulation and live commit, with undo restoring the prior cooldown.

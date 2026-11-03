@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -20,7 +21,7 @@ public sealed class RoadsWeDontNeedRoadsActionClip : IReplayClip
 			throw new InvalidOperationException("Jump replay spec missing.");
 		state.Position = moved.To;
 		state.MountRuntimeFor(installed.Mount).CooldownRemaining = spec.CooldownTurns;
-		context.UnitViews[jump.ActorId].Sync(state);
-		return ClipPlayback.Pause(0.15);
+		context.UnitViews[jump.ActorId].AnimateTeleport(state);
+		return ClipPlayback.Pause(PixelTeleportEffect.DurationSeconds);
 	}
 }

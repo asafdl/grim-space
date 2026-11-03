@@ -5,7 +5,7 @@ using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Targeting;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
-using GrimSpace.Pilots;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
@@ -31,7 +31,7 @@ public sealed class ProtectionDroneDef
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		if (!runtime.PilotCapabilities.Contains(EPilotCapabilityId.ProtectionDrone))
+		if (world.StateOf(actorId).FindInstalled(EAbilityKind.ProtectionDrone) is null)
 			yield break;
 
 		foreach (var targetId in TargetPick.LegalTargets(world, actorId, Array.Empty<string>()))
@@ -64,7 +64,7 @@ public sealed class ProtectionDroneDef
 		Resolve(Cast(action), world, runtime);
 
 	public bool IsPossible(ProtectionDroneAction action, BattleWorld world, ActorRuntime runtime) =>
-		runtime.PilotCapabilities.Contains(EPilotCapabilityId.ProtectionDrone);
+		world.StateOf(action.ActorId).FindInstalled(EAbilityKind.ProtectionDrone) is not null;
 
 	public bool IsLegal(ProtectionDroneAction action, BattleWorld world, ActorRuntime runtime)
 	{
@@ -72,7 +72,10 @@ public sealed class ProtectionDroneDef
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(actor) || actor.ProtectionDroneCooldownRemaining > 0)
+		var installed = actor.FindInstalled(EAbilityKind.ProtectionDrone);
+		if (BattleStatuses.HasOverheat(actor)
+			|| installed is null
+			|| actor.CooldownRemaining(installed.Mount) > 0)
 			return false;
 
 		if (!TargetPickSpec.IsLiving(world, action.TargetId))
@@ -81,7 +84,7 @@ public sealed class ProtectionDroneDef
 		var target = world.StateOf(action.TargetId);
 		if (target.Statuses.Any(status =>
 			status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), target.Id)))
+				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), target.Id)))
 			return false;
 
 		return TargetPick.Filters.All(filter =>
@@ -93,6 +96,11 @@ public sealed class ProtectionDroneDef
 		BattleWorld world,
 		ActorRuntime runtime)
 	{
+		var installed = world.StateOf(action.ActorId).FindInstalled(EAbilityKind.ProtectionDrone)
+			?? throw new InvalidOperationException("Protection Drone is not installed.");
+		if (installed.Spec is not ProtectionDroneSpec spec)
+			throw new InvalidOperationException("Protection Drone spec missing.");
+
 		var targetId = action.TargetId;
 		return
 		[
@@ -100,11 +108,11 @@ public sealed class ProtectionDroneDef
 			new SetProtectionDroneBuffActiveEffect(targetId, active: true),
 			new ScheduleActivationRoundEffect(
 				EUnitActivationPhase.End,
-				PilotSkillPercents.ProtectionDrone.BuffDurationEndPasses,
+				spec.BuffDurationEndPasses,
 				sticky: false,
 				new ClearProtectionDroneBuffAction(targetId),
 				onUnitId: targetId),
-			new SetProtectionDroneCooldownEffect(PilotSkillPercents.ProtectionDrone.CooldownTurns),
+			new MountCooldownEffect(installed.Mount, spec.CooldownTurns),
 		];
 	}
 

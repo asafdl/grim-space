@@ -7,6 +7,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -47,6 +48,7 @@ public partial class UnitView : Node3D
 	private AudioStreamPlayer3D? _shieldHum;
 	private Aabb _hullBounds;
 	private Tween? _poseTween;
+	private PixelTeleportEffect? _teleport;
 	private Tween? _shakeTween;
 	private Color _bindColor = Colors.White;
 	private ShaderMaterial? _ghostMaterial;
@@ -136,6 +138,7 @@ public partial class UnitView : Node3D
 
 	public override void _ExitTree()
 	{
+		_teleport?.Stop();
 		StopMovementSound();
 		StopEngineOvercharge();
 		StopRamAnimation();
@@ -190,6 +193,7 @@ public partial class UnitView : Node3D
 
 	public void Present(State state, UnitVisualState visualState)
 	{
+		_teleport?.Stop();
 		StopMovementSound(immediate: visualState != UnitVisualState.Live);
 		StopEngineOvercharge();
 		StopRamAnimation();
@@ -226,6 +230,7 @@ public partial class UnitView : Node3D
 
 	public void HideVisual()
 	{
+		_teleport?.Stop();
 		StopMovementSound();
 		StopEngineOvercharge();
 		StopRamAnimation();
@@ -930,6 +935,23 @@ public partial class UnitView : Node3D
 		_overchargeSound = null;
 	}
 
+	public void AnimateTeleport(State destination)
+	{
+		var departure = Position;
+		Sync(destination);
+		Position = departure;
+		_idleRoot.Transform = Transform3D.Identity;
+		if (_hull is null)
+			throw new InvalidOperationException("Teleport requires a bound hull.");
+		if (_teleport is null)
+		{
+			_teleport = new PixelTeleportEffect { Name = "PixelTeleport" };
+			AddChild(_teleport);
+		}
+		var arrival = destination.Clone();
+		_teleport.Play(_hull, () => ApplyPose(arrival));
+	}
+
 	public void AnimateRam(State destination)
 	{
 		StopMovementSound();
@@ -1091,7 +1113,7 @@ public partial class UnitView : Node3D
 
 	private static bool HasProtectionDrone(State state) =>
 		state.Statuses.Exists(status => status.InstanceId ==
-			BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), state.Id));
+			BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), state.Id));
 
 	private ProtectionDroneView EnsureProtectionDrone()
 	{

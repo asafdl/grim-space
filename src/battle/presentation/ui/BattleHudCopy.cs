@@ -123,7 +123,7 @@ internal static class BattleHudCopy
 		{
 			EPlayerMode.SpawnRepurposedMiner => PickLaunchBay,
 			EPlayerMode.Detonate => PickVoidBomb,
-			EPlayerMode.RoadsWeDontNeedRoads => "Pick jump destination",
+			EPlayerMode.RoadsWeDontNeedRoads => "Pick jump direction",
 			_ => PickFiringMount,
 		};
 
@@ -208,19 +208,16 @@ internal static class BattleHudCopy
 			details);
 	}
 
-	public static BattleHudTooltipContent ProtectionDroneTooltipFor(UnitDisplayState unit)
-	{
-		var definition = PilotSkillCatalog.Get(EPilotSkillId.ProtectionDrone);
-		var mechanics =
-			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.ProtectionDrone.CooldownTurns} turns]";
-		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
-			? mechanics
-			: $"{definition.Tooltip.Details}\n{mechanics}";
-		return new BattleHudTooltipContent(
-			definition.Tooltip.Title,
-			definition.Tooltip.Body,
-			details);
-	}
+	public static BattleHudTooltipContent ProtectionDroneTooltipFor(UnitDisplayState unit) =>
+		FirstInstalled<ProtectionDroneSpec>(unit, EAbilityKind.ProtectionDrone) is { } drone
+			? ProtectionDroneTooltipFor(drone)
+			: new BattleHudTooltipContent("Protection Drone", string.Empty);
+
+	public static BattleHudTooltipContent ProtectionDroneTooltipFor(ProtectionDroneSpec drone) =>
+		new(
+			"Protection Drone",
+			$"Send a drone to an ally, granting a {drone.DeflectChancePercent}% chance to deflect {drone.DeflectDamageTakenPercent}% damage from each hit for {drone.BuffDurationEndPasses} turns.",
+			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: {drone.CooldownTurns} turns]");
 
 	public static BattleHudTooltipContent RamTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<RamSpec>(unit, EAbilityKind.Ram) is { } ram
@@ -236,9 +233,9 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent HighSpeedRodTooltipFor(UnitDisplayState unit)
 	{
 		var rod = FirstInstalled<HighSpeedRodSpec>(unit, EAbilityKind.HighSpeedRod)
-			?? throw new InvalidOperationException("High-Speed Rod tooltip requires an installed rod.");
+			?? throw new InvalidOperationException("High Velocity Rod tooltip requires an installed rod.");
 		return new(
-			"High-Speed Rod",
+			"High Velocity Rod",
 			$"Fire up to {BattleDistance.ApproximateCells(rod.Range)}, Crit when hitting hull.",
 			$"[icon: {Icon.Damage}, text: {rod.Damage}] [icon: {Icon.Crit}, text: x{rod.HullBreachDamagePercent / 100m:0.##}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 	}
@@ -249,7 +246,7 @@ internal static class BattleHudCopy
 			?? throw new InvalidOperationException("Jump tooltip requires an installed jump ability.");
 		return new(
 			"Roads? We Don't Need Roads",
-			$"Teleport up to {BattleDistance.ApproximateCells(jump.Range)}. Reset cooldown on kill.",
+			$"Teleport {BattleDistance.ApproximateCells(jump.Range)} in the selected direction. Reset cooldown on kill.",
 			$"[icon: {Icon.Cooldown}, text: {jump.CooldownTurns} turns] [icon: {Icon.KillReset}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 	}
 

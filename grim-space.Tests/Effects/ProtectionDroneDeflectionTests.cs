@@ -8,6 +8,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Effects;
 
@@ -81,7 +82,7 @@ public sealed class ProtectionDroneDeflectionTests
 
 	private static int SucceedingProtectionDroneIndex(string unitId, EImpactCause cause)
 	{
-		var chance = PilotSkillPercents.ProtectionDrone.DeflectChancePercent / 100.0;
+		var chance = ProtectionDroneSpec.Baseline.DeflectChancePercent / 100.0;
 		for (var index = 0; index < 256; index++)
 		{
 			var random = new StableRandom(

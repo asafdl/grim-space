@@ -37,7 +37,7 @@ public sealed class RogueAbilityTests
 		var tooltip = BattleHudCopy.HighSpeedRodTooltipFor(unit);
 
 		Assert.Equal("[icon: Damage, text: 70] [icon: Crit, text: x3.5]\n[icon: Heat, text: +20]", tooltip.Details);
-		Assert.Contains("Crits when the normal shot would penetrate the struck shield face", tooltip.Body);
+		Assert.Contains("Crit when hitting hull", tooltip.Body);
 		var icon = HudTooltipIconCatalog.Resolve(nameof(Icon.Crit));
 		Assert.Equal("res://assets/ui/battle/crit.png", icon.Path);
 		Assert.False(icon.TintIcon);
@@ -93,7 +93,7 @@ public sealed class RogueAbilityTests
 		BattleStatuses.SyncOverheat(actor);
 
 		Assert.False(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
-		Assert.False(sim.TryEnqueue(new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up)));
+		Assert.False(sim.TryEnqueue(new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up * 4)));
 	}
 
 	[Fact]
@@ -160,10 +160,15 @@ public sealed class RogueAbilityTests
 	[InlineData(-1, 5, 5)]
 	[InlineData(5, 7, 5)]
 	[InlineData(5, 5, 7)]
+	[InlineData(6, 5, 5)]
+	[InlineData(7, 5, 5)]
+	[InlineData(8, 5, 5)]
+	[InlineData(5, 9, 5)]
+	[InlineData(5, 5, 9)]
 	public void JumpRejectsInvalidOrOccupiedLanding(int x, int y, int z)
 	{
-		var battle = CreateBattle(new Coord(5, 7, 5),
-			blocked: new HashSet<Coord> { new(5, 5, 7) });
+		var battle = CreateBattle(new Coord(5, 9, 5),
+			blocked: new HashSet<Coord> { new(5, 5, 9) });
 		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(
 			new RoadsWeDontNeedRoadsAction("player", new Coord(x, y, z))));
 	}
@@ -174,8 +179,8 @@ public sealed class RogueAbilityTests
 		var battle = CreateBattle(new Coord(1, 1, 1));
 		var world = battle.Engine.World;
 		var runtime = battle.Engine.ActorRuntimes.For("player");
-		Assert.Equal(24, RoadsWeDontNeedRoadsDef.Instance.Discover(world, runtime, "player").Count());
-		battle.Engine.Commit(new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up));
+		Assert.Equal(6, RoadsWeDontNeedRoadsDef.Instance.Discover(world, runtime, "player").Count());
+		battle.Engine.Commit(new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up * 4));
 		Assert.Empty(RoadsWeDontNeedRoadsDef.Instance.Discover(world, runtime, "player"));
 		for (var remaining = 2; remaining >= 0; remaining--)
 		{
@@ -188,7 +193,7 @@ public sealed class RogueAbilityTests
 	[Fact]
 	public void JumpKillJumpWorksInSimulationUndoAndLiveCommit()
 	{
-		var landing = Origin + new Coord(1, 0, 0);
+		var landing = Origin + new Coord(4, 0, 0);
 		var battle = CreateBattle(landing + Coord.Up * 2);
 		var sim = battle.PlayerAgent.Sim;
 		var firstJump = new RoadsWeDontNeedRoadsAction("player", landing);
@@ -229,20 +234,104 @@ public sealed class RogueAbilityTests
 		});
 		var jumpSpec = AbilityHudCatalog.ForUnit(EType.Rogue).Single(spec => spec.Mode == EPlayerMode.RoadsWeDontNeedRoads);
 		var jumpChoices = AbilityActivation.ResolveChoices(jumpSpec, actor, legal);
-		Assert.Equal(24, jumpChoices.Count);
+		Assert.Equal(6, jumpChoices.Count);
 		Assert.All(jumpChoices, choice =>
+		{
 			Assert.Equal(choice.Position,
-				Assert.IsType<RoadsWeDontNeedRoadsAction>(AbilityActivation.CreateExecutionAction(choice)).Destination));
+				Assert.IsType<RoadsWeDontNeedRoadsAction>(AbilityActivation.CreateExecutionAction(choice)).Destination);
+			Assert.Equal(4, actor.Position.ManhattanDistanceTo(choice.Position));
+			var face = Assert.IsType<ESpatialOrientation>(choice.MountedOn);
+			Assert.Equal(actor.Position + BodyFrame.From(actor).Step(face) * 4, choice.Position);
+			Assert.Equal(choice, jumpChoices[AbilityActivation.IndexOfMountedChoice(jumpChoices, face)!.Value]);
+		});
 		var legality = PlanningPreview.Abilities(legal);
 		Assert.True(legality.RoadsWeDontNeedRoads);
 		Assert.True(legality.Weapons.HighSpeedRod);
 	}
 
 	[Fact]
+	public void JumpDirectionSelectorPreviewsOnlyLandingCell()
+	{
+		var battle = CreateBattle(new Coord(1, 1, 1));
+		var sim = battle.PlayerAgent.Sim;
+		var frames = new PresentationFrameBuilder();
+		var spec = AbilityHudCatalog.ForUnit(EType.Rogue)
+			.Single(entry => entry.Mode == EPlayerMode.RoadsWeDontNeedRoads);
+		frames.Interaction.SetMode(spec.Mode, spec);
+		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+		var hover = AbilityActivation.IndexOfMountedChoice(frame.AbilityChoices, ESpatialOrientation.Dorsal);
+		Assert.NotNull(hover);
+		frames.Interaction.SetAbilityHover(hover, frame.AbilityChoices.Count);
+
+		frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
+
+		Assert.Equal("Pick jump direction", frame.Instruction.Label);
+		var choice = Assert.IsType<AbilityActivationChoice>(frame.HoveredAbilityChoice);
+		var preview = Assert.Single(frame.AreaActions.Aim, area => ReferenceEquals(area.Action, choice.Action));
+		var destination = Origin + Coord.Up * 4;
+		Assert.Equal(destination, Assert.Single(preview.Volume.Cells));
+		Assert.Equal(Origin, sim.World.StateOf("player").Position);
+		Assert.True(sim.TryEnqueue(AbilityActivation.CreateExecutionAction(choice)));
+		Assert.Equal(destination, sim.World.StateOf("player").Position);
+		var queued = Assert.Single(new PlanningPreview().AreaPreviews(
+			sim, "player", Capabilities.LegalCapabilities(sim, "player")).Queued);
+		Assert.Equal(destination, Assert.Single(queued.Volume.Cells));
+	}
+
+	[Fact]
+	public void JumpSelectorDisablesInvalidLandingsWithoutShortening()
+	{
+		var battle = CreateBattle(Origin + Coord.Up * 4,
+			blocked: new HashSet<Coord> { Origin + Coord.Forward * 4 });
+		var sim = battle.PlayerAgent.Sim;
+		var actor = sim.World.StateOf("player");
+		var spec = AbilityHudCatalog.ForUnit(EType.Rogue)
+			.Single(entry => entry.Mode == EPlayerMode.RoadsWeDontNeedRoads);
+		var choices = AbilityActivation.ResolveChoices(spec, actor, Capabilities.LegalCapabilities(sim, "player"));
+
+		Assert.Equal(4, choices.Count);
+		Assert.Null(AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Dorsal));
+		Assert.Null(AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Forward));
+		Assert.All(choices, choice => Assert.Equal(4, actor.Position.ManhattanDistanceTo(choice.Position)));
+
+		actor.Position = new Coord(0, 0, 0);
+		choices = AbilityActivation.ResolveChoices(spec, actor, Capabilities.LegalCapabilities(sim, "player"));
+		Assert.Equal(3, choices.Count);
+		Assert.All(choices, choice =>
+		{
+			Assert.True(sim.World.Grid.IsInBounds(choice.Position));
+			Assert.Equal(4, actor.Position.ManhattanDistanceTo(choice.Position));
+		});
+	}
+
+	[Fact]
+	public void JumpDirectionChoicesFollowRotatedShipOrientation()
+	{
+		var battle = CreateBattle(new Coord(1, 1, 1));
+		var sim = battle.PlayerAgent.Sim;
+		var actor = sim.World.StateOf("player");
+		actor.Fore = Coord.Up;
+		actor.Dorsal = Coord.Forward;
+		actor.Starboard = Coord.Cross(actor.Dorsal, actor.Fore);
+		var spec = AbilityHudCatalog.ForUnit(EType.Rogue)
+			.Single(entry => entry.Mode == EPlayerMode.RoadsWeDontNeedRoads);
+		var choices = AbilityActivation.ResolveChoices(spec, actor, Capabilities.LegalCapabilities(sim, "player"));
+
+		Assert.Equal(6, choices.Count);
+		Assert.All(choices, choice =>
+		{
+			var face = Assert.IsType<ESpatialOrientation>(choice.MountedOn);
+			Assert.Equal(actor.Position + BodyFrame.From(actor).Step(face) * 4, choice.Position);
+			Assert.Equal(actor.Fore, choice.Fore);
+			Assert.Equal(actor.Dorsal, choice.Dorsal);
+		});
+	}
+
+	[Fact]
 	public void BattleStateAndActionsRoundTripWithCooldownAndCharges()
 	{
 		var battle = CreateBattle(new Coord(1, 1, 1));
-		var jump = new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up);
+		var jump = new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up * 4);
 		battle.Engine.Commit(jump, new HighSpeedRodAction("player", ESpatialOrientation.Ventral));
 		var state = battle.Engine.World.StateOf("player");
 		var options = PersistenceJson.CreateOptions();

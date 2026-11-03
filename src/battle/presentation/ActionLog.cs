@@ -151,7 +151,7 @@ public static class ActionLog
 		{
 			case HighSpeedRodAction a:
 				actorId = a.ActorId;
-				weapon = "High-Speed Rod";
+				weapon = "High Velocity Rod";
 				mount = $"{FormatEnum(a.MountedOn)} mount";
 				return true;
 			case ScrapDroneSwarmAction a:

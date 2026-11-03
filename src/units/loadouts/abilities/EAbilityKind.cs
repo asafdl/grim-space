@@ -10,4 +10,5 @@ public enum EAbilityKind
 	Ram,
 	HighSpeedRod,
 	RoadsWeDontNeedRoads,
+	ProtectionDrone,
 }

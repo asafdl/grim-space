@@ -28,6 +28,7 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			try
 			{
 				var start = session.Actions.Count;
+				TryEnqueueProtectionDrone(session, actor);
 				var capabilities = SearchCapabilities(actor.State, session.RuntimeFor(actor.State.Id));
 				var actions = Runner.CalcActions(
 					session,
@@ -38,6 +39,8 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 						ShouldExploreAction: EnemySearchInput.ShouldExploreAction),
 					frames => SelectBest(session, actor.State.Id, frames));
 				if (actor.State.Type == EType.Carrier && TryAppendRepurposedMinerDeploy(session, actor))
+					actions = session.Actions.Skip(start).ToList();
+				else if (start < session.Actions.Count)
 					actions = session.Actions.Skip(start).ToList();
 
 				Publish(actions, jobCanWorkGeneration);
@@ -55,6 +58,7 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 		Capabilities.For(actor, runtime)
 			.Where(def =>
 				def is not SpawnRepurposedMinerDef
+				&& def is not ProtectionDroneDef
 				&& (actor.Type != EType.IndustrialGooper || def is not RollDef))
 			.ToArray();
 
@@ -175,6 +179,13 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			return;
 
 		finalists[worstIndex] = (frame, heuristicScore);
+	}
+
+	private static bool TryEnqueueProtectionDrone(BattleSimulation session, Unit actor)
+	{
+		var runtime = session.Runtimes.For(actor.State.Id);
+		var action = EnemySearchInput.BestProtectionDroneAction(session.World, runtime, actor.State.Id);
+		return action is not null && session.TryEnqueue(action);
 	}
 
 	private static bool TryAppendRepurposedMinerDeploy(BattleSimulation session, Unit actor)

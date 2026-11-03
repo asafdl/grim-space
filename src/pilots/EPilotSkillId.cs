@@ -8,7 +8,6 @@ public enum EPilotSkillId
 	IonizedPayload,
 	Brace,
 	DefensiveManeuvers,
-	ProtectionDrone,
 	InTheFray,
 	OneWithTheVoid,
 	DronesYearnForMines,

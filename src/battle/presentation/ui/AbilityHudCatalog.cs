@@ -219,11 +219,11 @@ public static class AbilityHudCatalog
 					SelfSource<ProtectionDroneAction>,
 					AbilitySourceMeshes.CreateScrapDroneSwarmBurst,
 					ProtectionDroneAccent),
-				"res://assets/ui/abilities/scrap_drone_swarm.svg",
+				"res://assets/ui/abilities/protection_drone.png",
 				BattleHudCopy.ProtectionDroneTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
-					unit.ProtectionDroneCooldownRemaining == 0 ? 1 : 0,
-					1),
+					unit.ReadyMounts(EAbilityKind.ProtectionDrone),
+					unit.MountCount(EAbilityKind.ProtectionDrone)),
 				legality => legality.ProtectionDrone,
 				ProtectionDroneDef.TargetPick),
 			RamDef => new(
@@ -286,7 +286,8 @@ public static class AbilityHudCatalog
 	private static AbilitySourcePose JumpDestination(State actor, IAction action)
 	{
 		var jump = Require<RoadsWeDontNeedRoadsAction>(action);
-		return new AbilitySourcePose(jump.Destination, actor.Fore, actor.Dorsal);
+		var direction = BodyFrame.From(actor).HitFaceFrom(jump.Destination);
+		return new AbilitySourcePose(jump.Destination, actor.Fore, actor.Dorsal, direction);
 	}
 
 	private static AbilitySourcePose ForwardSource<TAction>(State actor, IAction action)

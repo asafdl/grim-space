@@ -4,6 +4,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Components;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -50,7 +51,7 @@ public sealed record BattleStatusDisplay(
 				"Overheat",
 				"All abilities are on cooldown this turn.",
 				"Clears next turn.")),
-			"buff:ProtectionDrone" => ("Shield", PilotSkillCatalog.Get(EPilotSkillId.ProtectionDrone).Tooltip),
+			"buff:ProtectionDrone" => ("ProtectionDrone", BattleHudCopy.ProtectionDroneTooltipFor(ProtectionDroneSpec.Baseline)),
 			"buff:ShieldBrace" when status.Payload is ShieldBracePayload brace =>
 				("Shield", PilotSkillCatalog.Get(EPilotSkillId.Brace).Tooltip with
 				{

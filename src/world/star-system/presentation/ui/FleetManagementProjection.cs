@@ -131,8 +131,9 @@ internal static class FleetManagementProjection
 			EAbilityKind.VoidBombLauncher => "Void Bomb Launcher",
 			EAbilityKind.GoopGun => "Goop Gun",
 			EAbilityKind.Ram => "Ram",
-			EAbilityKind.HighSpeedRod => "High-Speed Rod",
+			EAbilityKind.HighSpeedRod => "High Velocity Rod",
 			EAbilityKind.RoadsWeDontNeedRoads => "Roads? We Don't Need Roads",
+			EAbilityKind.ProtectionDrone => "Protection Drone",
 			_ => kind.ToString(),
 		};
 
@@ -188,6 +189,13 @@ internal static class FleetManagementProjection
 			[
 				new("RANGE", jump.Range.ToString()),
 				new("COOLDOWN", jump.CooldownTurns.ToString()),
+			],
+			ProtectionDroneSpec drone =>
+			[
+				new("DEFLECT CHANCE", $"{drone.DeflectChancePercent}%"),
+				new("DAMAGE TAKEN", $"{drone.DeflectDamageTakenPercent}%"),
+				new("DURATION", drone.BuffDurationEndPasses.ToString()),
+				new("COOLDOWN", drone.CooldownTurns.ToString()),
 			],
 			_ => [],
 		};

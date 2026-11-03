@@ -6,6 +6,7 @@ using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
+using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Presentation.Replay;
@@ -92,7 +93,7 @@ public sealed class ReplayState
 			return;
 
 		BattleStatuses.RemoveInstance(state.Statuses,
-			BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), drone.TargetId));
+			BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), drone.TargetId));
 		if (drone.Status is { } status)
 			state.Statuses.Add(status.DeepCopy());
 	}

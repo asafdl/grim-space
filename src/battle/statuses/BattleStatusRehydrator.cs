@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Units;
 using GrimSpace.Pilots;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Statuses;
 
@@ -26,7 +27,7 @@ public static class BattleStatusRehydrator
 			case ("buff", "Overheat"):
 				rebuilt = BattleStatuses.CreateOverheat(rest);
 				break;
-			case ("buff", nameof(EPilotCapabilityId.ProtectionDrone)):
+			case ("buff", nameof(EAbilityKind.ProtectionDrone)):
 				rebuilt = BattleStatuses.CreateProtectionDrone(rest);
 				break;
 			case ("buff", "ShieldBrace") when persisted.Payload is ShieldBracePayload:

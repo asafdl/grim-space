@@ -35,6 +35,8 @@ public static class PresentationSfx
 		"res://assets/sfx/abilities/ram_engine_ignition.mp3";
 	public const string RamImpactPath =
 		"res://assets/sfx/abilities/ram_metal_impact.wav";
+	public const string HighVelocityRodFirePath =
+		"res://assets/sfx/abilities/high_velocity_rod_ricochet.wav";
 
 	private static readonly Dictionary<string, AudioStream> Streams = new();
 

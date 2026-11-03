@@ -91,15 +91,6 @@ public static class PilotSkillCatalog
 				audience: PilotSkillAudience.ForOperatorClasses(
 					EOperatorClassId.Support,
 					EOperatorClassId.Tank)),
-			[EPilotSkillId.ProtectionDrone] = new(
-				EPilotSkillId.ProtectionDrone,
-				[EPilotCapabilityId.ProtectionDrone],
-				new HudTooltipContent(
-					"Protection Drone",
-					$"Send a drone to an ally, granting a {PilotSkillPercents.ProtectionDrone.DeflectChancePercent}% chance to deflect {PilotSkillPercents.ProtectionDrone.DeflectDamageTakenPercent}% damage from each hit for {PilotSkillPercents.ProtectionDrone.BuffDurationEndPasses} turns."),
-				tier: 3,
-				minimumEarnedLevel: 4,
-				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
 			[EPilotSkillId.HelpABotterOut] = new(
 				EPilotSkillId.HelpABotterOut,
 				[EPilotCapabilityId.HealingSkillRangeBonus],

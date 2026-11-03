@@ -23,6 +23,7 @@ public abstract record AbilitySpec
 			EAbilityKind.Ram => RamSpec.Baseline,
 			EAbilityKind.HighSpeedRod => HighSpeedRodSpec.Baseline,
 			EAbilityKind.RoadsWeDontNeedRoads => RoadsWeDontNeedRoadsSpec.Baseline,
+			EAbilityKind.ProtectionDrone => ProtectionDroneSpec.Baseline,
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 
@@ -321,6 +322,16 @@ public sealed record RoadsWeDontNeedRoadsSpec(
 	public static RoadsWeDontNeedRoadsSpec Baseline { get; } = new();
 	public override EAbilityKind Kind => EAbilityKind.RoadsWeDontNeedRoads;
 	public bool ResetsCooldownOnKill => true;
+}
+
+public sealed record ProtectionDroneSpec(
+	int CooldownTurns = 4,
+	int BuffDurationEndPasses = 2,
+	int DeflectChancePercent = 25,
+	int DeflectDamageTakenPercent = 50) : AbilitySpec, ICooldownAbility
+{
+	public static ProtectionDroneSpec Baseline { get; } = new();
+	public override EAbilityKind Kind => EAbilityKind.ProtectionDrone;
 }
 
 public interface IPerTurnAbility

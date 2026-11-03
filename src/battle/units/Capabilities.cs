@@ -122,6 +122,7 @@ public static class Capabilities
 			EAbilityKind.Ram => RamDef.Instance,
 			EAbilityKind.HighSpeedRod => HighSpeedRodDef.Instance,
 			EAbilityKind.RoadsWeDontNeedRoads => RoadsWeDontNeedRoadsDef.Instance,
+			EAbilityKind.ProtectionDrone => ProtectionDroneDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),
 		};
 

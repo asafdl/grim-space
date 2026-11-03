@@ -17,9 +17,10 @@ public sealed record RoadsWeDontNeedRoadsAction(string ActorId, Coord Destinatio
 }
 
 public sealed class RoadsWeDontNeedRoadsDef
-	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>
+	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>, IAreaActionDef
 {
 	public static RoadsWeDontNeedRoadsDef Instance { get; } = new();
+	public bool IsBlockable => false;
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
@@ -29,12 +30,9 @@ public sealed class RoadsWeDontNeedRoadsDef
 		foreach (var direction in Enum.GetValues<ESpatialOrientation>())
 		{
 			var step = BodyFrame.WorldAligned(state.Position).Step(direction);
-			for (var distance = 1; distance <= spec.Range; distance++)
-			{
-				var action = new RoadsWeDontNeedRoadsAction(actorId, state.Position + step * distance);
-				if (IsLegal(action, world, runtime))
-					yield return action;
-			}
+			var action = new RoadsWeDontNeedRoadsAction(actorId, state.Position + step * spec.Range);
+			if (IsLegal(action, world, runtime))
+				yield return action;
 		}
 	}
 
@@ -53,10 +51,13 @@ public sealed class RoadsWeDontNeedRoadsDef
 		var delta = jump.Destination - state.Position;
 		var axes = (delta.X != 0 ? 1 : 0) + (delta.Y != 0 ? 1 : 0) + (delta.Z != 0 ? 1 : 0);
 		return axes == 1
-			&& state.Position.ManhattanDistanceTo(jump.Destination) <= spec.Range
+			&& state.Position.ManhattanDistanceTo(jump.Destination) == spec.Range
 			&& world.Grid.IsInBounds(jump.Destination)
 			&& !world.IsCellBlocked(jump.Destination);
 	}
+
+	public IReadOnlySet<Coord> AffectedCells(IAction action, BattleWorld world) =>
+		new HashSet<Coord> { Cast(action).Destination };
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action, BattleWorld world, ActorRuntime runtime)

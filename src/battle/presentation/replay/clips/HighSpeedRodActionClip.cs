@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Core.Actions;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -16,12 +17,11 @@ public sealed class HighSpeedRodActionClip : IReplayClip
 		var mount = new AbilityMount(EAbilityKind.HighSpeedRod, rod.MountedOn);
 		state.MountRuntimeFor(mount).UsesRemaining--;
 		var area = context.FollowingAreaDamage(rod.ActorId, EImpactCause.HighSpeedRod)
-			?? throw new InvalidOperationException("High-Speed Rod replay is missing resolved area facts.");
+			?? throw new InvalidOperationException("High Velocity Rod replay is missing resolved area facts.");
 		if (area.Cells.Count == 0)
 			return ClipPlayback.Instant;
 		var end = area.Cells.MaxBy(cell => state.Position.ManhattanDistanceTo(cell));
-		const double duration = 0.18;
-		context.HazardBursts.PlayRodShot(state.Position, end, duration);
-		return ClipPlayback.Pause(duration);
+		context.HazardBursts.PlayRodShot(state.Position, end, state.Fore);
+		return ClipPlayback.Pause(HighVelocityRodEffect.ImpactSeconds);
 	}
 }

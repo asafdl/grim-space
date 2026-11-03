@@ -156,7 +156,7 @@ public static class BattleStatuses
 	public static BattleStatus CreateProtectionDrone(string actorId) =>
 		new()
 		{
-			InstanceId = BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), actorId),
+			InstanceId = BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), actorId),
 			Priority = 210,
 			ActionTags = [],
 			Polarity = EStatusPolarity.Buff,
@@ -165,16 +165,17 @@ public static class BattleStatuses
 				if (hit.Damage <= 0)
 					return hit;
 				var state = unit.State;
+				var spec = ProtectionDroneSpec.Baseline;
 				if (!Defense.RollsDeflection(
 					state,
 					state.ProtectionDroneRollIndex++,
 					cause,
-					PilotSkillPercents.ProtectionDrone.DeflectChancePercent,
+					spec.DeflectChancePercent,
 					sourceSalt: 1))
 					return hit;
 				return Defense.RetainHit(
 					hit,
-					PilotSkillPercents.ProtectionDrone.DeflectDamageTakenPercent);
+					spec.DeflectDamageTakenPercent);
 			},
 		};
 

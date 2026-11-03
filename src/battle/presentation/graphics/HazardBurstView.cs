@@ -17,35 +17,26 @@ public partial class HazardBurstView : Node3D
 	{
 		foreach (var spray in GetChildren().OfType<GoopSprayEffect>())
 			spray.Cancel();
+		foreach (var rod in GetChildren().OfType<HighVelocityRodEffect>())
+			rod.Cancel();
 	}
 
-	public void PlayRodShot(Coord origin, Coord destination, double duration)
+	public void PlayRodShot(Coord origin, Coord destination, Coord dorsal)
 	{
 		var start = WorldMapping.ToWorld(origin);
 		var end = WorldMapping.ToWorld(destination);
 		if (start == end)
 			return;
 		var direction = (end - start).Normalized();
-		var material = new StandardMaterial3D
+		var up = new Vector3(dorsal.X, dorsal.Y, dorsal.Z);
+		var rod = new HighVelocityRodEffect
 		{
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-			AlbedoColor = new Color(0.2f, 0.95f, 0.9f),
-			EmissionEnabled = true,
-			Emission = new Color(0.2f, 0.95f, 0.9f),
-		};
-		var rod = new MeshInstance3D
-		{
-			Mesh = new BoxMesh { Size = new Vector3(0.06f, 0.06f, 0.6f) * WorldMapping.CellSize },
-			MaterialOverride = material,
+			ShaftLength = start.DistanceTo(end),
 			Position = start,
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			Basis = new Basis(-direction, up, (-direction).Cross(up)),
 		};
-		PresentationLayers.MarkUx(rod);
 		AddChild(rod);
-		rod.LookAt(end, Mathf.Abs(direction.Dot(Vector3.Up)) > 0.9f ? Vector3.Right : Vector3.Up, true);
-		var tween = CreateTween();
-		tween.TweenProperty(rod, "position", end, duration);
-		PresentationTween.ChainFree(tween, rod);
+		rod.Play();
 	}
 
 	public void PlayShotBurst(

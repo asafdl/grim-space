@@ -141,6 +141,8 @@ internal static class ShipRecruitmentDisplay
 				[new("Damage", rod.Damage), new("Range", rod.Range, IsDistance: true)],
 			RoadsWeDontNeedRoadsSpec jump =>
 				[new("Range", jump.Range, IsDistance: true), new("Cooldown", jump.CooldownTurns)],
+			ProtectionDroneSpec drone =>
+				[new("Cooldown", drone.CooldownTurns)],
 			_ => throw new ArgumentOutOfRangeException(nameof(spec), spec.Kind, null),
 		};
 

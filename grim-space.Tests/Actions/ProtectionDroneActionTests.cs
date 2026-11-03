@@ -1,16 +1,15 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
-using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Actions;
 
@@ -44,6 +43,9 @@ public sealed class ProtectionDroneActionTests
 	public void Apply_GrantsBuffOnAllySchedulesExpiryAndSetsCooldown()
 	{
 		var (player, ally, battle) = BattleWithAlly();
+		var installed = player.State.FindInstalled(EAbilityKind.ProtectionDrone)
+			?? throw new InvalidOperationException("Protection Drone mount missing.");
+		var spec = (ProtectionDroneSpec)installed.Spec;
 
 		BattleTestApply.TryApplyOne(
 			ProtectionDroneDef.Instance.Bind(PlayerId, AllyId),
@@ -54,29 +56,27 @@ public sealed class ProtectionDroneActionTests
 		Assert.Contains(
 			ally.State.Statuses,
 			status => status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), AllyId));
+				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), AllyId));
 		Assert.DoesNotContain(
 			player.State.Statuses,
 			status => status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), PlayerId));
-		Assert.Equal(
-			PilotSkillPercents.ProtectionDrone.CooldownTurns,
-			player.State.ProtectionDroneCooldownRemaining);
+				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), PlayerId));
+		Assert.Equal(spec.CooldownTurns, player.State.CooldownRemaining(installed.Mount));
 		Assert.Contains(
 			battle.Engine.World.ActivationRoundLists.EntriesFor(AllyId),
 			entry => entry.Action is ClearProtectionDroneBuffAction clear
 				&& clear.ActorId == AllyId
-				&& entry.RoundsRemaining == PilotSkillPercents.ProtectionDrone.BuffDurationEndPasses);
+				&& entry.RoundsRemaining == spec.BuffDurationEndPasses);
 
 		BattleTestApply.CommitActivationRoundEndPasses(
 			battle,
 			AllyId,
-			PilotSkillPercents.ProtectionDrone.BuffDurationEndPasses);
+			spec.BuffDurationEndPasses);
 
 		Assert.DoesNotContain(
 			ally.State.Statuses,
 			status => status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), AllyId));
+				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), AllyId));
 	}
 
 	[Fact]
@@ -125,21 +125,23 @@ public sealed class ProtectionDroneActionTests
 	[Fact]
 	public void Apply_IllegalWhileOnCooldownOrTargetAlreadyBuffed()
 	{
-		var (_, ally, battle) = BattleWithAlly();
+		var (player, ally, battle) = BattleWithAlly();
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 		var world = battle.Engine.World;
 		var action = ProtectionDroneDef.Instance.Bind(PlayerId, AllyId);
+		var installed = player.State.FindInstalled(EAbilityKind.ProtectionDrone)
+			?? throw new InvalidOperationException("Protection Drone mount missing.");
 
 		BattleTestApply.TryApplyOne(action, world, runtime, PlayerId);
 
 		Assert.False(ProtectionDroneDef.Instance.IsLegal(action, world, runtime));
 
-		world.StateOf(PlayerId).ProtectionDroneCooldownRemaining = 0;
+		player.State.MountRuntimeFor(installed.Mount).CooldownRemaining = 0;
 		Assert.False(ProtectionDroneDef.Instance.IsLegal(action, world, runtime));
 
 		BattleStatuses.RemoveInstance(
 			ally.State.Statuses,
-			BattleStatuses.BuffInstanceId(nameof(EPilotCapabilityId.ProtectionDrone), AllyId));
+			BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), AllyId));
 		Assert.True(ProtectionDroneDef.Instance.IsLegal(action, world, runtime));
 	}
 
@@ -148,6 +150,9 @@ public sealed class ProtectionDroneActionTests
 	{
 		var (player, _, battle) = BattleWithAlly();
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+		var installed = player.State.FindInstalled(EAbilityKind.ProtectionDrone)
+			?? throw new InvalidOperationException("Protection Drone mount missing.");
+		var spec = (ProtectionDroneSpec)installed.Spec;
 
 		BattleTestApply.TryApplyOne(
 			ProtectionDroneDef.Instance.Bind(PlayerId, AllyId),
@@ -157,8 +162,8 @@ public sealed class ProtectionDroneActionTests
 
 		new TurnUpkeepEffect().Apply(battle.Engine.World, runtime, PlayerId);
 		Assert.Equal(
-			PilotSkillPercents.ProtectionDrone.CooldownTurns - 1,
-			player.State.ProtectionDroneCooldownRemaining);
+			spec.CooldownTurns - 1,
+			player.State.CooldownRemaining(installed.Mount));
 	}
 
 	[Fact]
@@ -189,22 +194,13 @@ public sealed class ProtectionDroneActionTests
 	private static (Unit Player, Unit Ally, BattleOrchestrator Battle) BattleWithAlly()
 	{
 		var player = Factory.Create(
-			ShipInstance.FromCatalog(PlayerId, EType.Fighter),
+			ShipInstance.FromCatalog(PlayerId, EType.RepurposedMiner),
 			ETeam.Player,
 			new Coord(5, 5, 5),
 			BattleAgentFactory.Create(EBattleAgentKind.Player));
 		var ally = BattleTestFixture.Ally(new Coord(6, 5, 5), AllyId);
 		var enemy = BattleTestFixture.Enemy(new Coord(0, 0, 0));
-		var pilots = new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal)
-		{
-			[player.State.Id] = PilotBattleSnapshot.FromSkills(
-				"pilot",
-				[EPilotSkillId.ProtectionDrone]),
-		};
-		var battle = BattleTestFixture.BeginSimulation(
-			player,
-			[ally, enemy],
-			pilotsByActorId: pilots);
+		var battle = BattleTestFixture.BeginSimulation(player, [ally, enemy]);
 		return (player, ally, battle);
 	}
 }

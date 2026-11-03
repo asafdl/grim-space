@@ -3,8 +3,10 @@ using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
+using GrimSpace.Components;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
+using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Tests.Ui;
@@ -120,13 +122,13 @@ public sealed class BattleStatusDisplayTests
 	}
 
 	[Fact]
-	public void ProtectionDroneReusesTheSkillEffectDescription()
+	public void ProtectionDroneReusesTheChassisAbilityDescription()
 	{
 		var state = CreateState();
 		state.Statuses.Add(BattleStatuses.CreateProtectionDrone(state.Id));
 
 		Assert.Equal(
-			PilotSkillCatalog.Get(EPilotSkillId.ProtectionDrone).Tooltip,
+			(HudTooltipContent)BattleHudCopy.ProtectionDroneTooltipFor(ProtectionDroneSpec.Baseline),
 			Assert.Single(BattleStatusDisplay.Capture(Capture(state))).Tooltip);
 	}
 

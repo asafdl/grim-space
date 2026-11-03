@@ -248,7 +248,6 @@ public static class SaveDtoMapper
 			Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 			state.ShieldsUpUsedThisTurn,
 			state.OverchargeEnginesCooldownRemaining,
-			state.ProtectionDroneCooldownRemaining,
 			state.ProtectionDroneRollIndex,
 			state.ShieldBraceUsedThisTurn,
 			state.HeatVentsUsedThisTurn,
@@ -293,7 +292,6 @@ public static class SaveDtoMapper
 		RestoreStatuses(state, dto.Statuses);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.OverchargeEnginesCooldownRemaining = dto.OverchargeEnginesCooldownRemaining;
-		state.ProtectionDroneCooldownRemaining = dto.ProtectionDroneCooldownRemaining;
 		state.ProtectionDroneRollIndex = dto.ProtectionDroneRollIndex;
 		state.ShieldBraceUsedThisTurn = dto.ShieldBraceUsedThisTurn;
 		state.HeatVentsUsedThisTurn = dto.HeatVentsUsedThisTurn;
@@ -372,7 +370,6 @@ public static class SaveDtoMapper
 				Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 				state.ShieldsUpUsedThisTurn,
 				state.OverchargeEnginesCooldownRemaining,
-				state.ProtectionDroneCooldownRemaining,
 				state.ProtectionDroneRollIndex,
 				state.ShieldBraceUsedThisTurn,
 				state.HeatVentsUsedThisTurn,
@@ -900,7 +897,6 @@ public static class SaveDtoMapper
 			RestoreStatuses(state, unitDto.Statuses);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.OverchargeEnginesCooldownRemaining = unitDto.OverchargeEnginesCooldownRemaining;
-			state.ProtectionDroneCooldownRemaining = unitDto.ProtectionDroneCooldownRemaining;
 			state.ProtectionDroneRollIndex = unitDto.ProtectionDroneRollIndex;
 			state.ShieldBraceUsedThisTurn = unitDto.ShieldBraceUsedThisTurn;
 			state.HeatVentsUsedThisTurn = unitDto.HeatVentsUsedThisTurn;
@@ -989,6 +985,7 @@ public static class SaveDtoMapper
 			EAbilityKind.Ram => Deserialize<RamSpec>(dto.Data),
 			EAbilityKind.HighSpeedRod => Deserialize<HighSpeedRodSpec>(dto.Data),
 			EAbilityKind.RoadsWeDontNeedRoads => Deserialize<RoadsWeDontNeedRoadsSpec>(dto.Data),
+			EAbilityKind.ProtectionDrone => Deserialize<ProtectionDroneSpec>(dto.Data),
 			_ => throw new InvalidDataException($"Unsupported ability kind '{dto.Kind}'."),
 		};
 	}

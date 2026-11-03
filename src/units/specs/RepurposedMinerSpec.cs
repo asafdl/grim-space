@@ -35,5 +35,6 @@ public sealed class RepurposedMinerSpec : ShipSpec
 	[
 		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Port)),
 		new(new(EAbilityKind.ScrapDroneSwarm, ESpatialOrientation.Starboard)),
+		new(new(EAbilityKind.ProtectionDrone, ESpatialOrientation.Forward)),
 	];
 }

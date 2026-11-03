@@ -67,9 +67,9 @@ public sealed class HighSpeedRodDef
 		var rod = Cast(action);
 		var state = world.StateOf(rod.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.HighSpeedRod, rod.MountedOn)
-			?? throw new InvalidOperationException("High-Speed Rod is not installed on this mount.");
+			?? throw new InvalidOperationException("High Velocity Rod is not installed on this mount.");
 		if (installed.Spec is not HighSpeedRodSpec spec)
-			throw new InvalidOperationException("High-Speed Rod spec missing.");
+			throw new InvalidOperationException("High Velocity Rod spec missing.");
 		return
 		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
