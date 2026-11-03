@@ -3,7 +3,6 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
-using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
@@ -16,7 +15,7 @@ namespace GrimSpace.Tests.Effects;
 public sealed class ProtectionDroneDeflectionTests
 {
 	[Fact]
-	public void Apply_ProtectionDroneBuffDeflectsIndependentlyOfDefensiveManeuvers()
+	public void Apply_ProtectionDroneBuffStacksWithDefensiveManeuvers()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
@@ -28,10 +27,6 @@ public sealed class ProtectionDroneDeflectionTests
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = 6;
 		GrantProtectionDroneBuff(enemy.State, battle);
-		var droneIndex = SucceedingProtectionDroneIndex(
-			enemy.State.Id,
-			EImpactCause.LightningCannonBurst);
-		enemy.State.ProtectionDroneRollIndex = droneIndex;
 		var hullBefore = enemy.State.HullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -44,10 +39,8 @@ public sealed class ProtectionDroneDeflectionTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		// Defensive Maneuvers (index 6) and Protection Drone both succeed → 25% retained.
-		Assert.Equal(hullBefore - 50, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 90, enemy.State.HullPoints);
 		Assert.Equal(7, enemy.State.DefensiveManeuversRollIndex);
-		Assert.Equal(droneIndex + 1, enemy.State.ProtectionDroneRollIndex);
 	}
 
 	[Fact]
@@ -56,9 +49,6 @@ public sealed class ProtectionDroneDeflectionTests
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.ShieldPoints[hitFace] = 0;
 		GrantProtectionDroneBuff(enemy.State, battle);
-		enemy.State.ProtectionDroneRollIndex = SucceedingProtectionDroneIndex(
-			enemy.State.Id,
-			EImpactCause.LightningCannonBurst);
 		var hullBefore = enemy.State.HullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -71,7 +61,7 @@ public sealed class ProtectionDroneDeflectionTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 100, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 180, enemy.State.HullPoints);
 	}
 
 	private static void GrantProtectionDroneBuff(State target, BattleOrchestrator battle) =>
@@ -79,25 +69,6 @@ public sealed class ProtectionDroneDeflectionTests
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(target.Id),
 			target.Id);
-
-	private static int SucceedingProtectionDroneIndex(string unitId, EImpactCause cause)
-	{
-		var chance = ProtectionDroneSpec.Baseline.DeflectChancePercent / 100.0;
-		for (var index = 0; index < 256; index++)
-		{
-			var random = new StableRandom(
-				new StableSeedMixer()
-					.Add(unitId)
-					.Add(index)
-					.Add((int)cause)
-					.Add(1)
-					.Value);
-			if (random.NextDouble() < chance)
-				return index;
-		}
-
-		throw new InvalidOperationException("No succeeding Protection Drone roll index found.");
-	}
 
 	private static (Unit Player, Unit Enemy, BattleOrchestrator Battle, ESpatialOrientation HitFace) DamageBattle()
 	{

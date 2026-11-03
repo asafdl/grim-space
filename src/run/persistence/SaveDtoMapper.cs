@@ -248,7 +248,6 @@ public static class SaveDtoMapper
 			Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 			state.ShieldsUpUsedThisTurn,
 			state.OverchargeEnginesCooldownRemaining,
-			state.ProtectionDroneRollIndex,
 			state.ShieldBraceUsedThisTurn,
 			state.HeatVentsUsedThisTurn,
 			state.DefensiveManeuversMpUsed,
@@ -292,7 +291,6 @@ public static class SaveDtoMapper
 		RestoreStatuses(state, dto.Statuses);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.OverchargeEnginesCooldownRemaining = dto.OverchargeEnginesCooldownRemaining;
-		state.ProtectionDroneRollIndex = dto.ProtectionDroneRollIndex;
 		state.ShieldBraceUsedThisTurn = dto.ShieldBraceUsedThisTurn;
 		state.HeatVentsUsedThisTurn = dto.HeatVentsUsedThisTurn;
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
@@ -370,7 +368,6 @@ public static class SaveDtoMapper
 				Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 				state.ShieldsUpUsedThisTurn,
 				state.OverchargeEnginesCooldownRemaining,
-				state.ProtectionDroneRollIndex,
 				state.ShieldBraceUsedThisTurn,
 				state.HeatVentsUsedThisTurn,
 				state.DefensiveManeuversMpUsed,
@@ -897,7 +894,6 @@ public static class SaveDtoMapper
 			RestoreStatuses(state, unitDto.Statuses);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.OverchargeEnginesCooldownRemaining = unitDto.OverchargeEnginesCooldownRemaining;
-			state.ProtectionDroneRollIndex = unitDto.ProtectionDroneRollIndex;
 			state.ShieldBraceUsedThisTurn = unitDto.ShieldBraceUsedThisTurn;
 			state.HeatVentsUsedThisTurn = unitDto.HeatVentsUsedThisTurn;
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;

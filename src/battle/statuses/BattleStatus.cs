@@ -160,23 +160,12 @@ public static class BattleStatuses
 			Priority = 210,
 			ActionTags = [],
 			Polarity = EStatusPolarity.Buff,
-			RewriteIncomingHit = (_, unit, cause, hit) =>
-			{
-				if (hit.Damage <= 0)
-					return hit;
-				var state = unit.State;
-				var spec = ProtectionDroneSpec.Baseline;
-				if (!Defense.RollsDeflection(
-					state,
-					state.ProtectionDroneRollIndex++,
-					cause,
-					spec.DeflectChancePercent,
-					sourceSalt: 1))
-					return hit;
-				return Defense.RetainHit(
-					hit,
-					spec.DeflectDamageTakenPercent);
-			},
+			RewriteIncomingHit = (_, _, _, hit) =>
+				hit.Damage <= 0
+					? hit
+					: Defense.ScaleHitDamageTaken(
+						hit,
+						ProtectionDroneSpec.Baseline.DamageTakenPercent),
 		};
 
 	public static void SyncOverdrive(State state)

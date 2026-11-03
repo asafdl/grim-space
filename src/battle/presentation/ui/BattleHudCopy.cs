@@ -216,7 +216,7 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent ProtectionDroneTooltipFor(ProtectionDroneSpec drone) =>
 		new(
 			"Protection Drone",
-			$"Send a drone to an ally, granting a {drone.DeflectChancePercent}% chance to deflect {drone.DeflectDamageTakenPercent}% damage from each hit for {drone.BuffDurationEndPasses} turns.",
+			$"Send a drone to an ally, granting {100 - drone.DamageTakenPercent}% damage resistance from each hit for {drone.BuffDurationEndPasses} turns.",
 			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: {drone.CooldownTurns} turns]");
 
 	public static BattleHudTooltipContent RamTooltipFor(UnitDisplayState unit) =>

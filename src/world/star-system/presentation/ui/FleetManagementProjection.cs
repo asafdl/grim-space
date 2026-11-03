@@ -193,8 +193,7 @@ internal static class FleetManagementProjection
 			],
 			ProtectionDroneSpec drone =>
 			[
-				new("DEFLECT CHANCE", $"{drone.DeflectChancePercent}%"),
-				new("DAMAGE TAKEN", $"{drone.DeflectDamageTakenPercent}%"),
+				new("DAMAGE RESISTANCE", $"{100 - drone.DamageTakenPercent}%"),
 				new("DURATION", drone.BuffDurationEndPasses.ToString()),
 				new("COOLDOWN", drone.CooldownTurns.ToString()),
 			],

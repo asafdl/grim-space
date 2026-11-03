@@ -327,8 +327,7 @@ public sealed record RoadsWeDontNeedRoadsSpec(
 public sealed record ProtectionDroneSpec(
 	int CooldownTurns = 4,
 	int BuffDurationEndPasses = 2,
-	int DeflectChancePercent = 25,
-	int DeflectDamageTakenPercent = 50) : AbilitySpec, ICooldownAbility
+	int DamageTakenPercent = 90) : AbilitySpec, ICooldownAbility
 {
 	public static ProtectionDroneSpec Baseline { get; } = new();
 	public override EAbilityKind Kind => EAbilityKind.ProtectionDrone;
