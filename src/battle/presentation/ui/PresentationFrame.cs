@@ -22,6 +22,7 @@ public sealed class PresentationFrame
 	public required IReadOnlyDictionary<string, ETeam> PreviewUnitTeams { get; init; }
 	public EnemyRangeTarget? RangeEnemy { get; init; }
 	public TargetPickFrame? TargetPick { get; init; }
+	public string? FacePickTargetId { get; init; }
 	public required WeaponPeek Weapons { get; init; }
 	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }

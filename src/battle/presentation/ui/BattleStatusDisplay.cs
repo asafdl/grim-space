@@ -52,6 +52,11 @@ public sealed record BattleStatusDisplay(
 				"All abilities are on cooldown this turn.",
 				"Clears next turn.")),
 			"buff:ProtectionDrone" => ("ProtectionDrone", BattleHudCopy.ProtectionDroneTooltipFor(ProtectionDroneSpec.Baseline)),
+			"buff:MarkWeakspot" when status.Payload is MarkWeakspotPayload mark =>
+				("Crit", PilotSkillCatalog.Get(EPilotSkillId.MarkWeakspot).Tooltip with
+				{
+					Details = $"Marked face: {BattleHudCopy.FaceName(mark.Face)}",
+				}),
 			"buff:ShieldBrace" when status.Payload is ShieldBracePayload brace =>
 				("Shield", PilotSkillCatalog.Get(EPilotSkillId.Brace).Tooltip with
 				{
@@ -71,6 +76,7 @@ public sealed record BattleStatusDisplay(
 				Details = $"Stacks: {unit.ReactiveShieldsStacks}\nReductions stack multiplicatively. Resets at the start of your turn.",
 			}),
 			"passive:StationaryDamageDeflection" => ("CurrentManeuverPoints", PilotSkillCatalog.Get(EPilotSkillId.DefensiveManeuvers).Tooltip),
+			"passive:ShieldDynamo" => ("Shield", PilotSkillCatalog.Get(EPilotSkillId.ShieldDynamo).Tooltip),
 			"passive:OneWithTheVoid" => ("VoidBombLauncher", PilotSkillCatalog.Get(EPilotSkillId.OneWithTheVoid).Tooltip),
 			_ => throw new InvalidDataException($"Unknown battle status display '{status.InstanceId}'."),
 		};

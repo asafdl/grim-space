@@ -11,8 +11,10 @@ using GrimSpace.Units.Loadouts.Abilities;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record HighSpeedRodAction(string ActorId, ESpatialOrientation MountedOn)
-	: IAction<BattleWorld, ActorRuntime>, IMountedAction
+	: IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
+	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
+
 	private static readonly string[] ActionTags = [BattleActionTags.Attack];
 	IReadOnlyList<string> IAction.Tags => ActionTags;
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
@@ -21,7 +23,7 @@ public sealed record HighSpeedRodAction(string ActorId, ESpatialOrientation Moun
 
 public sealed class HighSpeedRodDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef, IAreaActionDef
+		IOrientedActionDef, IAreaActionDef
 {
 	public static HighSpeedRodDef Instance { get; } = new();
 	public bool IsBlockable => true;
@@ -29,8 +31,8 @@ public sealed class HighSpeedRodDef
 	public HighSpeedRodAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public IEnumerable<IAction> Discover(BattleWorld world, ActorRuntime runtime, string actorId)
 	{

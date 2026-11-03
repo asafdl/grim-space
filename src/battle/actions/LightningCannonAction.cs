@@ -15,8 +15,10 @@ namespace GrimSpace.Battle.Actions;
 public sealed record LightningCannonAction(
 	string ActorId,
 	ESpatialOrientation MountedOn = ESpatialOrientation.Forward)
-	: IAction<BattleWorld, ActorRuntime>, IMountedAction
+	: IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
+	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
+
 	private static readonly string[] ActionTags =
 		[BattleActionTags.Attack, BattleActionTags.Lightning];
 
@@ -28,7 +30,7 @@ public sealed record LightningCannonAction(
 
 public sealed class LightningCannonDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef,
+		IOrientedActionDef,
 		IAreaActionDef
 {
 	public static LightningCannonDef Instance { get; } = new();
@@ -53,8 +55,8 @@ public sealed class LightningCannonDef
 		ESpatialOrientation mountedOn = ESpatialOrientation.Forward) =>
 		new(actorId, mountedOn);
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

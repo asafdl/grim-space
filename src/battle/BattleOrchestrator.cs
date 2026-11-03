@@ -153,6 +153,10 @@ public sealed class BattleOrchestrator : IDisposable
 		return CreateFromWorld(world, layout, playerId, "battle world restored", pilotsByActorId);
 	}
 
+	/// <summary>
+	/// Rebinds a saved world. Supply the encounter when loading serialized state so passive
+	/// installation rebuilds activation rows, which are copied by forks but are not serialized.
+	/// </summary>
 	public static BattleOrchestrator FromSavedWorld(
 		BattleWorld world,
 		string playerId,
@@ -190,15 +194,12 @@ public sealed class BattleOrchestrator : IDisposable
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
 			if (pilotsByActorId is not null)
-				BattlePassiveStatusInstaller.InstallFromCapabilities(unit.State, runtime);
+				BattlePassiveStatusInstaller.InstallFromCapabilities(world, unit.State.Id, runtime);
 
 			BattleStatuses.SyncOverdrive(unit.State);
 			BattleStatuses.SyncOverheat(unit.State);
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
-
-		foreach (var unit in world.UnitRegistry.All)
-			world.EnsureDefensiveManeuversActivationRoundEntry(unit.State.Id);
 
 		actorRuntimes.Register(BattleActorIds.Rules, ActorRuntime.From(null));
 

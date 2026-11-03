@@ -9,7 +9,7 @@ public readonly record struct AbilitySourcePose(
 	Coord Position,
 	Coord Fore,
 	Coord Dorsal,
-	ESpatialOrientation? MountedOn = null);
+	ESpatialOrientation? Orientation = null);
 
 public sealed record AbilityTargetingSpec(
 	Func<State, IAction, AbilitySourcePose> ResolveSource,

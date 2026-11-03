@@ -17,15 +17,17 @@ namespace GrimSpace.Battle.Actions;
 public sealed record VoidBombAction(
 	string ActorId,
 	ESpatialOrientation MountedOn,
-	string SpawnedUnitId) : IAction<BattleWorld, ActorRuntime>, IMountedAction
+	string SpawnedUnitId) : IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
+	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
+
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		VoidBombDef.Instance;
 }
 
 public sealed class VoidBombDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef
+		IOrientedActionDef
 {
 	public static VoidBombDef Instance { get; } = new();
 
@@ -57,8 +59,8 @@ public sealed class VoidBombDef
 	public VoidBombAction Bind(string actorId, ESpatialOrientation mountedOn, string spawnedUnitId) =>
 		new(actorId, mountedOn, spawnedUnitId);
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

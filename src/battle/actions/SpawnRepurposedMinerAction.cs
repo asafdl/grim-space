@@ -18,15 +18,17 @@ public sealed record SpawnRepurposedMinerAction(
 	string ActorId,
 	ESpatialOrientation MountedOn,
 	string SpawnedUnitId)
-	: IAction<BattleWorld, ActorRuntime>, IMountedAction
+	: IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
+	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
+
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		SpawnRepurposedMinerDef.Instance;
 }
 
 public sealed class SpawnRepurposedMinerDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef
+		IOrientedActionDef
 {
 	public static SpawnRepurposedMinerDef Instance { get; } = new();
 
@@ -46,8 +48,8 @@ public sealed class SpawnRepurposedMinerDef
 	public SpawnRepurposedMinerAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn, TypedIdGenerator.NextId(UnitTypeSlug.For(EType.RepurposedMiner)));
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

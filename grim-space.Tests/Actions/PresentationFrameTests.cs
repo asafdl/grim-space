@@ -316,7 +316,7 @@ public sealed class PresentationFrameTests
 		var choices = BattleTestCommands.Frame(battle).AbilityChoices;
 		var dorsalIndex = choices
 			.Select((choice, index) => (choice, index))
-			.Single(entry => entry.choice.MountedOn == ESpatialOrientation.Ventral)
+			.Single(entry => entry.choice.Orientation == ESpatialOrientation.Ventral)
 			.index;
 		frames.Interaction.SetAbilityHover(dorsalIndex, choices.Count);
 
@@ -351,7 +351,7 @@ public sealed class PresentationFrameTests
 		var choices = BattleTestCommands.Frame(battle).AbilityChoices;
 		var retroIndex = choices
 			.Select((choice, index) => (choice, index))
-			.Single(entry => entry.choice.MountedOn == ESpatialOrientation.Ventral)
+			.Single(entry => entry.choice.Orientation == ESpatialOrientation.Ventral)
 			.index;
 		frames.Interaction.SetAbilityHover(retroIndex, choices.Count);
 		var aim = BattleTestCommands.Frame(battle).VoidBombPreviews.Aim;

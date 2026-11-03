@@ -23,6 +23,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string BetterRamIconPath = "res://assets/ui/abilities/better_ram.png";
 	private const string ReactiveShieldsIconPath = "res://assets/ui/abilities/reactive_shields.png";
 	private const string HealIconPath = "res://assets/ui/battle/heal.png";
+	private const string CritIconPath = "res://assets/ui/battle/crit.png";
 	private const string SkillReticlePath =
 		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
 	private const string PilotCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
@@ -291,7 +292,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 		var available = PilotSkillAvailability.AvailableToLearn(pilot).ToHashSet();
 		var learned = pilot.LearnedSkills.ToHashSet();
-		for (var level = 2; level <= PilotProgression.MaxLevel; level++)
+		for (var level = 1; level <= PilotProgression.MaxLevel; level++)
 			body.AddChild(BuildLevelRow(pilot, level, learned, available));
 
 		return body;
@@ -320,7 +321,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		row.AddChild(levelLabel);
 
 		var definitions = PilotSkillAvailability.TreeFor(pilot)
-			.Where(definition => definition.Tier + 1 == level)
+			.Where(definition => definition.MinimumEarnedLevel == level)
 			.ToArray();
 		if (definitions.Length == 0)
 		{
@@ -426,6 +427,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			EPilotSkillId.OverchargeEngines => OverchargeEnginesIconPath,
 			EPilotSkillId.DodgeThis => DodgeIconPath,
 			EPilotSkillId.IonizedPayload => LightningIconPath,
+			EPilotSkillId.MarkWeakspot => CritIconPath,
+			EPilotSkillId.ShieldDynamo => ShieldIconPath,
 			EPilotSkillId.DefensiveManeuvers => ManeuverIconPath,
 			EPilotSkillId.Brace => ShieldIconPath,
 			EPilotSkillId.InTheFray => FrayIconPath,

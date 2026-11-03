@@ -24,6 +24,12 @@ public sealed class PerUnitActivationRoundLists
 		list.Add(entry);
 	}
 
+	internal void RemoveAllMatching(string unitId, Predicate<ActivationRoundEntry> match)
+	{
+		if (_byUnit.TryGetValue(unitId, out var list))
+			list.RemoveAll(match);
+	}
+
 	internal bool TryRemoveLastMatching(string unitId, ActivationRoundEntry entry)
 	{
 		if (!_byUnit.TryGetValue(unitId, out var list))

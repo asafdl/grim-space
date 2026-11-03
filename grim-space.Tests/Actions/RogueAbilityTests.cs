@@ -240,9 +240,9 @@ public sealed class RogueAbilityTests
 			Assert.Equal(choice.Position,
 				Assert.IsType<RoadsWeDontNeedRoadsAction>(AbilityActivation.CreateExecutionAction(choice)).Destination);
 			Assert.Equal(4, actor.Position.ManhattanDistanceTo(choice.Position));
-			var face = Assert.IsType<ESpatialOrientation>(choice.MountedOn);
+			var face = Assert.IsType<ESpatialOrientation>(choice.Orientation);
 			Assert.Equal(actor.Position + BodyFrame.From(actor).Step(face) * 4, choice.Position);
-			Assert.Equal(choice, jumpChoices[AbilityActivation.IndexOfMountedChoice(jumpChoices, face)!.Value]);
+			Assert.Equal(choice, jumpChoices[AbilityActivation.IndexOfOrientedChoice(jumpChoices, face)!.Value]);
 		});
 		var legality = PlanningPreview.Abilities(legal);
 		Assert.True(legality.RoadsWeDontNeedRoads);
@@ -259,13 +259,13 @@ public sealed class RogueAbilityTests
 			.Single(entry => entry.Mode == EPlayerMode.RoadsWeDontNeedRoads);
 		frames.Interaction.SetMode(spec.Mode, spec);
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
-		var hover = AbilityActivation.IndexOfMountedChoice(frame.AbilityChoices, ESpatialOrientation.Dorsal);
+		var hover = AbilityActivation.IndexOfOrientedChoice(frame.AbilityChoices, ESpatialOrientation.Dorsal);
 		Assert.NotNull(hover);
 		frames.Interaction.SetAbilityHover(hover, frame.AbilityChoices.Count);
 
 		frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
-		Assert.Equal("Pick jump direction", frame.Instruction.Label);
+		Assert.False(frame.Instruction.Visible);
 		var choice = Assert.IsType<AbilityActivationChoice>(frame.HoveredAbilityChoice);
 		var preview = Assert.Single(frame.AreaActions.Aim, area => ReferenceEquals(area.Action, choice.Action));
 		var destination = Origin + Coord.Up * 4;
@@ -290,8 +290,8 @@ public sealed class RogueAbilityTests
 		var choices = AbilityActivation.ResolveChoices(spec, actor, Capabilities.LegalCapabilities(sim, "player"));
 
 		Assert.Equal(4, choices.Count);
-		Assert.Null(AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Dorsal));
-		Assert.Null(AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Forward));
+		Assert.Null(AbilityActivation.IndexOfOrientedChoice(choices, ESpatialOrientation.Dorsal));
+		Assert.Null(AbilityActivation.IndexOfOrientedChoice(choices, ESpatialOrientation.Forward));
 		Assert.All(choices, choice => Assert.Equal(4, actor.Position.ManhattanDistanceTo(choice.Position)));
 
 		actor.Position = new Coord(0, 0, 0);
@@ -320,7 +320,7 @@ public sealed class RogueAbilityTests
 		Assert.Equal(6, choices.Count);
 		Assert.All(choices, choice =>
 		{
-			var face = Assert.IsType<ESpatialOrientation>(choice.MountedOn);
+			var face = Assert.IsType<ESpatialOrientation>(choice.Orientation);
 			Assert.Equal(actor.Position + BodyFrame.From(actor).Step(face) * 4, choice.Position);
 			Assert.Equal(actor.Fore, choice.Fore);
 			Assert.Equal(actor.Dorsal, choice.Dorsal);

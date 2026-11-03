@@ -36,6 +36,8 @@ public sealed partial class UserIntentTranslator : Node
 	private IReadOnlyList<AbilityActivationChoice> _abilityChoices = [];
 	private int? _abilityHoveredIndex;
 	private TargetPickFrame? _targetPick;
+	private bool _requiresFacePickAfterTargets;
+	private bool _facePickActive;
 	private Coord? _moveHoveredCell;
 	private MovePathOption? _displayedHoveredMove;
 	private MovementHoverSnapshot? _displayedHoverSnapshot;
@@ -99,6 +101,8 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<string>? TargetCandidateRequested;
 	public event Action? TargetPickConfirmRequested;
 	public event Action? TargetPickUndoRequested;
+	public event Action<string>? FacePickRequested;
+	public event Action? FacePickUndoRequested;
 
 	public void SetPresentation(
 		bool enabled,
@@ -114,7 +118,9 @@ public sealed partial class UserIntentTranslator : Node
 		IReadOnlyList<AbilityActivationChoice> abilityChoices,
 		int? abilityHoveredIndex,
 		TargetPickFrame? targetPick,
-		Coord? reopenMoveCell)
+		Coord? reopenMoveCell,
+		bool requiresFacePickAfterTargets = false,
+		bool facePickActive = false)
 	{
 		_enabled = enabled;
 		_canIssueActions = canIssueActions;
@@ -125,6 +131,8 @@ public sealed partial class UserIntentTranslator : Node
 		_abilityChoices = abilityChoices;
 		_abilityHoveredIndex = abilityHoveredIndex;
 		_targetPick = targetPick;
+		_requiresFacePickAfterTargets = requiresFacePickAfterTargets;
+		_facePickActive = facePickActive;
 		_moveHoveredCell = moveHoveredCell;
 		_displayedHoveredMove = hoveredMove;
 		var reachableBases = moveDestination is { } destination
@@ -362,7 +370,13 @@ public sealed partial class UserIntentTranslator : Node
 			TryConfirmAbilityChoice(index);
 	}
 
-	public void OnMountSelectionCanceled() => TryCancelAbilityMode();
+	public void OnMountSelectionCanceled()
+	{
+		if (_facePickActive)
+			FacePickUndoRequested?.Invoke();
+		else
+			TryCancelAbilityMode();
+	}
 
 	public void OnAbilityChoiceSelected(AbilityActivationChoice choice)
 	{
@@ -412,7 +426,9 @@ public sealed partial class UserIntentTranslator : Node
 
 	private void UndoInAbilityMode()
 	{
-		if (_targetPick is { PickedIds.Count: > 0 })
+		if (_facePickActive)
+			FacePickUndoRequested?.Invoke();
+		else if (_targetPick is { PickedIds.Count: > 0 })
 			TargetPickUndoRequested?.Invoke();
 		else
 			TryCancelAbilityMode();
@@ -420,6 +436,13 @@ public sealed partial class UserIntentTranslator : Node
 
 	private void LockInTargets(TargetPickFrame targetPick)
 	{
+		if (_requiresFacePickAfterTargets
+			&& targetPick.PickedIds is [var targetId])
+		{
+			FacePickRequested?.Invoke(targetId);
+			return;
+		}
+
 		if (!Enqueue(targetPick.Def.Bind(_actorId, targetPick.PickedIds)))
 		{
 			ActionFailed?.Invoke();
@@ -515,7 +538,7 @@ public sealed partial class UserIntentTranslator : Node
 	}
 
 	private int? IndexOfAbilityChoice(ESpatialOrientation face)
-		=> AbilityActivation.IndexOfMountedChoice(_abilityChoices, face);
+		=> AbilityActivation.IndexOfOrientedChoice(_abilityChoices, face);
 
 	private int? IndexOfAbilityChoice(AbilityActivationChoice choice)
 	{

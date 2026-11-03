@@ -15,7 +15,7 @@ public sealed record AbilityActivationChoice(
 	Coord Fore,
 	Coord Dorsal,
 	AbilityTargetingSpec Targeting,
-	ESpatialOrientation? MountedOn = null);
+	ESpatialOrientation? Orientation = null);
 
 public static class AbilityActivation
 {
@@ -34,7 +34,7 @@ public static class AbilityActivation
 					pose.Fore,
 					pose.Dorsal,
 					spec.Targeting,
-					pose.MountedOn);
+					pose.Orientation);
 			})
 			.ToList();
 
@@ -42,13 +42,13 @@ public static class AbilityActivation
 		IReadOnlyList<AbilityActivationChoice> choices) =>
 		choices.Count == 1 ? choices[0] : null;
 
-	public static int? IndexOfMountedChoice(
+	public static int? IndexOfOrientedChoice(
 		IReadOnlyList<AbilityActivationChoice> choices,
 		ESpatialOrientation face)
 	{
 		for (var i = 0; i < choices.Count; i++)
 		{
-			if (choices[i].MountedOn == face)
+			if (choices[i].Orientation == face)
 				return i;
 		}
 
@@ -71,11 +71,12 @@ public static class AbilityActivation
 				GoopGunDef.Instance.Bind(goopGun.ActorId, goopGun.MountedOn),
 			GoopGunAction goopGun =>
 				GoopGunDef.Instance.Bind(goopGun.ActorId, goopGun.MountedOn, goopGun.GoopHazardId),
-			IMountedAction mounted
+			ITargetedAction and IOrientedAction => choice.Action,
+			IOrientedAction oriented
 				when choice.Action is IAction<BattleWorld, ActorRuntime>
 				{
-					Definition: IMountedActionDef def,
-				} => def.Bind(choice.Action.ActorId, mounted.MountedOn),
+					Definition: IOrientedActionDef def,
+				} => def.Bind(choice.Action.ActorId, oriented.Orientation),
 			IAction<BattleWorld, ActorRuntime>
 				{
 					Definition: IActorActionDef def,

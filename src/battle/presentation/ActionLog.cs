@@ -280,6 +280,8 @@ public static class ActionLog
 					]),
 			ProcessActivationRoundAction => null,
 			SyncDefensiveManeuversMpUsedAction => null,
+			ExpireShieldDynamoGrantsAction => null,
+			ClearMarkWeakspotAction => null,
 			Record<UnitActivationRoundPhase> => null,
 			TurnUpkeepAction => null,
 			ExpireTemporaryShieldGrantAction => null,

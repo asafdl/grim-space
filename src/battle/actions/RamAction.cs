@@ -13,8 +13,10 @@ namespace GrimSpace.Battle.Actions;
 public sealed record RamAction(
 	string ActorId,
 	ESpatialOrientation MountedOn = ESpatialOrientation.Forward)
-	: IAction<BattleWorld, ActorRuntime>, IMountedAction
+	: IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
+	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
+
 	private static readonly string[] ActionTags = [BattleActionTags.Attack];
 
 	IReadOnlyList<string> IAction.Tags => ActionTags;
@@ -25,7 +27,7 @@ public sealed record RamAction(
 
 public sealed class RamDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef,
+		IOrientedActionDef,
 		IAreaActionDef
 {
 	public static RamDef Instance { get; } = new();
@@ -50,8 +52,8 @@ public sealed class RamDef
 		ESpatialOrientation mountedOn = ESpatialOrientation.Forward) =>
 		new(actorId, mountedOn);
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

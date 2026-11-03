@@ -8,9 +8,9 @@ public interface IActorActionDef
 	IAction Bind(string actorId);
 }
 
-public interface IMountedActionDef
+public interface IOrientedActionDef
 {
-	IAction Bind(string actorId, ESpatialOrientation mountedOn);
+	IAction Bind(string actorId, ESpatialOrientation orientation);
 }
 
 public interface ITargetedActionDef
@@ -18,7 +18,12 @@ public interface ITargetedActionDef
 	IAction Bind(string actorId, IReadOnlyList<string> pickedIds);
 }
 
-public interface IMountedAction : IAction
+public interface IOrientedAction : IAction
 {
-	ESpatialOrientation MountedOn { get; }
+	ESpatialOrientation Orientation { get; }
+}
+
+public interface ITargetedAction : IAction
+{
+	string TargetId { get; }
 }

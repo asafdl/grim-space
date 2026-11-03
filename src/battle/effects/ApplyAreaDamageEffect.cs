@@ -220,6 +220,7 @@ public sealed class ApplyAreaDamageEffect(
 			world,
 			targetUnit,
 			cause,
+			face,
 			new IncomingHit(appliedDamage, appliedShieldDamageBonus));
 
 		if (hit.Damage > 0)

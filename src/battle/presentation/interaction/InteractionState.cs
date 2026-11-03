@@ -15,8 +15,11 @@ public sealed class InteractionState
 	public string? FocusId { get; private set; }
 	public string? RangeEnemyId { get; private set; }
 	public string? TargetCandidateId { get; private set; }
+	public string? FacePickTargetId { get; private set; }
 	public IReadOnlyList<string> PickedTargetIds => _pickedTargetIds;
-	public bool IsTargetSessionActive => ActiveAbilitySpec?.TargetPick is not null;
+	public bool IsTargetSessionActive =>
+		ActiveAbilitySpec?.TargetPick is not null && FacePickTargetId is null;
+	public bool IsFacePickActive => FacePickTargetId is not null;
 
 	public EPlayerMode Mode { get; private set; } = EPlayerMode.Move;
 	public IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities => _poseHitOpportunities;
@@ -52,6 +55,7 @@ public sealed class InteractionState
 		Mode = mode;
 		ActiveAbilitySpec = mode == EPlayerMode.Move ? null : abilitySpec;
 		ClearTargetSession();
+		ClearFacePick();
 		ActionError = null;
 		ClearHovers();
 		ClearMoveSelection();
@@ -61,6 +65,23 @@ public sealed class InteractionState
 	{
 		if (IsTargetSessionActive)
 			TargetCandidateId = unitId;
+	}
+
+	public void BeginFacePick(string targetId)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(targetId);
+		FacePickTargetId = targetId;
+		ClearTargetSession();
+		AbilityHoveredIndex = null;
+		ActionError = null;
+	}
+
+	public bool ClearFacePick()
+	{
+		if (FacePickTargetId is null)
+			return false;
+		FacePickTargetId = null;
+		return true;
 	}
 
 	public bool ConfirmTargetPick()
@@ -95,6 +116,15 @@ public sealed class InteractionState
 	{
 		TargetCandidateId = null;
 		_pickedTargetIds.Clear();
+	}
+
+	public bool UndoFacePickToTarget(string targetId)
+	{
+		if (!ClearFacePick())
+			return false;
+		_pickedTargetIds.Clear();
+		TargetCandidateId = targetId;
+		return true;
 	}
 
 	public void ResetAfterTurn()

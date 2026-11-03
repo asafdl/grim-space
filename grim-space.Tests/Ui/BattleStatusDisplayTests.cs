@@ -108,6 +108,7 @@ public sealed class BattleStatusDisplayTests
 	[InlineData(EPilotCapabilityId.InTheFray, "In The Fray")]
 	[InlineData(EPilotCapabilityId.ReactiveShields, "Reactive Shields")]
 	[InlineData(EPilotCapabilityId.StationaryDamageDeflection, "Defensive Maneuvers")]
+	[InlineData(EPilotCapabilityId.ShieldDynamo, "Shield Dynamo")]
 	[InlineData(EPilotCapabilityId.OneWithTheVoid, "One With The Void")]
 	public void EveryInstalledPassiveHasAnIconAndEffectDescription(EPilotCapabilityId capability, string title)
 	{

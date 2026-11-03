@@ -54,6 +54,7 @@ public sealed partial class BattleStatusHudPreview : Control
 			EPilotCapabilityId.InTheFray,
 			EPilotCapabilityId.ReactiveShields,
 			EPilotCapabilityId.StationaryDamageDeflection,
+			EPilotCapabilityId.ShieldDynamo,
 			EPilotCapabilityId.OneWithTheVoid,
 		];
 		foreach (var capability in passives)

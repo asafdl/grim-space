@@ -17,4 +17,5 @@ public enum EPlayerMode
 	Ram,
 	HighSpeedRod,
 	RoadsWeDontNeedRoads,
+	MarkWeakspot,
 }

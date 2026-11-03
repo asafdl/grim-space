@@ -1,8 +1,10 @@
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
+using GrimSpace.Core.Actions;
 using GrimSpace.Pilots;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -20,21 +22,45 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.InTheFray,
 		EPilotCapabilityId.ReactiveShields,
 		EPilotCapabilityId.StationaryDamageDeflection,
+		EPilotCapabilityId.ShieldDynamo,
 		EPilotCapabilityId.OneWithTheVoid,
 	];
 
-	public static void InstallFromCapabilities(State state, ActorRuntime runtime)
+	public static void InstallFromCapabilities(BattleWorld world, string unitId, ActorRuntime runtime)
 	{
-		ArgumentNullException.ThrowIfNull(state);
+		ArgumentNullException.ThrowIfNull(world);
+		ArgumentException.ThrowIfNullOrEmpty(unitId);
 		ArgumentNullException.ThrowIfNull(runtime);
 
+		var state = world.StateOf(unitId);
 		foreach (var capability in PassiveCapabilities)
 		{
+			IAction? activationAction = capability switch
+			{
+				EPilotCapabilityId.StationaryDamageDeflection => new SyncDefensiveManeuversMpUsedAction(unitId),
+				EPilotCapabilityId.ShieldDynamo => new ExpireShieldDynamoGrantsAction(unitId),
+				_ => null,
+			};
 			BattleStatuses.RemoveInstance(
 				state.Statuses,
 				BattleStatuses.PassiveInstanceId(capability.ToString(), state.Id));
-			if (runtime.PilotCapabilities.Contains(capability))
-				state.Statuses.Add(Create(capability, state.Id));
+			if (activationAction is not null)
+				world.ActivationRoundLists.RemoveAllMatching(
+					unitId,
+					entry => entry.Action.GetType() == activationAction.GetType());
+
+			if (!runtime.PilotCapabilities.Contains(capability))
+				continue;
+
+			state.Statuses.Add(Create(capability, state.Id));
+			if (activationAction is not null)
+				world.ActivationRoundLists.Append(
+					unitId,
+					new ActivationRoundEntry(
+						EUnitActivationPhase.Start,
+						RoundsRemaining: null,
+						Sticky: true,
+						activationAction));
 		}
 	}
 
@@ -115,7 +141,7 @@ public static class BattlePassiveStatusInstaller
 				Priority = 100,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
-				RewriteIncomingHit = (world, target, _, hit) =>
+				RewriteIncomingHit = (world, target, _, _, hit) =>
 					hit.Damage <= 0
 					|| world.CountUnitsInRange(
 						target.State.Id,
@@ -133,7 +159,7 @@ public static class BattlePassiveStatusInstaller
 				Priority = 100,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
-				RewriteIncomingHit = (_, target, _, hit) =>
+				RewriteIncomingHit = (_, target, _, _, hit) =>
 				{
 					if (hit.Damage <= 0)
 						return hit;
@@ -157,7 +183,7 @@ public static class BattlePassiveStatusInstaller
 				Priority = 200,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
-				RewriteIncomingHit = (_, target, cause, hit) =>
+				RewriteIncomingHit = (_, target, cause, _, hit) =>
 				{
 					var unit = target.State;
 					if (hit.Damage <= 0 || unit.DefensiveManeuversMpUsed != 0)
@@ -172,6 +198,13 @@ public static class BattlePassiveStatusInstaller
 						hit,
 						PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent);
 				},
+			},
+			EPilotCapabilityId.ShieldDynamo => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
 			},
 			EPilotCapabilityId.OneWithTheVoid => new BattleStatus
 			{

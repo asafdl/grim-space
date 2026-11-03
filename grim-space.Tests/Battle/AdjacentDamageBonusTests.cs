@@ -22,10 +22,11 @@ public sealed class AdjacentDamageBonusTests
 	public void StatusPass_StampsAdjacentBonusOnTaggedAttack()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis])));
 		var world = BattleWorldFor(player);
+		BattlePassiveStatusInstaller.InstallFromCapabilities(
+			world,
+			player.State.Id,
+			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis])));
 		IAction action = new LightningCannonAction(player.State.Id);
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -48,10 +49,11 @@ public sealed class AdjacentDamageBonusTests
 	public void StatusPass_LeavesNonAreaEffectsUnchanged()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis])));
 		var world = BattleWorldFor(player);
+		BattlePassiveStatusInstaller.InstallFromCapabilities(
+			world,
+			player.State.Id,
+			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis])));
 		IAction action = new LightningCannonAction(player.State.Id);
 		var effect = new ApplyChainLightningDamageEffect(
 			EImpactCause.LightningCannonBurst,

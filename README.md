@@ -430,6 +430,8 @@ Battle vocabulary:
 
 List rows are declarative: **`RunAt`** (`Start` / `End`), optional **`RoundsRemaining`** (countdown in unit activations), **`Sticky`**, and the **`Action`** to publish.
 
+Passive installation runs after units are registered in the world. Installing Defensive Maneuvers or Shield Dynamo installs its status and replaces its sticky activation-Start action together; removing the capability through installation removes both. World construction does not infer activation work from statuses. Activation lists are copied by forks but are not serialized: loading a battle must supply its saved encounter to `BattleOrchestrator.FromSavedWorld`, which reinstalls passives and their activation rows without resetting saved unit counters or grants.
+
 [`BattleOrchestrator`](src/battle/BattleOrchestrator.cs) walks [`UnitRegistry.ActivationOrder`](src/battle/units/UnitRegistry.cs), ordered by descending chassis initiative with stable enlistment-order ties. Each player-controlled activation enters `PlayerTurn`; ending it commits that actor, resolves following AI activations up to the next player-controlled actor, and packages that segment as a [`TurnReplay`](src/battle/TurnReplay.cs). The next player activation starts only after the segment replay completes. Newly spawned actors join the remaining activation order. After the final activation on a tick, turn upkeep runs for every unit, then the tick advances and a new initiative pass begins.
 
 ### Battle state
@@ -442,6 +444,8 @@ List rows are declarative: **`RunAt`** (`Start` / `End`), optional **`RoundsRema
 [`Capabilities`](src/battle/units/Capabilities.cs) maps each actor's installed abilities and **pilot runtime capabilities** to action definitions. Skills are progression sources that grant capabilities; battle and strategic runtimes consume resolved capability grants without depending on how they were acquired. AI and UI start from the installed action-definition set and ask each definition what is legal or discoverable; they do not maintain separate rule tables. Type-based overloads exist only for previews and tests that do not have live actor state.
 
 [`IAction`](src/core/actions/IAction.cs) exposes opaque string **`Tags`** for committed timeline entries; the kernel stores and forwards them only. Strategic capability pipeline registrations declare the action tags they match, and [`ActionTagEffectModifier`](src/core/actions/ActionTagEffectModifier.cs) applies the concrete modifier only when the action contains every required tag. Battle passives instead install statuses from the deployed pilots' frozen capability snapshots; statuses match on the same action tags.
+
+Orientation-based action selection uses [`IOrientedAction` / `IOrientedActionDef`](src/battle/actions/IActionBinding.cs) and an `Orientation` value, whether the selection is a weapon mount, the actor's face, or a target's face. Concrete weapon actions retain `MountedOn` for actual mount identity; the targeting specification determines whose face the UI selects.
 
 Battle-local reacting conditions live on a status list on unit [`State`](src/battle/units/State.cs) (`State.Statuses`); statuses are the only owner of outgoing rewrites, effective-parameter rewrites, and incoming-hit rewrites. Ownership map:
 

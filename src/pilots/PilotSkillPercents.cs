@@ -44,6 +44,19 @@ public static class PilotSkillPercents
 		public const int DeflectDamageTakenPercent = 50;
 	}
 
+	public static class ShieldDynamo
+	{
+		public const int ShieldsPerFacePerAp = 5;
+	}
+
+	public static class MarkWeakspot
+	{
+		public const int ShieldDamageBonusPercent = 20;
+		public const int CooldownTurns = 3;
+		public const int DurationEndPasses = 2;
+	}
+
+
 	public static class InTheFray
 	{
 		/// <summary>Manhattan cell distance required from an enemy (1 cell = 1 km).</summary>

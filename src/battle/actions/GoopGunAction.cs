@@ -16,15 +16,17 @@ namespace GrimSpace.Battle.Actions;
 public sealed record GoopGunAction(
 	string ActorId,
 	ESpatialOrientation MountedOn,
-	string GoopHazardId) : IAction<BattleWorld, ActorRuntime>, IMountedAction
+	string GoopHazardId) : IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
+	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
+
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		GoopGunDef.Instance;
 }
 
 public sealed class GoopGunDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef,
+		IOrientedActionDef,
 		IAreaActionDef
 {
 	public static GoopGunDef Instance { get; } = new();
@@ -59,8 +61,8 @@ public sealed class GoopGunDef
 	public GoopGunAction Bind(string actorId, ESpatialOrientation mountedOn, string goopHazardId) =>
 		new(actorId, mountedOn, goopHazardId);
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

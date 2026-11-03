@@ -41,7 +41,8 @@ public sealed class HelpABotterOutTests
 		var baseline = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).Count;
 
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			state,
+			world,
+			state.Id,
 			battle.Engine.ActorRuntimes.For(PlayerId));
 		var boosted = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).Count;
 
@@ -52,9 +53,8 @@ public sealed class HelpABotterOutTests
 	public void EffectiveArea_ExtendsScrapDroneSwarmBurstByOne()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntimeFromSkill(EPilotSkillId.HelpABotterOut));
+		player.State.Statuses.Add(
+			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.HealingSkillRangeBonus, player.State.Id));
 		var boosted = (ScrapDroneSwarmSpec)BattleStatuses.RewriteArea(
 			ScrapDroneSwarmSpec.Baseline,
 			player.State.Statuses,
@@ -87,9 +87,6 @@ public sealed class HelpABotterOutTests
 
 		Assert.Equal(150, battle.PlayerAgent.Sim.StateOf<State>("ally").CurrentHullPoints);
 	}
-
-	private static GrimSpace.Battle.Runtime.ActorRuntime ActorRuntimeFromSkill(EPilotSkillId skillId) =>
-		GrimSpace.Battle.Runtime.ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [skillId]));
 
 	private static Coord ExtraBurstCell(State firer, ESpatialOrientation mountedOn)
 	{

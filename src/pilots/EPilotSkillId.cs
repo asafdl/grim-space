@@ -17,4 +17,6 @@ public enum EPilotSkillId
 	HelpABotterOut,
 	IKnowABot,
 	ReactiveShields,
+	ShieldDynamo,
+	MarkWeakspot,
 }

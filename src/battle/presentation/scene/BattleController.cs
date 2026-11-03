@@ -385,6 +385,8 @@ public partial class BattleController : Node3D
 		_translator.TargetCandidateRequested += OnTargetCandidateRequested;
 		_translator.TargetPickConfirmRequested += OnTargetPickConfirmRequested;
 		_translator.TargetPickUndoRequested += OnTargetPickUndoRequested;
+		_translator.FacePickRequested += OnFacePickRequested;
+		_translator.FacePickUndoRequested += OnFacePickUndoRequested;
 		_translator.ReturnToPlayerRequested += ReturnToPlayer;
 		_translator.FocusCameraRequested += () =>
 			_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
@@ -591,7 +593,10 @@ public partial class BattleController : Node3D
 			abilityChoices: frame.AbilityChoices,
 			abilityHoveredIndex: frame.AbilityHoveredIndex,
 			targetPick: frame.TargetPick,
-			reopenMoveCell: frame.ReopenMoveCell);
+			reopenMoveCell: frame.ReopenMoveCell,
+			requiresFacePickAfterTargets:
+				_frames.Interaction.ActiveAbilitySpec?.RequiresFacePickAfterTargets == true,
+			facePickActive: frame.FacePickTargetId is not null);
 		ApplyFrame(frame);
 	}
 
@@ -629,6 +634,20 @@ public partial class BattleController : Node3D
 	private void OnTargetPickUndoRequested()
 	{
 		_frames.Interaction.UndoTargetPick();
+		RefreshPresentation();
+	}
+
+	private void OnFacePickRequested(string targetId)
+	{
+		_frames.Interaction.BeginFacePick(targetId);
+		RefreshPresentation();
+	}
+
+	private void OnFacePickUndoRequested()
+	{
+		if (_frames.Interaction.FacePickTargetId is not { } targetId)
+			return;
+		_frames.Interaction.UndoFacePickToTarget(targetId);
 		RefreshPresentation();
 	}
 
@@ -814,19 +833,23 @@ public partial class BattleController : Node3D
 			return;
 		}
 
-		if (frame.AbilityChoices.Any(choice => choice.MountedOn is null))
+		if (frame.AbilityChoices.Any(choice => choice.Orientation is null))
 			throw new InvalidOperationException(
-				"Multiple ability choices require mounted spatial orientations.");
+				"Multiple ability choices require spatial orientations.");
 
 		var legalFaces = frame.AbilityChoices
-			.Select(choice => choice.MountedOn!.Value)
+			.Select(choice => choice.Orientation!.Value)
 			.ToHashSet();
-		var bodyFrame = frame.FocusState.ToBodyFrame();
+		var anchorState = frame.FacePickTargetId is { } facePickTargetId
+			&& frame.PreviewUnits.TryGetValue(facePickTargetId, out var marked)
+			? marked
+			: frame.FocusState;
+		var bodyFrame = anchorState.ToBodyFrame();
 		var faceDirections = Enum.GetValues<ESpatialOrientation>()
 			.ToDictionary(face => face, bodyFrame.Step);
 		var handles = MovementSelection.ProjectHeadingHandles(
 			_camera,
-			frame.FocusState.Position,
+			anchorState.Position,
 			faceDirections.Values.ToArray());
 		if (handles.Count != faceDirections.Count)
 		{
@@ -848,7 +871,7 @@ public partial class BattleController : Node3D
 					handle.Kind);
 			});
 		var unitScreenPosition = _camera.UnprojectPosition(
-			WorldMapping.ToWorld(frame.FocusState.Position));
+			WorldMapping.ToWorld(anchorState.Position));
 		_battleHud.ShowMountSelector(unitScreenPosition, options);
 	}
 

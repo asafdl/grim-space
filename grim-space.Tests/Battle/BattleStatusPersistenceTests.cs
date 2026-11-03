@@ -1,5 +1,3 @@
-using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
@@ -20,9 +18,8 @@ public sealed class BattleStatusPersistenceTests
 	public void RoundTrip_RebuildsPassiveCallbacksFromInstanceId()
 	{
 		var state = BattleTestFixture.Player(Coord.Zero).State;
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			state,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ReinforcedHull])));
+		state.Statuses.Add(
+			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, state.Id));
 
 		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
 

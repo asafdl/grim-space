@@ -4,6 +4,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -40,7 +41,7 @@ public sealed class BattleStatus
 	public Func<IAction, BattleWorld, IEffect<BattleWorld, ActorRuntime>, IEffect<BattleWorld, ActorRuntime>>? RewriteOutgoing { get; init; }
 	public Func<IAreaDamage, IReadOnlyList<string>, IAreaDamage>? RewriteArea { get; init; }
 	public Func<int, int>? RewriteIncomingDamage { get; init; }
-	public Func<BattleWorld, Unit, EImpactCause, IncomingHit, IncomingHit>? RewriteIncomingHit { get; init; }
+	public Func<BattleWorld, Unit, EImpactCause, ESpatialOrientation, IncomingHit, IncomingHit>? RewriteIncomingHit { get; init; }
 	public Func<int, int>? RewriteShieldDamage { get; init; }
 	public Func<int, int>? RewriteHullDamage { get; init; }
 
@@ -112,6 +113,13 @@ public static class BattleStatuses
 		return state.Statuses.Exists(status => status.InstanceId == instanceId);
 	}
 
+	public static bool HasShieldDynamo(State state)
+	{
+		ArgumentNullException.ThrowIfNull(state);
+		var instanceId = PassiveInstanceId(nameof(EPilotCapabilityId.ShieldDynamo), state.Id);
+		return state.Statuses.Exists(status => status.InstanceId == instanceId);
+	}
+
 	public static void CopyOneWithTheVoidOnto(State source, State destination)
 	{
 		ArgumentNullException.ThrowIfNull(source);
@@ -160,12 +168,34 @@ public static class BattleStatuses
 			Priority = 210,
 			ActionTags = [],
 			Polarity = EStatusPolarity.Buff,
-			RewriteIncomingHit = (_, _, _, hit) =>
+			RewriteIncomingHit = (_, _, _, _, hit) =>
 				hit.Damage <= 0
 					? hit
 					: Defense.ScaleHitDamageTaken(
 						hit,
 						ProtectionDroneSpec.Baseline.DamageTakenPercent),
+		};
+
+	public static BattleStatus CreateMarkWeakspot(string targetId, ESpatialOrientation face) =>
+		new()
+		{
+			InstanceId = BuffInstanceId("MarkWeakspot", targetId),
+			Priority = 220,
+			ActionTags = [],
+			Polarity = EStatusPolarity.Debuff,
+			Payload = new MarkWeakspotPayload { Face = face },
+			RewriteIncomingHit = (_, _, _, hitFace, hit) =>
+			{
+				if (hit.Damage <= 0 || hitFace != face)
+					return hit;
+				return hit with
+				{
+					ShieldDamageBonus = hit.ShieldDamageBonus
+						+ Defense.ScalePercent(
+							hit.Damage,
+							PilotSkillPercents.MarkWeakspot.ShieldDamageBonusPercent),
+				};
+			},
 		};
 
 	public static void SyncOverdrive(State state)
@@ -272,13 +302,14 @@ public static class BattleStatuses
 		BattleWorld world,
 		Unit target,
 		EImpactCause cause,
+		ESpatialOrientation face,
 		IncomingHit hit)
 	{
 		var current = hit;
 		foreach (var status in Ordered(statuses))
 		{
 			if (status.RewriteIncomingHit is { } rewrite)
-				current = rewrite(world, target, cause, current);
+				current = rewrite(world, target, cause, face, current);
 		}
 
 		return current;

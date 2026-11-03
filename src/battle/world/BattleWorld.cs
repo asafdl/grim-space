@@ -1,7 +1,6 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle;
 using GrimSpace.Battle.ActivationRound;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Core;
 using GrimSpace.Battle.Runtime;
@@ -153,33 +152,6 @@ public sealed class BattleWorld
 		return false;
 	}
 
-	public void ApplyInitialActivationRoundState()
-	{
-		foreach (var unit in UnitRegistry.All)
-			EnsureDefensiveManeuversActivationRoundEntry(unit.State.Id);
-	}
-
-	internal void EnsureDefensiveManeuversActivationRoundEntry(string unitId)
-	{
-		if (!UnitRegistry.TryGet(unitId, out var unit)
-			|| !BattleStatuses.HasDefensiveManeuvers(unit.State))
-			return;
-
-		foreach (var entry in ActivationRoundLists.EntriesFor(unitId))
-		{
-			if (entry is { RunAt: EUnitActivationPhase.Start, Sticky: true, Action: SyncDefensiveManeuversMpUsedAction })
-				return;
-		}
-
-		ActivationRoundLists.Append(
-			unitId,
-			new ActivationRoundEntry(
-				EUnitActivationPhase.Start,
-				RoundsRemaining: null,
-				Sticky: true,
-				new SyncDefensiveManeuversMpUsedAction(unitId)));
-	}
-
 	private BattleWorld(
 		UnitRegistry unitRegistry,
 		Dictionary<string, NonUnit> nonUnits,
@@ -256,7 +228,7 @@ public sealed class BattleWorld
 		foreach (var unit in roster)
 			units.Add(unit);
 
-		var world = new BattleWorld(
+		return new BattleWorld(
 			units,
 			nonUnits,
 			new PerUnitActivationRoundLists(),
@@ -267,8 +239,6 @@ public sealed class BattleWorld
 			battleId,
 			objective,
 			engagedShipIds);
-		world.ApplyInitialActivationRoundState();
-		return world;
 	}
 
 	private static Unit CloneForSnapshot(Unit unit) =>

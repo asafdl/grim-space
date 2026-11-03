@@ -13,8 +13,10 @@ namespace GrimSpace.Battle.Actions;
 
 public sealed record ScrapDroneSwarmAction(
 	string ActorId,
-	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>, IMountedAction
+	ESpatialOrientation MountedOn) : IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
+	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
+
 	private static readonly string[] ActionTags =
 	[BattleActionTags.Attack, BattleActionTags.ScrapDrone, BattleActionTags.Heal];
 
@@ -28,7 +30,7 @@ public sealed record ScrapDroneSwarmAction(
 
 public sealed class ScrapDroneSwarmDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef,
+		IOrientedActionDef,
 		IAreaActionDef
 {
 	public static ScrapDroneSwarmDef Instance { get; } = new();
@@ -52,8 +54,8 @@ public sealed class ScrapDroneSwarmDef
 	public ScrapDroneSwarmAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

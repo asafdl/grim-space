@@ -11,9 +11,9 @@ using GrimSpace.Pilots;
 namespace GrimSpace.Battle.Actions;
 
 public sealed record BraceAction(string ActorId, ESpatialOrientation Face)
-	: IAction<BattleWorld, ActorRuntime>, IMountedAction
+	: IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
-	public ESpatialOrientation MountedOn => Face;
+	public ESpatialOrientation Orientation => Face;
 
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
 		BraceDef.Instance;
@@ -21,7 +21,7 @@ public sealed record BraceAction(string ActorId, ESpatialOrientation Face)
 
 public sealed class BraceDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
-		IMountedActionDef
+		IOrientedActionDef
 {
 	public const int FollowUpDelayTicks = 1;
 	public const int ExpiryEndPasses = 2;
@@ -45,8 +45,8 @@ public sealed class BraceDef
 
 	public BraceAction Bind(string actorId, ESpatialOrientation face) => new(actorId, face);
 
-	IAction IMountedActionDef.Bind(string actorId, ESpatialOrientation mountedOn) =>
-		Bind(actorId, mountedOn);
+	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
+		Bind(actorId, orientation);
 
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) =>
 		IsPossible(Cast(action), world, runtime);

@@ -21,15 +21,16 @@ public sealed class ScrapDroneSwarmDamageBonusTests
 	public void StatusPass_AddsOneDamageToTaggedScrapDroneAttack()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
+		var world = BattleWorldFor(player);
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
+			world,
+			player.State.Id,
 			ActorRuntime.From(new GrimSpace.Battle.Encounter.PilotBattleSnapshot(
 				"pilot",
 				PilotCapabilityGrant.FromBackground(
 					"pilot",
 					EPilotBackgroundId.ScrapDrone,
 					BattlePilotCapabilityPipelineFactory.Supports))));
-		var world = BattleWorldFor(player);
 		IAction action = new ScrapDroneSwarmAction(player.State.Id, ESpatialOrientation.Port);
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
@@ -49,15 +50,16 @@ public sealed class ScrapDroneSwarmDamageBonusTests
 	public void StatusPass_DamageBonusDoesNotIncreaseHealAmount()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
+		var world = BattleWorldFor(player);
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
+			world,
+			player.State.Id,
 			ActorRuntime.From(new GrimSpace.Battle.Encounter.PilotBattleSnapshot(
 				"pilot",
 				PilotCapabilityGrant.FromBackground(
 					"pilot",
 					EPilotBackgroundId.ScrapDrone,
 					BattlePilotCapabilityPipelineFactory.Supports))));
-		var world = BattleWorldFor(player);
 		IAction action = new ScrapDroneSwarmAction(player.State.Id, ESpatialOrientation.Port);
 		IEffect<BattleWorld, ActorRuntime>[] effects =
 		[

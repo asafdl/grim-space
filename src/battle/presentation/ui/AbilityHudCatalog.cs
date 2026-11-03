@@ -46,7 +46,8 @@ public static class AbilityHudCatalog
 		Func<UnitDisplayState, BattleHudTooltipContent> Tooltip,
 		Func<UnitDisplayState, AbilityLegality, string> Charges,
 		Func<AbilityLegality, bool> IsLegal,
-		TargetPickSpec? TargetPick = null)
+		TargetPickSpec? TargetPick = null,
+		bool RequiresFacePickAfterTargets = false)
 	{
 		public Color IconTint { get; } = OpaqueTint(Targeting.Tint);
 
@@ -226,6 +227,21 @@ public static class AbilityHudCatalog
 					unit.MountCount(EAbilityKind.ProtectionDrone)),
 				legality => legality.ProtectionDrone,
 				ProtectionDroneDef.TargetPick),
+			MarkWeakspotDef => new(
+				EPlayerMode.MarkWeakspot,
+				def,
+				new AbilityTargetingSpec(
+					SelfOrientedSource,
+					AbilitySourceMeshes.CreateDetonation,
+					new Color(0.95f, 0.35f, 0.45f, 0.5f)),
+				"res://assets/ui/battle/crit.png",
+				BattleHudCopy.MarkWeakspotTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.MarkWeakspotCooldownRemaining == 0 ? 1 : 0,
+					1),
+				legality => legality.MarkWeakspot,
+				MarkWeakspotDef.TargetPick,
+				RequiresFacePickAfterTargets: true),
 			RamDef => new(
 				EPlayerMode.Ram,
 				def,
@@ -271,16 +287,16 @@ public static class AbilityHudCatalog
 
 	private static AbilitySourcePose AdjacentMountedSource(State actor, IAction action)
 	{
-		if (action is not IMountedAction mounted)
-			throw new ArgumentException($"Expected {nameof(IMountedAction)}.", nameof(action));
+		if (action is not IOrientedAction oriented)
+			throw new ArgumentException($"Expected {nameof(IOrientedAction)}.", nameof(action));
 
 		var frame = BodyFrame.From(actor);
-		var direction = frame.Step(mounted.MountedOn);
+		var direction = frame.Step(oriented.Orientation);
 		return new AbilitySourcePose(
 			actor.Position + direction,
 			direction,
 			Coord.Dot(direction, actor.Dorsal) == 0 ? actor.Dorsal : actor.Fore,
-			mounted.MountedOn);
+			oriented.Orientation);
 	}
 
 	private static AbilitySourcePose JumpDestination(State actor, IAction action)
@@ -324,6 +340,14 @@ public static class AbilityHudCatalog
 	{
 		Require<TAction>(action);
 		return new AbilitySourcePose(actor.Position, actor.Fore, actor.Dorsal);
+	}
+
+	private static AbilitySourcePose SelfOrientedSource(State actor, IAction action)
+	{
+		if (action is not IOrientedAction oriented)
+			throw new ArgumentException($"Expected {nameof(IOrientedAction)}.", nameof(action));
+
+		return new AbilitySourcePose(actor.Position, actor.Fore, actor.Dorsal, oriented.Orientation);
 	}
 
 	private static TAction Require<TAction>(IAction action)

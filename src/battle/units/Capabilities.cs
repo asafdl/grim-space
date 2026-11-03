@@ -103,12 +103,12 @@ public static class Capabilities
 	public static bool IsLegalCapability(
 		IReadOnlyList<IAction> legalCapabilities,
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def,
-		ESpatialOrientation? mountedOn) =>
+		ESpatialOrientation? orientation) =>
 		legalCapabilities.Any(action =>
 			action is IAction<BattleWorld, ActorRuntime> typed
 			&& ReferenceEquals(typed.Definition, def)
-			&& (action is not IMountedAction mounted
-				|| mountedOn == mounted.MountedOn));
+			&& (action is not IOrientedAction oriented
+				|| orientation == oriented.Orientation));
 
 	internal static IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> DefForKind(
 		EAbilityKind kind) =>

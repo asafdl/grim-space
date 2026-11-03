@@ -33,6 +33,9 @@ public static class BattleStatusRehydrator
 			case ("buff", "ShieldBrace") when persisted.Payload is ShieldBracePayload:
 			case ("buff", "TemporaryShield") when persisted.Payload is TemporaryShieldPayload:
 				return persisted;
+			case ("buff", "MarkWeakspot") when persisted.Payload is MarkWeakspotPayload mark:
+				rebuilt = BattleStatuses.CreateMarkWeakspot(rest, mark.Face);
+				break;
 			default:
 				throw new InvalidDataException($"Unknown battle status '{persisted.InstanceId}'.");
 		}

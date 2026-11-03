@@ -16,6 +16,8 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.ScrapDroneSwarmDamageBonus
 			or EPilotCapabilityId.ShieldBrace
 			or EPilotCapabilityId.StationaryDamageDeflection
+			or EPilotCapabilityId.ShieldDynamo
+			or EPilotCapabilityId.MarkWeakspot
 			or EPilotCapabilityId.InTheFray
 			or EPilotCapabilityId.ReactiveShields
 			or EPilotCapabilityId.ReinforcedHull

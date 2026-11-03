@@ -1,5 +1,3 @@
-using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
@@ -14,9 +12,8 @@ public sealed class ReinforcedHullStatusTests
 	public void RewriteHullDamage_ScalesHullOnly()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ReinforcedHull])));
+		player.State.Statuses.Add(
+			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, player.State.Id));
 
 		Assert.Equal(
 			67,
@@ -33,9 +30,8 @@ public sealed class ReinforcedHullStatusTests
 	public void ApplyDamage_UsesHullChannel()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ReinforcedHull])));
+		player.State.Statuses.Add(
+			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, player.State.Id));
 		player.State.CurrentShieldPoints[ESpatialOrientation.Forward] = 0;
 		var hullBefore = player.State.CurrentHullPoints;
 
@@ -48,9 +44,8 @@ public sealed class ReinforcedHullStatusTests
 	public void ApplyDamage_ShieldChannelUnchangedByReinforcedHull()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ReinforcedHull])));
+		player.State.Statuses.Add(
+			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, player.State.Id));
 		player.State.CurrentShieldPoints[ESpatialOrientation.Forward] = 10;
 
 		Defense.ApplyDamage(player.State, 6, ESpatialOrientation.Forward);

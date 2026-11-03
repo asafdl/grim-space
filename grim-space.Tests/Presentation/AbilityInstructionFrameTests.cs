@@ -14,7 +14,7 @@ namespace GrimSpace.Tests.Presentation;
 public sealed class AbilityInstructionFrameTests
 {
 	[Fact]
-	public void LightningCannonModeShowsPassiveMountInstruction()
+	public void LightningCannonModeHidesMountInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = TurnOrchestrationTests.CreateOrchestrator(
@@ -28,13 +28,12 @@ public sealed class AbilityInstructionFrameTests
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
-		Assert.True(frame.Instruction.Visible);
-		Assert.Equal(BattleHudCopy.PickFiringMount, frame.Instruction.Label);
+		Assert.False(frame.Instruction.Visible);
 		Assert.True(frame.CanUndo);
 	}
 
 	[Fact]
-	public void ScrapDroneSwarmShowsPassiveMountInstruction()
+	public void ScrapDroneSwarmHidesMountInstruction()
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginScrapSimulation(origin);
@@ -48,8 +47,7 @@ public sealed class AbilityInstructionFrameTests
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
-		Assert.True(frame.Instruction.Visible);
-		Assert.Equal(BattleHudCopy.PickFiringMount, frame.Instruction.Label);
+		Assert.False(frame.Instruction.Visible);
 		Assert.Equal(2, frame.AbilityChoices.Count);
 		Assert.Null(frame.HoveredAbilityChoice);
 	}
@@ -96,7 +94,7 @@ public sealed class AbilityInstructionFrameTests
 
 		var frame = frames.BuildFrame(battle, battle.PlayerAgent, acceptsCommands: true);
 
-		Assert.Equal(BattleHudCopy.PickFiringMount, frame.Instruction.Label);
+		Assert.False(frame.Instruction.Visible);
 		Assert.DoesNotContain(
 			frame.AbilityChoices,
 			choice => choice.Position == blockedMount);

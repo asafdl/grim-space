@@ -91,16 +91,24 @@ public sealed class PresentationFrameBuilder
 		var abilities = canControl || isInspecting
 			? PlanningPreview.Abilities(legalCapabilities)
 			: AbilityLegality.Empty;
+		var facePickTargetId = state.FacePickTargetId;
 		var abilityChoices = canControl
 			&& state.Mode != EPlayerMode.Move
-			&& state.ActiveAbilitySpec is { TargetPick: null } choiceSpec
+			&& state.ActiveAbilitySpec is { } choiceSpec
+			&& (choiceSpec.TargetPick is null || facePickTargetId is not null)
 				? AbilityActivation.ResolveChoices(
 					choiceSpec,
 					focusUnit.ToState(),
-					legalCapabilities)
+					facePickTargetId is null
+						? legalCapabilities
+						: legalCapabilities.Where(action =>
+							action is ITargetedAction targeted
+							&& targeted.TargetId == facePickTargetId))
 				: [];
 		state.ClampAbilityHover(abilityChoices.Count);
-		var targetPick = canControl && state.ActiveAbilitySpec is { TargetPick: not null } pickSpec
+		var targetPick = canControl
+			&& facePickTargetId is null
+			&& state.ActiveAbilitySpec is { TargetPick: not null } pickSpec
 			? BuildTargetPick(state, pickSpec, sim.World, focusId)
 			: null;
 		var hoveredAbilityChoice = state.AbilityHoveredIndex is int abilityHoverIndex
@@ -174,15 +182,13 @@ public sealed class PresentationFrameBuilder
 				Visible: true,
 				Label: actionError);
 		}
-		else if (canControl && state.Mode != EPlayerMode.Move)
+		else if (canControl && state.Mode != EPlayerMode.Move && targetPick is not null)
 		{
 			instruction = new ActionInstruction(
 				Visible: true,
-				Label: targetPick is not null
-					? BattleHudCopy.PickTargets(
-						targetPick.PickedIds.Count,
-						targetPick.MaxPicks)
-					: BattleHudCopy.PickAbilitySource(state.Mode),
+				Label: BattleHudCopy.PickTargets(
+					targetPick.PickedIds.Count,
+					targetPick.MaxPicks),
 				Accent: state.ActiveAbilitySpec?.IconTint);
 		}
 
@@ -242,6 +248,7 @@ public sealed class PresentationFrameBuilder
 					state.RangeEnemyId,
 					activeMovePreview?.ResultState.Position),
 			TargetPick = targetPick,
+			FacePickTargetId = facePickTargetId,
 			Weapons = weapons,
 			AreaActions = areaActions,
 			Abilities = abilities,

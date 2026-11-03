@@ -37,6 +37,7 @@ public static class PilotCapabilityActionDefs
 			EPilotCapabilityId.OverchargeEngines => OverchargeEnginesDef.Instance,
 			EPilotCapabilityId.HeatVents => HeatVentsDef.Instance,
 			EPilotCapabilityId.ShieldBrace => BraceDef.Instance,
+			EPilotCapabilityId.MarkWeakspot => MarkWeakspotDef.Instance,
 			_ => null,
 		};
 }

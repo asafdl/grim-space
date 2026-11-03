@@ -51,9 +51,6 @@ internal static class BattleHudCopy
 
 	public const string EndTurnTooltip = "Execute your queued actions and end your turn.";
 	public const string ActionUnavailable = "Action is no longer available";
-	public const string PickFiringMount = "Pick firing mount";
-	public const string PickLaunchBay = "Pick launch bay";
-	public const string PickVoidBomb = "Pick void bomb";
 
 	public const string FocusTooltip = "Refocus camera on your active unit.";
 	public const string CycleTargetTooltip = "Cycle targeting reticle.";
@@ -118,17 +115,8 @@ internal static class BattleHudCopy
 			_ => OutcomeDefault,
 		};
 
-	public static string PickAbilitySource(EPlayerMode mode) =>
-		mode switch
-		{
-			EPlayerMode.SpawnRepurposedMiner => PickLaunchBay,
-			EPlayerMode.Detonate => PickVoidBomb,
-			EPlayerMode.RoadsWeDontNeedRoads => "Pick jump direction",
-			_ => PickFiringMount,
-		};
-
 	public static string PickTargets(int picked, int max) =>
-		$"Pick targets ({picked}/{max})";
+		max == 1 ? "Pick an enemy" : $"Pick targets ({picked}/{max})";
 
 	public static string TargetPickProgress(int picked, int max) => $"{picked}/{max}";
 
@@ -199,6 +187,20 @@ internal static class BattleHudCopy
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.Brace);
 		var mechanics =
 			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: 1 per turn]";
+		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
+			? mechanics
+			: $"{definition.Tooltip.Details}\n{mechanics}";
+		return new BattleHudTooltipContent(
+			definition.Tooltip.Title,
+			definition.Tooltip.Body,
+			details);
+	}
+
+	public static BattleHudTooltipContent MarkWeakspotTooltipFor(UnitDisplayState unit)
+	{
+		var definition = PilotSkillCatalog.Get(EPilotSkillId.MarkWeakspot);
+		var mechanics =
+			$"[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.MarkWeakspot.CooldownTurns} turns]";
 		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
 			? mechanics
 			: $"{definition.Tooltip.Details}\n{mechanics}";

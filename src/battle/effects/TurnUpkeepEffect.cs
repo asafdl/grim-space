@@ -35,6 +35,9 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		if (actor.OverchargeEnginesCooldownRemaining > 0)
 			actor.OverchargeEnginesCooldownRemaining--;
 
+		if (actor.MarkWeakspotCooldownRemaining > 0)
+			actor.MarkWeakspotCooldownRemaining--;
+
 		if (actor.HeatProfile.Participates
 			&& !actor.Overdrive
 			&& !BattleStatuses.HasOverheat(actor))

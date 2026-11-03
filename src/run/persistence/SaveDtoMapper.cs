@@ -248,10 +248,12 @@ public static class SaveDtoMapper
 			Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 			state.ShieldsUpUsedThisTurn,
 			state.OverchargeEnginesCooldownRemaining,
+			state.MarkWeakspotCooldownRemaining,
 			state.ShieldBraceUsedThisTurn,
 			state.HeatVentsUsedThisTurn,
 			state.DefensiveManeuversMpUsed,
 			state.DefensiveManeuversRollIndex,
+			state.ShieldDynamoGrantedPerFace,
 			state.ReactiveShieldsStacks,
 			state.Heat,
 			state.Overdrive,
@@ -291,10 +293,12 @@ public static class SaveDtoMapper
 		RestoreStatuses(state, dto.Statuses);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
 		state.OverchargeEnginesCooldownRemaining = dto.OverchargeEnginesCooldownRemaining;
+		state.MarkWeakspotCooldownRemaining = dto.MarkWeakspotCooldownRemaining;
 		state.ShieldBraceUsedThisTurn = dto.ShieldBraceUsedThisTurn;
 		state.HeatVentsUsedThisTurn = dto.HeatVentsUsedThisTurn;
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
+		state.ShieldDynamoGrantedPerFace = dto.ShieldDynamoGrantedPerFace;
 		state.ReactiveShieldsStacks = dto.ReactiveShieldsStacks;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.Projectile = dto.Projectile;
@@ -368,10 +372,12 @@ public static class SaveDtoMapper
 				Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
 				state.ShieldsUpUsedThisTurn,
 				state.OverchargeEnginesCooldownRemaining,
+				state.MarkWeakspotCooldownRemaining,
 				state.ShieldBraceUsedThisTurn,
 				state.HeatVentsUsedThisTurn,
 				state.DefensiveManeuversMpUsed,
 				state.DefensiveManeuversRollIndex,
+				state.ShieldDynamoGrantedPerFace,
 				state.ReactiveShieldsStacks,
 				state.Heat,
 				state.Overdrive,
@@ -894,10 +900,12 @@ public static class SaveDtoMapper
 			RestoreStatuses(state, unitDto.Statuses);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
 			state.OverchargeEnginesCooldownRemaining = unitDto.OverchargeEnginesCooldownRemaining;
+			state.MarkWeakspotCooldownRemaining = unitDto.MarkWeakspotCooldownRemaining;
 			state.ShieldBraceUsedThisTurn = unitDto.ShieldBraceUsedThisTurn;
 			state.HeatVentsUsedThisTurn = unitDto.HeatVentsUsedThisTurn;
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
+			state.ShieldDynamoGrantedPerFace = unitDto.ShieldDynamoGrantedPerFace;
 			state.ReactiveShieldsStacks = unitDto.ReactiveShieldsStacks;
 			RestoreHeat(
 				state,

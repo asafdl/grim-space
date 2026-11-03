@@ -20,7 +20,8 @@ public sealed class ProtectionDroneDeflectionTests
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			enemy.State,
+			battle.Engine.World,
+			enemy.State.Id,
 			ActorRuntime.From(PilotBattleSnapshot.FromSkills(
 				"pilot",
 				[EPilotSkillId.DefensiveManeuvers])));

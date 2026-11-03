@@ -14,7 +14,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Reinforced Hull",
 					$"Take {100 - PilotSkillPercents.ReinforcedHull.HullDamageTakenPercent}% less damage to hull."),
-				tier: 1,
 				minimumEarnedLevel: 1,
 				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.BetterRam] = new(
@@ -23,7 +22,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Better RAM",
 					$"Gain XP {PilotSkillPercents.BetterRam.ExperienceGainBonusPercent}% faster."),
-				tier: 1,
 				minimumEarnedLevel: 1,
 				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.HeatVents] = new(
@@ -32,7 +30,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Heat Vents",
 					$"Release {PilotSkillPercents.HeatVents.HeatReleased} heat."),
-				tier: 2,
 				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.ShieldsUp] = new(
@@ -41,7 +38,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Shields Up",
 					$"Boost each shield face by {PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax}% of its maximum until your next turn; pay AP when that turn begins."),
-				tier: 2,
 				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.OverchargeEngines] = new(
@@ -50,16 +46,30 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Overcharge Engines",
 					$"Refresh {PilotSkillPercents.OverchargeEngines.RefreshedAp} AP this turn (up to max). Get {PilotSkillPercents.OverchargeEngines.NextTurnApPenalty} less AP next turn."),
-				tier: 3,
 				minimumEarnedLevel: 4,
 				audience: PilotSkillAudience.Global),
+			[EPilotSkillId.MarkWeakspot] = new(
+				EPilotSkillId.MarkWeakspot,
+				[EPilotCapabilityId.MarkWeakspot],
+				new HudTooltipContent(
+					"Mark Weakspot",
+					$"Mark an enemy shield face for 1 round. All attacks that hit that face deal {PilotSkillPercents.MarkWeakspot.ShieldDamageBonusPercent}% additional shield damage."),
+				minimumEarnedLevel: 1,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
+			[EPilotSkillId.ShieldDynamo] = new(
+				EPilotSkillId.ShieldDynamo,
+				[EPilotCapabilityId.ShieldDynamo],
+				new HudTooltipContent(
+					"Shield Dynamo",
+					$"Gain {PilotSkillPercents.ShieldDynamo.ShieldsPerFacePerAp} shields on every face for each AP spent until your next round."),
+				minimumEarnedLevel: 3,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
 			[EPilotSkillId.DodgeThis] = new(
 				EPilotSkillId.DodgeThis,
 				[EPilotCapabilityId.AdjacentDamageBonus],
 				new HudTooltipContent(
 					"Dodge This",
 					$"Deal {PilotSkillPercents.DodgeThis.AdditionalDamagePercent}% additional damage when hitting a target at {PilotSkillPercents.DodgeThis.BonusRangeCells} km range ({PilotSkillPercents.DodgeThis.BonusHitDamagePercent}% total weapon damage)."),
-				tier: 2,
 				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
 			[EPilotSkillId.IonizedPayload] = new(
@@ -68,7 +78,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Ionized Payload",
 					$"Lightning weapons deal {PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent}% additional damage to shields."),
-				tier: 5,
 				minimumEarnedLevel: 6,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
 			[EPilotSkillId.Brace] = new(
@@ -77,7 +86,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Brace!",
 					$"Move {PilotSkillPercents.Brace.ShieldConsolidationPercent}% of each shield face to one face you choose until your next turn. That face can exceed its maximum. Shield damage it absorbs is spread to your other faces when the brace ends."),
-				tier: 1,
 				minimumEarnedLevel: 2,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
 			[EPilotSkillId.DefensiveManeuvers] = new(
@@ -86,7 +94,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Defensive Maneuvers",
 					$"If you spend no maneuver points during your turn, gain a {PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent}% chance to deflect {PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent}% damage from each hit until your next turn ends."),
-				tier: 2,
 				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.ForOperatorClasses(
 					EOperatorClassId.Support,
@@ -97,7 +104,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Help a Botter Out",
 					$"Healing skills have +{PilotSkillPercents.HelpABotterOut.HealingRangeBonusCells} range."),
-				tier: 5,
 				minimumEarnedLevel: 5,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Support)),
 			[EPilotSkillId.InTheFray] = new(
@@ -106,7 +112,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"In The Fray",
 					$"If at least {PilotSkillPercents.InTheFray.MinimumDistanceCells} km from at least {PilotSkillPercents.InTheFray.MinimumEnemyCount} enemies, take {100 - PilotSkillPercents.InTheFray.DamageTakenPercent}% less damage from hits."),
-				tier: 4,
 				minimumEarnedLevel: 5,
 				audience: PilotSkillAudience.ForOperatorClasses(
 					EOperatorClassId.SpaceRanger,
@@ -117,7 +122,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Reactive Shields",
 					$"After each hit, gain damage resistance {100 - PilotSkillPercents.ReactiveShields.DamageTakenPercentPerStack}%."),
-				tier: 2,
 				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Tank)),
 			[EPilotSkillId.OneWithTheVoid] = new(
@@ -126,7 +130,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"One With The Void",
 					"Void bombs you launch never damage allies or your own ship."),
-				tier: 3,
 				minimumEarnedLevel: 4,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.SpaceRanger)),
 			[EPilotSkillId.DronesYearnForMines] = new(
@@ -135,7 +138,6 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"The Drones Yearn for the Mines",
 					$"Gain {PilotSkillPercents.DronesYearnForMines.ScrapRewardBonusPercent}% more Scrap Alloy from destroyed ships and successful wreckage investigations."),
-				tier: 1,
 				minimumEarnedLevel: 2,
 				audience: PilotSkillAudience.ForBackground(EPilotBackgroundId.ScrapDrone)),
 		};

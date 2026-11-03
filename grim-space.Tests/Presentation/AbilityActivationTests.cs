@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Runtime;
@@ -9,6 +10,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.Presentation;
@@ -16,6 +18,54 @@ namespace GrimSpace.Tests.Presentation;
 [BattleTestSuite]
 public sealed class AbilityActivationTests
 {
+	[Theory]
+	[InlineData(ESpatialOrientation.Forward)]
+	[InlineData(ESpatialOrientation.Retro)]
+	[InlineData(ESpatialOrientation.Port)]
+	[InlineData(ESpatialOrientation.Starboard)]
+	[InlineData(ESpatialOrientation.Dorsal)]
+	[InlineData(ESpatialOrientation.Ventral)]
+	public void OrientedBindingPreservesMountOrFace(ESpatialOrientation orientation)
+	{
+		IOrientedActionDef[] definitions =
+		[
+			BraceDef.Instance,
+			GoopGunDef.Instance,
+			HighSpeedRodDef.Instance,
+			LightningCannonDef.Instance,
+			RamDef.Instance,
+			ScrapDroneSwarmDef.Instance,
+			SpawnRepurposedMinerDef.Instance,
+			VoidBombDef.Instance,
+		];
+
+		foreach (var definition in definitions)
+		{
+			var action = Assert.IsAssignableFrom<IOrientedAction>(definition.Bind("player", orientation));
+			Assert.Equal("player", action.ActorId);
+			Assert.Equal(orientation, action.Orientation);
+		}
+	}
+
+	[Fact]
+	public void TargetedFaceChoicePreservesTargetAndOrientation()
+	{
+		var actor = BattleTestFixture.Player(Coord.Zero).State;
+		var runtime = ActorRuntime.From(PilotBattleSnapshot.FromSkills(
+			"pilot", [EPilotSkillId.MarkWeakspot]));
+		var spec = AbilityHudCatalog.ForActor(actor, runtime)
+			.Single(entry => entry.Mode == EPlayerMode.MarkWeakspot);
+		var action = new MarkWeakspotAction(actor.Id, "enemy", ESpatialOrientation.Ventral);
+
+		var choice = Assert.Single(AbilityActivation.ResolveChoices(spec, actor, [action]));
+		var execution = Assert.IsType<MarkWeakspotAction>(AbilityActivation.CreateExecutionAction(choice));
+
+		Assert.Equal(ESpatialOrientation.Ventral, choice.Orientation);
+		Assert.Equal(ESpatialOrientation.Ventral, execution.Orientation);
+		Assert.Equal("enemy", execution.TargetId);
+		Assert.Same(action, execution);
+	}
+
 	[Theory]
 	[InlineData(EType.Fighter)]
 	[InlineData(EType.Carrier)]
@@ -64,14 +114,14 @@ public sealed class AbilityActivationTests
 			{
 				Assert.Same(port, choice.Action);
 				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Port), choice.Position);
-				Assert.Equal(ESpatialOrientation.Port, choice.MountedOn);
+				Assert.Equal(ESpatialOrientation.Port, choice.Orientation);
 				Assert.Same(spec.Targeting, choice.Targeting);
 			},
 			choice =>
 			{
 				Assert.Same(starboard, choice.Action);
 				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Starboard), choice.Position);
-				Assert.Equal(ESpatialOrientation.Starboard, choice.MountedOn);
+				Assert.Equal(ESpatialOrientation.Starboard, choice.Orientation);
 				Assert.Same(spec.Targeting, choice.Targeting);
 			});
 	}
@@ -99,13 +149,13 @@ public sealed class AbilityActivationTests
 			{
 				Assert.Same(port, choice.Action);
 				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Port), choice.Position);
-				Assert.Equal(ESpatialOrientation.Port, choice.MountedOn);
+				Assert.Equal(ESpatialOrientation.Port, choice.Orientation);
 			},
 			choice =>
 			{
 				Assert.Same(starboard, choice.Action);
 				Assert.Equal(actor.Position + frame.Step(ESpatialOrientation.Starboard), choice.Position);
-				Assert.Equal(ESpatialOrientation.Starboard, choice.MountedOn);
+				Assert.Equal(ESpatialOrientation.Starboard, choice.Orientation);
 			});
 	}
 
@@ -158,7 +208,7 @@ public sealed class AbilityActivationTests
 		Assert.Equal(
 			actor.Position + BodyFrame.From(actor).Step(lightningCannon.MountedOn),
 			lightningCannonChoice.Position);
-		Assert.Equal(lightningCannon.MountedOn, lightningCannonChoice.MountedOn);
+		Assert.Equal(lightningCannon.MountedOn, lightningCannonChoice.Orientation);
 		Assert.Same(lightningCannonSpec.Targeting, lightningCannonChoice.Targeting);
 		Assert.Equal(repurposedMinerPose.Position, repurposedMinerChoice.Position);
 		Assert.Same(repurposedMinerSpec.Targeting, repurposedMinerChoice.Targeting);
@@ -217,7 +267,7 @@ public sealed class AbilityActivationTests
 	}
 
 	[Fact]
-	public void MountedChoiceLookupFindsOnlyAvailableFace()
+	public void OrientedChoiceLookupFindsOnlyAvailableFace()
 	{
 		var targeting = Spec(EPlayerMode.LightningCannon).Targeting;
 		AbilityActivationChoice[] choices =
@@ -240,12 +290,12 @@ public sealed class AbilityActivationTests
 
 		Assert.Equal(
 			0,
-			AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Port));
+			AbilityActivation.IndexOfOrientedChoice(choices, ESpatialOrientation.Port));
 		Assert.Equal(
 			1,
-			AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Starboard));
+			AbilityActivation.IndexOfOrientedChoice(choices, ESpatialOrientation.Starboard));
 		Assert.Null(
-			AbilityActivation.IndexOfMountedChoice(choices, ESpatialOrientation.Dorsal));
+			AbilityActivation.IndexOfOrientedChoice(choices, ESpatialOrientation.Dorsal));
 	}
 
 	private static AbilityHudCatalog.Spec Spec(EPlayerMode mode) =>

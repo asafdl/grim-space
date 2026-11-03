@@ -116,7 +116,8 @@ public sealed class PlanningPreview
 			actions.Any(action => action is BraceAction),
 			actions.Any(action => action is ProtectionDroneAction),
 			actions.Any(action => action is HeatVentsAction),
-			actions.Any(action => action is RoadsWeDontNeedRoadsAction));
+			actions.Any(action => action is RoadsWeDontNeedRoadsAction),
+			actions.Any(action => action is MarkWeakspotAction));
 
 	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
 	{

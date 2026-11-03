@@ -4,6 +4,7 @@ using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
@@ -133,7 +134,7 @@ public sealed class ApplyAreaDamageEffectTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
-		InstallDefensiveManeuvers(enemy.State);
+		InstallDefensiveManeuvers(battle.Engine.World, enemy.State.Id);
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = rollIndex;
 		var hullBefore = enemy.State.CurrentHullPoints;
@@ -159,7 +160,7 @@ public sealed class ApplyAreaDamageEffectTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
-		InstallDefensiveManeuvers(enemy.State);
+		InstallDefensiveManeuvers(battle.Engine.World, enemy.State.Id);
 		enemy.State.DefensiveManeuversMpUsed = 1;
 		enemy.State.DefensiveManeuversRollIndex = 6;
 		var hullBefore = enemy.State.CurrentHullPoints;
@@ -183,7 +184,7 @@ public sealed class ApplyAreaDamageEffectTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
-		InstallDefensiveManeuvers(enemy.State);
+		InstallDefensiveManeuvers(battle.Engine.World, enemy.State.Id);
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = 6;
 		var hullBefore = enemy.State.CurrentHullPoints;
@@ -264,9 +265,10 @@ public sealed class ApplyAreaDamageEffectTests
 		return (player, enemy, battle, hitFace);
 	}
 
-	private static void InstallDefensiveManeuvers(State state) =>
+	private static void InstallDefensiveManeuvers(BattleWorld world, string unitId) =>
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			state,
+			world,
+			unitId,
 			ActorRuntime.From(PilotBattleSnapshot.FromSkills(
 				"pilot",
 				[EPilotSkillId.DefensiveManeuvers])));

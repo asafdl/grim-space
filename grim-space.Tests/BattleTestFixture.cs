@@ -60,17 +60,6 @@ internal static class BattleTestFixture
 		var units = new List<Unit> { player };
 		units.AddRange(enemies);
 		var engagedShipIds = units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);
-		if (pilotsByActorId is not null)
-		{
-			foreach (var unit in units)
-			{
-				pilotsByActorId.TryGetValue(unit.State.Id, out var pilot);
-				GrimSpace.Battle.Statuses.BattlePassiveStatusInstaller.InstallFromCapabilities(
-					unit.State,
-					ActorRuntime.From(pilot));
-			}
-		}
-
 		foreach (var unit in units)
 		{
 			GrimSpace.Battle.Statuses.BattleStatuses.SyncOverdrive(unit.State);
@@ -94,6 +83,11 @@ internal static class BattleTestFixture
 			PilotBattleSnapshot? pilot = null;
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
+			if (pilotsByActorId is not null)
+				GrimSpace.Battle.Statuses.BattlePassiveStatusInstaller.InstallFromCapabilities(
+					world,
+					unit.State.Id,
+					runtime);
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
 

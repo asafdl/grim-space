@@ -33,8 +33,10 @@ public sealed class State
 	public bool HeatVentsUsedThisTurn { get; set; }
 	public bool ShieldBraceUsedThisTurn { get; set; }
 	public int OverchargeEnginesCooldownRemaining { get; set; }
+	public int MarkWeakspotCooldownRemaining { get; set; }
 	public int DefensiveManeuversMpUsed { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
+	public int ShieldDynamoGrantedPerFace { get; set; }
 	public int ReactiveShieldsStacks { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public required HeatSpec HeatProfile { get; set; }
@@ -111,8 +113,10 @@ public sealed class State
 			HeatVentsUsedThisTurn = HeatVentsUsedThisTurn,
 			ShieldBraceUsedThisTurn = ShieldBraceUsedThisTurn,
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
+			MarkWeakspotCooldownRemaining = MarkWeakspotCooldownRemaining,
 			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
+			ShieldDynamoGrantedPerFace = ShieldDynamoGrantedPerFace,
 			ReactiveShieldsStacks = ReactiveShieldsStacks,
 			Maneuverability = Maneuverability,
 			HeatProfile = HeatProfile,

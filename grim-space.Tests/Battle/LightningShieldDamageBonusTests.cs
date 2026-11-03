@@ -22,10 +22,11 @@ public sealed class LightningShieldDamageBonusTests
 	public void StatusPass_StampsShieldBonusOnTaggedLightningAttack()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload])));
 		var world = BattleWorldFor(player);
+		BattlePassiveStatusInstaller.InstallFromCapabilities(
+			world,
+			player.State.Id,
+			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload])));
 		IAction action = new LightningCannonAction(player.State.Id);
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -45,10 +46,11 @@ public sealed class LightningShieldDamageBonusTests
 	public void StatusPass_StampsShieldBonusOnChainLightningEffect()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			player.State,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload])));
 		var world = BattleWorldFor(player);
+		BattlePassiveStatusInstaller.InstallFromCapabilities(
+			world,
+			player.State.Id,
+			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload])));
 		IAction action = new LightningCannonAction(player.State.Id);
 		var effect = new ApplyChainLightningDamageEffect(
 			EImpactCause.LightningCannonBurst,
