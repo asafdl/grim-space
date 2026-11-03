@@ -57,6 +57,17 @@ public sealed class ReplayClipContext(
 		return null;
 	}
 
+	public MovedFacts? FollowingMoved(string actorId)
+	{
+		foreach (var record in FollowingRecords.OfType<Record<MovedFacts>>())
+		{
+			if (record.Value.ActorId == actorId)
+				return record.Value;
+		}
+
+		return null;
+	}
+
 	public bool OrientationFlowsIntoMove(string actorId)
 	{
 		foreach (var action in FollowingActions)

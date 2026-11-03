@@ -14,7 +14,10 @@ public sealed class MoveEffect(Coord destination) : IEffect<BattleWorld, ActorRu
 		var actor = world.StateOf(actorId);
 		_previous = actor.Position;
 		actor.Position = destination;
-		return [];
+		if (_previous == destination)
+			return [];
+
+		return [new Record<MovedFacts>(new MovedFacts(actorId, _previous, destination))];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>

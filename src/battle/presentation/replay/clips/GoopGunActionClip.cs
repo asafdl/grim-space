@@ -36,7 +36,19 @@ public sealed class GoopGunActionClip : IReplayClip
 			target,
 			SeedFor(goopGun.GoopHazardId));
 
-		return ClipPlayback.Pause(GoopSprayEffect.ImpactSeconds);
+		var pause = GoopSprayEffect.ImpactSeconds;
+		if (context.FollowingMoved(goopGun.ActorId) is { } moved && moved.From != moved.To)
+		{
+			state.Position = moved.To;
+			var distance = moved.From.ManhattanDistanceTo(moved.To);
+			var moveSeconds = ReplayTiming.MoveStepSeconds * System.Math.Max(1, distance);
+			context.UnitViews[goopGun.ActorId].AnimateMoveTo(state, moveSeconds);
+			if (state.IsAlive)
+				context.UnitViews[goopGun.ActorId].PlayMovementSound(moveSeconds);
+			pause += moveSeconds;
+		}
+
+		return ClipPlayback.Pause(pause);
 	}
 
 	private static ulong SeedFor(string id)

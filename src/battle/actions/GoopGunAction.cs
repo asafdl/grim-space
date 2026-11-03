@@ -126,14 +126,40 @@ public sealed class GoopGunDef
 			Frame = hazardFrame,
 			Cells = cells,
 		};
+		var recoilTo = RecoilDestination(world, state, action.MountedOn, goopGun.RecoilCells);
 
 		return
 		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new AddHazardEffect(hazard),
+			new MoveEffect(recoilTo),
 			new MountCooldownEffect(installed.Mount, goopGun.UnavailableTurns + 1),
 			new ScheduleActionEffect(2, new RemoveHazardAction(action.ActorId, action.GoopHazardId)),
 		];
+	}
+
+	/// <summary>
+	/// Furthest free cell along the opposite of the fire mount, up to <paramref name="recoilCells"/>.
+	/// </summary>
+	public static Coord RecoilDestination(
+		BattleWorld world,
+		State state,
+		ESpatialOrientation mountedOn,
+		int recoilCells)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(recoilCells);
+		var step = BodyFrame.From(state).Step(DirectionRules.Opposite(mountedOn));
+		var land = state.Position;
+		for (var along = 1; along <= recoilCells; along++)
+		{
+			var cell = state.Position + step * along;
+			if (!world.Grid.IsInBounds(cell) || world.IsCellBlocked(cell))
+				break;
+
+			land = cell;
+		}
+
+		return land;
 	}
 
 	public IReadOnlySet<Coord> AffectedCells(GoopGunAction action, BattleWorld world)

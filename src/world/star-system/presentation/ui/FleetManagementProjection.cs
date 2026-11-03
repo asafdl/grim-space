@@ -166,6 +166,7 @@ internal static class FleetManagementProjection
 			[
 				new("RANGE", goop.Range.ToString()),
 				new("AREA", $"{goop.HalfWidth * 2 + 1} × {goop.HalfHeight * 2 + 1}"),
+				new("RECOIL", goop.RecoilCells.ToString()),
 				new("COOLDOWN", goop.UnavailableTurns.ToString()),
 			],
 			RamSpec ram =>

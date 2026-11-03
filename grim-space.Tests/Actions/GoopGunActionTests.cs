@@ -131,6 +131,60 @@ public sealed class GoopGunActionTests
 	}
 
 	[Fact]
+	public void ResolveRecoilsOppositeMountByRecoilCells()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var battle = CreateGoopGunOrchestrator(playerPos, playerPos + Coord.Forward * 10);
+		var spec = CatalogExpectations.DefaultGoopGunSpec();
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(keepRecords: true, action));
+
+		var state = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
+		Assert.Equal(playerPos + state.Fore * spec.RecoilCells, state.Position);
+		Assert.Contains(
+			new Record<MovedFacts>(new MovedFacts(
+				PlayerId,
+				playerPos,
+				playerPos + state.Fore * spec.RecoilCells)),
+			battle.PlayerAgent.Sim.RecordsFor(0));
+	}
+
+	[Fact]
+	public void ResolveRecoilStopsAtFurthestFreeCell()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		// Enemy sits on the recoil path (fore), so push stops on the free cell before them.
+		var battle = CreateGoopGunOrchestrator(playerPos, playerPos + Coord.Forward * 2);
+		var action = GoopGunDef.Instance.Bind(PlayerId, ESpatialOrientation.Retro);
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
+
+		Assert.Equal(
+			playerPos + Coord.Forward,
+			battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position);
+	}
+
+	[Theory]
+	[InlineData(ESpatialOrientation.Forward, ESpatialOrientation.Retro)]
+	[InlineData(ESpatialOrientation.Retro, ESpatialOrientation.Forward)]
+	public void RecoilDestination_PushesOppositeMount(
+		ESpatialOrientation fireMount,
+		ESpatialOrientation expectedPush)
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var battle = CreateGoopGunOrchestrator(playerPos, playerPos + Coord.Forward * 10);
+		var state = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
+		var destination = GoopGunDef.RecoilDestination(
+			battle.PlayerAgent.Sim.World,
+			state,
+			fireMount,
+			recoilCells: 3);
+
+		Assert.Equal(playerPos + BodyFrame.From(state).Step(expectedPush) * 3, destination);
+	}
+
+	[Fact]
 	public void GoopHazardSurvivesFollowingTurnThenDissipates()
 	{
 		var playerPos = new Coord(5, 5, 5);

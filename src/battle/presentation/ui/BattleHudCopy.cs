@@ -267,7 +267,8 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent GoopGunTooltipFor(GoopGunSpec goop) =>
 		new(
 			"Goop Gun",
-			$"Coats an area in blocking goop.",
+			$"Coats an area in blocking goop.\n" +
+			$"Recoil pushes you opposite direction {BattleDistance.ApproximateCells(goop.RecoilCells)}.",
 			$"[icon: {Icon.Cooldown}, text: {goop.UnavailableTurns} turns]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 
 	public static BattleHudTooltipContent VoidBombTooltipFor(VoidBombLauncherSpec launcher) =>

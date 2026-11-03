@@ -238,7 +238,8 @@ public sealed record GoopGunSpec(
 	int Range = 3,
 	int HalfWidth = 1,
 	int HalfHeight = 1,
-	int UnavailableTurns = 2) : AbilitySpec, ICooldownAbility, IAreaDamage
+	int UnavailableTurns = 2,
+	int RecoilCells = 3) : AbilitySpec, ICooldownAbility, IAreaDamage
 {
 	public static GoopGunSpec Baseline { get; } = new();
 
