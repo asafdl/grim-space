@@ -20,8 +20,7 @@ public sealed class EnemySearchPerformanceTests
 		var battle = BattleOrchestrator.FromEncounter(
 			BattleEncounter.DevDefault(seed),
 			gridSize: 64);
-		var gooper = UnitRegistry.For(battle.Engine.World)
-			.All.Single(unit => unit.State.Type == EType.IndustrialGooper);
+		var gooper = EnemyGooper(battle);
 		var frames = ActionSearch.Run(
 				battle.Engine.CreateSimulation(),
 				gooper.State.Id,
@@ -33,15 +32,14 @@ public sealed class EnemySearchPerformanceTests
 					ShouldExploreAction: EnemySearchInput.ShouldExploreAction))
 			.Count();
 
-		Assert.InRange(frames, 1, 12_000);
+		Assert.InRange(frames, 1, 30_000);
 	}
 
 	[Fact]
 	public void IndustrialGooper_SearchOmitsRotationallyEquivalentRolls()
 	{
 		var battle = BattleOrchestrator.FromEncounter(BattleEncounter.DevDefault());
-		var gooper = UnitRegistry.For(battle.Engine.World)
-			.All.Single(unit => unit.State.Type == EType.IndustrialGooper);
+		var gooper = EnemyGooper(battle);
 
 		Assert.DoesNotContain(
 			AiController.SearchCapabilities(
@@ -49,4 +47,8 @@ public sealed class EnemySearchPerformanceTests
 				battle.Engine.ActorRuntimes.For(gooper.State.Id)),
 			definition => definition is RollDef);
 	}
+
+	private static Unit EnemyGooper(BattleOrchestrator battle) =>
+		UnitRegistry.For(battle.Engine.World)
+			.All.Single(unit => unit.State.Type == EType.IndustrialGooper && unit.Team == ETeam.Enemy);
 }

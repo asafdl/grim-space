@@ -447,6 +447,8 @@ Passive installation runs after units are registered in the world. Installing De
 
 Orientation-based action selection uses [`IOrientedAction` / `IOrientedActionDef`](src/battle/actions/IActionBinding.cs) and an `Orientation` value, whether the selection is a weapon mount, the actor's face, or a target's face. Concrete weapon actions retain `MountedOn` for actual mount identity; the targeting specification determines whose face the UI selects.
 
+Target-picking skills focus the camera on the current candidate when entering targeting or changing candidates. Face selection retains that target; unchanged presentation refreshes do not override manual camera movement. Mark Weakspot targets enemies within 6 km using Manhattan/grid distance (one cell per km).
+
 Battle-local reacting conditions live on a status list on unit [`State`](src/battle/units/State.cs) (`State.Statuses`); statuses are the only owner of outgoing rewrites, effective-parameter rewrites, and incoming-hit rewrites. Ownership map:
 
 | Concern | Owner |

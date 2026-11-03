@@ -97,6 +97,7 @@ public sealed class TargetPickTests
 		var frame = Frame(battle, frames);
 
 		Assert.Equal("enemy", frame.TargetPick!.CandidateId);
+		Assert.Equal("enemy", frame.TargetingFocusId);
 		Assert.Equal("enemy", frame.RangeEnemy!.Value.EnemyId);
 		Assert.True(frame.TargetPick.CanConfirmPick);
 		Assert.False(frame.TargetPick.CanLockIn);
@@ -112,6 +113,7 @@ public sealed class TargetPickTests
 		var frame = Frame(battle, frames);
 
 		Assert.Equal("ally", frame.RangeEnemy!.Value.EnemyId);
+		Assert.Equal("ally", frame.TargetingFocusId);
 	}
 
 	[Fact]
@@ -126,6 +128,7 @@ public sealed class TargetPickTests
 
 		Assert.Equal(["enemy"], frame.TargetPick!.PickedIds);
 		Assert.Equal("far-enemy", frame.TargetPick.CandidateId);
+		Assert.Equal("far-enemy", frame.TargetingFocusId);
 		Assert.True(frame.TargetPick.CanLockIn);
 		Assert.True(frame.TargetPick.CanConfirmPick);
 	}
@@ -193,6 +196,7 @@ public sealed class TargetPickTests
 
 		Assert.Empty(frame.TargetPick!.PickedIds);
 		Assert.Equal("enemy", frame.TargetPick.CandidateId);
+		Assert.Equal("enemy", frame.TargetingFocusId);
 		Assert.False(frames.Interaction.UndoTargetPick());
 	}
 
@@ -237,7 +241,30 @@ public sealed class TargetPickTests
 
 		Assert.Empty(frames.Interaction.PickedTargetIds);
 		Assert.Null(frames.Interaction.TargetCandidateId);
-		Assert.Null(Frame(battle, frames).TargetPick);
+		var frame = Frame(battle, frames);
+		Assert.Null(frame.TargetPick);
+		Assert.Null(frame.TargetingFocusId);
+	}
+
+	[Fact]
+	public void TargetingFocusFollowsCandidateAndPersistsThroughFacePickAndBacktracking()
+	{
+		using var battle = World();
+		var frames = BeginSession(battle, new TargetPickSpec(1, 1, EnemyOnly()));
+		Assert.Equal("enemy", Frame(battle, frames).TargetingFocusId);
+
+		frames.Interaction.SetTargetCandidate("far-enemy");
+		var candidateFrame = Frame(battle, frames);
+		Assert.Equal("far-enemy", candidateFrame.TargetingFocusId);
+		Assert.Equal(candidateFrame.TargetingFocusId, Frame(battle, frames).TargetingFocusId);
+
+		frames.Interaction.BeginFacePick("far-enemy");
+		var faceFrame = Frame(battle, frames);
+		Assert.Null(faceFrame.TargetPick);
+		Assert.Equal("far-enemy", faceFrame.TargetingFocusId);
+
+		Assert.True(frames.Interaction.UndoFacePickToTarget("far-enemy"));
+		Assert.Equal("far-enemy", Frame(battle, frames).TargetingFocusId);
 	}
 
 	[Fact]

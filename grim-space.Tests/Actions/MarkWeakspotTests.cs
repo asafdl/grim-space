@@ -15,6 +15,32 @@ namespace GrimSpace.Tests.Actions;
 [BattleTestSuite]
 public sealed class MarkWeakspotTests
 {
+	[Theory]
+	[InlineData(5, 0, 0, true)]
+	[InlineData(6, 0, 0, true)]
+	[InlineData(7, 0, 0, false)]
+	[InlineData(2, 2, 2, true)]
+	[InlineData(3, 2, 2, false)]
+	public void Range_UsesSixCellManhattanLimitForPicksDiscoveryAndLegality(
+		int x, int y, int z, bool inRange)
+	{
+		var (player, enemy, battle) = Battle();
+		using var cleanup = battle;
+		enemy.State.Position = player.State.Position + new Coord(x, y, z);
+		var world = battle.Engine.World;
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
+		var action = MarkWeakspotDef.Instance.Bind(
+			player.State.Id, enemy.State.Id, ESpatialOrientation.Forward);
+
+		Assert.Equal(inRange, MarkWeakspotDef.TargetPick.LegalTargets(world, player.State.Id, [])
+			.Contains(enemy.State.Id));
+		Assert.Equal(inRange, MarkWeakspotDef.Instance.IsLegal(action, world, runtime));
+		var discovered = MarkWeakspotDef.Instance.Discover(world, runtime, player.State.Id).ToArray();
+		Assert.Equal(inRange ? 6 : 0, discovered.Length);
+		Assert.All(discovered, candidate =>
+			Assert.Equal(enemy.State.Id, Assert.IsType<MarkWeakspotAction>(candidate).TargetId));
+	}
+
 	[Fact]
 	public void Apply_MarksChosenFaceAndExpiresAfterDuration()
 	{

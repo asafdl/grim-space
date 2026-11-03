@@ -30,7 +30,10 @@ public sealed class MarkWeakspotDef
 	public static TargetPickSpec TargetPick { get; } = new(
 		1,
 		1,
-		[new RelationFilter(EUnitRelation.Opponent)]);
+		[
+			new RelationFilter(EUnitRelation.Opponent),
+			new MaxRangeFilter(PilotSkillPercents.MarkWeakspot.RangeCells),
+		]);
 
 	public bool IsBlockable => false;
 

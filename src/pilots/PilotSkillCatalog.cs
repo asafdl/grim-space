@@ -53,7 +53,7 @@ public static class PilotSkillCatalog
 				[EPilotCapabilityId.MarkWeakspot],
 				new HudTooltipContent(
 					"Mark Weakspot",
-					$"Mark an enemy shield face for 1 round. All attacks that hit that face deal {PilotSkillPercents.MarkWeakspot.ShieldDamageBonusPercent}% additional shield damage."),
+					$"Mark an enemy shield face within {PilotSkillPercents.MarkWeakspot.RangeCells} km (grid distance) for 1 round. All attacks that hit that face deal {PilotSkillPercents.MarkWeakspot.ShieldDamageBonusPercent}% additional shield damage."),
 				minimumEarnedLevel: 1,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
 			[EPilotSkillId.ShieldDynamo] = new(

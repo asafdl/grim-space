@@ -51,6 +51,7 @@ public static class PilotSkillPercents
 
 	public static class MarkWeakspot
 	{
+		public const int RangeCells = 6;
 		public const int ShieldDamageBonusPercent = 20;
 		public const int CooldownTurns = 3;
 		public const int DurationEndPasses = 2;

@@ -578,6 +578,7 @@ public partial class BattleController : Node3D
 		}
 
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
+		var previousFrame = _currentFrame;
 		_currentFrame = frame;
 		_translator.SetPresentation(
 			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver,
@@ -598,6 +599,10 @@ public partial class BattleController : Node3D
 				_frames.Interaction.ActiveAbilitySpec?.RequiresFacePickAfterTargets == true,
 			facePickActive: frame.FacePickTargetId is not null);
 		ApplyFrame(frame);
+		if (frame.TargetingFocusId is { } targetId
+			&& (previousFrame?.TargetingFocusId != targetId
+				|| previousFrame.Mode != frame.Mode))
+			_cameraDirector.FocusPlayer(GetUnitRenderedPosition(targetId));
 	}
 
 	private void OnActionFailed()

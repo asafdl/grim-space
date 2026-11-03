@@ -23,6 +23,7 @@ public sealed class PresentationFrame
 	public EnemyRangeTarget? RangeEnemy { get; init; }
 	public TargetPickFrame? TargetPick { get; init; }
 	public string? FacePickTargetId { get; init; }
+	public string? TargetingFocusId => FacePickTargetId ?? TargetPick?.CandidateId;
 	public required WeaponPeek Weapons { get; init; }
 	public required AreaActionPreviews AreaActions { get; init; }
 	public required AbilityLegality Abilities { get; init; }
