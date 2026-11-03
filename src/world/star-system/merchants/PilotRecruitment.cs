@@ -28,6 +28,7 @@ public static class PilotRecruitment
 		EOperatorClassId.SpaceRanger,
 		EOperatorClassId.Support,
 		EOperatorClassId.Tank,
+		EOperatorClassId.Rogue,
 	];
 
 	public static IReadOnlyList<EPilotBackgroundId> RecruitableBackgroundIds { get; } =

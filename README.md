@@ -493,8 +493,11 @@ Capability interfaces (metadata + helpers, still in units):
 Catalog loadouts are baseline ship configurations and may leave permissible mounts empty. DevDefault fields Fighter/Support/Tank/Rogue on the player side and Fighter/Carrier/Gooper on the enemy side, all on T0 catalog loadouts; classified pilots get every global and class skill learned.
 
 The Rogue class and [`RogueSpec`](src/units/specs/RogueSpec.cs) chassis are registered
-and included as the fourth player ship in the dev duel, but not yet included in
-run starting squads, merchant/recruit pools, or enemy generation.
+and included as the fourth player ship in the dev duel. New markets offer Rogue
+ships at T0/T1/T2 for 150/300/600 credits (T2 also costs 1 industrial core), and
+pilot hiring can roll Rogue pilots. Existing saved markets retain their saved
+listings. Run starting squads and enemy generation remain unchanged; Rogue-specific
+pilot skills are not yet designed.
 Its base stats are 120 hull, 50 shields on each face except
 retro (0), 4 AP, 4 MP, and initiative 50. Reverse translation costs 1 AP; other
 movement and rotation costs remain standard. Its model is `assets/models/ships/spaceship-rouge.glb`,

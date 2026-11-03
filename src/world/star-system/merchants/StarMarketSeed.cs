@@ -22,6 +22,10 @@ public static class StarMarketSeed
 	public const int IndustrialGooperT1CreditCost = 300;
 	public const int IndustrialGooperT2CreditCost = 600;
 	public const int IndustrialGooperT2IndustrialCoreCost = 1;
+	public const int RogueT0CreditCost = 150;
+	public const int RogueT1CreditCost = 300;
+	public const int RogueT2CreditCost = 600;
+	public const int RogueT2IndustrialCoreCost = 1;
 	public const int FuelPurchaseCreditCost = StrategicEconomyConfig.FuelPurchaseCreditCost;
 	public const int FuelPurchaseAmount = StrategicEconomyConfig.FuelPurchaseAmount;
 
@@ -103,6 +107,23 @@ public static class StarMarketSeed
 				ResourceBundle.Create(
 					(ResourceId.Credits, IndustrialGooperT2CreditCost),
 					(ResourceId.IndustrialCore, IndustrialGooperT2IndustrialCoreCost))),
+			new(
+				"recruitment.rogue.t0",
+				EType.Rogue,
+				EShipGearTier.T0,
+				ResourceBundle.Of(ResourceId.Credits, RogueT0CreditCost)),
+			new(
+				"recruitment.rogue.t1",
+				EType.Rogue,
+				EShipGearTier.T1,
+				ResourceBundle.Of(ResourceId.Credits, RogueT1CreditCost)),
+			new(
+				"recruitment.rogue.t2",
+				EType.Rogue,
+				EShipGearTier.T2,
+				ResourceBundle.Create(
+					(ResourceId.Credits, RogueT2CreditCost),
+					(ResourceId.IndustrialCore, RogueT2IndustrialCoreCost))),
 		};
 
 		return new StarMarket(merchantListings, recruitmentListings);

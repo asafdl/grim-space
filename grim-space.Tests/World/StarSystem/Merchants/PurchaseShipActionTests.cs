@@ -3,6 +3,8 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Core.Ids;
 using GrimSpace.Run;
 using GrimSpace.Run.Items;
+using GrimSpace.Run.Persistence;
+using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
@@ -23,6 +25,54 @@ namespace GrimSpace.Tests.World.StarSystem.Merchants;
 [StarSystemTestSuite]
 public sealed class PurchaseShipActionTests
 {
+	[Theory]
+	[InlineData(EShipGearTier.T0)]
+	[InlineData(EShipGearTier.T1)]
+	[InlineData(EShipGearTier.T2)]
+	public void PurchaseRogue_AssignsHiredRoguePilotAndPersists(EShipGearTier tier)
+	{
+		using var run = State.CreateNewRun(42);
+		var map = run.StarSystem.Map;
+		Assert.True(map.Market.TryFindRecruitmentOffer(EType.Rogue, tier, out var offer));
+		SeedResources(map, credits: 10_000, scrap: 10_000);
+		new ChangeResourceEffect(TransactionSource.MerchantPurchase,
+			ResourceBundle.Of(ResourceId.IndustrialCore, 10))
+			.Apply(map, new ActorRuntime(), "seed");
+		var id = TypedIdGenerator.NextId("rogue");
+		var action = new PurchaseShipAction(
+			State.PlayerFleetUnitId,
+			new FacilityMerchantEndpoint(
+				SupplySystemPlan.Copper.TradeHubPoiId,
+				Facility.ScopedId(SupplySystemPlan.Copper.TradeHubPoiId, TradeHub.MarketFacilitySlug),
+				MapFacilityOperators.ShipMerchantOperatorName(map)),
+			new ShipSpawnDeclaration(id, offer.Chassis, offer.GearTier));
+		Assert.True(PurchaseShipActionDef.Instance.IsLegal(action, map,
+			run.StarSystem.RuntimeFor(State.PlayerFleetUnitId)));
+
+		run.StarSystem.CommitSetup(action);
+
+		Assert.True(run.ItemInventory.TryGet(id, out var ship));
+		Assert.Equal(EType.Rogue, ship.Spec.Chassis);
+		Assert.Equal(tier, ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis));
+		Assert.False(run.PilotRegistry.TryGetForShip(id, out _));
+		var profile = new PilotRecruitProfile("Rogue Hire", "pilot_03",
+			EPilotBackgroundId.PodRacer, classId: EOperatorClassId.Rogue);
+		Assert.True(run.TryAcquirePilotHire(new PilotHireCommitted(profile)));
+		var pilot = Assert.Single(run.PilotRegistry.All, candidate => candidate.Name == profile.Name);
+		Assert.False(run.TryAssignPilotToShip(pilot.Id, run.GetFieldedShipIds()[0]));
+		Assert.True(run.TryAssignPilotToShip(pilot.Id, id));
+
+		var registry = PersistenceRegistry.CreateDefault();
+		using var restored = State.FromSnapshot(run.CaptureSnapshot(registry), registry);
+		Assert.True(restored.ItemInventory.TryGet(id, out var restoredShip));
+		Assert.Equal(EType.Rogue, restoredShip.Spec.Chassis);
+		Assert.Equal(tier, ShipLoadoutGearTier.FromLoadout(restoredShip.Loadout, restoredShip.Spec.Chassis));
+		Assert.True(restored.PilotRegistry.TryGetForShip(id, out var restoredPilot));
+		Assert.Equal(EOperatorClassId.Rogue, restoredPilot.ClassId);
+		Assert.True(restored.StarSystem.Map.Market.TryFindRecruitmentOffer(EType.Rogue, tier, out var restoredOffer));
+		Assert.Equal(offer.Cost, restoredOffer.Cost);
+	}
+
 	[Fact]
 	public void TryEnqueue_DoesNotMutateStrategicFleetMembers()
 	{
