@@ -29,7 +29,7 @@ public sealed class LegalMoveTests
 			world,
 			battle.PlayerAgent.Sim.RuntimeFor(battle.PlayerId)));
 
-		enemy.State.HullPoints = 0;
+		enemy.State.CurrentHullPoints = 0;
 		Assert.False(world.IsCellBlocked(enemy.State.Position));
 		Assert.True(MoveDef.Instance.IsPossible(
 			new MoveStepAction(battle.PlayerId),
@@ -48,7 +48,7 @@ public sealed class LegalMoveTests
 		Assert.True(BattleTestActions.TryEnqueueMovePath(battle, move));
 		Assert.Equal(move.Steps, battle.PlayerAgent.Sim.Actions);
 		Assert.Equal(move.EndPosition, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).Position);
-		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
+		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId).CurrentActionPoints);
 	}
 
 	[Fact]
@@ -93,7 +93,7 @@ public sealed class LegalMoveTests
 		Assert.Equal(origin, state.Position);
 		Assert.Equal(Coord.Forward, state.Fore);
 		Assert.Equal(Coord.Up, state.Dorsal);
-		Assert.Equal(4, state.ActionPoints);
+		Assert.Equal(4, state.CurrentActionPoints);
 	}
 
 	[Theory]
@@ -127,11 +127,11 @@ public sealed class LegalMoveTests
 
 		Assert.True(session.TryEnqueue(
 			new MoveStepAction("player", ESpatialOrientation.Starboard)));
-		Assert.Equal(3, session.StateOf<ActorState>("player").ActionPoints);
+		Assert.Equal(3, session.StateOf<ActorState>("player").CurrentActionPoints);
 
 		Assert.True(session.TryEnqueue(
 			new MoveStepAction("player", ESpatialOrientation.Retro)));
-		Assert.Equal(1, session.StateOf<ActorState>("player").ActionPoints);
+		Assert.Equal(1, session.StateOf<ActorState>("player").CurrentActionPoints);
 	}
 
 	[Fact]
@@ -175,7 +175,7 @@ public sealed class LegalMoveTests
 		Assert.False(sim.TryEnqueue(
 			new MoveStepAction(battle.PlayerId, ESpatialOrientation.Port)));
 		Assert.True(sim.TryEnqueue(new MoveStepAction(battle.PlayerId)));
-		Assert.Equal(2, sim.StateOf<ActorState>(battle.PlayerId).ActionPoints);
-		Assert.Equal(3, sim.StateOf<ActorState>(battle.PlayerId).ManeuverPoints);
+		Assert.Equal(2, sim.StateOf<ActorState>(battle.PlayerId).CurrentActionPoints);
+		Assert.Equal(3, sim.StateOf<ActorState>(battle.PlayerId).CurrentManeuverPoints);
 	}
 }

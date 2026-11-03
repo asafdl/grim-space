@@ -15,7 +15,7 @@ public sealed class ShipHardwareDiff
 	public EType CandidateChassis { get; }
 	public EShipGearTier BaselineGearTier { get; }
 	public EShipGearTier CandidateGearTier { get; }
-	public int MaxHullDelta { get; }
+	public int BaseHullDelta { get; }
 	public IReadOnlyList<(ESpatialOrientation Face, int Delta)> ShieldDeltas { get; }
 	public IReadOnlyList<InstalledAbility> AddedAbilities { get; }
 	public IReadOnlyList<InstalledAbility> RemovedAbilities { get; }
@@ -30,7 +30,7 @@ public sealed class ShipHardwareDiff
 	public bool IsEmpty =>
 		!ChassisChanged
 		&& !GearTierChanged
-		&& MaxHullDelta == 0
+		&& BaseHullDelta == 0
 		&& ShieldDeltas.Count == 0
 		&& AddedAbilities.Count == 0
 		&& RemovedAbilities.Count == 0
@@ -44,7 +44,7 @@ public sealed class ShipHardwareDiff
 		EType candidateChassis,
 		EShipGearTier baselineGearTier,
 		EShipGearTier candidateGearTier,
-		int maxHullDelta,
+		int baseHullDelta,
 		IReadOnlyList<(ESpatialOrientation Face, int Delta)> shieldDeltas,
 		IReadOnlyList<InstalledAbility> addedAbilities,
 		IReadOnlyList<InstalledAbility> removedAbilities,
@@ -57,7 +57,7 @@ public sealed class ShipHardwareDiff
 		CandidateChassis = candidateChassis;
 		BaselineGearTier = baselineGearTier;
 		CandidateGearTier = candidateGearTier;
-		MaxHullDelta = maxHullDelta;
+		BaseHullDelta = baseHullDelta;
 		ShieldDeltas = shieldDeltas;
 		AddedAbilities = addedAbilities;
 		RemovedAbilities = removedAbilities;
@@ -79,7 +79,7 @@ public sealed class ShipHardwareDiff
 		var shieldDeltas = new List<(ESpatialOrientation Face, int Delta)>();
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 		{
-			var delta = candidateLoadout.MaxShieldPoints[face] - baselineLoadout.MaxShieldPoints[face];
+			var delta = candidateLoadout.BaseShieldPoints[face] - baselineLoadout.BaseShieldPoints[face];
 			if (delta != 0)
 				shieldDeltas.Add((face, delta));
 		}
@@ -123,10 +123,10 @@ public sealed class ShipHardwareDiff
 			var baselineSpec = ShipCatalog.SpecFor(baselineChassis);
 			var candidateSpec = ShipCatalog.SpecFor(candidateChassis);
 			initiativeDelta = candidateSpec.Initiative - baselineSpec.Initiative;
-			actionPointsDelta = candidateSpec.Maneuverability.MaxActionPoints
-				- baselineSpec.Maneuverability.MaxActionPoints;
-			maneuverPointsDelta = candidateSpec.Maneuverability.MaxManeuverPoints
-				- baselineSpec.Maneuverability.MaxManeuverPoints;
+			actionPointsDelta = candidateSpec.Maneuverability.BaseActionPoints
+				- baselineSpec.Maneuverability.BaseActionPoints;
+			maneuverPointsDelta = candidateSpec.Maneuverability.BaseManeuverPoints
+				- baselineSpec.Maneuverability.BaseManeuverPoints;
 		}
 
 		return new ShipHardwareDiff(
@@ -134,7 +134,7 @@ public sealed class ShipHardwareDiff
 			candidateChassis,
 			ShipLoadoutGearTier.FromLoadout(baselineLoadout, baselineChassis),
 			ShipLoadoutGearTier.FromLoadout(candidateLoadout, candidateChassis),
-			candidateLoadout.MaxHullPoints - baselineLoadout.MaxHullPoints,
+			candidateLoadout.BaseHullPoints - baselineLoadout.BaseHullPoints,
 			shieldDeltas,
 			added,
 			removed,

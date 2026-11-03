@@ -72,7 +72,7 @@ public sealed class VoidBombMoveDef
 		var stepCost = actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost)
 			? cost
 			: throw new InvalidOperationException($"Unsupported torpedo direction {action.Direction}.");
-		return stepCost <= actor.ActionPoints;
+		return stepCost <= actor.CurrentActionPoints;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

@@ -99,11 +99,11 @@ public sealed class SimulationUndoTests
 			expected.StateOf<ActorState>(PlayerId).Position,
 			actual.StateOf<ActorState>(PlayerId).Position);
 		Assert.Equal(
-			expected.StateOf<ActorState>(PlayerId).ActionPoints,
-			actual.StateOf<ActorState>(PlayerId).ActionPoints);
+			expected.StateOf<ActorState>(PlayerId).CurrentActionPoints,
+			actual.StateOf<ActorState>(PlayerId).CurrentActionPoints);
 		Assert.Equal(
-			expected.StateOf<ActorState>(PlayerId).ManeuverPoints,
-			actual.StateOf<ActorState>(PlayerId).ManeuverPoints);
+			expected.StateOf<ActorState>(PlayerId).CurrentManeuverPoints,
+			actual.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 		Assert.Equal(expected.InvariantStatus, actual.InvariantStatus);
 	}
 }

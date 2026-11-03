@@ -31,7 +31,7 @@ public sealed class GoopGunScoringTests
 			EType.IndustrialGooper,
 			new Coord(1, 0, 0),
 			Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
@@ -52,7 +52,7 @@ public sealed class GoopGunScoringTests
 			EType.IndustrialGooper,
 			new Coord(1, 0, 0),
 			Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
@@ -68,7 +68,7 @@ public sealed class GoopGunScoringTests
 		var gooperPos = new Coord(8, 6, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var ally = CreateUnit(ETeam.Enemy, "ally", allyPos, EType.Fighter, new Coord(-1, 0, 0), Coord.Up);
-		ally.State.ActionPoints = 0;
+		ally.State.CurrentActionPoints = 0;
 		var gooper = CreateUnit(
 			ETeam.Enemy,
 			"gooper",
@@ -76,7 +76,7 @@ public sealed class GoopGunScoringTests
 			EType.IndustrialGooper,
 			new Coord(1, 0, 0),
 			Coord.Up);
-		gooper.State.ActionPoints = 0;
+		gooper.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, [ally, gooper]);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, gooper);

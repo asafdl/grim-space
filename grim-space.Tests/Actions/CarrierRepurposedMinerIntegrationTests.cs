@@ -52,7 +52,7 @@ public sealed class CarrierRepurposedMinerIntegrationTests
 		carrier.State.Fore = new Coord(1, 0, 0);
 		carrier.State.Dorsal = Coord.Up;
 		carrier.State.Starboard = Coord.Cross(carrier.State.Dorsal, carrier.State.Fore);
-		carrier.State.ActionPoints = 0;
+		carrier.State.CurrentActionPoints = 0;
 
 		var (_, fore, dorsal) = MinerBayMount.LaunchPose(carrier.State, ESpatialOrientation.Ventral);
 		var repurposedMinerFrame = new BodyFrame(

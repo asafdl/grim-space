@@ -13,9 +13,9 @@ public sealed class MpChangeEffect(int delta) : IEffect<BattleWorld, ActorRuntim
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
-		_previousManeuverPoints = actor.ManeuverPoints;
+		_previousManeuverPoints = actor.CurrentManeuverPoints;
 		_previousMpUsed = actor.DefensiveManeuversMpUsed;
-		actor.ManeuverPoints += delta;
+		actor.CurrentManeuverPoints += delta;
 		if (BattleStatuses.HasDefensiveManeuvers(actor))
 			actor.DefensiveManeuversMpUsed = SyncDefensiveManeuversMpUsedFromPoolEffect.MpUsedFromPool(actor);
 		return [];
@@ -24,7 +24,7 @@ public sealed class MpChangeEffect(int delta) : IEffect<BattleWorld, ActorRuntim
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
-		actor.ManeuverPoints = _previousManeuverPoints;
+		actor.CurrentManeuverPoints = _previousManeuverPoints;
 		actor.DefensiveManeuversMpUsed = _previousMpUsed;
 	}
 }

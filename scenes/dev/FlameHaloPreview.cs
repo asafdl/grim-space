@@ -157,7 +157,7 @@ public partial class FlameHaloPreview : Node3D
 			Heat = sample == 0 ? heat / 4 : heat,
 			Overdrive = sample == 1,
 			Overheat = sample == 2,
-			HullPoints = loadout.MaxHullPoints,
+			CurrentHullPoints = loadout.BaseHullPoints,
 		};
 	}
 

@@ -21,8 +21,8 @@ public sealed class ResetCooldownOnKillEffectTests
 	public void ResetsOnlyOnNewKillAndUndoRestoresCooldownAndDamage(int hull, bool resets)
 	{
 		var (battle, player, enemy) = CreateBattle();
-		enemy.State.HullPoints = hull;
-		enemy.State.ShieldPoints.Fill(0);
+		enemy.State.CurrentHullPoints = hull;
+		enemy.State.CurrentShieldPoints.Fill(0);
 		var mount = player.State.FindInstalled(EAbilityKind.RoadsWeDontNeedRoads)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 3;
 		var effect = new ResetCooldownOnKillEffect(new ApplyAreaDamageEffect(
@@ -38,15 +38,15 @@ public sealed class ResetCooldownOnKillEffectTests
 		Assert.Equal(resets ? 1 : 0, records.OfType<Record<CooldownResetOnKillFacts>>().Count());
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
 		Assert.Equal(3, player.State.CooldownRemaining(mount));
-		Assert.Equal(hull, enemy.State.HullPoints);
+		Assert.Equal(hull, enemy.State.CurrentHullPoints);
 	}
 
 	[Fact]
 	public void NonOptedInCooldownIsUnchanged()
 	{
 		var (battle, player, enemy) = CreateBattle(EType.Fighter);
-		enemy.State.HullPoints = 50;
-		enemy.State.ShieldPoints.Fill(0);
+		enemy.State.CurrentHullPoints = 50;
+		enemy.State.CurrentShieldPoints.Fill(0);
 		var mount = player.State.FindInstalled(EAbilityKind.VoidBombLauncher)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 3;
 		var effect = new ResetCooldownOnKillEffect(new ApplyAreaDamageEffect(
@@ -70,7 +70,7 @@ public sealed class ResetCooldownOnKillEffectTests
 		var mount = player.State.FindInstalled(EAbilityKind.RoadsWeDontNeedRoads)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 2;
 		enemy.State.ParentId = player.State.Id;
-		enemy.State.ShieldPoints.Fill(0);
+		enemy.State.CurrentShieldPoints.Fill(0);
 		var effect = new ResetCooldownOnKillEffect(new ApplyAreaDamageEffect(
 			EImpactCause.VoidBombBlast,
 			new HashSet<Coord> { enemy.State.Position },

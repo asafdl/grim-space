@@ -22,7 +22,7 @@ public sealed class HeatVentsActionTests
 		var (_, battle) = PlayerWithHeatVentsBattle();
 		var simState = battle.PlayerAgent.Sim.World.StateOf(PlayerId);
 		simState.Heat = 50;
-		simState.ActionPoints = PilotSkillPercents.HeatVents.ApCost;
+		simState.CurrentActionPoints = PilotSkillPercents.HeatVents.ApCost;
 
 		var legal = Capabilities.LegalCapabilities(battle.PlayerAgent.Sim, PlayerId);
 
@@ -34,7 +34,7 @@ public sealed class HeatVentsActionTests
 	{
 		var (player, battle) = PlayerWithHeatVentsBattle();
 		player.State.Heat = 70;
-		player.State.ActionPoints = 4;
+		player.State.CurrentActionPoints = 4;
 
 		BattleTestApply.TryApplyOne(
 			HeatVentsDef.Instance.Bind(PlayerId),
@@ -43,7 +43,7 @@ public sealed class HeatVentsActionTests
 			PlayerId);
 
 		Assert.Equal(70 - PilotSkillPercents.HeatVents.HeatReleased, player.State.Heat);
-		Assert.Equal(4 - PilotSkillPercents.HeatVents.ApCost, player.State.ActionPoints);
+		Assert.Equal(4 - PilotSkillPercents.HeatVents.ApCost, player.State.CurrentActionPoints);
 		Assert.True(player.State.HeatVentsUsedThisTurn);
 		Assert.True(battle.Engine.World.Timeline.ContainsPending(
 			action => action is ResetHeatVentsUsedThisTurnAction reset
@@ -55,7 +55,7 @@ public sealed class HeatVentsActionTests
 	{
 		var (player, battle) = PlayerWithHeatVentsBattle();
 		player.State.Heat = 10;
-		player.State.ActionPoints = PilotSkillPercents.HeatVents.ApCost;
+		player.State.CurrentActionPoints = PilotSkillPercents.HeatVents.ApCost;
 
 		BattleTestApply.TryApplyOne(
 			HeatVentsDef.Instance.Bind(PlayerId),
@@ -75,10 +75,10 @@ public sealed class HeatVentsActionTests
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		player.State.Heat = 40;
-		player.State.ActionPoints = 0;
+		player.State.CurrentActionPoints = 0;
 		Assert.False(HeatVentsDef.Instance.IsLegal(action, world, runtime));
 
-		player.State.ActionPoints = PilotSkillPercents.HeatVents.ApCost;
+		player.State.CurrentActionPoints = PilotSkillPercents.HeatVents.ApCost;
 		player.State.Heat = 0;
 		Assert.False(HeatVentsDef.Instance.IsLegal(action, world, runtime));
 
@@ -94,7 +94,7 @@ public sealed class HeatVentsActionTests
 	{
 		var (player, battle) = PlayerWithHeatVentsBattle();
 		player.State.Heat = 100;
-		player.State.ActionPoints = PilotSkillPercents.HeatVents.ApCost;
+		player.State.CurrentActionPoints = PilotSkillPercents.HeatVents.ApCost;
 		player.State.Overheat = true;
 		BattleStatuses.SyncOverheat(player.State);
 

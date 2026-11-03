@@ -30,10 +30,10 @@ public sealed class SimulationSessionTests
 
 		var preview = Preview.Simulate(battle);
 		Assert.Equal(origin, player.State.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.CurrentActionPoints);
 
 		Assert.Equal(origin + Coord.Forward * stepCount, preview.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - stepCount, preview.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn - stepCount, preview.CurrentActionPoints);
 	}
 
 	[Fact]
@@ -48,22 +48,22 @@ public sealed class SimulationSessionTests
 
 		var emptyPreview = Preview.Simulate(battle);
 		Assert.Equal(origin, emptyPreview.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn, emptyPreview.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, emptyPreview.CurrentActionPoints);
 
 		EnqueueForwardMove(battle, steps: 3);
 		var threeStepPreview = Preview.Simulate(battle);
 		Assert.Equal(origin + Coord.Forward * 3, threeStepPreview.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn - 3, threeStepPreview.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn - 3, threeStepPreview.CurrentActionPoints);
 
 		Assert.True(battle.PlayerAgent.Sim.TryUndoLast());
 		EnqueueForwardMove(battle, steps: 4);
 
 		var fourStepPreview = Preview.Simulate(battle);
 		Assert.Equal(origin + Coord.Forward * 4, fourStepPreview.Position);
-		Assert.Equal(0, fourStepPreview.ActionPoints);
+		Assert.Equal(0, fourStepPreview.CurrentActionPoints);
 
 		Assert.Equal(origin, player.State.Position);
-		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.CurrentActionPoints);
 	}
 
 	[Fact]

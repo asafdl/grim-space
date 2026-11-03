@@ -84,10 +84,10 @@ public sealed class BattleStatusPhase1Tests
 		var battle = BattleTestFixture.BeginSimulation(player, [protectedEnemy, plainEnemy]);
 		var world = battle.PlayerAgent.Sim.World;
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
-		var protectedHullBefore = world.StateOf("protected").HullPoints;
-		var plainHullBefore = world.StateOf("plain").HullPoints;
-		var protectedShieldsBefore = FaceTotal(world.StateOf("protected").ShieldPoints);
-		var plainShieldsBefore = FaceTotal(world.StateOf("plain").ShieldPoints);
+		var protectedHullBefore = world.StateOf("protected").CurrentHullPoints;
+		var plainHullBefore = world.StateOf("plain").CurrentHullPoints;
+		var protectedShieldsBefore = FaceTotal(world.StateOf("protected").CurrentShieldPoints);
+		var plainShieldsBefore = FaceTotal(world.StateOf("plain").CurrentShieldPoints);
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
 			new HashSet<Coord>
@@ -149,14 +149,14 @@ public sealed class BattleStatusPhase1Tests
 
 		var allyUnit = UnitRegistry.For(world).All.First(unit => unit.State.Id == "ally");
 		var burstCell = BodyFrame.From(world.StateOf(PlayerId)).ToWorld(0, -1, 0);
-		allyUnit.State.HullPoints = 50;
+		allyUnit.State.CurrentHullPoints = 50;
 		allyUnit.State.Position = burstCell;
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
 		Assert.Contains(burstCell, ScrapDroneSwarmDef.Instance.AffectedCells(action, world));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
-		Assert.Equal(50 + CatalogExpectations.ScrapDroneSwarmHeal(), allyUnit.State.HullPoints);
+		Assert.Equal(50 + CatalogExpectations.ScrapDroneSwarmHeal(), allyUnit.State.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -181,12 +181,12 @@ public sealed class BattleStatusPhase1Tests
 		_ = effect.Apply(world, runtime, PlayerId);
 		Assert.Equal(
 			100,
-			CombatLost(before.HullPoints, FaceTotal(before.ShieldPoints), world.StateOf(enemy.State.Id)));
+			CombatLost(before.CurrentHullPoints, FaceTotal(before.CurrentShieldPoints), world.StateOf(enemy.State.Id)));
 
 		effect.Undo(world, runtime, PlayerId);
 
-		Assert.Equal(before.HullPoints, world.StateOf(enemy.State.Id).HullPoints);
-		Assert.Equal(FaceTotal(before.ShieldPoints), FaceTotal(world.StateOf(enemy.State.Id).ShieldPoints));
+		Assert.Equal(before.CurrentHullPoints, world.StateOf(enemy.State.Id).CurrentHullPoints);
+		Assert.Equal(FaceTotal(before.CurrentShieldPoints), FaceTotal(world.StateOf(enemy.State.Id).CurrentShieldPoints));
 	}
 
 	[Fact]
@@ -222,8 +222,8 @@ public sealed class BattleStatusPhase1Tests
 		var enemyState = world.StateOf(enemy.State.Id);
 		enemyState.Position = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).First();
 		EnsureHitFaceShields(enemyState, world.StateOf(PlayerId).Position, 500);
-		var hullBefore = enemyState.HullPoints;
-		var shieldsBefore = FaceTotal(enemyState.ShieldPoints);
+		var hullBefore = enemyState.CurrentHullPoints;
+		var shieldsBefore = FaceTotal(enemyState.CurrentShieldPoints);
 
 		var records = ExecutionHelper.Apply(
 			action,
@@ -257,11 +257,11 @@ public sealed class BattleStatusPhase1Tests
 	private static void EnsureHitFaceShields(State unit, Coord origin, int amount)
 	{
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
-		unit.ShieldPoints[face] = amount;
+		unit.CurrentShieldPoints[face] = amount;
 	}
 
 	private static int CombatLost(int hullBefore, int shieldsBefore, State after) =>
-		(hullBefore - after.HullPoints) + (shieldsBefore - FaceTotal(after.ShieldPoints));
+		(hullBefore - after.CurrentHullPoints) + (shieldsBefore - FaceTotal(after.CurrentShieldPoints));
 
 	private static int FaceTotal(FaceShieldPoints shields)
 	{

@@ -22,9 +22,9 @@ public sealed class RogueSpecTests
 		Assert.Same(RogueSpec.Instance, ship.Spec);
 		Assert.Equal(EOperatorClassId.Rogue, ship.Spec.ClassId);
 		Assert.Equal(50, ship.Spec.Initiative);
-		Assert.Equal(120, ship.Spec.DefaultMaxHullPoints);
-		Assert.Equal(120, ship.Loadout.MaxHullPoints);
-		Assert.Equal(120, ship.HullPoints);
+		Assert.Equal(120, ship.Spec.DefaultBaseHullPoints);
+		Assert.Equal(120, ship.Loadout.BaseHullPoints);
+		Assert.Equal(120, ship.CurrentHullPoints);
 		Assert.Equal(3, ship.Spec.Slots.Count);
 		Assert.Equal(3, ship.Loadout.InstalledAbilities.Count);
 		Assert.Equal(
@@ -37,9 +37,9 @@ public sealed class RogueSpecTests
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
 			var expected = face == ESpatialOrientation.Retro ? 0 : 50;
-			Assert.Equal(expected, ship.Spec.DefaultMaxShieldPoints[face]);
-			Assert.Equal(expected, ship.Loadout.MaxShieldPoints[face]);
-			Assert.Equal(expected, ship.ShieldPoints[face]);
+			Assert.Equal(expected, ship.Spec.DefaultBaseShieldPoints[face]);
+			Assert.Equal(expected, ship.Loadout.BaseShieldPoints[face]);
+			Assert.Equal(expected, ship.CurrentShieldPoints[face]);
 		}
 	}
 
@@ -49,8 +49,8 @@ public sealed class RogueSpecTests
 		var profile = RogueSpec.Instance.Maneuverability;
 		var fighter = FighterSpec.Instance.Maneuverability;
 
-		Assert.Equal(4, profile.MaxActionPoints);
-		Assert.Equal(4, profile.MaxManeuverPoints);
+		Assert.Equal(4, profile.BaseActionPoints);
+		Assert.Equal(4, profile.BaseManeuverPoints);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
 			Assert.True(profile.TryGetTranslationApCost(face, out var cost));
@@ -109,11 +109,11 @@ public sealed class RogueSpecTests
 			baseline,
 			[EChassisBuffOffer.ShieldFlat, EChassisBuffOffer.HullPercent]);
 
-		Assert.Equal(138, upgraded.MaxHullPoints);
+		Assert.Equal(138, upgraded.BaseHullPoints);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			Assert.Equal(face == ESpatialOrientation.Retro ? 30 : 80, upgraded.MaxShieldPoints[face]);
-		Assert.Equal(120, baseline.MaxHullPoints);
-		Assert.Equal(0, baseline.MaxShieldPoints[ESpatialOrientation.Retro]);
+			Assert.Equal(face == ESpatialOrientation.Retro ? 30 : 80, upgraded.BaseShieldPoints[face]);
+		Assert.Equal(120, baseline.BaseHullPoints);
+		Assert.Equal(0, baseline.BaseShieldPoints[ESpatialOrientation.Retro]);
 	}
 
 	[Fact]
@@ -126,7 +126,7 @@ public sealed class RogueSpecTests
 			Enumerable.Repeat(EChassisBuffOffer.ShieldPercentHeavy, 25).ToArray());
 
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			Assert.Equal(face == ESpatialOrientation.Retro ? 0 : 550, upgraded.MaxShieldPoints[face]);
+			Assert.Equal(face == ESpatialOrientation.Retro ? 0 : 550, upgraded.BaseShieldPoints[face]);
 	}
 
 	[Fact]
@@ -138,21 +138,21 @@ public sealed class RogueSpecTests
 			spec.NewDefaultLoadout(),
 			[EChassisBuffOffer.ShieldFlat, EChassisBuffOffer.HullPercent]);
 		var ship = ShipInstance.FromSpec("rogue", spec, loadout);
-		ship.HullPoints = 75;
-		ship.ShieldPoints[ESpatialOrientation.Forward] = 12;
+		ship.CurrentHullPoints = 75;
+		ship.CurrentShieldPoints[ESpatialOrientation.Forward] = 12;
 
 		var options = PersistenceJson.CreateOptions();
 		var json = JsonSerializer.Serialize(ship, options);
 		var restored = JsonSerializer.Deserialize<ShipInstance>(json, options)!;
 
 		Assert.Same(spec, restored.Spec);
-		Assert.Equal(138, restored.Loadout.MaxHullPoints);
-		Assert.Equal(75, restored.HullPoints);
+		Assert.Equal(138, restored.Loadout.BaseHullPoints);
+		Assert.Equal(75, restored.CurrentHullPoints);
 		Assert.Equal(loadout.Buffs, restored.Loadout.Buffs);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
-			Assert.Equal(loadout.MaxShieldPoints[face], restored.Loadout.MaxShieldPoints[face]);
-			Assert.Equal(ship.ShieldPoints[face], restored.ShieldPoints[face]);
+			Assert.Equal(loadout.BaseShieldPoints[face], restored.Loadout.BaseShieldPoints[face]);
+			Assert.Equal(ship.CurrentShieldPoints[face], restored.CurrentShieldPoints[face]);
 		}
 	}
 

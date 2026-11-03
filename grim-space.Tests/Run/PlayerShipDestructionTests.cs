@@ -116,6 +116,6 @@ public sealed class PlayerShipDestructionTests
 		run.OnCommittedBattleOutcome(new Record<BattleOutcome>(outcome));
 
 		Assert.True(run.ItemInventory.TryGet(enemyShipId, out var enemy));
-		Assert.Equal(0, enemy.HullPoints);
+		Assert.Equal(0, enemy.CurrentHullPoints);
 	}
 }

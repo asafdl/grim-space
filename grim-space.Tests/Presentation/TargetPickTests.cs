@@ -67,7 +67,7 @@ public sealed class TargetPickTests
 		Assert.Equal(["enemy", "far-enemy"], spec.LegalTargets(battle.Engine.World, "player", []));
 		Assert.Equal(["far-enemy"], spec.LegalTargets(battle.Engine.World, "player", ["enemy"]));
 
-		battle.Engine.World.StateOf("enemy").HullPoints = 0;
+		battle.Engine.World.StateOf("enemy").CurrentHullPoints = 0;
 		Assert.Equal(["far-enemy"], spec.LegalTargets(battle.Engine.World, "player", []));
 	}
 
@@ -205,7 +205,7 @@ public sealed class TargetPickTests
 		frames.Interaction.SetTargetCandidate("far-enemy");
 		Assert.Equal("far-enemy", Frame(battle, frames).TargetPick!.CandidateId);
 
-		battle.PlayerAgent.Sim.StateOf<ActorState>("far-enemy").HullPoints = 0;
+		battle.PlayerAgent.Sim.StateOf<ActorState>("far-enemy").CurrentHullPoints = 0;
 		var frame = Frame(battle, frames);
 
 		Assert.Equal("enemy", frame.TargetPick!.CandidateId);
@@ -218,7 +218,7 @@ public sealed class TargetPickTests
 		var frames = BeginSession(battle, new TargetPickSpec(1, 2, EnemyOnly()));
 		Frame(battle, frames);
 		frames.Interaction.ConfirmTargetPick();
-		battle.PlayerAgent.Sim.StateOf<ActorState>("enemy").HullPoints = 0;
+		battle.PlayerAgent.Sim.StateOf<ActorState>("enemy").CurrentHullPoints = 0;
 
 		var frame = Frame(battle, frames);
 

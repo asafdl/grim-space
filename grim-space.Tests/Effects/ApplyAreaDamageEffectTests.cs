@@ -24,8 +24,8 @@ public sealed class ApplyAreaDamageEffectTests
 		int shields, int expectedHullDamage)
 	{
 		var (player, enemy, battle, face) = DamageBattle();
-		enemy.State.HullPoints = 1000;
-		enemy.State.ShieldPoints[face] = shields;
+		enemy.State.CurrentHullPoints = 1000;
+		enemy.State.CurrentShieldPoints[face] = shields;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.HighSpeedRod,
 			new HashSet<Coord> { enemy.State.Position },
@@ -36,11 +36,11 @@ public sealed class ApplyAreaDamageEffectTests
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(1000 - expectedHullDamage, enemy.State.HullPoints);
-		Assert.Equal(System.Math.Max(0, shields - 70), enemy.State.ShieldPoints[face]);
+		Assert.Equal(1000 - expectedHullDamage, enemy.State.CurrentHullPoints);
+		Assert.Equal(System.Math.Max(0, shields - 70), enemy.State.CurrentShieldPoints[face]);
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
-		Assert.Equal(1000, enemy.State.HullPoints);
-		Assert.Equal(shields, enemy.State.ShieldPoints[face]);
+		Assert.Equal(1000, enemy.State.CurrentHullPoints);
+		Assert.Equal(shields, enemy.State.CurrentShieldPoints[face]);
 	}
 
 	[Fact]
@@ -104,8 +104,8 @@ public sealed class ApplyAreaDamageEffectTests
 			new GrimSpace.Battle.Player.UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(new Coord(6, 5, 5));
 		var hitFace = GrimSpace.Battle.Spatial.BodyFrame.From(enemy.State).HitFaceFrom(player.State.Position);
-		enemy.State.ShieldPoints[hitFace] = 2;
-		var hullBefore = enemy.State.HullPoints;
+		enemy.State.CurrentShieldPoints[hitFace] = 2;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -117,11 +117,11 @@ public sealed class ApplyAreaDamageEffectTests
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(hullBefore, enemy.State.HullPoints);
-		Assert.Equal(0, enemy.State.ShieldPoints[hitFace]);
+		Assert.Equal(hullBefore, enemy.State.CurrentHullPoints);
+		Assert.Equal(0, enemy.State.CurrentShieldPoints[hitFace]);
 
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
-		Assert.Equal(2, enemy.State.ShieldPoints[hitFace]);
+		Assert.Equal(2, enemy.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Theory]
@@ -132,11 +132,11 @@ public sealed class ApplyAreaDamageEffectTests
 		int expectedHullDamage)
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
-		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		InstallDefensiveManeuvers(enemy.State);
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = rollIndex;
-		var hullBefore = enemy.State.HullPoints;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
@@ -146,11 +146,11 @@ public sealed class ApplyAreaDamageEffectTests
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(hullBefore - expectedHullDamage, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - expectedHullDamage, enemy.State.CurrentHullPoints);
 		Assert.Equal(rollIndex + 1, enemy.State.DefensiveManeuversRollIndex);
 
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
-		Assert.Equal(hullBefore, enemy.State.HullPoints);
+		Assert.Equal(hullBefore, enemy.State.CurrentHullPoints);
 		Assert.Equal(rollIndex, enemy.State.DefensiveManeuversRollIndex);
 	}
 
@@ -158,11 +158,11 @@ public sealed class ApplyAreaDamageEffectTests
 	public void Apply_DoesNotRollDeflectionWithoutQualifyingTurn()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
-		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		InstallDefensiveManeuvers(enemy.State);
 		enemy.State.DefensiveManeuversMpUsed = 1;
 		enemy.State.DefensiveManeuversRollIndex = 6;
-		var hullBefore = enemy.State.HullPoints;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
@@ -174,7 +174,7 @@ public sealed class ApplyAreaDamageEffectTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 2, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 2, enemy.State.CurrentHullPoints);
 		Assert.Equal(6, enemy.State.DefensiveManeuversRollIndex);
 	}
 
@@ -182,11 +182,11 @@ public sealed class ApplyAreaDamageEffectTests
 	public void Apply_DeflectionRetainsConfiguredDamagePercent()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
-		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		InstallDefensiveManeuvers(enemy.State);
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = 6;
-		var hullBefore = enemy.State.HullPoints;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
@@ -198,7 +198,7 @@ public sealed class ApplyAreaDamageEffectTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 100, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 100, enemy.State.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -219,10 +219,10 @@ public sealed class ApplyAreaDamageEffectTests
 			.HitFaceFrom(player.State.Position);
 		var distantFace = GrimSpace.Battle.Spatial.BodyFrame.From(distant.State)
 			.HitFaceFrom(player.State.Position);
-		adjacent.State.ShieldPoints[adjacentFace] = 6;
-		distant.State.ShieldPoints[distantFace] = 6;
-		var adjacentHullBefore = adjacent.State.HullPoints;
-		var distantHullBefore = distant.State.HullPoints;
+		adjacent.State.CurrentShieldPoints[adjacentFace] = 6;
+		distant.State.CurrentShieldPoints[distantFace] = 6;
+		var adjacentHullBefore = adjacent.State.CurrentHullPoints;
+		var distantHullBefore = distant.State.CurrentHullPoints;
 		var battle = BattleTestFixture.BeginSimulation(player, [adjacent, distant]);
 		var effect = new ApplyAreaDamageEffect(
 				EImpactCause.LightningCannonBurst,
@@ -234,16 +234,16 @@ public sealed class ApplyAreaDamageEffectTests
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(4, adjacent.State.ShieldPoints[adjacentFace]);
-		Assert.Equal(2, distant.State.ShieldPoints[distantFace]);
-		Assert.Equal(adjacentHullBefore, adjacent.State.HullPoints);
-		Assert.Equal(distantHullBefore, distant.State.HullPoints);
+		Assert.Equal(4, adjacent.State.CurrentShieldPoints[adjacentFace]);
+		Assert.Equal(2, distant.State.CurrentShieldPoints[distantFace]);
+		Assert.Equal(adjacentHullBefore, adjacent.State.CurrentHullPoints);
+		Assert.Equal(distantHullBefore, distant.State.CurrentHullPoints);
 
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
-		Assert.Equal(6, adjacent.State.ShieldPoints[adjacentFace]);
-		Assert.Equal(6, distant.State.ShieldPoints[distantFace]);
-		Assert.Equal(adjacentHullBefore, adjacent.State.HullPoints);
-		Assert.Equal(distantHullBefore, distant.State.HullPoints);
+		Assert.Equal(6, adjacent.State.CurrentShieldPoints[adjacentFace]);
+		Assert.Equal(6, distant.State.CurrentShieldPoints[distantFace]);
+		Assert.Equal(adjacentHullBefore, adjacent.State.CurrentHullPoints);
+		Assert.Equal(distantHullBefore, distant.State.CurrentHullPoints);
 	}
 
 	private static (

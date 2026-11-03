@@ -184,7 +184,7 @@ public static class PilotProgression
 		{
 			if (spawn.Team != ETeam.Player || string.IsNullOrEmpty(spawn.PilotId))
 				continue;
-			if (!handoffs.TryGetValue(spawn.Ship.Id, out var handoff) || handoff.HullPoints <= 0)
+			if (!handoffs.TryGetValue(spawn.Ship.Id, out var handoff) || handoff.CurrentHullPoints <= 0)
 				continue;
 
 			outcome.PerformancePointsByUnitId.TryGetValue(spawn.Ship.Id, out var performancePoints);

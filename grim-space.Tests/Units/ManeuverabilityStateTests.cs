@@ -26,8 +26,8 @@ public sealed class ManeuverabilityStateTests
 			new Coord(5, 5, 5));
 
 		Assert.Same(spec.Maneuverability, state.Maneuverability);
-		Assert.Equal(expectedActionPoints, state.ActionPoints);
-		Assert.Equal(expectedManeuverPoints, state.ManeuverPoints);
+		Assert.Equal(expectedActionPoints, state.CurrentActionPoints);
+		Assert.Equal(expectedManeuverPoints, state.CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -36,16 +36,16 @@ public sealed class ManeuverabilityStateTests
 		var state = State.FromShipInstance(
 			ShipInstance.FromCatalog("fighter", EType.Fighter),
 			new Coord(5, 5, 5));
-		state.ActionPoints = 2;
-		state.ManeuverPoints = 1;
+		state.CurrentActionPoints = 2;
+		state.CurrentManeuverPoints = 1;
 
 		var clone = state.Clone();
-		clone.ActionPoints = 0;
-		clone.ManeuverPoints = 0;
+		clone.CurrentActionPoints = 0;
+		clone.CurrentManeuverPoints = 0;
 
 		Assert.Same(state.Maneuverability, clone.Maneuverability);
-		Assert.Equal(2, state.ActionPoints);
-		Assert.Equal(1, state.ManeuverPoints);
+		Assert.Equal(2, state.CurrentActionPoints);
+		Assert.Equal(1, state.CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -54,8 +54,8 @@ public sealed class ManeuverabilityStateTests
 		var state = State.FromShipInstance(
 			ShipInstance.FromCatalog("carrier", EType.Carrier),
 			new Coord(5, 5, 5));
-		state.ActionPoints = 2;
-		state.ManeuverPoints = 0;
+		state.CurrentActionPoints = 2;
+		state.CurrentManeuverPoints = 0;
 
 		var display = UnitDisplayState.Capture(
 			state,
@@ -64,9 +64,9 @@ public sealed class ManeuverabilityStateTests
 
 		Assert.Same(state.Maneuverability, display.Maneuverability);
 		Assert.Same(display.Maneuverability, restored.Maneuverability);
-		Assert.Equal(2, restored.ActionPoints);
-		Assert.Equal(0, restored.ManeuverPoints);
-		Assert.Equal(3, display.MaxActionPoints);
-		Assert.Equal(1, display.MaxManeuverPoints);
+		Assert.Equal(2, restored.CurrentActionPoints);
+		Assert.Equal(0, restored.CurrentManeuverPoints);
+		Assert.Equal(3, display.BaseActionPoints);
+		Assert.Equal(1, display.BaseManeuverPoints);
 	}
 }

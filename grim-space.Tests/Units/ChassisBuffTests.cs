@@ -25,9 +25,9 @@ public sealed class ChassisBuffTests
 			[EChassisBuffOffer.ShieldFlat, EChassisBuffOffer.ShieldFlat]);
 
 		Assert.Equal(expected.Buffs, rolled.Buffs);
-		Assert.Equal(160, rolled.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(60, rolled.MaxShieldPoints[ESpatialOrientation.Dorsal]);
-		Assert.Equal(spec.DefaultMaxHullPoints, rolled.MaxHullPoints);
+		Assert.Equal(160, rolled.BaseShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(60, rolled.BaseShieldPoints[ESpatialOrientation.Dorsal]);
+		Assert.Equal(spec.DefaultBaseHullPoints, rolled.BaseHullPoints);
 		Assert.Equal(EShipGearTier.T1, ShipLoadoutGearTier.FromLoadout(rolled, EType.Fighter));
 	}
 
@@ -44,13 +44,13 @@ public sealed class ChassisBuffTests
 			spec.NewDefaultLoadout(),
 			[EChassisBuffOffer.ShieldPercent, EChassisBuffOffer.ShieldPercent]);
 
-		Assert.Equal(150, loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(35, loadout.MaxShieldPoints[ESpatialOrientation.Retro]);
-		Assert.Equal(130, stackedPercents.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(150, loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(35, loadout.BaseShieldPoints[ESpatialOrientation.Retro]);
+		Assert.Equal(130, stackedPercents.BaseShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(230, ChassisBuffCatalog.Apply(
 			spec,
 			spec.NewDefaultLoadout(),
-			[EChassisBuffOffer.HullPercent]).MaxHullPoints);
+			[EChassisBuffOffer.HullPercent]).BaseHullPoints);
 	}
 
 	[Fact]
@@ -63,8 +63,8 @@ public sealed class ChassisBuffTests
 			[EChassisBuffOffer.ShieldFlatHeavy]);
 		var state = State.FromShipInstance(ShipInstance.FromSpec("fighter", spec, loadout), Coord.Zero);
 
-		Assert.Equal(180, loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(80, loadout.MaxShieldPoints[ESpatialOrientation.Dorsal]);
+		Assert.Equal(180, loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(80, loadout.BaseShieldPoints[ESpatialOrientation.Dorsal]);
 		Assert.Equal(85, state.HeatProfile.EffectiveCapacity);
 	}
 
@@ -97,8 +97,8 @@ public sealed class ChassisBuffTests
 			[EChassisBuffOffer.ActionPoint, EChassisBuffOffer.HeatRecovery]);
 		var state = State.FromShipInstance(ShipInstance.FromSpec("fighter", spec, loadout), Coord.Zero);
 
-		Assert.Equal(spec.Maneuverability.MaxActionPoints + 1, state.ActionPoints);
-		Assert.Equal(spec.Maneuverability.MaxManeuverPoints, state.ManeuverPoints);
+		Assert.Equal(spec.Maneuverability.BaseActionPoints + 1, state.CurrentActionPoints);
+		Assert.Equal(spec.Maneuverability.BaseManeuverPoints, state.CurrentManeuverPoints);
 		Assert.Equal(24, state.HeatProfile.ClearPerTurn);
 		Assert.Equal(100, state.HeatProfile.EffectiveCapacity);
 	}
@@ -152,7 +152,7 @@ public sealed class ChassisBuffTests
 		Assert.Equal(loadout.Buffs, restored.Loadout.Buffs);
 		Assert.Equal(50, restored.Loadout.WeaponDamagePercent);
 		Assert.Equal(100, restored.Loadout.OverdriveDamageBonusPercent);
-		Assert.Equal(loadout.MaxHullPoints, restored.Loadout.MaxHullPoints);
+		Assert.Equal(loadout.BaseHullPoints, restored.Loadout.BaseHullPoints);
 	}
 
 	[Fact]
@@ -196,14 +196,14 @@ public sealed class ChassisBuffTests
 			Assert.EndsWith($" {offer.GearTier}", tooltip.Title);
 			var sections = tooltip.Body.Split(HudTooltipContent.Divider);
 			Assert.InRange(sections.Length, 2, 3);
-			if (rolled.MaxHullPoints != stock.MaxHullPoints)
-				Assert.Contains($"[icon: Hull, text: +{rolled.MaxHullPoints - stock.MaxHullPoints}]", tooltip.Body);
+			if (rolled.BaseHullPoints != stock.BaseHullPoints)
+				Assert.Contains($"[icon: Hull, text: +{rolled.BaseHullPoints - stock.BaseHullPoints}]", tooltip.Body);
 			if (totals.WeaponDamagePercent > 0)
 				Assert.Contains($"[icon: Damage, text: +{totals.WeaponDamagePercent}%]", tooltip.Body);
-			if (totals.ActionPoints > 0)
-				Assert.Contains($"[icon: ActionPoints, text: +{totals.ActionPoints}]", tooltip.Body);
-			if (totals.ManeuverPoints > 0)
-				Assert.Contains($"[icon: ManeuverPoints, text: +{totals.ManeuverPoints}]", tooltip.Body);
+			if (totals.CurrentActionPoints > 0)
+				Assert.Contains($"[icon: CurrentActionPoints, text: +{totals.CurrentActionPoints}]", tooltip.Body);
+			if (totals.CurrentManeuverPoints > 0)
+				Assert.Contains($"[icon: CurrentManeuverPoints, text: +{totals.CurrentManeuverPoints}]", tooltip.Body);
 		}
 	}
 }

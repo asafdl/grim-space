@@ -22,8 +22,8 @@ public sealed class InstalledAbilityTests
 		Assert.Throws<ArgumentException>(() =>
 			ShipLoadout.Create(
 				FighterSpec.Instance,
-				maxHullPoints: FighterSpec.Instance.DefaultMaxHullPoints,
-				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
+				baseHullPoints: FighterSpec.Instance.DefaultBaseHullPoints,
+				ShipCatalog.NewRunLoadoutFor(EType.Fighter).BaseShieldPoints,
 				installed));
 	}
 
@@ -33,8 +33,8 @@ public sealed class InstalledAbilityTests
 		var swarm = ScrapDroneSwarmSpec.Baseline;
 		var loadout = ShipLoadout.Create(
 			RepurposedMinerSpec.Instance,
-			maxHullPoints: 2,
-			ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).MaxShieldPoints,
+			baseHullPoints: 2,
+			ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).BaseShieldPoints,
 			[
 				new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Port),
 				new InstalledAbility(swarm, GrimSpace.Math.Grid.ESpatialOrientation.Starboard),

@@ -42,12 +42,12 @@ internal static class BattleHudCopy
 		new(
 			null,
 			"Moves cost Action Points.",
-			$"[icon: {Icon.ActionPoints}] [icon: {Icon.Heat}, text: +{HeatChangeEffect.PerApSpent}]");
+			$"[icon: {Icon.CurrentActionPoints}] [icon: {Icon.Heat}, text: +{HeatChangeEffect.PerApSpent}]");
 	public static BattleHudTooltipContent ManeuverPointsTooltip =>
 		new(
 			null,
 			"Yaw, pitch, and roll maneuvers cost Maneuver Points.",
-			$"[icon: {Icon.ManeuverPoints}] [icon: {Icon.Heat}, text: +{HeatChangeEffect.PerMpSpent}]");
+			$"[icon: {Icon.CurrentManeuverPoints}] [icon: {Icon.Heat}, text: +{HeatChangeEffect.PerMpSpent}]");
 
 	public const string EndTurnTooltip = "Execute your queued actions and end your turn.";
 	public const string ActionUnavailable = "Action is no longer available";
@@ -156,7 +156,7 @@ internal static class BattleHudCopy
 	{
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.ShieldsUp);
 		var mechanics =
-			$"[icon: {Icon.ActionPoints}, text: -{ShieldsUpDef.NextTickApPenalty} next turn]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]";
+			$"[icon: {Icon.CurrentActionPoints}, text: -{ShieldsUpDef.NextTickApPenalty} next turn]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]";
 		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
 			? mechanics
 			: $"{definition.Tooltip.Details}\n{mechanics}";
@@ -170,7 +170,7 @@ internal static class BattleHudCopy
 	{
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.OverchargeEngines);
 		var mechanics =
-			$"[icon: {Icon.ActionPoints}, text: Refresh up to {PilotSkillPercents.OverchargeEngines.RefreshedAp}]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.OverchargeEngines.CooldownTurns} turns]\n[icon: {Icon.ActionPoints}, text: -{PilotSkillPercents.OverchargeEngines.NextTurnApPenalty} next turn]";
+			$"[icon: {Icon.CurrentActionPoints}, text: Refresh up to {PilotSkillPercents.OverchargeEngines.RefreshedAp}]\n[icon: {Icon.Cooldown}, text: {PilotSkillPercents.OverchargeEngines.CooldownTurns} turns]\n[icon: {Icon.CurrentActionPoints}, text: -{PilotSkillPercents.OverchargeEngines.NextTurnApPenalty} next turn]";
 		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
 			? mechanics
 			: $"{definition.Tooltip.Details}\n{mechanics}";
@@ -184,7 +184,7 @@ internal static class BattleHudCopy
 	{
 		var definition = PilotSkillCatalog.Get(EPilotSkillId.HeatVents);
 		var mechanics =
-			$"[icon: {Icon.ActionPoints}, text: -{PilotSkillPercents.HeatVents.ApCost}]\n[icon: {Icon.Heat}, text: -{PilotSkillPercents.HeatVents.HeatReleased}]\n[icon: {Icon.Cooldown}, text: 1 per turn]";
+			$"[icon: {Icon.CurrentActionPoints}, text: -{PilotSkillPercents.HeatVents.ApCost}]\n[icon: {Icon.Heat}, text: -{PilotSkillPercents.HeatVents.HeatReleased}]\n[icon: {Icon.Cooldown}, text: 1 per turn]";
 		var details = string.IsNullOrWhiteSpace(definition.Tooltip.Details)
 			? mechanics
 			: $"{definition.Tooltip.Details}\n{mechanics}";

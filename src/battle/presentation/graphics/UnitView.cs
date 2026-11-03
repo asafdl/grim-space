@@ -862,7 +862,7 @@ public partial class UnitView : Node3D
 	private void BindShieldBubble(State state)
 	{
 		_hullBounds = LocalVisualBounds();
-		var maxProfile = state.Loadout.MaxShieldPoints;
+		var maxProfile = state.Loadout.BaseShieldPoints;
 		foreach (var face in Faces)
 		{
 			if (maxProfile[face] <= 0)
@@ -1172,7 +1172,7 @@ public partial class UnitView : Node3D
 			or UnitVisualState.SelectedGhost
 			or UnitVisualState.MoveGhost
 			or UnitVisualState.SelectedMoveGhost;
-		var maxProfile = state.Loadout.MaxShieldPoints;
+		var maxProfile = state.Loadout.BaseShieldPoints;
 		var changed = false;
 		var depleted = false;
 		foreach (var face in Faces)
@@ -1190,10 +1190,10 @@ public partial class UnitView : Node3D
 
 			var maxOnFace = maxProfile[face];
 			var temporary = TemporaryShields.TotalOnFace(state, face);
-			var points = System.Math.Max(0, state.ShieldPoints[face] + temporary);
+			var points = System.Math.Max(0, state.CurrentShieldPoints[face] + temporary);
 			var previous = _shieldPoints[index];
 			var material = (StandardMaterial3D)instance.MaterialOverride;
-			var tint = ShieldFaceMaterials.TintFor(state.ShieldPoints[face], maxOnFace, temporary);
+			var tint = ShieldFaceMaterials.TintFor(state.CurrentShieldPoints[face], maxOnFace, temporary);
 			if (previous == points && _shieldTints[index] == tint && animate)
 				continue;
 

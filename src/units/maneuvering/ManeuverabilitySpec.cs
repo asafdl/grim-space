@@ -9,24 +9,24 @@ public sealed class ManeuverabilitySpec
 	private readonly FrozenDictionary<EHeadingTurn, int> _headingMpCosts;
 	private readonly FrozenDictionary<ERollDirection, int> _rollMpCosts;
 
-	public int MaxActionPoints { get; }
-	public int MaxManeuverPoints { get; }
+	public int BaseActionPoints { get; }
+	public int BaseManeuverPoints { get; }
 	public IReadOnlyCollection<ESpatialOrientation> SupportedTranslations => _translationApCosts.Keys;
 	public IReadOnlyCollection<EHeadingTurn> SupportedHeadingTurns => _headingMpCosts.Keys;
 	public IReadOnlyCollection<ERollDirection> SupportedRolls => _rollMpCosts.Keys;
 
 	public ManeuverabilitySpec(
-		int maxActionPoints,
-		int maxManeuverPoints,
+		int baseActionPoints,
+		int baseManeuverPoints,
 		IReadOnlyDictionary<ESpatialOrientation, int> translationApCosts,
 		IReadOnlyDictionary<EHeadingTurn, int> headingMpCosts,
 		IReadOnlyDictionary<ERollDirection, int> rollMpCosts)
 	{
-		ArgumentOutOfRangeException.ThrowIfNegative(maxActionPoints);
-		ArgumentOutOfRangeException.ThrowIfNegative(maxManeuverPoints);
+		ArgumentOutOfRangeException.ThrowIfNegative(baseActionPoints);
+		ArgumentOutOfRangeException.ThrowIfNegative(baseManeuverPoints);
 
-		MaxActionPoints = maxActionPoints;
-		MaxManeuverPoints = maxManeuverPoints;
+		BaseActionPoints = baseActionPoints;
+		BaseManeuverPoints = baseManeuverPoints;
 		_translationApCosts = ValidateAndFreeze(translationApCosts);
 		_headingMpCosts = ValidateAndFreeze(headingMpCosts);
 		_rollMpCosts = ValidateAndFreeze(rollMpCosts);
@@ -41,21 +41,21 @@ public sealed class ManeuverabilitySpec
 	public bool TryGetRollMpCost(ERollDirection direction, out int cost) =>
 		_rollMpCosts.TryGetValue(direction, out cost);
 
-	public ManeuverabilitySpec WithBudgets(int maxActionPoints, int maxManeuverPoints) =>
+	public ManeuverabilitySpec WithBudgets(int baseActionPoints, int baseManeuverPoints) =>
 		new(
-			maxActionPoints,
-			maxManeuverPoints,
+			baseActionPoints,
+			baseManeuverPoints,
 			_translationApCosts,
 			_headingMpCosts,
 			_rollMpCosts);
 
 	public static ManeuverabilitySpec StandardShip(
-		int maxActionPoints,
-		int maxManeuverPoints,
+		int baseActionPoints,
+		int baseManeuverPoints,
 		int reverseApCost = 2) =>
 		new(
-			maxActionPoints,
-			maxManeuverPoints,
+			baseActionPoints,
+			baseManeuverPoints,
 			new Dictionary<ESpatialOrientation, int>
 			{
 				[ESpatialOrientation.Forward] = 1,
@@ -80,11 +80,11 @@ public sealed class ManeuverabilitySpec
 			});
 
 	public static ManeuverabilitySpec VoidBomb(
-		int maxActionPoints,
+		int baseActionPoints,
 		int forwardApCost,
 		int lateralApCost) =>
 		new(
-			maxActionPoints,
+			baseActionPoints,
 			0,
 			new Dictionary<ESpatialOrientation, int>
 			{

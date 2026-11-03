@@ -19,7 +19,7 @@ public sealed class EnemyLightningCannonScoringTests
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
@@ -34,7 +34,7 @@ public sealed class EnemyLightningCannonScoringTests
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, Coord.Forward, Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
@@ -85,7 +85,7 @@ public sealed class EnemyLightningCannonScoringTests
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var grid = battle.Engine.World.Grid;
@@ -104,7 +104,7 @@ public sealed class EnemyLightningCannonScoringTests
 		var enemyPos = new Coord(8, 5, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", enemyPos, EType.Carrier, new Coord(-1, 0, 0), Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var grid = battle.Engine.World.Grid;

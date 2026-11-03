@@ -4,24 +4,24 @@ using GrimSpace.Units.Loadouts.Defenses;
 namespace GrimSpace.Battle.Units;
 
 public readonly record struct UnitCombatSnapshot(
-	int HullPoints,
-	FaceShieldPoints ShieldPoints,
+	int CurrentHullPoints,
+	FaceShieldPoints CurrentShieldPoints,
 	IReadOnlyList<TemporaryShieldGrant> TemporaryShieldGrants,
 	int DefensiveManeuversRollIndex,
 	int ReactiveShieldsStacks = 0)
 {
 	public static UnitCombatSnapshot Capture(State unit) =>
 		new(
-			unit.HullPoints,
-			unit.ShieldPoints.Clone(),
+			unit.CurrentHullPoints,
+			unit.CurrentShieldPoints.Clone(),
 			TemporaryShields.ExtractGrants(unit),
 			unit.DefensiveManeuversRollIndex,
 			unit.ReactiveShieldsStacks);
 
 	public void Restore(State unit)
 	{
-		unit.HullPoints = HullPoints;
-		unit.ShieldPoints = ShieldPoints.Clone();
+		unit.CurrentHullPoints = CurrentHullPoints;
+		unit.CurrentShieldPoints = CurrentShieldPoints.Clone();
 		TemporaryShields.ReplaceGrants(unit, TemporaryShieldGrants);
 		unit.DefensiveManeuversRollIndex = DefensiveManeuversRollIndex;
 		unit.ReactiveShieldsStacks = ReactiveShieldsStacks;

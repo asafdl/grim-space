@@ -185,7 +185,7 @@ public sealed class BattlePhaseTests
 	{
 		var origin = new Coord(5, 5, 5);
 		var battle = CreateOrchestrator(origin, new Coord(0, 0, 0));
-		battle.Engine.World.StateOf(PlayerId).HullPoints = 0;
+		battle.Engine.World.StateOf(PlayerId).CurrentHullPoints = 0;
 
 		var replayTcs = new TaskCompletionSource<TurnReplay>();
 		battle.TurnResolved += (replay, _) => replayTcs.TrySetResult(replay);

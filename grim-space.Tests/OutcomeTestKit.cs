@@ -9,13 +9,13 @@ internal static class OutcomeTestKit
 	public static UnitStateHandoff Handoff(
 		string id,
 		EType chassis,
-		int hullPoints,
+		int currentHullPoints,
 		EShipGearTier gearTier = EShipGearTier.T0) =>
 		new(
 			id,
 			chassis,
-			hullPoints,
-			ShipCatalog.NewRunLoadoutFor(chassis).MaxShieldPoints.Clone(),
+			currentHullPoints,
+			ShipCatalog.NewRunLoadoutFor(chassis).BaseShieldPoints.Clone(),
 			gearTier);
 
 	public static EType ChassisFromShipId(string shipId)

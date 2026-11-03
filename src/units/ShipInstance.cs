@@ -12,39 +12,39 @@ public sealed class ShipInstance : IItem
 	public string Id { get; }
 	public ShipSpec Spec { get; }
 	public ShipLoadout Loadout { get; set; }
-	public int HullPoints { get; set; }
-	public FaceShieldPoints ShieldPoints { get; set; }
+	public int CurrentHullPoints { get; set; }
+	public FaceShieldPoints CurrentShieldPoints { get; set; }
 
 	public ShipInstance(
 		string id,
 		ShipSpec spec,
 		ShipLoadout loadout,
-		int hullPoints,
-		FaceShieldPoints shieldPoints)
+		int currentHullPoints,
+		FaceShieldPoints currentShieldPoints)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(id);
 		ArgumentNullException.ThrowIfNull(spec);
 		ArgumentNullException.ThrowIfNull(loadout);
-		ArgumentNullException.ThrowIfNull(shieldPoints);
+		ArgumentNullException.ThrowIfNull(currentShieldPoints);
 		ShipLoadout.EnsureCompatibleWith(spec, loadout);
 		Id = id;
 		Spec = spec;
 		Loadout = loadout;
-		HullPoints = hullPoints;
-		ShieldPoints = shieldPoints;
+		CurrentHullPoints = currentHullPoints;
+		CurrentShieldPoints = currentShieldPoints;
 	}
 
 	public static ShipInstance FromCatalog(string id, EType chassis) =>
 		ShipInstance.FromSpec(id, ShipCatalog.SpecFor(chassis), ShipCatalog.LoadoutForTier(chassis, EShipGearTier.T0));
 
 	public static ShipInstance FromSpec(string id, ShipSpec spec, ShipLoadout loadout) =>
-		new(id, spec, loadout, loadout.MaxHullPoints, loadout.MaxShieldPoints.Clone());
+		new(id, spec, loadout, loadout.BaseHullPoints, loadout.BaseShieldPoints.Clone());
 
 	public ShipInstance Clone() =>
-		new(Id, Spec, Loadout.DeepCopy(), HullPoints, ShieldPoints.Clone());
+		new(Id, Spec, Loadout.DeepCopy(), CurrentHullPoints, CurrentShieldPoints.Clone());
 
 	public int MissingHullPoints =>
-		System.Math.Max(0, Loadout.MaxHullPoints - HullPoints);
+		System.Math.Max(0, Loadout.BaseHullPoints - CurrentHullPoints);
 
 	public int TotalCurrentShieldPoints
 	{
@@ -52,32 +52,32 @@ public sealed class ShipInstance : IItem
 		{
 			var total = 0;
 			foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-				total += ShieldPoints[face];
+				total += CurrentShieldPoints[face];
 			return total;
 		}
 	}
 
-	public int TotalMaxShieldPoints
+	public int TotalBaseShieldPoints
 	{
 		get
 		{
 			var total = 0;
 			foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-				total += Loadout.MaxShieldPoints[face];
+				total += Loadout.BaseShieldPoints[face];
 			return total;
 		}
 	}
 
 	public int MissingShieldPoints =>
-		System.Math.Max(0, TotalMaxShieldPoints - TotalCurrentShieldPoints);
+		System.Math.Max(0, TotalBaseShieldPoints - TotalCurrentShieldPoints);
 
 	public int MissingShieldPointsOnFace(ESpatialOrientation face)
 	{
-		var max = Loadout.MaxShieldPoints[face];
+		var max = Loadout.BaseShieldPoints[face];
 		if (max <= 0)
 			return 0;
 
-		var current = System.Math.Clamp(ShieldPoints[face], 0, max);
+		var current = System.Math.Clamp(CurrentShieldPoints[face], 0, max);
 		return max - current;
 	}
 
@@ -87,7 +87,7 @@ public sealed class ShipInstance : IItem
 		if (MissingHullPoints <= 0)
 			return false;
 
-		after = new ShipInstance(Id, Spec, Loadout, Loadout.MaxHullPoints, ShieldPoints.Clone());
+		after = new ShipInstance(Id, Spec, Loadout, Loadout.BaseHullPoints, CurrentShieldPoints.Clone());
 		return true;
 	}
 
@@ -97,11 +97,11 @@ public sealed class ShipInstance : IItem
 		if (MissingShieldPoints <= 0)
 			return false;
 
-		var shields = ShieldPoints.Clone();
+		var shields = CurrentShieldPoints.Clone();
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-			shields[face] = Loadout.MaxShieldPoints[face];
+			shields[face] = Loadout.BaseShieldPoints[face];
 
-		after = new ShipInstance(Id, Spec, Loadout, HullPoints, shields);
+		after = new ShipInstance(Id, Spec, Loadout, CurrentHullPoints, shields);
 		return true;
 	}
 
@@ -111,38 +111,38 @@ public sealed class ShipInstance : IItem
 		if (MissingShieldPointsOnFace(face) <= 0)
 			return false;
 
-		var shields = ShieldPoints.Clone();
-		shields[face] = Loadout.MaxShieldPoints[face];
-		after = new ShipInstance(Id, Spec, Loadout, HullPoints, shields);
+		var shields = CurrentShieldPoints.Clone();
+		shields[face] = Loadout.BaseShieldPoints[face];
+		after = new ShipInstance(Id, Spec, Loadout, CurrentHullPoints, shields);
 		return true;
 	}
 
-	public bool TryWithUpgradedMaxShields(ESpatialOrientation face, out ShipInstance after)
+	public bool TryWithUpgradedBaseShields(ESpatialOrientation face, out ShipInstance after)
 	{
 		after = null!;
 		if (!Enum.IsDefined(face) || Loadout.ShieldUpgradeTiers[face] >= ShipLoadout.MaxShieldUpgradeTier)
 			return false;
 
-		var updatedLoadout = Loadout.WithUpgradedMaxShields(Spec, face);
-		var shields = ShieldPoints.Clone();
-		shields[face] = updatedLoadout.MaxShieldPoints[face];
-		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
+		var updatedLoadout = Loadout.WithUpgradedBaseShields(Spec, face);
+		var shields = CurrentShieldPoints.Clone();
+		shields[face] = updatedLoadout.BaseShieldPoints[face];
+		after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, shields);
 		return true;
 	}
 
-	public bool TryWithUpgradedMaxHull(out ShipInstance after)
+	public bool TryWithUpgradedBaseHull(out ShipInstance after)
 	{
 		after = null!;
 		if (Loadout.HullUpgradeTier >= ShipLoadout.MaxHullUpgradeTier)
 			return false;
 
-		var updatedLoadout = Loadout.WithUpgradedMaxHull(Spec);
+		var updatedLoadout = Loadout.WithUpgradedBaseHull(Spec);
 		after = new ShipInstance(
 			Id,
 			Spec,
 			updatedLoadout,
-			updatedLoadout.MaxHullPoints,
-			ShieldPoints.Clone());
+			updatedLoadout.BaseHullPoints,
+			CurrentShieldPoints.Clone());
 		return true;
 	}
 
@@ -153,7 +153,7 @@ public sealed class ShipInstance : IItem
 		try
 		{
 			var updatedLoadout = Loadout.WithInstalledAbility(Spec, installed);
-			after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+			after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, CurrentShieldPoints.Clone());
 			return true;
 		}
 		catch (ArgumentException)
@@ -173,7 +173,7 @@ public sealed class ShipInstance : IItem
 			Spec,
 			mount,
 			installed.WithDamageUpgradeTier(installed.DamageUpgradeTier + 1));
-		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+		after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, CurrentShieldPoints.Clone());
 		return true;
 	}
 
@@ -188,7 +188,7 @@ public sealed class ShipInstance : IItem
 			Spec,
 			mount,
 			installed.WithRangeUpgradeTier(installed.RangeUpgradeTier + 1));
-		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+		after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, CurrentShieldPoints.Clone());
 		return true;
 	}
 
@@ -205,7 +205,7 @@ public sealed class ShipInstance : IItem
 			Spec,
 			mount,
 			installed.WithDamageUpgradeTier(targetTier));
-		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+		after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, CurrentShieldPoints.Clone());
 		return true;
 	}
 
@@ -222,7 +222,7 @@ public sealed class ShipInstance : IItem
 			Spec,
 			mount,
 			installed.WithRangeUpgradeTier(targetTier));
-		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, ShieldPoints.Clone());
+		after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, CurrentShieldPoints.Clone());
 		return true;
 	}
 
@@ -237,8 +237,8 @@ public sealed class ShipInstance : IItem
 			Id,
 			Spec,
 			updatedLoadout,
-			updatedLoadout.MaxHullPoints,
-			ShieldPoints.Clone());
+			updatedLoadout.BaseHullPoints,
+			CurrentShieldPoints.Clone());
 		return true;
 	}
 
@@ -253,9 +253,9 @@ public sealed class ShipInstance : IItem
 			return false;
 
 		var updatedLoadout = Loadout.WithMaxShieldUpgradeTier(Spec, face, targetTier);
-		var shields = ShieldPoints.Clone();
-		shields[face] = updatedLoadout.MaxShieldPoints[face];
-		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
+		var shields = CurrentShieldPoints.Clone();
+		shields[face] = updatedLoadout.BaseShieldPoints[face];
+		after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, shields);
 		return true;
 	}
 
@@ -265,19 +265,19 @@ public sealed class ShipInstance : IItem
 		out ShipInstance after)
 	{
 		after = null!;
-		if (!Enum.IsDefined(face) || targetMaxShieldPoints <= Loadout.MaxShieldPoints[face])
+		if (!Enum.IsDefined(face) || targetMaxShieldPoints <= Loadout.BaseShieldPoints[face])
 			return false;
 
 		var currentTier = Loadout.ShieldUpgradeTiers[face];
-		var baselineMaxShieldPoints = Loadout.MaxShieldPoints[face] - currentTier * 100;
+		var baselineMaxShieldPoints = Loadout.BaseShieldPoints[face] - currentTier * 100;
 		var targetTier = (targetMaxShieldPoints - baselineMaxShieldPoints) / 100;
 		if (targetTier <= currentTier || targetTier > ShipLoadout.MaxShieldUpgradeTier)
 			return false;
 
 		var updatedLoadout = Loadout.WithMaxShieldUpgradeTier(Spec, face, targetTier);
-		var shields = ShieldPoints.Clone();
-		shields[face] = updatedLoadout.MaxShieldPoints[face];
-		after = new ShipInstance(Id, Spec, updatedLoadout, HullPoints, shields);
+		var shields = CurrentShieldPoints.Clone();
+		shields[face] = updatedLoadout.BaseShieldPoints[face];
+		after = new ShipInstance(Id, Spec, updatedLoadout, CurrentHullPoints, shields);
 		return true;
 	}
 

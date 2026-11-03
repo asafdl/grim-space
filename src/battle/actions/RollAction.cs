@@ -53,7 +53,7 @@ public sealed class RollDef
 	{
 		var actor = world.StateOf(action.ActorId);
 		return actor.Maneuverability.TryGetRollMpCost(action.Direction, out var cost)
-			&& actor.ManeuverPoints >= cost;
+			&& actor.CurrentManeuverPoints >= cost;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

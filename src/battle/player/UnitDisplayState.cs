@@ -21,11 +21,11 @@ public sealed record UnitDisplayState(
 	Coord Position,
 	Coord Fore,
 	Coord Dorsal,
-	int HullPoints,
-	int MaxHullPoints,
-	FaceShieldPoints ShieldPoints,
-	int ActionPoints,
-	int ManeuverPoints,
+	int CurrentHullPoints,
+	int BaseHullPoints,
+	FaceShieldPoints CurrentShieldPoints,
+	int CurrentActionPoints,
+	int CurrentManeuverPoints,
 	ManeuverabilitySpec Maneuverability,
 	HeatSpec HeatProfile,
 	int Heat,
@@ -53,11 +53,11 @@ public sealed record UnitDisplayState(
 			state.Position,
 			state.Fore,
 			state.Dorsal,
-			state.HullPoints,
-			state.Loadout.MaxHullPoints,
-			state.ShieldPoints.Clone(),
-			state.ActionPoints,
-			state.ManeuverPoints,
+			state.CurrentHullPoints,
+			state.Loadout.BaseHullPoints,
+			state.CurrentShieldPoints.Clone(),
+			state.CurrentActionPoints,
+			state.CurrentManeuverPoints,
 			state.Maneuverability,
 			state.HeatProfile,
 			state.Heat,
@@ -82,8 +82,8 @@ public sealed record UnitDisplayState(
 
 	public bool ShieldBraceActive => Statuses?.Any(status => status.Payload is ShieldBracePayload) == true;
 
-	public int MaxActionPoints => Maneuverability.MaxActionPoints;
-	public int MaxManeuverPoints => Maneuverability.MaxManeuverPoints;
+	public int BaseActionPoints => Maneuverability.BaseActionPoints;
+	public int BaseManeuverPoints => Maneuverability.BaseManeuverPoints;
 	public int HeatCapacity => HeatProfile.EffectiveCapacity;
 
 	public int UsesRemaining(EAbilityKind kind) =>
@@ -109,7 +109,7 @@ public sealed record UnitDisplayState(
 
 	public State ToState()
 	{
-		var shields = ShieldPoints.Clone();
+		var shields = CurrentShieldPoints.Clone();
 		var state = new State
 		{
 			Id = Id,
@@ -120,10 +120,10 @@ public sealed record UnitDisplayState(
 			Fore = Fore,
 			Dorsal = Dorsal,
 			Starboard = Coord.Cross(Dorsal, Fore),
-			ActionPoints = ActionPoints,
-			ManeuverPoints = ManeuverPoints,
-			HullPoints = HullPoints,
-			ShieldPoints = shields,
+			CurrentActionPoints = CurrentActionPoints,
+			CurrentManeuverPoints = CurrentManeuverPoints,
+			CurrentHullPoints = CurrentHullPoints,
+			CurrentShieldPoints = shields,
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,
 			Maneuverability = Maneuverability,

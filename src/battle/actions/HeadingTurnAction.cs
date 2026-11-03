@@ -55,7 +55,7 @@ public sealed class HeadingDef
 	{
 		var actor = world.StateOf(action.ActorId);
 		return actor.Maneuverability.TryGetHeadingMpCost(action.Turn, out var cost)
-			&& actor.ManeuverPoints >= cost;
+			&& actor.CurrentManeuverPoints >= cost;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

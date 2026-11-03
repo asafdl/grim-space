@@ -31,7 +31,7 @@ public sealed class MoveUiTests
 		Assert.Equal(option.ResultState.Position, frame.MoveGhostState.Position);
 		Assert.Equal(option.ResultState.Fore, frame.MoveGhostState.Fore);
 		Assert.Equal(option.ResultState.Dorsal, frame.MoveGhostState.Dorsal);
-		Assert.Equal(option.ResultState.ActionPoints, frame.MoveGhostState.ActionPoints);
+		Assert.Equal(option.ResultState.CurrentActionPoints, frame.MoveGhostState.CurrentActionPoints);
 		Assert.True(frame.CanUndo);
 		Assert.False(frame.Instruction.Visible);
 	}
@@ -42,9 +42,9 @@ public sealed class MoveUiTests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		player.State.Maneuverability = player.State.Maneuverability.WithBudgets(
-			player.State.Maneuverability.MaxActionPoints,
+			player.State.Maneuverability.BaseActionPoints,
 			0);
-		player.State.ManeuverPoints = 0;
+		player.State.CurrentManeuverPoints = 0;
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			BattleTestFixture.Enemy(origin + Coord.Forward * 6));

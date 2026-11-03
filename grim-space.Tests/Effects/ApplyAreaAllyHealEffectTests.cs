@@ -26,8 +26,8 @@ public sealed class ApplyAreaAllyHealEffectTests
 			origin + new Coord(0, 1, 0),
 			new GrimSpace.Battle.Player.UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward * 8);
-		ally.State.HullPoints = 50;
-		var hullBefore = ally.State.HullPoints;
+		ally.State.CurrentHullPoints = 50;
+		var hullBefore = ally.State.CurrentHullPoints;
 		var battle = BattleTestFixture.BeginSimulation(player, [ally, enemy]);
 		var cells = new HashSet<Coord> { ally.State.Position };
 		var effect = new ApplyAreaAllyHealEffect(
@@ -38,7 +38,7 @@ public sealed class ApplyAreaAllyHealEffectTests
 
 		var records = effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(hullBefore + 100, ally.State.HullPoints);
+		Assert.Equal(hullBefore + 100, ally.State.CurrentHullPoints);
 		var heal = Assert.IsType<Record<HealFacts>>(Assert.Single(records));
 		Assert.Equal(100, heal.Value.HullRestored);
 		Assert.Equal(0, heal.Value.ShieldRestored);
@@ -60,8 +60,8 @@ public sealed class ApplyAreaAllyHealEffectTests
 			new GrimSpace.Battle.Player.UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward * 8);
 		var battle = BattleTestFixture.BeginSimulation(player, [ally, enemy]);
-		ally.State.ShieldPoints[ESpatialOrientation.Port] = 0;
-		ally.State.ShieldPoints[ESpatialOrientation.Starboard] = 50;
+		ally.State.CurrentShieldPoints[ESpatialOrientation.Port] = 0;
+		ally.State.CurrentShieldPoints[ESpatialOrientation.Starboard] = 50;
 		var cells = new HashSet<Coord> { ally.State.Position };
 		var effect = new ApplyAreaAllyHealEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
@@ -71,8 +71,8 @@ public sealed class ApplyAreaAllyHealEffectTests
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(100, ally.State.ShieldPoints[ESpatialOrientation.Port]);
-		Assert.Equal(50, ally.State.ShieldPoints[ESpatialOrientation.Starboard]);
+		Assert.Equal(100, ally.State.CurrentShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(50, ally.State.CurrentShieldPoints[ESpatialOrientation.Starboard]);
 	}
 
 	[Fact]
@@ -92,7 +92,7 @@ public sealed class ApplyAreaAllyHealEffectTests
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			[ally, BattleTestFixture.Enemy(origin + Coord.Forward * 8)]);
-		ally.State.HullPoints = 50;
+		ally.State.CurrentHullPoints = 50;
 		var cells = new HashSet<Coord> { ally.State.Position };
 		var effect = new ApplyAreaAllyHealEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
@@ -102,6 +102,6 @@ public sealed class ApplyAreaAllyHealEffectTests
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(170, ally.State.HullPoints);
+		Assert.Equal(170, ally.State.CurrentHullPoints);
 	}
 }

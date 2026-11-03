@@ -162,7 +162,7 @@ public sealed class ApplyAreaDamageEffect(
 				if (destroySource && unit.State.Id == actorId)
 				{
 					_snapshots[unit.State.Id] = UnitCombatSnapshot.Capture(unit.State);
-					unit.State.HullPoints = 0;
+					unit.State.CurrentHullPoints = 0;
 				}
 
 				continue;
@@ -195,7 +195,7 @@ public sealed class ApplyAreaDamageEffect(
 		var unit = targetUnit.State;
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
 		var shieldBefore = Defense.EffectiveShield(unit, face);
-		var hullBefore = unit.HullPoints;
+		var hullBefore = unit.CurrentHullPoints;
 		var bonus = damageBonusPercent;
 		if (!overdriveBonusIncluded)
 			bonus += CrossingOverdriveBonusPercent(world.StateOf(actorId));
@@ -225,11 +225,11 @@ public sealed class ApplyAreaDamageEffect(
 		if (hit.Damage > 0)
 			Defense.ApplyDamage(unit, hit.Damage, face, hit.ShieldDamageBonus);
 		if (forceDestroy)
-			unit.HullPoints = 0;
+			unit.CurrentHullPoints = 0;
 
 		var shieldAfter = Defense.EffectiveShield(unit, face);
 		var shieldDamage = shieldBefore - shieldAfter;
-		var hullDamage = hullBefore - unit.HullPoints;
+		var hullDamage = hullBefore - unit.CurrentHullPoints;
 		if (shieldDamage == 0 && hullDamage == 0)
 			return null;
 

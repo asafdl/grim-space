@@ -35,10 +35,10 @@ internal static class ShipRecruitmentDisplay
 
 	private static string BaseStats(ShipLoadout loadout)
 	{
-		var text = new StringBuilder($"[icon: Hull, text: {loadout.MaxHullPoints}]");
+		var text = new StringBuilder($"[icon: Hull, text: {loadout.BaseHullPoints}]");
 		var shieldGroups = Enum.GetValues<ESpatialOrientation>()
-			.Where(face => loadout.MaxShieldPoints[face] > 0)
-			.GroupBy(face => loadout.MaxShieldPoints[face])
+			.Where(face => loadout.BaseShieldPoints[face] > 0)
+			.GroupBy(face => loadout.BaseShieldPoints[face])
 			.ToArray();
 		foreach (var group in shieldGroups)
 		{
@@ -60,8 +60,8 @@ internal static class ShipRecruitmentDisplay
 
 	private static void AddHardwareDiff(List<(bool Improves, string Line)> changes, ShipHardwareDiff diff)
 	{
-		if (diff.MaxHullDelta != 0)
-			AddStat(changes, "Hull", diff.MaxHullDelta);
+		if (diff.BaseHullDelta != 0)
+			AddStat(changes, "Hull", diff.BaseHullDelta);
 
 		if (diff.ShieldDeltas.Count == Enum.GetValues<ESpatialOrientation>().Length
 			&& diff.ShieldDeltas.All(shield => shield.Delta == diff.ShieldDeltas[0].Delta))
@@ -102,8 +102,8 @@ internal static class ShipRecruitmentDisplay
 		AddStat(changes, "Overdrive", totals.OverdrivePoints, "%");
 		AddStat(changes, "Heat", totals.HeatCapacityPercent, "%");
 		AddStat(changes, "Heat", totals.HeatRecoveryPercent, "%", " Recovery ");
-		AddStat(changes, "ActionPoints", totals.ActionPoints);
-		AddStat(changes, "ManeuverPoints", totals.ManeuverPoints);
+		AddStat(changes, "CurrentActionPoints", totals.CurrentActionPoints);
+		AddStat(changes, "CurrentManeuverPoints", totals.CurrentManeuverPoints);
 	}
 
 	private static void AddStat(

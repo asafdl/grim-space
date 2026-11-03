@@ -25,7 +25,7 @@ public sealed class VoidBombSpec : ShipSpec
 	public override EOperatorClassId ClassId => EOperatorClassId.Unclassified;
 	public override int Initiative => 10;
 
-	public override int DefaultMaxHullPoints => 100;
+	public override int DefaultBaseHullPoints => 100;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.VoidBomb(
 			MovementActionPoints,
@@ -34,7 +34,7 @@ public sealed class VoidBombSpec : ShipSpec
 
 	public override HeatSpec Heat => HeatSpec.None;
 
-	public override FaceShieldPoints DefaultMaxShieldPoints
+	public override FaceShieldPoints DefaultBaseShieldPoints
 	{
 		get
 		{

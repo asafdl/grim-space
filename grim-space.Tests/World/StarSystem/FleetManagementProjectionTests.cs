@@ -24,11 +24,11 @@ public sealed class FleetManagementProjectionTests
 		Assert.Equal("Fighter", ship.Chassis);
 		Assert.Equal(EShipGearTier.T0, ship.GearTier);
 		Assert.Equal((2 * 100), ship.Hull);
-		Assert.Equal((2 * 100), ship.MaxHull);
+		Assert.Equal((2 * 100), ship.BaseHull);
 		Assert.Equal((3 * 100), ship.Shields);
-		Assert.Equal((3 * 100), ship.MaxShields);
-		Assert.Equal(4, ship.ActionPoints);
-		Assert.Equal(3, ship.ManeuverPoints);
+		Assert.Equal((3 * 100), ship.BaseShields);
+		Assert.Equal(4, ship.CurrentActionPoints);
+		Assert.Equal(3, ship.CurrentManeuverPoints);
 		Assert.Equal(40, ship.Initiative);
 		Assert.Equal(pilot.Id, ship.Pilot?.Id);
 		Assert.Equal(2, ship.Abilities.Count);

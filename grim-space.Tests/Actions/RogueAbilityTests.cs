@@ -54,18 +54,18 @@ public sealed class RogueAbilityTests
 		var sim = battle.PlayerAgent.Sim;
 		Assert.True(sim.TryEnqueue(true, new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
 
-		Assert.Equal(1000 - hullDamage, sim.World.StateOf("enemy").HullPoints);
+		Assert.Equal(1000 - hullDamage, sim.World.StateOf("enemy").CurrentHullPoints);
 		Assert.Equal(0, sim.World.StateOf("player").UsesRemaining(
 			new AbilityMount(EAbilityKind.HighSpeedRod, ESpatialOrientation.Dorsal)));
 		Assert.Equal(1, sim.World.StateOf("player").UsesRemaining(
 			new AbilityMount(EAbilityKind.HighSpeedRod, ESpatialOrientation.Ventral)));
-		Assert.Equal(4, sim.World.StateOf("player").ActionPoints);
-		Assert.Equal(4, sim.World.StateOf("player").ManeuverPoints);
+		Assert.Equal(4, sim.World.StateOf("player").CurrentActionPoints);
+		Assert.Equal(4, sim.World.StateOf("player").CurrentManeuverPoints);
 		Assert.Equal(20, sim.World.StateOf("player").Heat);
 		Assert.False(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
-		Assert.Equal(1000, battle.Engine.World.StateOf("enemy").HullPoints);
+		Assert.Equal(1000, battle.Engine.World.StateOf("enemy").CurrentHullPoints);
 		Assert.True(sim.TryUndoLast());
-		Assert.Equal(1000, sim.World.StateOf("enemy").HullPoints);
+		Assert.Equal(1000, sim.World.StateOf("enemy").CurrentHullPoints);
 		Assert.Equal(2, sim.World.StateOf("player").UsesRemaining(EAbilityKind.HighSpeedRod));
 		Assert.Equal(0, sim.World.StateOf("player").Heat);
 	}
@@ -80,7 +80,7 @@ public sealed class RogueAbilityTests
 		Assert.True(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
 
 		// 70 * 1.2 = 84 penetrates 75 shields; 84 * 3.5 - 75 = 219 hull damage.
-		Assert.Equal(781, sim.World.StateOf("enemy").HullPoints);
+		Assert.Equal(781, sim.World.StateOf("enemy").CurrentHullPoints);
 	}
 
 	[Fact]
@@ -103,7 +103,7 @@ public sealed class RogueAbilityTests
 		var sim = battle.PlayerAgent.Sim;
 
 		Assert.True(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
-		Assert.Equal(200, sim.World.StateOf("enemy").HullPoints);
+		Assert.Equal(200, sim.World.StateOf("enemy").CurrentHullPoints);
 		Assert.Equal(0, Defense.EffectiveShield(sim.World.StateOf("enemy"),
 			BodyFrame.From(sim.World.StateOf("enemy")).HitFaceFrom(Origin)));
 		var cells = HighSpeedRodDef.Instance.AffectedCells(
@@ -119,13 +119,13 @@ public sealed class RogueAbilityTests
 			blocked: new HashSet<Coord> { Origin + Coord.Up });
 		var sim = blockedBattle.PlayerAgent.Sim;
 		Assert.True(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
-		Assert.Equal(200, sim.World.StateOf("enemy").HullPoints);
+		Assert.Equal(200, sim.World.StateOf("enemy").CurrentHullPoints);
 		Assert.Empty(HighSpeedRodDef.Instance.AffectedCells(
 			new HighSpeedRodAction("player", ESpatialOrientation.Dorsal), sim.World));
 
 		var distant = CreateBattle(Origin + Coord.Up * 5).PlayerAgent.Sim;
 		Assert.True(distant.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
-		Assert.Equal(200, distant.World.StateOf("enemy").HullPoints);
+		Assert.Equal(200, distant.World.StateOf("enemy").CurrentHullPoints);
 	}
 
 	[Fact]
@@ -143,8 +143,8 @@ public sealed class RogueAbilityTests
 		Assert.Equal(before.Fore, after.Fore);
 		Assert.Equal(before.Dorsal, after.Dorsal);
 		Assert.Equal(before.Starboard, after.Starboard);
-		Assert.Equal(4, after.ActionPoints);
-		Assert.Equal(4, after.ManeuverPoints);
+		Assert.Equal(4, after.CurrentActionPoints);
+		Assert.Equal(4, after.CurrentManeuverPoints);
 		Assert.Equal(20, after.Heat);
 		Assert.Equal(3, after.CooldownRemaining(JumpMount));
 		Assert.True(sim.TryUndoLast());
@@ -359,8 +359,8 @@ public sealed class RogueAbilityTests
 		var player = Factory.Create(
 			ship, ETeam.Player, Origin, new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(enemyPosition);
-		enemy.State.HullPoints = enemyHull;
-		enemy.State.ShieldPoints.Fill(shields);
+		enemy.State.CurrentHullPoints = enemyHull;
+		enemy.State.CurrentShieldPoints.Fill(shields);
 		if (temporaryShields > 0)
 			TemporaryShields.GrantPerFace(enemy.State, "test", temporaryShields);
 		return BattleTestFixture.BeginSimulation(player, enemy, blocked: blocked ?? new HashSet<Coord>());

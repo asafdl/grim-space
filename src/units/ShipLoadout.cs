@@ -6,8 +6,8 @@ using GrimSpace.Units.Specs;
 namespace GrimSpace.Units;
 
 public sealed record ShipLoadout(
-	int MaxHullPoints,
-	FaceShieldPoints MaxShieldPoints,
+	int BaseHullPoints,
+	FaceShieldPoints BaseShieldPoints,
 	IReadOnlyList<InstalledAbility> InstalledAbilities,
 	FaceShieldPoints ShieldUpgradeTiers,
 	int HullUpgradeTier = 0,
@@ -23,8 +23,8 @@ public sealed record ShipLoadout(
 
 	public ShipLoadout DeepCopy() =>
 		new(
-			MaxHullPoints,
-			MaxShieldPoints.Clone(),
+			BaseHullPoints,
+			BaseShieldPoints.Clone(),
 			InstalledAbilities.ToArray(),
 			ShieldUpgradeTiers.Clone(),
 			HullUpgradeTier,
@@ -40,8 +40,8 @@ public sealed record ShipLoadout(
 		var updated = InstalledAbilities.Append(installed).ToArray();
 		return Create(
 			spec,
-			MaxHullPoints,
-			MaxShieldPoints,
+			BaseHullPoints,
+			BaseShieldPoints,
 			updated,
 			ShieldUpgradeTiers,
 			HullUpgradeTier,
@@ -75,28 +75,28 @@ public sealed record ShipLoadout(
 
 		return Create(
 			spec,
-			MaxHullPoints,
-			MaxShieldPoints,
+			BaseHullPoints,
+			BaseShieldPoints,
 			updated,
 			ShieldUpgradeTiers,
 			HullUpgradeTier,
 			ChassisBuffs);
 	}
 
-	public ShipLoadout WithUpgradedMaxShields(ShipSpec spec, ESpatialOrientation face)
+	public ShipLoadout WithUpgradedBaseShields(ShipSpec spec, ESpatialOrientation face)
 	{
 		ArgumentNullException.ThrowIfNull(spec);
 		if (!Enum.IsDefined(face))
 			throw new ArgumentOutOfRangeException(nameof(face));
 
-		var max = MaxShieldPoints.Clone();
+		var max = BaseShieldPoints.Clone();
 		max[face] += 100;
 		var tiers = ShieldUpgradeTiers.Clone();
 		tiers[face] += 1;
 
 		return Create(
 			spec,
-			MaxHullPoints,
+			BaseHullPoints,
 			max,
 			InstalledAbilities,
 			tiers,
@@ -112,14 +112,14 @@ public sealed record ShipLoadout(
 
 		var currentTier = ShieldUpgradeTiers[face];
 		var capacityIncrease = targetTier - currentTier;
-		var max = MaxShieldPoints.Clone();
+		var max = BaseShieldPoints.Clone();
 		max[face] += capacityIncrease * 100;
 		var tiers = ShieldUpgradeTiers.Clone();
 		tiers[face] = targetTier;
 
 		return Create(
 			spec,
-			MaxHullPoints,
+			BaseHullPoints,
 			max,
 			InstalledAbilities,
 			tiers,
@@ -127,13 +127,13 @@ public sealed record ShipLoadout(
 			ChassisBuffs);
 	}
 
-	public ShipLoadout WithUpgradedMaxHull(ShipSpec spec)
+	public ShipLoadout WithUpgradedBaseHull(ShipSpec spec)
 	{
 		ArgumentNullException.ThrowIfNull(spec);
 		return Create(
 			spec,
-			MaxHullPoints + 100,
-			MaxShieldPoints,
+			BaseHullPoints + 100,
+			BaseShieldPoints,
 			InstalledAbilities,
 			ShieldUpgradeTiers,
 			HullUpgradeTier + 1,
@@ -146,8 +146,8 @@ public sealed record ShipLoadout(
 		var capacityIncrease = targetTier - HullUpgradeTier;
 		return Create(
 			spec,
-			MaxHullPoints + capacityIncrease * 100,
-			MaxShieldPoints,
+			BaseHullPoints + capacityIncrease * 100,
+			BaseShieldPoints,
 			InstalledAbilities,
 			ShieldUpgradeTiers,
 			targetTier,
@@ -156,15 +156,15 @@ public sealed record ShipLoadout(
 
 	public static ShipLoadout Create(
 		ShipSpec spec,
-		int maxHullPoints,
-		FaceShieldPoints maxShieldPoints,
+		int baseHullPoints,
+		FaceShieldPoints baseShieldPoints,
 		IReadOnlyList<InstalledAbility> installedAbilities,
 		FaceShieldPoints? shieldUpgradeTiers = null,
 		int hullUpgradeTier = 0,
 		IReadOnlyList<EChassisBuffOffer>? chassisBuffs = null)
 	{
 		ArgumentNullException.ThrowIfNull(spec);
-		ArgumentNullException.ThrowIfNull(maxShieldPoints);
+		ArgumentNullException.ThrowIfNull(baseShieldPoints);
 		EnsureInstalledCompatible(spec, installedAbilities);
 		var tiers = shieldUpgradeTiers?.Clone() ?? new FaceShieldPoints();
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
@@ -176,8 +176,8 @@ public sealed record ShipLoadout(
 		var buffs = chassisBuffs?.ToArray() ?? [];
 		var bonuses = ChassisBuffCatalog.DamageBonuses(buffs);
 		return new ShipLoadout(
-			maxHullPoints,
-			maxShieldPoints.Clone(),
+			baseHullPoints,
+			baseShieldPoints.Clone(),
 			installedAbilities,
 			tiers,
 			hullUpgradeTier,

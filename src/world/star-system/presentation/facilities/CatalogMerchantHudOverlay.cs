@@ -201,19 +201,19 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		{
 			MerchantCatalog.Kind.RepairHull =>
 				MerchantOfferDisplay.HullRepairBody(
-					ship.HullPoints,
-					ship.Loadout.MaxHullPoints),
+					ship.CurrentHullPoints,
+					ship.Loadout.BaseHullPoints),
 			MerchantCatalog.Kind.RechargeAllShields =>
 				MerchantOfferDisplay.RechargeAllBody(
 					ship.TotalCurrentShieldPoints,
-					ship.TotalMaxShieldPoints),
+					ship.TotalBaseShieldPoints),
 			MerchantCatalog.Kind.RechargeShieldFace when target.Face is { } face =>
 				MerchantOfferDisplay.ShieldRechargeBody(
 					System.Math.Clamp(
-						ship.ShieldPoints[face],
+						ship.CurrentShieldPoints[face],
 						0,
-						ship.Loadout.MaxShieldPoints[face]),
-					ship.Loadout.MaxShieldPoints[face]),
+						ship.Loadout.BaseShieldPoints[face]),
+					ship.Loadout.BaseShieldPoints[face]),
 			MerchantCatalog.Kind.BuyFuel =>
 				$"Purchase a {StarMarketSeed.FuelPurchaseAmount}-unit fuel bundle for the fleet.",
 			_ => throw new InvalidOperationException(

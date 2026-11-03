@@ -53,8 +53,8 @@ public partial class ShipPilot : PanelContainer
 		}
 		_levelLabel.Text = $"LV {claimedLevel}";
 		_levelUpButton.Visible = canLearnSkill;
-		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalMaxShieldPoints);
-		SetBar(_hullBar, ship.HullPoints, ship.Loadout.MaxHullPoints);
+		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalBaseShieldPoints);
+		SetBar(_hullBar, ship.CurrentHullPoints, ship.Loadout.BaseHullPoints);
 		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
 		if (xpToNext > 0)
 			SetBar(_xpBar, xpInLevel, xpToNext);
@@ -72,8 +72,8 @@ public partial class ShipPilot : PanelContainer
 			+ $"Lv {claimedLevel} · {xpLine}\n"
 			+ (canLearnSkill ? "Level up available\n" : "")
 			+ $"{ship.Spec.Chassis}\n"
-			+ $"HP {ship.HullPoints}/{ship.Loadout.MaxHullPoints}\n"
-			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalMaxShieldPoints}");
+			+ $"HP {ship.CurrentHullPoints}/{ship.Loadout.BaseHullPoints}\n"
+			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalBaseShieldPoints}");
 		SetSelected(selected);
 	}
 

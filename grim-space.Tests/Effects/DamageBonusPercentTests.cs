@@ -20,8 +20,8 @@ public sealed class DamageBonusPercentTests
 			new GrimSpace.Battle.Player.UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(new Coord(6, 5, 5));
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			enemy.State.ShieldPoints[face] = 0;
-		var hullBefore = enemy.State.HullPoints;
+			enemy.State.CurrentShieldPoints[face] = 0;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
@@ -35,6 +35,6 @@ public sealed class DamageBonusPercentTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 18, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 18, enemy.State.CurrentHullPoints);
 	}
 }

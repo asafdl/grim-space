@@ -21,7 +21,7 @@ public sealed class CapabilitiesDiscoveryTests
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
 			2,
-			ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
+			ShipCatalog.NewRunLoadoutFor(EType.Fighter).BaseShieldPoints,
 			installed);
 		var ship = ShipInstance.FromSpec("fighter-a", FighterSpec.Instance, loadout);
 		var origin = new Coord(5, 5, 5);

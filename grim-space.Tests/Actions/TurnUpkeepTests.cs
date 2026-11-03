@@ -22,15 +22,15 @@ public sealed class TurnUpkeepTests
 	public void TurnUpkeepActionRefillsResourcesAndScrapDroneSwarm()
 	{
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
-		player.State.ActionPoints = 0;
-		player.State.ManeuverPoints = 0;
+		player.State.CurrentActionPoints = 0;
+		player.State.CurrentManeuverPoints = 0;
 		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.ScrapDroneSwarm, 0);
 		StateMountTestKit.SetUsesRemaining(player.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon, 0);
 
 		ApplyTurnUpkeep(player);
 
-		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
-		Assert.Equal(3, player.State.ManeuverPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.CurrentActionPoints);
+		Assert.Equal(3, player.State.CurrentManeuverPoints);
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(player.State, EAbilityKind.LightningCannon));
 	}
@@ -40,15 +40,15 @@ public sealed class TurnUpkeepTests
 	{
 		var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var playerState = battle.Engine.World.StateOf(battle.PlayerId);
-		playerState.ActionPoints = 0;
-		playerState.ManeuverPoints = 0;
+		playerState.CurrentActionPoints = 0;
+		playerState.CurrentManeuverPoints = 0;
 		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.ScrapDroneSwarm, 0);
 		StateMountTestKit.SetUsesRemaining(playerState, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.LightningCannon, 0);
 
 		BattleTestActions.CommitAndResolve(battle);
 
-		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.ActionPoints);
-		Assert.Equal(3, playerState.ManeuverPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, playerState.CurrentActionPoints);
+		Assert.Equal(3, playerState.CurrentManeuverPoints);
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.ScrapDroneSwarm), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(CatalogExpectations.UsesPerTurn(EType.Fighter, EAbilityKind.LightningCannon), StateMountTestKit.UsesRemaining(playerState, EAbilityKind.LightningCannon));
 	}
@@ -58,16 +58,16 @@ public sealed class TurnUpkeepTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
-		state.ActionPoints = 1;
-		state.ManeuverPoints = 0;
+		state.CurrentActionPoints = 1;
+		state.CurrentManeuverPoints = 0;
 		var effect = new TurnUpkeepEffect();
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		effect.Apply(battle.Engine.World, runtime, PlayerId);
 		effect.Undo(battle.Engine.World, runtime, PlayerId);
 
-		Assert.Equal(1, state.ActionPoints);
-		Assert.Equal(0, state.ManeuverPoints);
+		Assert.Equal(1, state.CurrentActionPoints);
+		Assert.Equal(0, state.CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -79,10 +79,10 @@ public sealed class TurnUpkeepTests
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		effect.Apply(battle.Engine.World, runtime, PlayerId);
-		Assert.Equal(1, state.ManeuverPoints);
+		Assert.Equal(1, state.CurrentManeuverPoints);
 
 		effect.Undo(battle.Engine.World, runtime, PlayerId);
-		Assert.Equal(3, state.ManeuverPoints);
+		Assert.Equal(3, state.CurrentManeuverPoints);
 	}
 
 	private static void ApplyTurnUpkeep(GrimSpace.Battle.Units.Unit unit)

@@ -139,7 +139,7 @@ internal static class VoidBombSearchInput
 
 		var state = unit.State;
 		var start = anchor.ReplayWorld(searchStartDepth).StateOf(actorId);
-		var score = -state.ActionPoints * UnusedApPenalty;
+		var score = -state.CurrentActionPoints * UnusedApPenalty;
 
 		var displacement = state.Position - start.Position;
 		score += Coord.Dot(displacement, start.Fore) * ForwardWeight;

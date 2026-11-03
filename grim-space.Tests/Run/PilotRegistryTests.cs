@@ -48,8 +48,8 @@ public sealed class PilotRegistryTests
 
 		Assert.Equal(BattleUnitType.RepurposedMiner, ship.Spec.Chassis);
 		Assert.Equal(
-			ShipCatalog.LoadoutForTier(BattleUnitType.RepurposedMiner, EShipGearTier.T0).MaxHullPoints,
-			ship.Loadout.MaxHullPoints);
+			ShipCatalog.LoadoutForTier(BattleUnitType.RepurposedMiner, EShipGearTier.T0).BaseHullPoints,
+			ship.Loadout.BaseHullPoints);
 		Assert.True(run.PilotRegistry.TryGetForShip(minerShipId, out var pilot));
 		Assert.Equal(EOperatorClassId.Support, pilot.ClassId);
 		Assert.Equal(minerShipId, pilot.AssignedShipId);

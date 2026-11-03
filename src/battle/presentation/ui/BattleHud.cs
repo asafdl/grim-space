@@ -379,16 +379,16 @@ public partial class BattleHud : Node
 			return;
 
 		CommandHud.ApplyResources(
-			focusState.ActionPoints,
-			focusState.MaxActionPoints,
-			focusState.ManeuverPoints,
-			focusState.MaxManeuverPoints,
+			focusState.CurrentActionPoints,
+			focusState.BaseActionPoints,
+			focusState.CurrentManeuverPoints,
+			focusState.BaseManeuverPoints,
 			focusState);
 		CommandHud.ApplyDefenses(
-			focusState.HullPoints,
-			focusState.MaxHullPoints,
-			focusState.ShieldPoints,
-			focusState.Loadout.MaxShieldPoints);
+			focusState.CurrentHullPoints,
+			focusState.BaseHullPoints,
+			focusState.CurrentShieldPoints,
+			focusState.Loadout.BaseShieldPoints);
 		CommandHud.ApplyPilotPortrait(focusState.PilotPortraitId);
 		CommandHud.StatusBar.Apply(focusState);
 		CommandHud.ApplyMainActions(

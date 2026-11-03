@@ -112,8 +112,8 @@ public sealed class ReplayIdentityTests
 		var ally = State.FromShipInstance(
 			ShipInstance.FromCatalog("ally", EType.Fighter),
 			Coord.Zero);
-		ally.ShieldPoints[ESpatialOrientation.Forward] -= 100;
-		ally.HullPoints -= 100;
+		ally.CurrentShieldPoints[ESpatialOrientation.Forward] -= 100;
+		ally.CurrentHullPoints -= 100;
 		var replayState = new ReplayState(new Dictionary<string, State>
 		{
 			[ally.Id] = ally,
@@ -125,9 +125,9 @@ public sealed class ReplayIdentityTests
 		replayState.ApplyHeal(heal);
 
 		var restored = replayState.StateOf(ally.Id);
-		Assert.Equal(ally.ShieldPoints[ESpatialOrientation.Forward] + 100,
-			restored.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(ally.HullPoints + 100, restored.HullPoints);
+		Assert.Equal(ally.CurrentShieldPoints[ESpatialOrientation.Forward] + 100,
+			restored.CurrentShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(ally.CurrentHullPoints + 100, restored.CurrentHullPoints);
 	}
 
 	[Fact]

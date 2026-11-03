@@ -49,7 +49,7 @@ public partial class HeatVentsPreview : Node3D
 		var state = State.FromShipInstance(
 			ShipInstance.FromSpec("vent-preview", FighterSpec.Instance, ShipCatalog.FullFighterLoadout()),
 			Coord.Zero);
-		state.ShieldPoints.Fill(0);
+		state.CurrentShieldPoints.Fill(0);
 		_state = state;
 		_ship = new UnitView();
 		AddChild(_ship);

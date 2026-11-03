@@ -113,8 +113,8 @@ public partial class RamPreview : Node3D
 		var end = start.ToDictionary(pair => pair.Key, pair => pair.Value.Clone());
 		end[actor.Id].Position = target.Position - actor.Fore;
 		var face = ESpatialOrientation.Retro;
-		var damage = System.Math.Min(22, target.HullPoints - 1);
-		end[target.Id].HullPoints -= damage;
+		var damage = System.Math.Min(22, target.CurrentHullPoints - 1);
+		end[target.Id].CurrentHullPoints -= damage;
 		_replay.ResetToLive(start, end);
 		_replay.Play(new TurnReplay(start,
 			[new RamAction(actor.Id),

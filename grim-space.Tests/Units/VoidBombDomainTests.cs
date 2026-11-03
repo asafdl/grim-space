@@ -17,9 +17,9 @@ public sealed class VoidBombDomainTests
 		var maneuverability = ShipCatalog.SpecFor(EType.VoidBomb).Maneuverability;
 		var configuration = ShipCatalog.NewRunLoadoutFor(EType.VoidBomb);
 
-		var maxShields = configuration.MaxShieldPoints;
+		var maxShields = configuration.BaseShieldPoints;
 
-		Assert.Equal((1 * 100), configuration.MaxHullPoints);
+		Assert.Equal((1 * 100), configuration.BaseHullPoints);
 		Assert.Equal((1 * 100), maxShields.MaxOnAnyFace);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
@@ -29,7 +29,7 @@ public sealed class VoidBombDomainTests
 		}
 		Assert.Equal(
 			CatalogExpectations.DefaultVoidBombLauncher().MovementActionPoints,
-			maneuverability.MaxActionPoints);
+			maneuverability.BaseActionPoints);
 	}
 
 	[Fact]

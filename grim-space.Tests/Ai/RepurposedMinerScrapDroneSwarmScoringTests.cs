@@ -21,7 +21,7 @@ public sealed class RepurposedMinerScrapDroneSwarmScoringTests
 		var repurposedMinerPos = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(new Coord(0, 5, 5));
 		var repurposedMiner = BattleTestFixture.RepurposedMiner(repurposedMinerPos);
-		repurposedMiner.State.ActionPoints = 0;
+		repurposedMiner.State.CurrentActionPoints = 0;
 		repurposedMiner.State.Fore = new Coord(1, 0, 0);
 		repurposedMiner.State.Dorsal = Coord.Up;
 		repurposedMiner.State.Starboard = Coord.Cross(repurposedMiner.State.Dorsal, repurposedMiner.State.Fore);
@@ -41,7 +41,7 @@ public sealed class RepurposedMinerScrapDroneSwarmScoringTests
 		var repurposedMinerPos = new Coord(8, 5, 5);
 		var player = BattleTestFixture.Player(new Coord(2, 5, 5));
 		var repurposedMiner = BattleTestFixture.RepurposedMiner(repurposedMinerPos);
-		repurposedMiner.State.ActionPoints = 0;
+		repurposedMiner.State.CurrentActionPoints = 0;
 		repurposedMiner.State.Fore = Coord.Forward;
 		repurposedMiner.State.Dorsal = Coord.Up;
 		repurposedMiner.State.Starboard = Coord.Cross(repurposedMiner.State.Dorsal, repurposedMiner.State.Fore);

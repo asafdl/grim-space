@@ -23,7 +23,7 @@ public static class LootCatalog
 		var rolls = new List<LootRoll>();
 		foreach (var handoff in outcome.StateHandoffs)
 		{
-			if (handoff.HullPoints > 0)
+			if (handoff.CurrentHullPoints > 0)
 				continue;
 
 			var awarded = SalvageFromShip(handoff.Chassis, handoff.GearTier);

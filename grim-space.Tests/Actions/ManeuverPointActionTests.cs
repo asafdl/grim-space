@@ -23,8 +23,8 @@ public sealed class ManeuverPointActionTests
 		Assert.True(sim.TryCommit(out var actions, out var status));
 		Assert.Equal(InvariantStatus.Ok, status);
 		Assert.Equal(2, actions.Count);
-		Assert.Equal(4, sim.StateOf<ActorState>(PlayerId).ActionPoints);
-		Assert.Equal(1, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(4, sim.StateOf<ActorState>(PlayerId).CurrentActionPoints);
+		Assert.Equal(1, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -35,7 +35,7 @@ public sealed class ManeuverPointActionTests
 		Assert.True(sim.TryEnqueue(new HeadingTurnAction(PlayerId, EHeadingTurn.Yaw180)));
 
 		Assert.Equal(-Coord.Forward, sim.StateOf<ActorState>(PlayerId).Fore);
-		Assert.Equal(1, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(1, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -69,14 +69,14 @@ public sealed class ManeuverPointActionTests
 	public void ApAndMpExhaustIndependently()
 	{
 		var sim = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5)).PlayerAgent.Sim;
-		sim.StateOf<ActorState>(PlayerId).ActionPoints = 0;
+		sim.StateOf<ActorState>(PlayerId).CurrentActionPoints = 0;
 
 		Assert.True(sim.TryEnqueue(
 			new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight)));
 		Assert.False(sim.TryEnqueue(new MoveStepAction(PlayerId)));
 
 		var moveOnly = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5)).PlayerAgent.Sim;
-		moveOnly.StateOf<ActorState>(PlayerId).ManeuverPoints = 0;
+		moveOnly.StateOf<ActorState>(PlayerId).CurrentManeuverPoints = 0;
 
 		Assert.True(moveOnly.TryEnqueue(new MoveStepAction(PlayerId)));
 		Assert.False(moveOnly.TryEnqueue(
@@ -92,7 +92,7 @@ public sealed class ManeuverPointActionTests
 			new HeadingTurnAction(PlayerId, EHeadingTurn.YawRight),
 			new RollAction(PlayerId, ERollDirection.Clockwise),
 			new HeadingTurnAction(PlayerId, EHeadingTurn.PitchUp)));
-		Assert.Equal(0, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(0, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 		Assert.False(sim.TryEnqueue(
 			new RollAction(PlayerId, ERollDirection.CounterClockwise)));
 	}

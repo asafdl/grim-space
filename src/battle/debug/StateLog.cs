@@ -53,13 +53,13 @@ public static class StateLog
 	private static string FormatUnit(State state) =>
 		$"{state.Id}: pos={state.Position} fore={state.Fore} dorsal={state.Dorsal} "
 		+ $"starboard={state.Starboard} "
-		+ $"hull={state.HullPoints}/{state.Loadout.MaxHullPoints} "
-		+ $"shields=F{state.ShieldPoints[ESpatialOrientation.Forward]}"
-		+ $"/A{state.ShieldPoints[ESpatialOrientation.Retro]}"
-		+ $"/S{state.ShieldPoints[ESpatialOrientation.Starboard]}"
-		+ $"/P{state.ShieldPoints[ESpatialOrientation.Port]}"
-		+ $"/D{state.ShieldPoints[ESpatialOrientation.Dorsal]}"
-		+ $"/V{state.ShieldPoints[ESpatialOrientation.Ventral]} "
-		+ $"ap={state.ActionPoints}/{state.Maneuverability.MaxActionPoints} "
-		+ $"mp={state.ManeuverPoints}/{state.Maneuverability.MaxManeuverPoints}";
+		+ $"hull={state.CurrentHullPoints}/{state.Loadout.BaseHullPoints} "
+		+ $"shields=F{state.CurrentShieldPoints[ESpatialOrientation.Forward]}"
+		+ $"/A{state.CurrentShieldPoints[ESpatialOrientation.Retro]}"
+		+ $"/S{state.CurrentShieldPoints[ESpatialOrientation.Starboard]}"
+		+ $"/P{state.CurrentShieldPoints[ESpatialOrientation.Port]}"
+		+ $"/D{state.CurrentShieldPoints[ESpatialOrientation.Dorsal]}"
+		+ $"/V{state.CurrentShieldPoints[ESpatialOrientation.Ventral]} "
+		+ $"ap={state.CurrentActionPoints}/{state.Maneuverability.BaseActionPoints} "
+		+ $"mp={state.CurrentManeuverPoints}/{state.Maneuverability.BaseManeuverPoints}";
 }

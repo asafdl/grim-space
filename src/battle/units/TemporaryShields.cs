@@ -43,7 +43,7 @@ public static class TemporaryShields
 		var remaining = new FaceShieldPoints();
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 		{
-			var max = unit.Loadout.MaxShieldPoints[face];
+			var max = unit.Loadout.BaseShieldPoints[face];
 			remaining[face] = (int)System.Math.Round(
 				max * percentOfFaceMax / 100m,
 				System.MidpointRounding.AwayFromZero);

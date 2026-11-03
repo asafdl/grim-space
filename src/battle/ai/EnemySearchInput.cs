@@ -36,7 +36,7 @@ internal static class EnemySearchInput
 		if (!state.IsAlive)
 			return int.MinValue;
 
-		var score = -state.ActionPoints * UnusedApPenalty;
+		var score = -state.CurrentActionPoints * UnusedApPenalty;
 		score += DamageAdjustment(anchor, frame.Actions, actorId, searchStartDepth);
 		score += EngagementAdjustment(world, actorId, anchor, frame.Actions, searchStartDepth);
 		return score;
@@ -46,7 +46,7 @@ internal static class EnemySearchInput
 	{
 		var state = world.StateOf(actorId);
 		var score = FacingWeight
-			+ System.Math.Max(state.ActionPoints, state.Maneuverability.MaxActionPoints) * ApproachWeight;
+			+ System.Math.Max(state.CurrentActionPoints, state.Maneuverability.BaseActionPoints) * ApproachWeight;
 		var hasOffensiveCharges = HasOffensiveCharges(state);
 		var goopUpperBound = state.ReadyMounts(EAbilityKind.GoopGun) > 0
 			? CountBlockableOpponentThreats(world, actorId, FrozenSet<Coord>.Empty) * GoopThreatBlockBonus
@@ -62,7 +62,7 @@ internal static class EnemySearchInput
 				&& opponent is not null
 				&& OffensiveReach.CouldPossiblyDamage(
 					state.Position,
-					state.ActionPoints,
+					state.CurrentActionPoints,
 					opponent.State.Position,
 					weaponReach))
 				score += DamageHitBonus;

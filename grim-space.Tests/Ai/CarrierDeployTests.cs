@@ -19,7 +19,7 @@ public sealed class CarrierDeployTests
 	{
 		var player = BattleTestFixture.Player(new Coord(0, 5, 5));
 		var carrier = BattleTestFixture.Carrier(new Coord(5, 5, 5));
-		carrier.State.ActionPoints = 0;
+		carrier.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, carrier);
@@ -32,7 +32,7 @@ public sealed class CarrierDeployTests
 	{
 		var player = BattleTestFixture.Player(new Coord(0, 5, 5));
 		var carrier = BattleTestFixture.Carrier(new Coord(5, 5, 5));
-		carrier.State.ActionPoints = 0;
+		carrier.State.CurrentActionPoints = 0;
 		StateMountTestKit.SetCooldownRemaining(carrier.State, GrimSpace.Units.Loadouts.Abilities.EAbilityKind.MinerBay, 1);
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
@@ -47,7 +47,7 @@ public sealed class CarrierDeployTests
 		var carrierPos = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(new Coord(0, 5, 5));
 		var carrier = BattleTestFixture.Carrier(carrierPos);
-		carrier.State.ActionPoints = 0;
+		carrier.State.CurrentActionPoints = 0;
 
 		var frame = BodyFrame.From(carrier.State);
 		var blockedBay = carrierPos + frame.Step(ESpatialOrientation.Ventral);
@@ -66,7 +66,7 @@ public sealed class CarrierDeployTests
 	{
 		var player = BattleTestFixture.Player(new Coord(0, 5, 5));
 		var carrier = BattleTestFixture.Carrier(new Coord(5, 5, 5));
-		carrier.State.ActionPoints = 0;
+		carrier.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, carrier);
 		FillLivingRepurposedMiners(

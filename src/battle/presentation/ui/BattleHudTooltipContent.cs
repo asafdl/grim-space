@@ -12,8 +12,8 @@ public enum Icon
 	Heat,
 	Overdrive,
 	Overheat,
-	ActionPoints,
-	ManeuverPoints,
+	CurrentActionPoints,
+	CurrentManeuverPoints,
 	Cooldown,
 	KillReset,
 }

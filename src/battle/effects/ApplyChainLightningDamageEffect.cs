@@ -134,7 +134,7 @@ public sealed class ApplyChainLightningDamageEffect(
 		var unit = targetUnit.State;
 		var face = BodyFrame.From(unit).HitFaceFrom(origin);
 		var shieldBefore = Defense.EffectiveShield(unit, face);
-		var hullBefore = unit.HullPoints;
+		var hullBefore = unit.CurrentHullPoints;
 		var bonus = damageBonusPercent;
 		if (!overdriveBonusIncluded)
 			bonus += ApplyAreaDamageEffect.CrossingOverdriveBonusPercent(world.StateOf(actorId));
@@ -158,7 +158,7 @@ public sealed class ApplyChainLightningDamageEffect(
 
 		var shieldAfter = Defense.EffectiveShield(unit, face);
 		var shieldDamage = shieldBefore - shieldAfter;
-		var hullDamage = hullBefore - unit.HullPoints;
+		var hullDamage = hullBefore - unit.CurrentHullPoints;
 		if (shieldDamage == 0 && hullDamage == 0)
 			return null;
 

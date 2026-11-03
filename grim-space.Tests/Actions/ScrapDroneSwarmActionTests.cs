@@ -21,7 +21,7 @@ public sealed class ScrapDroneSwarmActionTests
 	{
 		var total = 0;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			total += state.ShieldPoints[face];
+			total += state.CurrentShieldPoints[face];
 		return total;
 	}
 
@@ -112,13 +112,13 @@ public sealed class ScrapDroneSwarmActionTests
 		var world = battle.PlayerAgent.Sim.World;
 		var allyUnit = UnitRegistry.For(world).All.First(unit => unit.State.Id == "ally");
 		var burstCell = BodyFrame.From(world.StateOf(PlayerId)).ToWorld(0, -1, 0);
-		allyUnit.State.HullPoints = 100;
+		allyUnit.State.CurrentHullPoints = 100;
 		allyUnit.State.Position = burstCell;
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
 		Assert.Contains(burstCell, ScrapDroneSwarmDef.Instance.AffectedCells(action, world));
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
-		Assert.Equal(200, allyUnit.State.HullPoints);
+		Assert.Equal(200, allyUnit.State.CurrentHullPoints);
 	}
 }

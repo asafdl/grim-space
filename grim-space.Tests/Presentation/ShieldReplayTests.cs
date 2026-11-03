@@ -18,7 +18,7 @@ public sealed class ShieldReplayTests
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		var battle = BattleTestFixture.BeginSimulation(player, BattleTestFixture.Enemy(new Coord(0, 0, 0)));
 		var state = player.State;
-		state.ShieldPoints.Fill(0);
+		state.CurrentShieldPoints.Fill(0);
 		var replay = ReplayFrom(state);
 		var runtime = battle.Engine.ActorRuntimes.For(state.Id);
 		var world = battle.Engine.World;
@@ -31,7 +31,7 @@ public sealed class ShieldReplayTests
 
 		replay.ApplyShields(first);
 		Assert.Single(TemporaryShields.ExtractGrants(replay.StateOf(state.Id)));
-		Assert.Equal(0, replay.StateOf(state.Id).ShieldPoints.MaxOnAnyFace);
+		Assert.Equal(0, replay.StateOf(state.Id).CurrentShieldPoints.MaxOnAnyFace);
 		replay.ApplyShields(afterSecond);
 		AssertShieldsMatch(state, replay.StateOf(state.Id));
 
@@ -48,7 +48,7 @@ public sealed class ShieldReplayTests
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		var battle = BattleTestFixture.BeginSimulation(player, BattleTestFixture.Enemy(new Coord(0, 0, 0)));
 		var state = player.State;
-		state.ShieldPoints.Fill(100);
+		state.CurrentShieldPoints.Fill(100);
 		var replay = ReplayFrom(state);
 		var world = battle.Engine.World;
 		var runtime = battle.Engine.ActorRuntimes.For(state.Id);
@@ -57,8 +57,8 @@ public sealed class ShieldReplayTests
 		replay.ApplyShields(Assert.IsType<Record<ShieldsChangedFacts>>(Assert.Single(records)).Value);
 
 		AssertShieldsMatch(state, replay.StateOf(state.Id));
-		Assert.True(replay.StateOf(state.Id).ShieldPoints[ESpatialOrientation.Forward]
-			> state.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
+		Assert.True(replay.StateOf(state.Id).CurrentShieldPoints[ESpatialOrientation.Forward]
+			> state.Loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
 		Assert.NotNull(ShieldBrace.TryPayload(replay.StateOf(state.Id)));
 		var impact = new ImpactFacts("enemy", state.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, 40, 0);
 		Defense.AbsorbWithShields(state, impact.Face, impact.ShieldDamage);
@@ -79,7 +79,7 @@ public sealed class ShieldReplayTests
 		var ally = BattleTestFixture.Ally(new Coord(5, 6, 5));
 		var battle = BattleTestFixture.BeginSimulation(player, [ally, BattleTestFixture.Enemy(new Coord(0, 0, 0))]);
 		var state = ally.State;
-		state.ShieldPoints[ESpatialOrientation.Forward] = 0;
+		state.CurrentShieldPoints[ESpatialOrientation.Forward] = 0;
 		var replay = ReplayFrom(state);
 		var world = battle.Engine.World;
 		var runtime = battle.Engine.ActorRuntimes.For(state.Id);
@@ -118,7 +118,7 @@ public sealed class ShieldReplayTests
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		var battle = BattleTestFixture.BeginSimulation(player, BattleTestFixture.Enemy(new Coord(0, 0, 0)));
 		var state = player.State;
-		state.ShieldPoints.Fill(100);
+		state.CurrentShieldPoints.Fill(100);
 		var replay = ReplayFrom(state);
 		var runtime = battle.Engine.ActorRuntimes.For(state.Id);
 		var world = battle.Engine.World;
@@ -131,17 +131,17 @@ public sealed class ShieldReplayTests
 
 		Assert.Null(ShieldBrace.TryStatus(state));
 		Assert.Empty(TemporaryShields.ExtractGrants(state));
-		Assert.Equal(100, state.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(100, state.CurrentShieldPoints[ESpatialOrientation.Forward]);
 		replay.ApplyShields(grant);
 		replay.ApplyShields(brace);
 		var restored = replay.StateOf(state.Id);
-		restored.ShieldPoints.Fill(0);
+		restored.CurrentShieldPoints.Fill(0);
 		TemporaryShields.AbsorbOnFace(restored, ESpatialOrientation.Port, 10);
 		ShieldBrace.TryPayload(restored)!.DamagePending = 99;
 
 		replay.ApplyShields(brace);
 
-		Assert.Equal(brace.ShieldPoints[ESpatialOrientation.Forward], restored.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(brace.CurrentShieldPoints[ESpatialOrientation.Forward], restored.CurrentShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(20, TemporaryShields.TotalOnFace(restored, ESpatialOrientation.Port));
 		Assert.Equal(0, ShieldBrace.TryPayload(restored)!.DamagePending);
 	}
@@ -151,7 +151,7 @@ public sealed class ShieldReplayTests
 
 	private static void AssertShieldsMatch(State expected, State actual)
 	{
-		Assert.True(expected.ShieldPoints.Matches(actual.ShieldPoints));
+		Assert.True(expected.CurrentShieldPoints.Matches(actual.CurrentShieldPoints));
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			Assert.Equal(TemporaryShields.TotalOnFace(expected, face), TemporaryShields.TotalOnFace(actual, face));
 	}

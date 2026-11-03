@@ -24,7 +24,7 @@ public sealed class RamScoringTests
 			EType.IndustrialGooper,
 			Coord.Forward,
 			Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
@@ -45,7 +45,7 @@ public sealed class RamScoringTests
 			EType.IndustrialGooper,
 			new Coord(1, 0, 0),
 			Coord.Up);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);
@@ -67,7 +67,7 @@ public sealed class RamScoringTests
 			EType.IndustrialGooper,
 			Coord.Forward,
 			Coord.Up);
-		enemy.State.ActionPoints = 1;
+		enemy.State.CurrentActionPoints = 1;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, enemy);

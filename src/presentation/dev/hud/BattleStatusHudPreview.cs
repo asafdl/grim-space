@@ -92,8 +92,8 @@ public sealed partial class BattleStatusHudPreview : Control
 	{
 		var state = _inspecting ? _enemy : _player;
 		var unit = UnitDisplayState.Capture(state, new ActorRuntime());
-		_hud.ApplyResources(unit.ActionPoints, unit.MaxActionPoints, unit.ManeuverPoints, unit.MaxManeuverPoints, unit);
-		_hud.ApplyDefenses(unit.HullPoints, unit.MaxHullPoints, unit.ShieldPoints, unit.Loadout.MaxShieldPoints);
+		_hud.ApplyResources(unit.CurrentActionPoints, unit.BaseActionPoints, unit.CurrentManeuverPoints, unit.BaseManeuverPoints, unit);
+		_hud.ApplyDefenses(unit.CurrentHullPoints, unit.BaseHullPoints, unit.CurrentShieldPoints, unit.Loadout.BaseShieldPoints);
 		_hud.ApplyMainActions(EPlayerMode.Move, false, unit, AbilityLegality.Empty);
 		_hud.ApplyCommands(_inspecting, false, false, false, false, false);
 		_hud.StatusBar.Apply(unit);

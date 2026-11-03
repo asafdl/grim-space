@@ -19,7 +19,7 @@ public sealed class ActivateShieldBraceEffect(ESpatialOrientation face) : IEffec
 		var actor = world.StateOf(actorId);
 		_previousStatus = ShieldBrace.TryStatus(actor)?.DeepCopy();
 		_previousUsedThisTurn = actor.ShieldBraceUsedThisTurn;
-		_previousShieldPoints = actor.ShieldPoints.Clone();
+		_previousShieldPoints = actor.CurrentShieldPoints.Clone();
 		ShieldBrace.Activate(actor, face);
 		return [new Record<ShieldsChangedFacts>(ShieldsChangedFacts.Capture(actor))];
 	}
@@ -28,7 +28,7 @@ public sealed class ActivateShieldBraceEffect(ESpatialOrientation face) : IEffec
 	{
 		var actor = world.StateOf(actorId);
 		actor.ShieldBraceUsedThisTurn = _previousUsedThisTurn;
-		actor.ShieldPoints = _previousShieldPoints!.Clone();
+		actor.CurrentShieldPoints = _previousShieldPoints!.Clone();
 		ShieldBrace.Restore(actor, _previousStatus?.DeepCopy());
 	}
 }

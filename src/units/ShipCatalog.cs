@@ -38,8 +38,8 @@ public static class ShipCatalog
 		var baseline = spec.NewDefaultLoadout();
 		return ShipLoadout.Create(
 			spec,
-			baseline.MaxHullPoints,
-			baseline.MaxShieldPoints,
+			baseline.BaseHullPoints,
+			baseline.BaseShieldPoints,
 			spec.Slots
 				.Select(slot => new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet))
 				.ToArray());

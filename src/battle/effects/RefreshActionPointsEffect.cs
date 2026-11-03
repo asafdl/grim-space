@@ -11,12 +11,12 @@ public sealed class RefreshActionPointsEffect(int amount) : IEffect<BattleWorld,
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
-		var headroom = actor.Maneuverability.MaxActionPoints - actor.ActionPoints;
+		var headroom = actor.Maneuverability.BaseActionPoints - actor.CurrentActionPoints;
 		_granted = System.Math.Min(amount, System.Math.Max(0, headroom));
-		actor.ActionPoints += _granted;
+		actor.CurrentActionPoints += _granted;
 		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>
-		world.StateOf(actorId).ActionPoints -= _granted;
+		world.StateOf(actorId).CurrentActionPoints -= _granted;
 }

@@ -6,14 +6,14 @@ namespace GrimSpace.Battle.Effects;
 
 public sealed record ShieldsChangedFacts(
 	string TargetId,
-	FaceShieldPoints ShieldPoints,
+	FaceShieldPoints CurrentShieldPoints,
 	IReadOnlyList<TemporaryShieldGrant> TemporaryShieldGrants,
 	BattleStatus? BraceStatus)
 {
 	public static ShieldsChangedFacts Capture(State state) =>
 		new(
 			state.Id,
-			state.ShieldPoints.Clone(),
+			state.CurrentShieldPoints.Clone(),
 			TemporaryShields.ExtractGrants(state),
 			ShieldBrace.TryStatus(state)?.DeepCopy());
 }

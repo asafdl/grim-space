@@ -135,7 +135,7 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 		Assert.IsType<FleetTravel.Journey>(
 			run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId).State.Travel);
 		var after = run.ItemInventory.Get(shipId);
-		Assert.Equal(before.HullPoints, after.HullPoints);
+		Assert.Equal(before.CurrentHullPoints, after.CurrentHullPoints);
 		Assert.Equal(
 			before.TotalCurrentShieldPoints - StrategicEconomyConfig.StarvationDamagePerTick,
 			after.TotalCurrentShieldPoints);
@@ -147,14 +147,14 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 		using var run = RunState.CreateNewRun(42);
 		var ship = run.ItemInventory.Get(RunTestKit.StarterFighterShipId(run)).Clone();
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			ship.ShieldPoints[face] = 0;
-		ship.ShieldPoints[ESpatialOrientation.Forward] = 3;
-		ship.HullPoints = 20;
+			ship.CurrentShieldPoints[face] = 0;
+		ship.CurrentShieldPoints[ESpatialOrientation.Forward] = 3;
+		ship.CurrentHullPoints = 20;
 
 		var after = TravelFuelEffects.ApplyStarvationDamage(ship, 5);
 
 		Assert.Equal(0, after.TotalCurrentShieldPoints);
-		Assert.Equal(18, after.HullPoints);
+		Assert.Equal(18, after.CurrentHullPoints);
 	}
 
 	private StarSystemOrchestrator CreatePlayerOrchestrator() =>

@@ -57,12 +57,12 @@ public sealed class MovePreviewCache
 				.OrderBy(unit => unit.State.Id, StringComparer.Ordinal)
 				.Select(unit => $"{unit.State.Id}@{unit.State.Position}"));
 
-	internal static (int ActionPoints, int ManeuverPoints) MovementBudget(
+	internal static (int CurrentActionPoints, int CurrentManeuverPoints) MovementBudget(
 		BattleWorld world,
 		string actorId)
 	{
 		var actor = world.StateOf(actorId);
-		return (actor.ActionPoints, actor.ManeuverPoints);
+		return (actor.CurrentActionPoints, actor.CurrentManeuverPoints);
 	}
 
 	private sealed record Entry(
@@ -70,6 +70,6 @@ public sealed class MovePreviewCache
 		string ActorId,
 		IReadOnlyList<IAction> MovementPrefix,
 		string OccupancyFingerprint,
-		(int ActionPoints, int ManeuverPoints) MovementBudget,
+		(int CurrentActionPoints, int CurrentManeuverPoints) MovementBudget,
 		IReadOnlyList<RouteHitPreview> Paths);
 }

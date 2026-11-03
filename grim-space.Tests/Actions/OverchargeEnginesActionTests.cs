@@ -31,7 +31,7 @@ public sealed class OverchargeEnginesActionTests
 	public void OverchargeEngines_IsLegalAtZeroAp()
 	{
 		var (player, battle) = PlayerWithOverchargeBattle();
-		player.State.ActionPoints = 0;
+		player.State.CurrentActionPoints = 0;
 		var action = OverchargeEnginesDef.Instance.Bind(PlayerId);
 		var world = battle.Engine.World;
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
@@ -43,7 +43,7 @@ public sealed class OverchargeEnginesActionTests
 	public void OverchargeEngines_RefreshesApUpToMaxWithoutSpendingAp()
 	{
 		var (player, battle) = PlayerWithOverchargeBattle();
-		player.State.ActionPoints = 2;
+		player.State.CurrentActionPoints = 2;
 
 		BattleTestApply.TryApplyOne(
 			OverchargeEnginesDef.Instance.Bind(PlayerId),
@@ -51,7 +51,7 @@ public sealed class OverchargeEnginesActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(4, player.State.ActionPoints);
+		Assert.Equal(4, player.State.CurrentActionPoints);
 		Assert.Equal(PilotSkillPercents.OverchargeEngines.CooldownTurns, player.State.OverchargeEnginesCooldownRemaining);
 	}
 
@@ -59,7 +59,7 @@ public sealed class OverchargeEnginesActionTests
 	public void OverchargeEngines_DoesNotExceedMaxAp()
 	{
 		var (player, battle) = PlayerWithOverchargeBattle();
-		player.State.ActionPoints = MovementExpectations.FighterApPerTurn;
+		player.State.CurrentActionPoints = MovementExpectations.FighterApPerTurn;
 
 		BattleTestApply.TryApplyOne(
 			OverchargeEnginesDef.Instance.Bind(PlayerId),
@@ -67,14 +67,14 @@ public sealed class OverchargeEnginesActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.CurrentActionPoints);
 	}
 
 	[Fact]
 	public void OverchargeEngines_SchedulesNextTurnPenaltyAndCooldownTicksDownOnUpkeep()
 	{
 		var (player, battle) = PlayerWithOverchargeBattle();
-		player.State.ActionPoints = 2;
+		player.State.CurrentActionPoints = 2;
 
 		BattleTestApply.TryApplyOne(
 			OverchargeEnginesDef.Instance.Bind(PlayerId),
@@ -95,12 +95,12 @@ public sealed class OverchargeEnginesActionTests
 		new TurnUpkeepEffect().Apply(world, runtime, PlayerId);
 		Assert.Equal(0, player.State.OverchargeEnginesCooldownRemaining);
 
-		player.State.ActionPoints = MovementExpectations.FighterApPerTurn;
+		player.State.CurrentActionPoints = MovementExpectations.FighterApPerTurn;
 		battle.Engine.AdvanceTick();
 
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - PilotSkillPercents.OverchargeEngines.NextTurnApPenalty,
-			player.State.ActionPoints);
+			player.State.CurrentActionPoints);
 	}
 
 	[Fact]

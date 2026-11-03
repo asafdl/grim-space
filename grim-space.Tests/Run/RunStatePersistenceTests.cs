@@ -30,15 +30,15 @@ public sealed class RunStatePersistenceTests
 			shipId,
 			FighterSpec.Instance,
 			ShipCatalog.FullFighterLoadout());
-		Assert.True(ship.TryWithUpgradedMaxHull(out ship));
-		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out ship));
+		Assert.True(ship.TryWithUpgradedBaseHull(out ship));
+		Assert.True(ship.TryWithUpgradedBaseShields(ESpatialOrientation.Forward, out ship));
 		Assert.True(ship.TryWithDamageUpgraded(
 			new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward),
 			out ship));
 		Assert.True(ship.TryWithRangeUpgraded(
 			new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward),
 			out ship));
-		ship.HullPoints = 3;
+		ship.CurrentHullPoints = 3;
 		run.ItemInventory.Update(ship);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		var portraitId = pilot.PortraitId;
@@ -53,14 +53,14 @@ public sealed class RunStatePersistenceTests
 		Assert.Equal(2, run.GetFieldedShipIds().Count);
 		Assert.Contains(shipId, run.GetFieldedShipIds());
 		Assert.Same(ship, run.ItemInventory.Get(shipId));
-		Assert.Equal(3, run.ItemInventory.Get(shipId).HullPoints);
-		Assert.Equal(ship.Loadout.MaxHullPoints, run.ItemInventory.Get(shipId).Loadout.MaxHullPoints);
+		Assert.Equal(3, run.ItemInventory.Get(shipId).CurrentHullPoints);
+		Assert.Equal(ship.Loadout.BaseHullPoints, run.ItemInventory.Get(shipId).Loadout.BaseHullPoints);
 		Assert.Equal(
 			ship.Loadout.HullUpgradeTier,
 			run.ItemInventory.Get(shipId).Loadout.HullUpgradeTier);
 		Assert.True(
-			run.ItemInventory.Get(shipId).Loadout.MaxShieldPoints.Matches(
-				ship.Loadout.MaxShieldPoints));
+			run.ItemInventory.Get(shipId).Loadout.BaseShieldPoints.Matches(
+				ship.Loadout.BaseShieldPoints));
 		Assert.True(
 			run.ItemInventory.Get(shipId).Loadout.ShieldUpgradeTiers.Matches(
 				ship.Loadout.ShieldUpgradeTiers));
@@ -110,7 +110,7 @@ public sealed class RunStatePersistenceTests
 		using var restored = State.FromSnapshot(snapshot, registry);
 
 		Assert.Equal(run.GetFieldedShipIds(), restored.GetFieldedShipIds());
-		Assert.Equal(run.ItemInventory.Get(shipId).HullPoints, restored.ItemInventory.Get(shipId).HullPoints);
+		Assert.Equal(run.ItemInventory.Get(shipId).CurrentHullPoints, restored.ItemInventory.Get(shipId).CurrentHullPoints);
 		Assert.True(restored.PilotRegistry.TryGetForShip(shipId, out var restoredPilot));
 		Assert.Equal(pilot.Id, restoredPilot.Id);
 		Assert.Equal(pilot.PortraitId, restoredPilot.PortraitId);

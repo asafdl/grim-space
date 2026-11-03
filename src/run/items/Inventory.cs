@@ -138,17 +138,17 @@ public sealed class Inventory
 			return false;
 
 		return string.Equals(current.Id, expected.Id, StringComparison.Ordinal)
-			&& current.HullPoints == expected.HullPoints
-			&& current.ShieldPoints.Matches(expected.ShieldPoints)
+			&& current.CurrentHullPoints == expected.CurrentHullPoints
+			&& current.CurrentShieldPoints.Matches(expected.CurrentShieldPoints)
 			&& LoadoutMatches(current, expected);
 	}
 
 	private static bool LoadoutMatches(ShipInstance current, ShipInstance before) =>
 		current.Spec.Chassis == before.Spec.Chassis
-		&& current.Loadout.MaxHullPoints == before.Loadout.MaxHullPoints
+		&& current.Loadout.BaseHullPoints == before.Loadout.BaseHullPoints
 		&& current.Loadout.HullUpgradeTier == before.Loadout.HullUpgradeTier
 		&& current.Loadout.ShieldUpgradeTiers.Matches(before.Loadout.ShieldUpgradeTiers)
-		&& current.Loadout.MaxShieldPoints.Matches(before.Loadout.MaxShieldPoints)
+		&& current.Loadout.BaseShieldPoints.Matches(before.Loadout.BaseShieldPoints)
 		&& current.Loadout.InstalledAbilities.SequenceEqual(before.Loadout.InstalledAbilities);
 
 	public void ApplyHandoff(UnitStateHandoff handoff)
@@ -158,8 +158,8 @@ public sealed class Inventory
 			throw new InvalidOperationException(
 				$"Handoff chassis '{handoff.Chassis}' does not match registry chassis '{ship.Spec.Chassis}' for ship '{handoff.Id}'.");
 
-		ship.HullPoints = handoff.HullPoints;
-		ship.ShieldPoints = handoff.ShieldPoints.Clone();
+		ship.CurrentHullPoints = handoff.CurrentHullPoints;
+		ship.CurrentShieldPoints = handoff.CurrentShieldPoints.Clone();
 	}
 
 	private static ShipInstance AsShip(IItem item) =>

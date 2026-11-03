@@ -25,7 +25,7 @@ public sealed class ObjectiveTests
 	public void TorpedoDeathDoesNotEndBattleWhilePlayerAliveAndEnemyAlive()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);
-		battle.Engine.World.StateOf(torpedoId).HullPoints = 0;
+		battle.Engine.World.StateOf(torpedoId).CurrentHullPoints = 0;
 		BattleTestFixture.ResetPlayerPlanning(battle);
 
 		_ = BattleTestActions.CommitAndResolve(battle);

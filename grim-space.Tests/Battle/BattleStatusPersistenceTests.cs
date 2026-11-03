@@ -60,7 +60,7 @@ public sealed class BattleStatusPersistenceTests
 	public void RoundTrip_RestoresShieldBracePayload()
 	{
 		var state = BattleTestFixture.Player(Coord.Zero).State;
-		state.ShieldPoints[ESpatialOrientation.Forward] = 50;
+		state.CurrentShieldPoints[ESpatialOrientation.Forward] = 50;
 		ShieldBrace.Activate(state, ESpatialOrientation.Forward);
 		ShieldBrace.TryPayload(state)!.DamagePending = 12;
 

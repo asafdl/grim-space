@@ -26,11 +26,11 @@ public sealed class InTheFrayTests
 			[shooter, distantEnemyA, distantEnemyB],
 			[target.State.Id]);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = 6;
+		target.State.CurrentShieldPoints[hitFace] = 6;
 
 		ApplyDamage(shooter, target, battle, damage: 3);
 
-		Assert.Equal(4, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(4, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]
@@ -45,11 +45,11 @@ public sealed class InTheFrayTests
 			[shooter, closeEnemy, distantEnemy],
 			[target.State.Id]);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = 6;
+		target.State.CurrentShieldPoints[hitFace] = 6;
 
 		ApplyDamage(shooter, target, battle, damage: 3);
 
-		Assert.Equal(3, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(3, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]
@@ -63,11 +63,11 @@ public sealed class InTheFrayTests
 			[distantEnemyA, distantEnemyB],
 			[source.State.Id]);
 		var hitFace = BodyFrame.From(source.State).HitFaceFrom(source.State.Position);
-		source.State.ShieldPoints[hitFace] = 6;
+		source.State.CurrentShieldPoints[hitFace] = 6;
 
 		ApplyDamage(source, source, battle, damage: 3);
 
-		Assert.Equal(4, source.State.ShieldPoints[hitFace]);
+		Assert.Equal(4, source.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]
@@ -82,11 +82,11 @@ public sealed class InTheFrayTests
 			[shooter, distantEnemyA, distantEnemyB],
 			[target.State.Id]);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = 6;
+		target.State.CurrentShieldPoints[hitFace] = 6;
 
 		ApplyDamage(shooter, target, battle, damage: 3, shieldDamageBonus: 1);
 
-		Assert.Equal(3, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(3, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]
@@ -111,7 +111,7 @@ public sealed class InTheFrayTests
 			[target.State.Id],
 			pilots);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(source.State.Position);
-		target.State.ShieldPoints[hitFace] = 6;
+		target.State.CurrentShieldPoints[hitFace] = 6;
 
 		ApplyDamage(
 			source,
@@ -121,7 +121,7 @@ public sealed class InTheFrayTests
 			adjacentHitDamagePercent: 200,
 			adjacentHitDamageRangeCells: 2);
 
-		Assert.Equal(3, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(3, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]
@@ -143,13 +143,13 @@ public sealed class InTheFrayTests
 			[target.State.Id],
 			pilots);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = 6;
+		target.State.CurrentShieldPoints[hitFace] = 6;
 		target.State.DefensiveManeuversMpUsed = 0;
 		target.State.DefensiveManeuversRollIndex = 6;
 
 		ApplyDamage(shooter, target, battle, damage: 3);
 
-		Assert.Equal(5, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(5, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]

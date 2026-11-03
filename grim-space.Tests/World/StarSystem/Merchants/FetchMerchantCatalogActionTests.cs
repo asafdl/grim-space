@@ -97,7 +97,7 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
-		ship.HullPoints = 100;
+		ship.CurrentHullPoints = 100;
 		var before = ship.Clone();
 		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
 			engine,

@@ -165,8 +165,8 @@ public partial class HitMarkerPreview : Node3D
 			Starboard = Coord.Cross(Coord.Up, Coord.Forward),
 			Maneuverability = chassis.Maneuverability,
 			HeatProfile = chassis.Heat,
-			HullPoints = loadout.MaxHullPoints,
-			ShieldPoints = loadout.MaxShieldPoints.Clone(),
+			CurrentHullPoints = loadout.BaseHullPoints,
+			CurrentShieldPoints = loadout.BaseShieldPoints.Clone(),
 		};
 	}
 

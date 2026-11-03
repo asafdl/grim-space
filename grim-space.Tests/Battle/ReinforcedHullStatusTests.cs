@@ -36,12 +36,12 @@ public sealed class ReinforcedHullStatusTests
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
 			player.State,
 			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ReinforcedHull])));
-		player.State.ShieldPoints[ESpatialOrientation.Forward] = 0;
-		var hullBefore = player.State.HullPoints;
+		player.State.CurrentShieldPoints[ESpatialOrientation.Forward] = 0;
+		var hullBefore = player.State.CurrentHullPoints;
 
 		Defense.ApplyDamage(player.State, 9, ESpatialOrientation.Forward);
 
-		Assert.Equal(hullBefore - 6, player.State.HullPoints);
+		Assert.Equal(hullBefore - 6, player.State.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -51,13 +51,13 @@ public sealed class ReinforcedHullStatusTests
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
 			player.State,
 			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ReinforcedHull])));
-		player.State.ShieldPoints[ESpatialOrientation.Forward] = 10;
+		player.State.CurrentShieldPoints[ESpatialOrientation.Forward] = 10;
 
 		Defense.ApplyDamage(player.State, 6, ESpatialOrientation.Forward);
 
-		Assert.Equal(4, player.State.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(4, player.State.CurrentShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(
-			player.State.Loadout.MaxHullPoints,
-			player.State.HullPoints);
+			player.State.Loadout.BaseHullPoints,
+			player.State.CurrentHullPoints);
 	}
 }

@@ -998,7 +998,7 @@ public sealed class State : IDisposable
 				continue;
 			}
 
-			if (shipDamage.After.HullPoints <= 0)
+			if (shipDamage.After.CurrentHullPoints <= 0)
 			{
 				PilotRegistry.RemoveForShip(shipDamage.ShipId);
 				ItemInventory.Remove(shipDamage.ShipId);
@@ -1147,7 +1147,7 @@ public sealed class State : IDisposable
 		var playerRosterChanged = false;
 		foreach (var handoff in outcome.StateHandoffs)
 		{
-			if (handoff.HullPoints <= 0 && ItemInventory.IsPlayerOwned(handoff.Id))
+			if (handoff.CurrentHullPoints <= 0 && ItemInventory.IsPlayerOwned(handoff.Id))
 			{
 				PilotRegistry.RemoveForShip(handoff.Id);
 				ItemInventory.Remove(handoff.Id);

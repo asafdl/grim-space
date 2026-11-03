@@ -28,13 +28,13 @@ public sealed class GunshipSpecTests
 		var spec = GunshipSpec.Instance;
 		var loadout = spec.NewDefaultLoadout();
 
-		Assert.Equal((2 * 100), loadout.MaxHullPoints);
-		Assert.Equal((1 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal((1 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Retro]);
-		Assert.Equal((2 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Port]);
-		Assert.Equal((2 * 100), loadout.MaxShieldPoints[ESpatialOrientation.Starboard]);
-		Assert.Equal(0, loadout.MaxShieldPoints[ESpatialOrientation.Dorsal]);
-		Assert.Equal(0, loadout.MaxShieldPoints[ESpatialOrientation.Ventral]);
+		Assert.Equal((2 * 100), loadout.BaseHullPoints);
+		Assert.Equal((1 * 100), loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal((1 * 100), loadout.BaseShieldPoints[ESpatialOrientation.Retro]);
+		Assert.Equal((2 * 100), loadout.BaseShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal((2 * 100), loadout.BaseShieldPoints[ESpatialOrientation.Starboard]);
+		Assert.Equal(0, loadout.BaseShieldPoints[ESpatialOrientation.Dorsal]);
+		Assert.Equal(0, loadout.BaseShieldPoints[ESpatialOrientation.Ventral]);
 		Assert.Equal(2, loadout.InstalledAbilities.Count);
 	}
 
@@ -44,7 +44,7 @@ public sealed class GunshipSpecTests
 		var fromCatalog = ShipCatalog.LoadoutForTier(EType.Gunship, EShipGearTier.T0);
 		var fromSpec = GunshipSpec.Instance.NewDefaultLoadout();
 
-		Assert.True(fromCatalog.MaxShieldPoints.Matches(fromSpec.MaxShieldPoints));
+		Assert.True(fromCatalog.BaseShieldPoints.Matches(fromSpec.BaseShieldPoints));
 		Assert.Equal(fromSpec.InstalledAbilities.Count, fromCatalog.InstalledAbilities.Count);
 	}
 }

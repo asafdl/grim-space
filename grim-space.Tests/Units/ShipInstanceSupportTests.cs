@@ -18,8 +18,8 @@ public sealed class ShipInstanceSupportTests
 	{
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
-			FighterSpec.Instance.DefaultMaxHullPoints,
-			FighterSpec.Instance.DefaultMaxShieldPoints,
+			FighterSpec.Instance.DefaultBaseHullPoints,
+			FighterSpec.Instance.DefaultBaseShieldPoints,
 			[
 				new InstalledAbility(
 					EAbilityKind.LightningCannon,
@@ -31,54 +31,54 @@ public sealed class ShipInstanceSupportTests
 	}
 
 	[Fact]
-	public void TryWithUpgradedMaxShields_IncreasesMaxAndCurrentShields()
+	public void TryWithUpgradedBaseShields_IncreasesBaseAndCurrentShields()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var previousMax = ship.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
+		var previousMax = ship.Loadout.BaseShieldPoints[ESpatialOrientation.Forward];
 
-		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out var after));
+		Assert.True(ship.TryWithUpgradedBaseShields(ESpatialOrientation.Forward, out var after));
 
 		Assert.Equal(1, after.Loadout.ShieldUpgradeTiers[ESpatialOrientation.Forward]);
-		Assert.Equal(previousMax + 100, after.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(previousMax + 100, after.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(ship.Loadout.MaxShieldPoints[ESpatialOrientation.Port], after.Loadout.MaxShieldPoints[ESpatialOrientation.Port]);
-		Assert.Equal(ship.ShieldPoints[ESpatialOrientation.Port], after.ShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(previousMax + 100, after.Loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(previousMax + 100, after.CurrentShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(ship.Loadout.BaseShieldPoints[ESpatialOrientation.Port], after.Loadout.BaseShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(ship.CurrentShieldPoints[ESpatialOrientation.Port], after.CurrentShieldPoints[ESpatialOrientation.Port]);
 	}
 
 	[Fact]
-	public void TryWithUpgradedMaxShields_WhenCurrentBelowMax_FillsUpgradedFace()
+	public void TryWithUpgradedBaseShields_WhenCurrentBelowBase_FillsUpgradedFace()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var previousMax = ship.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
-		ship.ShieldPoints[ESpatialOrientation.Forward] = 0;
-		var previousPort = ship.ShieldPoints[ESpatialOrientation.Port];
+		var previousMax = ship.Loadout.BaseShieldPoints[ESpatialOrientation.Forward];
+		ship.CurrentShieldPoints[ESpatialOrientation.Forward] = 0;
+		var previousPort = ship.CurrentShieldPoints[ESpatialOrientation.Port];
 
-		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out var after));
+		Assert.True(ship.TryWithUpgradedBaseShields(ESpatialOrientation.Forward, out var after));
 
-		Assert.Equal(previousMax + 100, after.Loadout.MaxShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(after.Loadout.MaxShieldPoints[ESpatialOrientation.Forward], after.ShieldPoints[ESpatialOrientation.Forward]);
-		Assert.Equal(previousPort, after.ShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(previousMax + 100, after.Loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(after.Loadout.BaseShieldPoints[ESpatialOrientation.Forward], after.CurrentShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(previousPort, after.CurrentShieldPoints[ESpatialOrientation.Port]);
 	}
 
 	[Fact]
-	public void TryWithUpgradedMaxShields_ZeroMaxFaceBecomesShieldedAndStopsAtPerFaceCap()
+	public void TryWithUpgradedBaseShields_ZeroBaseFaceBecomesShieldedAndStopsAtPerFaceCap()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var face = ESpatialOrientation.Dorsal;
-		ship.Loadout.MaxShieldPoints[face] = 0;
-		ship.ShieldPoints[face] = 0;
+		ship.Loadout.BaseShieldPoints[face] = 0;
+		ship.CurrentShieldPoints[face] = 0;
 
 		for (var tier = 1; tier <= ShipLoadout.MaxShieldUpgradeTier; tier++)
 		{
-			Assert.True(ship.TryWithUpgradedMaxShields(face, out var after));
+			Assert.True(ship.TryWithUpgradedBaseShields(face, out var after));
 			Assert.Equal(tier, after.Loadout.ShieldUpgradeTiers[face]);
-			Assert.Equal(tier * 100, after.Loadout.MaxShieldPoints[face]);
-			Assert.Equal(tier * 100, after.ShieldPoints[face]);
+			Assert.Equal(tier * 100, after.Loadout.BaseShieldPoints[face]);
+			Assert.Equal(tier * 100, after.CurrentShieldPoints[face]);
 			ship = after;
 		}
 
-		Assert.False(ship.TryWithUpgradedMaxShields(face, out _));
-		Assert.True(ship.TryWithUpgradedMaxShields(ESpatialOrientation.Forward, out _));
+		Assert.False(ship.TryWithUpgradedBaseShields(face, out _));
+		Assert.True(ship.TryWithUpgradedBaseShields(ESpatialOrientation.Forward, out _));
 	}
 
 	[Fact]
@@ -89,8 +89,8 @@ public sealed class ShipInstanceSupportTests
 		tiers[ESpatialOrientation.Port] = 2;
 		var upgraded = ShipLoadout.Create(
 			FighterSpec.Instance,
-			loadout.MaxHullPoints,
-			loadout.MaxShieldPoints,
+			loadout.BaseHullPoints,
+			loadout.BaseShieldPoints,
 			loadout.InstalledAbilities,
 			tiers);
 		tiers[ESpatialOrientation.Port] = 0;
@@ -101,10 +101,10 @@ public sealed class ShipInstanceSupportTests
 		Assert.Equal(1, copy.ShieldUpgradeTiers[ESpatialOrientation.Port]);
 		tiers[ESpatialOrientation.Port] = -1;
 		Assert.Throws<ArgumentOutOfRangeException>(() =>
-			ShipLoadout.Create(FighterSpec.Instance, loadout.MaxHullPoints, loadout.MaxShieldPoints, loadout.InstalledAbilities, tiers));
+			ShipLoadout.Create(FighterSpec.Instance, loadout.BaseHullPoints, loadout.BaseShieldPoints, loadout.InstalledAbilities, tiers));
 		tiers[ESpatialOrientation.Port] = ShipLoadout.MaxShieldUpgradeTier + 1;
 		Assert.Throws<ArgumentOutOfRangeException>(() =>
-			ShipLoadout.Create(FighterSpec.Instance, loadout.MaxHullPoints, loadout.MaxShieldPoints, loadout.InstalledAbilities, tiers));
+			ShipLoadout.Create(FighterSpec.Instance, loadout.BaseHullPoints, loadout.BaseShieldPoints, loadout.InstalledAbilities, tiers));
 	}
 
 	[Fact]
@@ -157,8 +157,8 @@ public sealed class ShipInstanceSupportTests
 		var mount = new AbilityMount(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
-			FighterSpec.Instance.DefaultMaxHullPoints,
-			FighterSpec.Instance.DefaultMaxShieldPoints,
+			FighterSpec.Instance.DefaultBaseHullPoints,
+			FighterSpec.Instance.DefaultBaseShieldPoints,
 			[
 				new InstalledAbility(
 					EAbilityKind.LightningCannon,
@@ -182,28 +182,28 @@ public sealed class ShipInstanceSupportTests
 	}
 
 	[Fact]
-	public void TryWithUpgradedMaxHull_IncreasesAndFillsHullCapacity()
+	public void TryWithUpgradedBaseHull_IncreasesAndFillsHullCapacity()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		ship.HullPoints = (1 * 100);
-		var previousMax = ship.Loadout.MaxHullPoints;
+		ship.CurrentHullPoints = (1 * 100);
+		var previousMax = ship.Loadout.BaseHullPoints;
 
-		Assert.True(ship.TryWithUpgradedMaxHull(out var after));
+		Assert.True(ship.TryWithUpgradedBaseHull(out var after));
 
 		Assert.Equal(1, after.Loadout.HullUpgradeTier);
-		Assert.Equal(previousMax + 100, after.Loadout.MaxHullPoints);
-		Assert.Equal(after.Loadout.MaxHullPoints, after.HullPoints);
+		Assert.Equal(previousMax + 100, after.Loadout.BaseHullPoints);
+		Assert.Equal(after.Loadout.BaseHullPoints, after.CurrentHullPoints);
 	}
 
 	[Fact]
-	public void TryWithUpgradedMaxHull_StopsAtMaxTier()
+	public void TryWithUpgradedBaseHull_StopsAtMaxTier()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 
 		for (var tier = 0; tier < ShipLoadout.MaxHullUpgradeTier; tier++)
-			Assert.True(ship.TryWithUpgradedMaxHull(out ship));
+			Assert.True(ship.TryWithUpgradedBaseHull(out ship));
 
-		Assert.False(ship.TryWithUpgradedMaxHull(out _));
+		Assert.False(ship.TryWithUpgradedBaseHull(out _));
 	}
 
 	[Fact]
@@ -241,13 +241,13 @@ public sealed class ShipInstanceSupportTests
 	public void TryWithMaxHullUpgradeTier_AppliesFullCapacityJump()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		var previousMax = ship.Loadout.MaxHullPoints;
+		var previousMax = ship.Loadout.BaseHullPoints;
 
 		Assert.True(ship.TryWithMaxHullUpgradeTier(2, out var after));
 
 		Assert.Equal(2, after.Loadout.HullUpgradeTier);
-		Assert.Equal(previousMax + 2 * 100, after.Loadout.MaxHullPoints);
-		Assert.Equal(after.Loadout.MaxHullPoints, after.HullPoints);
+		Assert.Equal(previousMax + 2 * 100, after.Loadout.BaseHullPoints);
+		Assert.Equal(after.Loadout.BaseHullPoints, after.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -255,15 +255,15 @@ public sealed class ShipInstanceSupportTests
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var face = ESpatialOrientation.Forward;
-		var previousMax = ship.Loadout.MaxShieldPoints[face];
-		var previousPort = ship.Loadout.MaxShieldPoints[ESpatialOrientation.Port];
+		var previousMax = ship.Loadout.BaseShieldPoints[face];
+		var previousPort = ship.Loadout.BaseShieldPoints[ESpatialOrientation.Port];
 
 		Assert.True(ship.TryWithMaxShieldUpgradeTier(face, 2, out var after));
 
 		Assert.Equal(2, after.Loadout.ShieldUpgradeTiers[face]);
-		Assert.Equal(previousMax + 2 * 100, after.Loadout.MaxShieldPoints[face]);
-		Assert.Equal(after.Loadout.MaxShieldPoints[face], after.ShieldPoints[face]);
-		Assert.Equal(previousPort, after.Loadout.MaxShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(previousMax + 2 * 100, after.Loadout.BaseShieldPoints[face]);
+		Assert.Equal(after.Loadout.BaseShieldPoints[face], after.CurrentShieldPoints[face]);
+		Assert.Equal(previousPort, after.Loadout.BaseShieldPoints[ESpatialOrientation.Port]);
 	}
 
 	[Fact]
@@ -271,11 +271,11 @@ public sealed class ShipInstanceSupportTests
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var face = ESpatialOrientation.Retro;
-		Assert.Equal(0, ship.Loadout.MaxShieldPoints[face]);
+		Assert.Equal(0, ship.Loadout.BaseShieldPoints[face]);
 
 		Assert.True(ship.TryWithMaxShieldPoints(face, (2 * 100), out var after));
 
-		Assert.Equal((2 * 100), after.Loadout.MaxShieldPoints[face]);
+		Assert.Equal((2 * 100), after.Loadout.BaseShieldPoints[face]);
 		Assert.Equal(2, after.Loadout.ShieldUpgradeTiers[face]);
 		Assert.False(after.TryWithMaxShieldPoints(face, (2 * 100), out _));
 	}
@@ -285,7 +285,7 @@ public sealed class ShipInstanceSupportTests
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
 		var face = ESpatialOrientation.Forward;
-		Assert.Equal((1 * 100), ship.Loadout.MaxShieldPoints[face]);
+		Assert.Equal((1 * 100), ship.Loadout.BaseShieldPoints[face]);
 
 		Assert.False(ship.TryWithMaxShieldPoints(face, (1 * 100), out _));
 	}
@@ -317,7 +317,7 @@ public sealed class ShipInstanceSupportTests
 		Assert.True(ship.TryWithRangeUpgraded(mount, out ship));
 		Assert.Equal(1, ship.Loadout.InstalledAbilities.Single().RangeUpgradeTier);
 
-		Assert.True(ship.TryWithUpgradedMaxHull(out ship));
+		Assert.True(ship.TryWithUpgradedBaseHull(out ship));
 		Assert.Equal(1, ship.Loadout.HullUpgradeTier);
 	}
 }

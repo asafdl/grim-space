@@ -18,7 +18,7 @@ public sealed class ShipHardwareDiffTests
 		Assert.True(diff.IsEmpty);
 		Assert.False(diff.ChassisChanged);
 		Assert.False(diff.GearTierChanged);
-		Assert.Equal(0, diff.MaxHullDelta);
+		Assert.Equal(0, diff.BaseHullDelta);
 		Assert.Empty(diff.ShieldDeltas);
 		Assert.Empty(diff.AddedAbilities);
 		Assert.Empty(diff.RemovedAbilities);
@@ -40,7 +40,7 @@ public sealed class ShipHardwareDiffTests
 		Assert.Equal(EShipGearTier.T2, diff.CandidateGearTier);
 		Assert.Equal(0, diff.InitiativeDelta);
 		Assert.True(
-			diff.MaxHullDelta > 0
+			diff.BaseHullDelta > 0
 			|| diff.ShieldDeltas.Count > 0
 			|| diff.AddedAbilities.Count > 0
 			|| diff.ChangedMounts.Count > 0);
@@ -51,13 +51,13 @@ public sealed class ShipHardwareDiffTests
 	{
 		var baseline = ShipLoadout.Create(
 			FighterSpec.Instance,
-			FighterSpec.Instance.DefaultMaxHullPoints,
-			FighterSpec.Instance.DefaultMaxShieldPoints,
+			FighterSpec.Instance.DefaultBaseHullPoints,
+			FighterSpec.Instance.DefaultBaseShieldPoints,
 			[new InstalledAbility(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)]);
 		var candidate = ShipLoadout.Create(
 			FighterSpec.Instance,
-			FighterSpec.Instance.DefaultMaxHullPoints,
-			FighterSpec.Instance.DefaultMaxShieldPoints,
+			FighterSpec.Instance.DefaultBaseHullPoints,
+			FighterSpec.Instance.DefaultBaseShieldPoints,
 			[new InstalledAbility(EAbilityKind.VoidBombLauncher, ESpatialOrientation.Ventral)]);
 
 		var diff = ShipHardwareDiff.Compare(EType.Fighter, baseline, EType.Fighter, candidate);
@@ -77,12 +77,12 @@ public sealed class ShipHardwareDiffTests
 		var baseline = ShipLoadout.Create(
 			FighterSpec.Instance,
 			200,
-			FighterSpec.Instance.DefaultMaxShieldPoints,
+			FighterSpec.Instance.DefaultBaseShieldPoints,
 			[new InstalledAbility(EAbilityKind.LightningCannon, ESpatialOrientation.Forward)]);
 		var candidate = ShipLoadout.Create(
 			FighterSpec.Instance,
 			200,
-			FighterSpec.Instance.DefaultMaxShieldPoints,
+			FighterSpec.Instance.DefaultBaseShieldPoints,
 			[new InstalledAbility(EAbilityKind.LightningCannon, ESpatialOrientation.Forward, damageUpgradeTier: 2, rangeUpgradeTier: 1)]);
 
 		var diff = ShipHardwareDiff.Compare(EType.Fighter, baseline, EType.Fighter, candidate);
@@ -108,15 +108,15 @@ public sealed class ShipHardwareDiffTests
 			GunshipSpec.Instance.Initiative - FighterSpec.Instance.Initiative,
 			diff.InitiativeDelta);
 		Assert.Equal(
-			GunshipSpec.Instance.Maneuverability.MaxActionPoints
-				- FighterSpec.Instance.Maneuverability.MaxActionPoints,
+			GunshipSpec.Instance.Maneuverability.BaseActionPoints
+				- FighterSpec.Instance.Maneuverability.BaseActionPoints,
 			diff.ActionPointsDelta);
 		Assert.Equal(
-			GunshipSpec.Instance.Maneuverability.MaxManeuverPoints
-				- FighterSpec.Instance.Maneuverability.MaxManeuverPoints,
+			GunshipSpec.Instance.Maneuverability.BaseManeuverPoints
+				- FighterSpec.Instance.Maneuverability.BaseManeuverPoints,
 			diff.ManeuverPointsDelta);
 		Assert.Equal(
-			gunship.MaxHullPoints - fighter.MaxHullPoints,
-			diff.MaxHullDelta);
+			gunship.BaseHullPoints - fighter.BaseHullPoints,
+			diff.BaseHullDelta);
 	}
 }

@@ -26,8 +26,8 @@ public sealed class HeadingTurnTests
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(origin + new Coord(x, y, z), actor.Position);
 		Assert.Equal(new Coord(x, y, z), actor.Fore);
-		Assert.Equal(3, actor.ActionPoints);
-		Assert.Equal(2, actor.ManeuverPoints);
+		Assert.Equal(3, actor.CurrentActionPoints);
+		Assert.Equal(2, actor.CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -43,7 +43,7 @@ public sealed class HeadingTurnTests
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId);
 		Assert.Equal(new Coord(1, 0, 0), actor.Fore);
 		Assert.Equal(Coord.Forward, actor.Dorsal);
-		Assert.Equal(3, actor.ActionPoints);
-		Assert.Equal(1, actor.ManeuverPoints);
+		Assert.Equal(3, actor.CurrentActionPoints);
+		Assert.Equal(1, actor.CurrentManeuverPoints);
 	}
 }

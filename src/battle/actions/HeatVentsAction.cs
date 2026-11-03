@@ -58,7 +58,7 @@ public sealed class HeatVentsDef
 		return !BattleStatuses.HasOverheat(state)
 			&& !state.HeatVentsUsedThisTurn
 			&& state.Heat > 0
-			&& state.ActionPoints >= PilotSkillPercents.HeatVents.ApCost;
+			&& state.CurrentActionPoints >= PilotSkillPercents.HeatVents.ApCost;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

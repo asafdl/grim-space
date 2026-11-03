@@ -21,7 +21,7 @@ public sealed class BattleWorldRehydrationTests
 		var player = liveWorld.UnitRegistry.UnitOf(original.PlayerId);
 		var mount = player.State.MountRuntime.Keys.First();
 		player.State.Position = new Coord(3, 4, 5);
-		player.State.HullPoints = 7;
+		player.State.CurrentHullPoints = 7;
 		player.State.MountRuntime[mount].UsesRemaining = 0;
 		player.State.MountRuntime[mount].CooldownRemaining = 2;
 		liveWorld.Timeline.Clock.Set(4);
@@ -37,9 +37,9 @@ public sealed class BattleWorldRehydrationTests
 		Assert.Equal(4, restored.TurnNumber);
 		Assert.True(restored.AcceptsPlayerInput);
 		Assert.Equal(player.State.Position, restoredPlayer.State.Position);
-		Assert.Equal(player.State.HullPoints, restoredPlayer.State.HullPoints);
+		Assert.Equal(player.State.CurrentHullPoints, restoredPlayer.State.CurrentHullPoints);
 		Assert.True(
-			restoredPlayer.State.ShieldPoints.Matches(player.State.ShieldPoints));
+			restoredPlayer.State.CurrentShieldPoints.Matches(player.State.CurrentShieldPoints));
 		Assert.Equal(
 			player.State.MountRuntime[mount].UsesRemaining,
 			restoredPlayer.State.MountRuntime[mount].UsesRemaining);

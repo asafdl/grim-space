@@ -63,7 +63,7 @@ public sealed class MovePathSearchTests
 		Assert.Equal(origin + new Coord(1, 0, 0), actor.Position);
 		Assert.Equal(new Coord(1, 0, 0), actor.Fore);
 		Assert.Equal(-Coord.Forward, actor.Dorsal);
-		Assert.Equal(3, actor.ActionPoints);
+		Assert.Equal(3, actor.CurrentActionPoints);
 	}
 
 	[Theory]
@@ -154,7 +154,7 @@ public sealed class MovePathSearchTests
 		var session = battle.PlayerAgent.Sim;
 		var before = session.StateOf<ActorState>(PlayerId);
 		var position = before.Position;
-		var ap = before.ActionPoints;
+		var ap = before.CurrentActionPoints;
 
 		foreach (var _ in ActionSearch.Run(
 			session,
@@ -164,7 +164,7 @@ public sealed class MovePathSearchTests
 
 		Assert.Empty(session.Actions);
 		Assert.Equal(position, session.StateOf<ActorState>(PlayerId).Position);
-		Assert.Equal(ap, session.StateOf<ActorState>(PlayerId).ActionPoints);
+		Assert.Equal(ap, session.StateOf<ActorState>(PlayerId).CurrentActionPoints);
 	}
 
 	[Fact]

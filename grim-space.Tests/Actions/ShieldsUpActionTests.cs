@@ -31,8 +31,8 @@ public sealed class ShieldsUpActionTests
 	public void ShieldsUp_SchedulesFollowUpsThenAppliesPenaltyOnNextTickAfterUpkeepRefill()
 	{
 		var (player, battle) = PlayerWithShieldsUpBattle();
-		player.State.ShieldPoints[ESpatialOrientation.Forward] = 0;
-		player.State.ActionPoints = 3;
+		player.State.CurrentShieldPoints[ESpatialOrientation.Forward] = 0;
+		player.State.CurrentActionPoints = 3;
 
 		BattleTestApply.TryApplyOne(
 			ShieldsUpDef.Instance.Bind(PlayerId),
@@ -40,7 +40,7 @@ public sealed class ShieldsUpActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(3, player.State.ActionPoints);
+		Assert.Equal(3, player.State.CurrentActionPoints);
 		Assert.Equal(
 			ExpectedTemporaryShieldsOnFace(player.State, ESpatialOrientation.Forward),
 			TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
@@ -56,14 +56,14 @@ public sealed class ShieldsUpActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.ActionPoints);
+		Assert.Equal(MovementExpectations.FighterApPerTurn, player.State.CurrentActionPoints);
 		Assert.True(player.State.ShieldsUpUsedThisTurn);
 
 		battle.Engine.AdvanceTick();
 
 		Assert.Equal(
 			MovementExpectations.FighterApPerTurn - ShieldsUpDef.NextTickApPenalty,
-			player.State.ActionPoints);
+			player.State.CurrentActionPoints);
 		Assert.False(player.State.ShieldsUpUsedThisTurn);
 		Assert.Equal(
 			ExpectedTemporaryShieldsOnFace(player.State, ESpatialOrientation.Forward),
@@ -78,8 +78,8 @@ public sealed class ShieldsUpActionTests
 	public void ShieldsUp_TemporaryBonusCanExceedLoadoutMax()
 	{
 		var (player, battle) = PlayerWithShieldsUpBattle();
-		var max = player.State.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
-		player.State.ShieldPoints[ESpatialOrientation.Forward] = max;
+		var max = player.State.Loadout.BaseShieldPoints[ESpatialOrientation.Forward];
+		player.State.CurrentShieldPoints[ESpatialOrientation.Forward] = max;
 
 		BattleTestApply.TryApplyOne(
 			ShieldsUpDef.Instance.Bind(PlayerId),
@@ -87,7 +87,7 @@ public sealed class ShieldsUpActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(max, player.State.ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(max, player.State.CurrentShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(
 			ExpectedTemporaryShieldsOnFace(player.State, ESpatialOrientation.Forward),
 			TemporaryShields.TotalOnFace(player.State, ESpatialOrientation.Forward));
@@ -134,7 +134,7 @@ public sealed class ShieldsUpActionTests
 
 	private static int ExpectedTemporaryShieldsOnFace(State state, ESpatialOrientation face)
 	{
-		var max = state.Loadout.MaxShieldPoints[face];
+		var max = state.Loadout.BaseShieldPoints[face];
 		return (int)System.Math.Round(
 			max * PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax / 100m,
 			MidpointRounding.AwayFromZero);

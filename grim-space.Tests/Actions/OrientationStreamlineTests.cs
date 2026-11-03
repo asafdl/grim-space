@@ -21,7 +21,7 @@ public sealed class OrientationStreamlineTests
 
 		var roll = Assert.IsType<RollAction>(Assert.Single(sim.Actions));
 		Assert.Equal(ERollDirection.CounterClockwise, roll.Direction);
-		Assert.Equal(2, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(2, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -35,7 +35,7 @@ public sealed class OrientationStreamlineTests
 				new RollAction(PlayerId, ERollDirection.Clockwise)));
 
 		Assert.Empty(sim.Actions);
-		Assert.Equal(3, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(3, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -50,7 +50,7 @@ public sealed class OrientationStreamlineTests
 
 		var heading = Assert.IsType<HeadingTurnAction>(Assert.Single(sim.Actions));
 		Assert.Equal(EHeadingTurn.Yaw180, heading.Turn);
-		Assert.Equal(1, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(1, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -65,7 +65,7 @@ public sealed class OrientationStreamlineTests
 
 		var heading = Assert.IsType<HeadingTurnAction>(Assert.Single(sim.Actions));
 		Assert.Equal(EHeadingTurn.YawLeft, heading.Turn);
-		Assert.Equal(2, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(2, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -85,7 +85,7 @@ public sealed class OrientationStreamlineTests
 
 		var heading = Assert.IsType<HeadingTurnAction>(Assert.Single(sim.Actions));
 		Assert.Equal(EHeadingTurn.YawRight, heading.Turn);
-		Assert.Equal(0, sim.StateOf<ActorState>("carrier").ManeuverPoints);
+		Assert.Equal(0, sim.StateOf<ActorState>("carrier").CurrentManeuverPoints);
 	}
 
 	[Fact]
@@ -94,7 +94,7 @@ public sealed class OrientationStreamlineTests
 		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
 		var baseline = player.State.Maneuverability;
 		player.State.Maneuverability = new ManeuverabilitySpec(
-			baseline.MaxActionPoints,
+			baseline.BaseActionPoints,
 			3,
 			baseline.SupportedTranslations.ToDictionary(
 				direction => direction,
@@ -120,6 +120,6 @@ public sealed class OrientationStreamlineTests
 			action => Assert.Equal(
 				EHeadingTurn.YawLeft,
 				Assert.IsType<HeadingTurnAction>(action).Turn));
-		Assert.Equal(0, sim.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(0, sim.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 }

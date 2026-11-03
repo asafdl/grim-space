@@ -25,7 +25,7 @@ internal readonly record struct MovePreviewSearchState(
 	Coord Fore,
 	Coord Dorsal,
 	Coord Starboard,
-	int HullPoints,
+	int CurrentHullPoints,
 	int ForwardShield,
 	int RetroShield,
 	int PortShield,
@@ -46,8 +46,8 @@ internal static class BattleSearchVisit
 				actor.Starboard,
 				MountFingerprint(actor)),
 			[
-				actor.ActionPoints,
-				actor.ManeuverPoints,
+				actor.CurrentActionPoints,
+				actor.CurrentManeuverPoints,
 				-sim.Actions.Count(action => action.ActorId == actorId),
 			]);
 	}
@@ -62,8 +62,8 @@ internal static class BattleSearchVisit
 				actor.Dorsal,
 				actor.Starboard),
 			[
-				actor.ActionPoints,
-				actor.ManeuverPoints,
+				actor.CurrentActionPoints,
+				actor.CurrentManeuverPoints,
 				-sim.Actions.Count(action => action.ActorId == actorId),
 			]);
 	}
@@ -77,16 +77,16 @@ internal static class BattleSearchVisit
 				actor.Fore,
 				actor.Dorsal,
 				actor.Starboard,
-				actor.HullPoints,
-				actor.ShieldPoints[ESpatialOrientation.Forward],
-				actor.ShieldPoints[ESpatialOrientation.Retro],
-				actor.ShieldPoints[ESpatialOrientation.Port],
-				actor.ShieldPoints[ESpatialOrientation.Starboard],
-				actor.ShieldPoints[ESpatialOrientation.Dorsal],
-				actor.ShieldPoints[ESpatialOrientation.Ventral]),
+				actor.CurrentHullPoints,
+				actor.CurrentShieldPoints[ESpatialOrientation.Forward],
+				actor.CurrentShieldPoints[ESpatialOrientation.Retro],
+				actor.CurrentShieldPoints[ESpatialOrientation.Port],
+				actor.CurrentShieldPoints[ESpatialOrientation.Starboard],
+				actor.CurrentShieldPoints[ESpatialOrientation.Dorsal],
+				actor.CurrentShieldPoints[ESpatialOrientation.Ventral]),
 			[
-				actor.ActionPoints,
-				actor.ManeuverPoints,
+				actor.CurrentActionPoints,
+				actor.CurrentManeuverPoints,
 				-sim.Actions.Count(action => action.ActorId == actorId),
 			]);
 	}

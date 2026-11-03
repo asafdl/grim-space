@@ -125,8 +125,8 @@ public sealed class MovePathIndex
 				path.ActorId,
 				path.Steps.Skip(prefix.Count).ToArray(),
 				path.Checkpoints.Skip(prefixMoves).ToArray(),
-				prefixState.ActionPoints - path.RemainingAp,
-				prefixState.ManeuverPoints - path.RemainingMp,
+				prefixState.CurrentActionPoints - path.RemainingAp,
+				prefixState.CurrentManeuverPoints - path.RemainingMp,
 				path.RemainingAp,
 				path.RemainingMp,
 				path.ResultState.Clone());
@@ -164,10 +164,10 @@ public sealed class MovePathIndex
 			_actorId,
 			steps,
 			ProjectCheckpoints(_sim, _actorId, steps, includeStart: true),
-			start.ActionPoints - result.ActionPoints,
-			start.ManeuverPoints - result.ManeuverPoints,
-			result.ActionPoints,
-			result.ManeuverPoints,
+			start.CurrentActionPoints - result.CurrentActionPoints,
+			start.CurrentManeuverPoints - result.CurrentManeuverPoints,
+			result.CurrentActionPoints,
+			result.CurrentManeuverPoints,
 			result));
 		_extensions.Clear();
 	}

@@ -183,10 +183,10 @@ public static class SaveDtoMapper
 		{
 			ship.Id,
 			Chassis = ship.Spec.Chassis,
-			ship.HullPoints,
-			ShieldPoints = CaptureFaces(ship.ShieldPoints),
-			MaxHullPoints = loadout.MaxHullPoints,
-			MaxShieldPoints = CaptureFaces(loadout.MaxShieldPoints),
+			ship.CurrentHullPoints,
+			CurrentShieldPoints = CaptureFaces(ship.CurrentShieldPoints),
+			BaseHullPoints = loadout.BaseHullPoints,
+			BaseShieldPoints = CaptureFaces(loadout.BaseShieldPoints),
 			ShieldUpgradeTiers = CaptureFaces(loadout.ShieldUpgradeTiers),
 			loadout.HullUpgradeTier,
 			InstalledAbilities = loadout.InstalledAbilities
@@ -210,8 +210,8 @@ public static class SaveDtoMapper
 			.ToArray();
 		var loadout = ShipLoadout.Create(
 			spec,
-			dto.MaxHullPoints,
-			RestoreFaces(dto.MaxShieldPoints),
+			dto.BaseHullPoints,
+			RestoreFaces(dto.BaseShieldPoints),
 			installed,
 			RestoreFaces(dto.ShieldUpgradeTiers),
 			dto.HullUpgradeTier,
@@ -220,8 +220,8 @@ public static class SaveDtoMapper
 			dto.Id,
 			spec,
 			loadout,
-			dto.HullPoints,
-			RestoreFaces(dto.ShieldPoints));
+			dto.CurrentHullPoints,
+			RestoreFaces(dto.CurrentShieldPoints));
 	}
 
 	public static BattleUnitStateDto CaptureBattleUnitState(BattleUnitState state)
@@ -231,8 +231,8 @@ public static class SaveDtoMapper
 				state.Id,
 				ShipCatalog.SpecFor(state.Type),
 				state.Loadout.DeepCopy(),
-				state.HullPoints,
-				state.ShieldPoints.Clone()));
+				state.CurrentHullPoints,
+				state.CurrentShieldPoints.Clone()));
 		return ReflectionJson.Map<BattleUnitStateDto>(new
 		{
 			Ship = ship,
@@ -241,8 +241,8 @@ public static class SaveDtoMapper
 			state.Fore,
 			state.Dorsal,
 			state.Starboard,
-			state.ActionPoints,
-			state.ManeuverPoints,
+			state.CurrentActionPoints,
+			state.CurrentManeuverPoints,
 			state.FuelRemaining,
 			state.ParentId,
 			Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
@@ -256,8 +256,8 @@ public static class SaveDtoMapper
 			state.Heat,
 			state.Overdrive,
 			state.Overheat,
-			MaxAp = state.Maneuverability.MaxActionPoints,
-			MaxMp = state.Maneuverability.MaxManeuverPoints,
+			BaseAp = state.Maneuverability.BaseActionPoints,
+			BaseMp = state.Maneuverability.BaseManeuverPoints,
 			HeatCapacity = state.HeatProfile.Capacity,
 			HeatClearPerTurn = state.HeatProfile.ClearPerTurn,
 			HeatGainMultiplier = state.HeatProfile.GainMultiplier,
@@ -283,10 +283,10 @@ public static class SaveDtoMapper
 			dto.ParentId);
 		state.Starboard = dto.Starboard;
 		state.Initiative = dto.Initiative ?? state.Initiative;
-		state.ActionPoints = dto.ActionPoints;
+		state.CurrentActionPoints = dto.CurrentActionPoints;
 		var maneuverability = dto.Projectile?.Maneuverability() ?? state.Maneuverability;
-		var maxMp = dto.MaxMp ?? maneuverability.MaxManeuverPoints;
-		state.ManeuverPoints = dto.ManeuverPoints ?? maxMp;
+		var maxMp = dto.BaseMp ?? maneuverability.BaseManeuverPoints;
+		state.CurrentManeuverPoints = dto.CurrentManeuverPoints ?? maxMp;
 		state.FuelRemaining = dto.FuelRemaining;
 		RestoreStatuses(state, dto.Statuses);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
@@ -299,7 +299,7 @@ public static class SaveDtoMapper
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
-			dto.MaxAp,
+			dto.BaseAp,
 			maxMp);
 		foreach (var runtime in dto.MountRuntime)
 			state.MountRuntime[new AbilityMount(runtime.Kind, runtime.MountedOn)] =
@@ -349,8 +349,8 @@ public static class SaveDtoMapper
 				state.Id,
 				ShipCatalog.SpecFor(state.Type),
 				state.Loadout.DeepCopy(),
-				state.HullPoints,
-				state.ShieldPoints.Clone());
+				state.CurrentHullPoints,
+				state.CurrentShieldPoints.Clone());
 			return ReflectionJson.Map<BattleUnitSaveDto>(new
 			{
 				Ship = CaptureShip(ship),
@@ -361,8 +361,8 @@ public static class SaveDtoMapper
 				state.Fore,
 				state.Dorsal,
 				state.Starboard,
-				state.ActionPoints,
-				state.ManeuverPoints,
+				state.CurrentActionPoints,
+				state.CurrentManeuverPoints,
 				state.FuelRemaining,
 				state.ParentId,
 				Statuses = state.Statuses.Select(CaptureStatus).ToArray(),
@@ -376,8 +376,8 @@ public static class SaveDtoMapper
 				state.Heat,
 				state.Overdrive,
 				state.Overheat,
-				MaxAp = state.Maneuverability.MaxActionPoints,
-				MaxMp = state.Maneuverability.MaxManeuverPoints,
+				BaseAp = state.Maneuverability.BaseActionPoints,
+				BaseMp = state.Maneuverability.BaseManeuverPoints,
 				HeatCapacity = state.HeatProfile.Capacity,
 				HeatClearPerTurn = state.HeatProfile.ClearPerTurn,
 				HeatGainMultiplier = state.HeatProfile.GainMultiplier,
@@ -886,10 +886,10 @@ public static class SaveDtoMapper
 				unitDto.ParentId);
 			state.Starboard = unitDto.Starboard;
 			state.Initiative = unitDto.Initiative ?? state.Initiative;
-			state.ActionPoints = unitDto.ActionPoints;
+			state.CurrentActionPoints = unitDto.CurrentActionPoints;
 			var maneuverability = unitDto.Projectile?.Maneuverability() ?? state.Maneuverability;
-			var maxMp = unitDto.MaxMp ?? maneuverability.MaxManeuverPoints;
-			state.ManeuverPoints = unitDto.ManeuverPoints ?? maxMp;
+			var maxMp = unitDto.BaseMp ?? maneuverability.BaseManeuverPoints;
+			state.CurrentManeuverPoints = unitDto.CurrentManeuverPoints ?? maxMp;
 			state.FuelRemaining = unitDto.FuelRemaining;
 			RestoreStatuses(state, unitDto.Statuses);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
@@ -909,7 +909,7 @@ public static class SaveDtoMapper
 				unitDto.Overheat);
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
-				unitDto.MaxAp,
+				unitDto.BaseAp,
 				maxMp);
 			foreach (var runtime in unitDto.MountRuntime)
 				state.MountRuntime[new AbilityMount(runtime.Kind, runtime.MountedOn)] =

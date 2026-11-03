@@ -12,8 +12,8 @@ public sealed class ManeuverabilitySpecTests
 	{
 		var spec = CreateSpec();
 
-		Assert.Equal(4, spec.MaxActionPoints);
-		Assert.Equal(3, spec.MaxManeuverPoints);
+		Assert.Equal(4, spec.BaseActionPoints);
+		Assert.Equal(3, spec.BaseManeuverPoints);
 		Assert.Contains(ESpatialOrientation.Forward, spec.SupportedTranslations);
 		Assert.Contains(EHeadingTurn.YawRight, spec.SupportedHeadingTurns);
 		Assert.Contains(ERollDirection.Clockwise, spec.SupportedRolls);
@@ -67,8 +67,8 @@ public sealed class ManeuverabilitySpecTests
 	[Fact]
 	public void RejectsNegativeBudgets()
 	{
-		Assert.Throws<ArgumentOutOfRangeException>(() => CreateSpec(maxActionPoints: -1));
-		Assert.Throws<ArgumentOutOfRangeException>(() => CreateSpec(maxManeuverPoints: -1));
+		Assert.Throws<ArgumentOutOfRangeException>(() => CreateSpec(baseActionPoints: -1));
+		Assert.Throws<ArgumentOutOfRangeException>(() => CreateSpec(baseManeuverPoints: -1));
 	}
 
 	[Fact]
@@ -100,8 +100,8 @@ public sealed class ManeuverabilitySpecTests
 	{
 		var adjusted = CreateSpec().WithBudgets(6, 2);
 
-		Assert.Equal(6, adjusted.MaxActionPoints);
-		Assert.Equal(2, adjusted.MaxManeuverPoints);
+		Assert.Equal(6, adjusted.BaseActionPoints);
+		Assert.Equal(2, adjusted.BaseManeuverPoints);
 		Assert.True(adjusted.TryGetTranslationApCost(ESpatialOrientation.Forward, out var translationCost));
 		Assert.True(adjusted.TryGetHeadingMpCost(EHeadingTurn.YawRight, out var headingCost));
 		Assert.True(adjusted.TryGetRollMpCost(ERollDirection.Clockwise, out var rollCost));
@@ -123,8 +123,8 @@ public sealed class ManeuverabilitySpecTests
 	{
 		var maneuverability = ShipCatalog.SpecFor(chassis).Maneuverability;
 
-		Assert.Equal(expectedActionPoints, maneuverability.MaxActionPoints);
-		Assert.Equal(expectedManeuverPoints, maneuverability.MaxManeuverPoints);
+		Assert.Equal(expectedActionPoints, maneuverability.BaseActionPoints);
+		Assert.Equal(expectedManeuverPoints, maneuverability.BaseManeuverPoints);
 		Assert.Same(maneuverability, ShipCatalog.SpecFor(chassis).Maneuverability);
 	}
 
@@ -184,14 +184,14 @@ public sealed class ManeuverabilitySpecTests
 	}
 
 	private static ManeuverabilitySpec CreateSpec(
-		int maxActionPoints = 4,
-		int maxManeuverPoints = 3,
+		int baseActionPoints = 4,
+		int baseManeuverPoints = 3,
 		int translationCost = 1,
 		int headingCost = 1,
 		int rollCost = 1) =>
 		new(
-			maxActionPoints,
-			maxManeuverPoints,
+			baseActionPoints,
+			baseManeuverPoints,
 			new Dictionary<ESpatialOrientation, int>
 			{
 				[ESpatialOrientation.Forward] = translationCost,

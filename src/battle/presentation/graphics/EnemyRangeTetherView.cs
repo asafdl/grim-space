@@ -120,15 +120,15 @@ public sealed partial class EnemyRangeTetherView : Node3D
 
 		_distanceLabel.Text = BattleDistance.Format(separationMeters);
 		var shieldFace = targetState.ToBodyFrame().HitFaceFrom(sourceState.Position);
-		var maxShield = targetState.Loadout.MaxShieldPoints[shieldFace];
+		var maxShield = targetState.Loadout.BaseShieldPoints[shieldFace];
 		_targetInfo.Set(
 			$"{DisplayName(targetState.Type).ToUpperInvariant()} "
 				+ $"({ShipLoadoutGearTier.FromLoadout(targetState.Loadout, targetState.Type)})",
-			targetState.MaxHullPoints > 0
-				? targetState.HullPoints / (float)targetState.MaxHullPoints
+			targetState.BaseHullPoints > 0
+				? targetState.CurrentHullPoints / (float)targetState.BaseHullPoints
 				: 0f,
 			maxShield > 0
-				? targetState.ShieldPoints[shieldFace] / (float)maxShield
+				? targetState.CurrentShieldPoints[shieldFace] / (float)maxShield
 				: 0f,
 			targetState.HeatCapacity > 0
 				? targetState.Heat / (float)targetState.HeatCapacity

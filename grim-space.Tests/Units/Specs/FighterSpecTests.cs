@@ -46,8 +46,8 @@ public sealed class FighterSpecTests
 		var fromSpec = FighterSpec.Instance.NewDefaultLoadout();
 
 		Assert.Equal(fromCatalog.InstalledAbilities.Count, fromSpec.InstalledAbilities.Count);
-		Assert.Equal(fromCatalog.MaxHullPoints, fromSpec.MaxHullPoints);
-		Assert.True(fromCatalog.MaxShieldPoints.Matches(fromSpec.MaxShieldPoints));
+		Assert.Equal(fromCatalog.BaseHullPoints, fromSpec.BaseHullPoints);
+		Assert.True(fromCatalog.BaseShieldPoints.Matches(fromSpec.BaseShieldPoints));
 	}
 
 	[Fact]

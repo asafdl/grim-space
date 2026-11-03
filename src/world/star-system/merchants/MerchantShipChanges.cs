@@ -20,7 +20,7 @@ internal static class MerchantShipChanges
 					return false;
 				if (next.MissingHullPoints <= 0)
 					return false;
-				next.HullPoints = next.Loadout.MaxHullPoints;
+				next.CurrentHullPoints = next.Loadout.BaseHullPoints;
 				break;
 
 			case MerchantCatalog.Kind.RechargeAllShields:
@@ -29,7 +29,7 @@ internal static class MerchantShipChanges
 				if (next.MissingShieldPoints <= 0)
 					return false;
 				foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-					next.ShieldPoints[face] = next.Loadout.MaxShieldPoints[face];
+					next.CurrentShieldPoints[face] = next.Loadout.BaseShieldPoints[face];
 				break;
 
 			case MerchantCatalog.Kind.RechargeShieldFace:
@@ -37,7 +37,7 @@ internal static class MerchantShipChanges
 					return false;
 				if (next.MissingShieldPointsOnFace(rechargeFace) <= 0)
 					return false;
-				next.ShieldPoints[rechargeFace] = next.Loadout.MaxShieldPoints[rechargeFace];
+				next.CurrentShieldPoints[rechargeFace] = next.Loadout.BaseShieldPoints[rechargeFace];
 				break;
 
 			case MerchantCatalog.Kind.BuyFuel:

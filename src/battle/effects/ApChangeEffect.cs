@@ -8,10 +8,10 @@ public sealed class ApChangeEffect(int delta) : IEffect<BattleWorld, ActorRuntim
 {
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
-		world.StateOf(actorId).ActionPoints += delta;
+		world.StateOf(actorId).CurrentActionPoints += delta;
 		return [];
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId) =>
-		world.StateOf(actorId).ActionPoints -= delta;
+		world.StateOf(actorId).CurrentActionPoints -= delta;
 }

@@ -17,25 +17,25 @@ public sealed class ReactiveShieldsTests
 	[Fact]
 	public void Apply_FirstHitFullThenStacksReduceMultiplicatively()
 	{
-		var (target, shooter, battle, hitFace) = ReadyBattle(shieldPoints: 100);
+		var (target, shooter, battle, hitFace) = ReadyBattle(currentShieldPoints: 100);
 
 		ApplyDamage(shooter, target, battle, damage: 10);
-		Assert.Equal(90, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(90, target.State.CurrentShieldPoints[hitFace]);
 		Assert.Equal(1, target.State.ReactiveShieldsStacks);
 
 		ApplyDamage(shooter, target, battle, damage: 10);
-		Assert.Equal(82, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(82, target.State.CurrentShieldPoints[hitFace]);
 		Assert.Equal(2, target.State.ReactiveShieldsStacks);
 
 		ApplyDamage(shooter, target, battle, damage: 10);
-		Assert.Equal(76, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(76, target.State.CurrentShieldPoints[hitFace]);
 		Assert.Equal(3, target.State.ReactiveShieldsStacks);
 	}
 
 	[Fact]
 	public void Apply_UndoRestoresStacks()
 	{
-		var (target, shooter, battle, _) = ReadyBattle(shieldPoints: 50);
+		var (target, shooter, battle, _) = ReadyBattle(currentShieldPoints: 50);
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { target.State.Position },
@@ -53,7 +53,7 @@ public sealed class ReactiveShieldsTests
 	[Fact]
 	public void TurnUpkeep_ClearsStacks()
 	{
-		var (target, _, battle, _) = ReadyBattle(shieldPoints: 50);
+		var (target, _, battle, _) = ReadyBattle(currentShieldPoints: 50);
 		target.State.ReactiveShieldsStacks = 3;
 
 		new TurnUpkeepEffect().Apply(
@@ -81,7 +81,7 @@ public sealed class ReactiveShieldsTests
 	}
 
 	private static (Unit Target, Unit Shooter, BattleOrchestrator Battle, ESpatialOrientation HitFace) ReadyBattle(
-		int shieldPoints)
+		int currentShieldPoints)
 	{
 		var target = BattleTestFixture.Player(new Coord(5, 5, 5));
 		var shooter = BattleTestFixture.RepurposedMiner(new Coord(8, 5, 5), "shooter");
@@ -93,7 +93,7 @@ public sealed class ReactiveShieldsTests
 		};
 		var battle = BattleTestFixture.BeginSimulation(target, [shooter], pilotsByActorId: pilots);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = shieldPoints;
+		target.State.CurrentShieldPoints[hitFace] = currentShieldPoints;
 		return (target, shooter, battle, hitFace);
 	}
 

@@ -30,7 +30,7 @@ public sealed class DefensiveManeuversTests
 	public void StartPass_SyncsMpUsedFromPool()
 	{
 		var (player, battle) = PlayerWithDefensiveManeuversBattle();
-		player.State.ManeuverPoints = 1;
+		player.State.CurrentManeuverPoints = 1;
 
 		BattleTestApply.CommitActivationRoundPasses(
 			battle,

@@ -26,8 +26,8 @@ public sealed class OverdriveDamageBonusTests
 		enemy.State.Position = new Coord(6, 5, 5);
 		var hitFace = GrimSpace.Battle.Spatial.BodyFrame.From(enemy.State)
 			.HitFaceFrom(state.Position);
-		enemy.State.ShieldPoints[hitFace] = 0;
-		var hullBefore = enemy.State.HullPoints;
+		enemy.State.CurrentShieldPoints[hitFace] = 0;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
 			new HashSet<Coord> { enemy.State.Position },
@@ -46,7 +46,7 @@ public sealed class OverdriveDamageBonusTests
 
 		Assert.Equal(
 			hullBefore - ScalePercent(100, 100 + HeatChangeEffect.OverdriveDamageBonusPercent),
-			enemy.State.HullPoints);
+			enemy.State.CurrentHullPoints);
 	}
 
 	[Fact]

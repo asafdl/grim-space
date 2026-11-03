@@ -296,8 +296,8 @@ public sealed class SaveGamePersistenceTests
 		static bool runShipRegistryMatches(ShipInstance expected, ShipInstance actual) =>
 			expected.Id == actual.Id
 			&& expected.Spec.Chassis == actual.Spec.Chassis
-			&& expected.HullPoints == actual.HullPoints
-			&& expected.Loadout.MaxHullPoints == actual.Loadout.MaxHullPoints
+			&& expected.CurrentHullPoints == actual.CurrentHullPoints
+			&& expected.Loadout.BaseHullPoints == actual.Loadout.BaseHullPoints
 			&& expected.Loadout.InstalledAbilities.SequenceEqual(actual.Loadout.InstalledAbilities);
 	}
 
@@ -327,8 +327,8 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(
 			action.Before.Loadout.InstalledAbilities,
 			restored.Before.Loadout.InstalledAbilities);
-		Assert.True(action.Before.Loadout.MaxShieldPoints.Matches(
-			restored.Before.Loadout.MaxShieldPoints));
+		Assert.True(action.Before.Loadout.BaseShieldPoints.Matches(
+			restored.Before.Loadout.BaseShieldPoints));
 		Assert.IsType<FacilityMerchantEndpoint>(restored.Endpoint);
 	}
 
@@ -461,7 +461,7 @@ public sealed class SaveGamePersistenceTests
 			Coord.Forward,
 			Coord.Up,
 			"parent");
-		state.ActionPoints = 4;
+		state.CurrentActionPoints = 4;
 		state.FuelRemaining = 2;
 		var record = new Record<SpawnFacts>(
 			new SpawnFacts("source", "miner", EType.RepurposedMiner, state));
@@ -474,12 +474,12 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(state.Id, restored.Value.SpawnedState.Id);
 		Assert.Equal(state.Type, restored.Value.SpawnedState.Type);
 		Assert.Equal(state.Position, restored.Value.SpawnedState.Position);
-		Assert.Equal(state.Loadout.MaxHullPoints, restored.Value.SpawnedState.Loadout.MaxHullPoints);
+		Assert.Equal(state.Loadout.BaseHullPoints, restored.Value.SpawnedState.Loadout.BaseHullPoints);
 		Assert.Equal(
 			state.Loadout.InstalledAbilities.Count,
 			restored.Value.SpawnedState.Loadout.InstalledAbilities.Count);
-		Assert.Equal(state.HullPoints, restored.Value.SpawnedState.HullPoints);
-		Assert.Equal(state.ActionPoints, restored.Value.SpawnedState.ActionPoints);
+		Assert.Equal(state.CurrentHullPoints, restored.Value.SpawnedState.CurrentHullPoints);
+		Assert.Equal(state.CurrentActionPoints, restored.Value.SpawnedState.CurrentActionPoints);
 		Assert.Equal(state.FuelRemaining, restored.Value.SpawnedState.FuelRemaining);
 		Assert.Equal(state.ParentId, restored.Value.SpawnedState.ParentId);
 	}
@@ -579,11 +579,11 @@ public sealed class SaveGamePersistenceTests
 		var cannon = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
 		Assert.True(ship.TryWithDamageUpgraded(cannon, out ship));
 		Assert.True(ship.TryWithRangeUpgraded(cannon, out ship));
-		Assert.True(ship.TryWithUpgradedMaxHull(out ship));
-		Assert.True(ship.TryWithUpgradedMaxShields(
+		Assert.True(ship.TryWithUpgradedBaseHull(out ship));
+		Assert.True(ship.TryWithUpgradedBaseShields(
 			ESpatialOrientation.Forward,
 			out ship));
-		ship.HullPoints = 3;
+		ship.CurrentHullPoints = 3;
 
 		var captured = SaveDtoMapper.CaptureShip(ship);
 		var capturedCannon = captured.InstalledAbilities.Single(
@@ -595,11 +595,11 @@ public sealed class SaveGamePersistenceTests
 		Assert.Null(capturedCannon.Spec);
 		Assert.Equal(ship.Id, restored.Id);
 		Assert.Equal(ship.Spec.Chassis, restored.Spec.Chassis);
-		Assert.Equal(ship.HullPoints, restored.HullPoints);
-		Assert.True(ship.ShieldPoints.Matches(restored.ShieldPoints));
-		Assert.Equal(ship.Loadout.MaxHullPoints, restored.Loadout.MaxHullPoints);
+		Assert.Equal(ship.CurrentHullPoints, restored.CurrentHullPoints);
+		Assert.True(ship.CurrentShieldPoints.Matches(restored.CurrentShieldPoints));
+		Assert.Equal(ship.Loadout.BaseHullPoints, restored.Loadout.BaseHullPoints);
 		Assert.True(
-			ship.Loadout.MaxShieldPoints.Matches(restored.Loadout.MaxShieldPoints));
+			ship.Loadout.BaseShieldPoints.Matches(restored.Loadout.BaseShieldPoints));
 		Assert.True(
 			ship.Loadout.ShieldUpgradeTiers.Matches(restored.Loadout.ShieldUpgradeTiers));
 		Assert.Equal(ship.Loadout.HullUpgradeTier, restored.Loadout.HullUpgradeTier);
@@ -964,9 +964,9 @@ public sealed class SaveGamePersistenceTests
 			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
 			gridSize: 12);
 		var player = orchestrator.Engine.World.StateOf(orchestrator.PlayerId);
-		player.ManeuverPoints = 1;
+		player.CurrentManeuverPoints = 1;
 		player.Maneuverability = player.Maneuverability.WithBudgets(
-			player.Maneuverability.MaxActionPoints,
+			player.Maneuverability.BaseActionPoints,
 			2);
 		var registry = new PersistenceRegistry();
 
@@ -975,8 +975,8 @@ public sealed class SaveGamePersistenceTests
 			registry);
 		var restoredPlayer = restored.StateOf(orchestrator.PlayerId);
 
-		Assert.Equal(1, restoredPlayer.ManeuverPoints);
-		Assert.Equal(2, restoredPlayer.Maneuverability.MaxManeuverPoints);
+		Assert.Equal(1, restoredPlayer.CurrentManeuverPoints);
+		Assert.Equal(2, restoredPlayer.Maneuverability.BaseManeuverPoints);
 	}
 
 	[Fact]
@@ -1041,8 +1041,8 @@ public sealed class SaveGamePersistenceTests
 		var player = restored.StateOf(orchestrator.PlayerId);
 
 		Assert.Equal(
-			ShipCatalog.SpecFor(player.Type).Maneuverability.MaxManeuverPoints,
-			player.ManeuverPoints);
+			ShipCatalog.SpecFor(player.Type).Maneuverability.BaseManeuverPoints,
+			player.CurrentManeuverPoints);
 	}
 
 	private sealed record ReflectionSample(

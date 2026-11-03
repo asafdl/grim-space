@@ -6,8 +6,8 @@ namespace GrimSpace.Battle.Objectives;
 public sealed record UnitStateHandoff(
 	string Id,
 	EType Chassis,
-	int HullPoints,
-	FaceShieldPoints ShieldPoints,
+	int CurrentHullPoints,
+	FaceShieldPoints CurrentShieldPoints,
 	EShipGearTier GearTier = EShipGearTier.T0);
 
 public sealed record BattleOutcome(

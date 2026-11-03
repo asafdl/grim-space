@@ -18,16 +18,16 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
-		_previousActionPoints = actor.ActionPoints;
-		_previousManeuverPoints = actor.ManeuverPoints;
+		_previousActionPoints = actor.CurrentActionPoints;
+		_previousManeuverPoints = actor.CurrentManeuverPoints;
 		_previousHeat = actor.Heat;
 		_previousReactiveShieldsStacks = actor.ReactiveShieldsStacks;
 		_previousMountRuntime = actor.MountRuntime.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.Clone());
 
-		actor.ActionPoints = actor.Maneuverability.MaxActionPoints;
-		actor.ManeuverPoints = actor.Maneuverability.MaxManeuverPoints;
+		actor.CurrentActionPoints = actor.Maneuverability.BaseActionPoints;
+		actor.CurrentManeuverPoints = actor.Maneuverability.BaseManeuverPoints;
 		actor.ReactiveShieldsStacks = 0;
 		foreach (var installed in actor.Loadout.InstalledAbilities)
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
@@ -60,8 +60,8 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
-		actor.ActionPoints = _previousActionPoints;
-		actor.ManeuverPoints = _previousManeuverPoints;
+		actor.CurrentActionPoints = _previousActionPoints;
+		actor.CurrentManeuverPoints = _previousManeuverPoints;
 		actor.Heat = _previousHeat;
 		actor.ReactiveShieldsStacks = _previousReactiveShieldsStacks;
 		if (_previousMountRuntime is null)

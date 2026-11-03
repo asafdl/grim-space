@@ -8,7 +8,7 @@ namespace GrimSpace.Battle.Units;
 public static class Defense
 {
 	public static int EffectiveShield(State unit, ESpatialOrientation face) =>
-		unit.ShieldPoints[face] + TemporaryShields.TotalOnFace(unit, face);
+		unit.CurrentShieldPoints[face] + TemporaryShields.TotalOnFace(unit, face);
 
 	public static int AbsorbWithShields(State unit, ESpatialOrientation face, int amount)
 	{
@@ -18,9 +18,9 @@ public static class Defense
 		var fromTemporary = TemporaryShields.AbsorbOnFace(unit, face, amount);
 		var remaining = amount - fromTemporary;
 
-		var shield = unit.ShieldPoints[face];
+		var shield = unit.CurrentShieldPoints[face];
 		var fromShield = System.Math.Min(shield, remaining);
-		unit.ShieldPoints[face] = shield - fromShield;
+		unit.CurrentShieldPoints[face] = shield - fromShield;
 		remaining -= fromShield;
 		var absorbed = amount - remaining;
 		ShieldBrace.RecordShieldDamage(unit, face, fromShield);
@@ -33,12 +33,12 @@ public static class Defense
 		if (amount <= 0)
 			return 0;
 
-		var missing = unit.Loadout.MaxShieldPoints[face] - unit.ShieldPoints[face];
+		var missing = unit.Loadout.BaseShieldPoints[face] - unit.CurrentShieldPoints[face];
 		if (missing <= 0)
 			return 0;
 
 		var applied = System.Math.Min(amount, missing);
-		unit.ShieldPoints[face] += applied;
+		unit.CurrentShieldPoints[face] += applied;
 		return applied;
 	}
 
@@ -47,12 +47,12 @@ public static class Defense
 		if (amount <= 0)
 			return 0;
 
-		var missing = unit.Loadout.MaxHullPoints - unit.HullPoints;
+		var missing = unit.Loadout.BaseHullPoints - unit.CurrentHullPoints;
 		if (missing <= 0)
 			return 0;
 
 		var applied = System.Math.Min(amount, missing);
-		unit.HullPoints += applied;
+		unit.CurrentHullPoints += applied;
 		return applied;
 	}
 
@@ -62,7 +62,7 @@ public static class Defense
 		var bestMissing = -1;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
-			var missing = unit.Loadout.MaxShieldPoints[face] - unit.ShieldPoints[face];
+			var missing = unit.Loadout.BaseShieldPoints[face] - unit.CurrentShieldPoints[face];
 			if (missing <= bestMissing)
 				continue;
 
@@ -90,7 +90,7 @@ public static class Defense
 		hullDamage = BattleStatuses.RewriteHullDamage(unit.Statuses, hullDamage);
 
 		AbsorbWithShields(unit, face, shieldDamage);
-		unit.HullPoints = System.Math.Max(unit.HullPoints - hullDamage, 0);
+		unit.CurrentHullPoints = System.Math.Max(unit.CurrentHullPoints - hullDamage, 0);
 	}
 
 	public static IncomingHit RetainHit(IncomingHit hit, int retainedPercent) =>

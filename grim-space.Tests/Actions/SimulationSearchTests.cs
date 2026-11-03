@@ -106,7 +106,7 @@ public sealed class SimulationSearchTests
 
 		Assert.True(session.TryEnqueue(heading));
 		var actionsBefore = session.Actions.ToList();
-		var apBefore = session.StateOf<ActorState>(PlayerId).ActionPoints;
+		var apBefore = session.StateOf<ActorState>(PlayerId).CurrentActionPoints;
 
 		var foundExtension = false;
 		foreach (var frame in ActionSearch.Run(
@@ -123,7 +123,7 @@ public sealed class SimulationSearchTests
 		}
 
 		Assert.Equal(actionsBefore, session.Actions);
-		Assert.Equal(apBefore, session.StateOf<ActorState>(PlayerId).ActionPoints);
+		Assert.Equal(apBefore, session.StateOf<ActorState>(PlayerId).CurrentActionPoints);
 		Assert.True(foundExtension);
 	}
 }

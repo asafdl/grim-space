@@ -20,10 +20,10 @@ public sealed class State
 	public Coord Fore { get; set; }
 	public Coord Dorsal { get; set; }
 	public Coord Starboard { get; set; }
-	public int ActionPoints { get; set; }
-	public int ManeuverPoints { get; set; }
-	public int HullPoints { get; set; }
-	public FaceShieldPoints ShieldPoints { get; set; } = new();
+	public int CurrentActionPoints { get; set; }
+	public int CurrentManeuverPoints { get; set; }
+	public int CurrentHullPoints { get; set; }
+	public FaceShieldPoints CurrentShieldPoints { get; set; } = new();
 	public Dictionary<AbilityMount, MountRuntimeCounters> MountRuntime { get; } = new();
 	public int FuelRemaining { get; set; }
 	public VoidBombProjectile? Projectile { get; set; }
@@ -42,7 +42,7 @@ public sealed class State
 	public bool Overdrive { get; set; }
 	public bool Overheat { get; set; }
 
-	public bool IsAlive => HullPoints > 0;
+	public bool IsAlive => CurrentHullPoints > 0;
 
 	public VoidBombProjectile RequireProjectile() =>
 		Projectile
@@ -100,10 +100,10 @@ public sealed class State
 			Fore = Fore,
 			Dorsal = Dorsal,
 			Starboard = Starboard,
-			ActionPoints = ActionPoints,
-			ManeuverPoints = ManeuverPoints,
-			HullPoints = HullPoints,
-			ShieldPoints = ShieldPoints.Clone(),
+			CurrentActionPoints = CurrentActionPoints,
+			CurrentManeuverPoints = CurrentManeuverPoints,
+			CurrentHullPoints = CurrentHullPoints,
+			CurrentShieldPoints = CurrentShieldPoints.Clone(),
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,
 			ParentId = ParentId,
@@ -140,11 +140,11 @@ public sealed class State
 			? VoidBombProjectile.CatalogDefault()
 			: null;
 		var buffs = ChassisBuffCatalog.Sum(ship.Loadout.Buffs);
-		var maneuverability = buffs.ActionPoints == 0 && buffs.ManeuverPoints == 0
+		var maneuverability = buffs.CurrentActionPoints == 0 && buffs.CurrentManeuverPoints == 0
 			? ship.Spec.Maneuverability
 			: ship.Spec.Maneuverability.WithBudgets(
-				ship.Spec.Maneuverability.MaxActionPoints + buffs.ActionPoints,
-				ship.Spec.Maneuverability.MaxManeuverPoints + buffs.ManeuverPoints);
+				ship.Spec.Maneuverability.BaseActionPoints + buffs.CurrentActionPoints,
+				ship.Spec.Maneuverability.BaseManeuverPoints + buffs.CurrentManeuverPoints);
 		var heatProfile = buffs.HeatCapacityPercent == 0 && buffs.HeatRecoveryPercent == 0
 			? ship.Spec.Heat
 			: ChassisBuffCatalog.ScaleHeat(ship.Spec.Heat, buffs);
@@ -158,10 +158,10 @@ public sealed class State
 			Fore = fore,
 			Dorsal = dorsal,
 			Starboard = Coord.Cross(dorsal, fore),
-			ActionPoints = maneuverability.MaxActionPoints,
-			ManeuverPoints = maneuverability.MaxManeuverPoints,
-			HullPoints = ship.HullPoints,
-			ShieldPoints = ship.ShieldPoints.Clone(),
+			CurrentActionPoints = maneuverability.BaseActionPoints,
+			CurrentManeuverPoints = maneuverability.BaseManeuverPoints,
+			CurrentHullPoints = ship.CurrentHullPoints,
+			CurrentShieldPoints = ship.CurrentShieldPoints.Clone(),
 			FuelRemaining = 0,
 			Projectile = projectile,
 			ParentId = parentId,

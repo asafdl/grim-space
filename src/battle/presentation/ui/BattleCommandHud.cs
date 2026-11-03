@@ -331,14 +331,14 @@ public sealed partial class BattleCommandHud : Control
 
 	public void ApplyResources(
 		int actionPoints,
-		int maxActionPoints,
+		int baseActionPoints,
 		int maneuverPoints,
-		int maxManeuverPoints,
+		int baseManeuverPoints,
 		UnitDisplayState focusState)
 	{
-		_apBar.Apply(actionPoints, maxActionPoints);
+		_apBar.Apply(actionPoints, baseActionPoints);
 		_apBar.SetTooltip(BattleHudCopy.ActionPointsTooltip);
-		_mpBar.Apply(maneuverPoints, maxManeuverPoints);
+		_mpBar.Apply(maneuverPoints, baseManeuverPoints);
 		_mpBar.SetTooltip(BattleHudCopy.ManeuverPointsTooltip);
 
 		var participates = focusState.HeatProfile.Participates;
@@ -351,13 +351,13 @@ public sealed partial class BattleCommandHud : Control
 	}
 
 	public void ApplyDefenses(
-		int hullPoints,
-		int maxHullPoints,
-		FaceShieldPoints shieldPoints,
-		FaceShieldPoints maxShieldPoints)
+		int currentHullPoints,
+		int baseHullPoints,
+		FaceShieldPoints currentShieldPoints,
+		FaceShieldPoints baseShieldPoints)
 	{
-		_healthBar.Set(hullPoints, maxHullPoints);
-		_shieldBar.Set(shieldPoints, maxShieldPoints);
+		_healthBar.Set(currentHullPoints, baseHullPoints);
+		_shieldBar.Set(currentShieldPoints, baseShieldPoints);
 	}
 
 	public void ApplyPilotPortrait(string? portraitId)

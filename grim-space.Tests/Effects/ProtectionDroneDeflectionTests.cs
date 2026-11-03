@@ -18,7 +18,7 @@ public sealed class ProtectionDroneDeflectionTests
 	public void Apply_ProtectionDroneBuffStacksWithDefensiveManeuvers()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
-		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		BattlePassiveStatusInstaller.InstallFromCapabilities(
 			enemy.State,
 			ActorRuntime.From(PilotBattleSnapshot.FromSkills(
@@ -27,7 +27,7 @@ public sealed class ProtectionDroneDeflectionTests
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		enemy.State.DefensiveManeuversRollIndex = 6;
 		GrantProtectionDroneBuff(enemy.State, battle);
-		var hullBefore = enemy.State.HullPoints;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
@@ -39,7 +39,7 @@ public sealed class ProtectionDroneDeflectionTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 90, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 90, enemy.State.CurrentHullPoints);
 		Assert.Equal(7, enemy.State.DefensiveManeuversRollIndex);
 	}
 
@@ -47,9 +47,9 @@ public sealed class ProtectionDroneDeflectionTests
 	public void Apply_ProtectionDroneAloneRetainsConfiguredDamagePercent()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
-		enemy.State.ShieldPoints[hitFace] = 0;
+		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		GrantProtectionDroneBuff(enemy.State, battle);
-		var hullBefore = enemy.State.HullPoints;
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
@@ -61,7 +61,7 @@ public sealed class ProtectionDroneDeflectionTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 180, enemy.State.HullPoints);
+		Assert.Equal(hullBefore - 180, enemy.State.CurrentHullPoints);
 	}
 
 	private static void GrantProtectionDroneBuff(State target, BattleOrchestrator battle) =>

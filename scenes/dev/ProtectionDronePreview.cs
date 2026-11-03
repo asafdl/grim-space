@@ -154,8 +154,8 @@ public partial class ProtectionDronePreview : Node3D
 				history = [new Record<ProtectionDroneChangedFacts>(new(target.Id, target.Id, null))];
 				break;
 			case 5:
-				var damage = target.HullPoints;
-				target.HullPoints = 0;
+				var damage = target.CurrentHullPoints;
+				target.CurrentHullPoints = 0;
 				history = [new Record<ImpactFacts>(new(
 					"drone-caster", target.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, 0, damage))];
 				break;

@@ -172,8 +172,8 @@ public static class TravelFuelEffects
 				continue;
 
 			var after = ApplyStarvationDamage(before, StrategicEconomyConfig.StarvationDamagePerTick);
-			if (after.HullPoints == before.HullPoints
-				&& after.ShieldPoints.Matches(before.ShieldPoints))
+			if (after.CurrentHullPoints == before.CurrentHullPoints
+				&& after.CurrentShieldPoints.Matches(before.CurrentShieldPoints))
 				continue;
 
 			ships.Add(
@@ -195,7 +195,7 @@ public static class TravelFuelEffects
 		ArgumentNullException.ThrowIfNull(before);
 		ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
-		var shields = before.ShieldPoints.Clone();
+		var shields = before.CurrentShieldPoints.Clone();
 		var remaining = amount;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
@@ -211,7 +211,7 @@ public static class TravelFuelEffects
 			before.Id,
 			before.Spec,
 			before.Loadout,
-			System.Math.Max(0, before.HullPoints - remaining),
+			System.Math.Max(0, before.CurrentHullPoints - remaining),
 			shields);
 	}
 }

@@ -38,7 +38,7 @@ public sealed class BattleOutcomeCommitTests
 	{
 		using var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);
-		battle.Engine.World.StateOf(enemyId).HullPoints = 0;
+		battle.Engine.World.StateOf(enemyId).CurrentHullPoints = 0;
 		BattleTestFixture.ResetPlayerPlanning(battle);
 
 		Record<BattleOutcome>? received = null;
@@ -49,7 +49,7 @@ public sealed class BattleOutcomeCommitTests
 		Assert.Equal(EBattleResult.Win, battle.Engine.World.battleResult);
 		Assert.NotNull(received);
 		Assert.Equal(EBattleResult.Win, received!.Value.Result);
-		Assert.Equal(0, battle.Engine.World.StateOf(enemyId).HullPoints);
+		Assert.Equal(0, battle.Engine.World.StateOf(enemyId).CurrentHullPoints);
 	}
 
 	[Fact]
@@ -57,7 +57,7 @@ public sealed class BattleOutcomeCommitTests
 	{
 		using var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);
-		var enemyHp = battle.Engine.World.StateOf(enemyId).HullPoints;
+		var enemyHp = battle.Engine.World.StateOf(enemyId).CurrentHullPoints;
 
 		Record<BattleOutcome>? received = null;
 		using var subscription = battle.Subscribe<Record<BattleOutcome>>(record => received = record);
@@ -66,7 +66,7 @@ public sealed class BattleOutcomeCommitTests
 
 		Assert.Equal(EBattleResult.Lose, battle.Engine.World.battleResult);
 		Assert.NotNull(received);
-		Assert.Equal(enemyHp, battle.Engine.World.StateOf(enemyId).HullPoints);
+		Assert.Equal(enemyHp, battle.Engine.World.StateOf(enemyId).CurrentHullPoints);
 	}
 
 	[Fact]
@@ -74,7 +74,7 @@ public sealed class BattleOutcomeCommitTests
 	{
 		using var battle = TurnOrchestrationTests.CreateOrchestrator(new Coord(5, 5, 5), new Coord(0, 0, 0));
 		foreach (var unit in UnitRegistry.For(battle.Engine.World).All)
-			unit.State.HullPoints = 0;
+			unit.State.CurrentHullPoints = 0;
 		BattleTestFixture.ResetPlayerPlanning(battle);
 
 		BattleTestActions.CommitAndResolve(battle);
@@ -117,7 +117,7 @@ public sealed class BattleOutcomeCommitTests
 			preferredPlayerId: "lead");
 
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);
-		battle.Engine.World.StateOf(enemyId).HullPoints = 0;
+		battle.Engine.World.StateOf(enemyId).CurrentHullPoints = 0;
 		BattleTestFixture.ResetPlayerPlanning(battle);
 
 		var replayReady = new TaskCompletionSource<TurnReplay>(

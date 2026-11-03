@@ -22,12 +22,12 @@ public sealed class ReinforcedHullTests
 		var shooter = BattleTestFixture.RepurposedMiner(new Coord(6, 5, 5), "shooter");
 		var battle = BeginBattle(target, [shooter], [target.State.Id]);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = 0;
-		var hullBefore = target.State.HullPoints;
+		target.State.CurrentShieldPoints[hitFace] = 0;
+		var hullBefore = target.State.CurrentHullPoints;
 
 		ApplyDamage(shooter, target, battle, damage: 9);
 
-		Assert.Equal(hullBefore - 6, target.State.HullPoints);
+		Assert.Equal(hullBefore - 6, target.State.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -37,11 +37,11 @@ public sealed class ReinforcedHullTests
 		var shooter = BattleTestFixture.RepurposedMiner(new Coord(6, 5, 5), "shooter");
 		var battle = BeginBattle(target, [shooter], [target.State.Id]);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = 10;
+		target.State.CurrentShieldPoints[hitFace] = 10;
 
 		ApplyDamage(shooter, target, battle, damage: 6);
 
-		Assert.Equal(4, target.State.ShieldPoints[hitFace]);
+		Assert.Equal(4, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]
@@ -54,12 +54,12 @@ public sealed class ReinforcedHullTests
 			[shooter],
 			pilotsByActorId: new Dictionary<string, PilotBattleSnapshot?>(StringComparer.Ordinal));
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.ShieldPoints[hitFace] = 0;
-		var hullBefore = target.State.HullPoints;
+		target.State.CurrentShieldPoints[hitFace] = 0;
+		var hullBefore = target.State.CurrentHullPoints;
 
 		ApplyDamage(shooter, target, battle, damage: 9);
 
-		Assert.Equal(hullBefore - 9, target.State.HullPoints);
+		Assert.Equal(hullBefore - 9, target.State.CurrentHullPoints);
 	}
 
 	[Fact]

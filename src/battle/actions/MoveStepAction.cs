@@ -73,7 +73,7 @@ public sealed class MoveDef
 
 		var actor = world.StateOf(action.ActorId);
 		return actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost)
-			&& actor.ActionPoints >= cost;
+			&& actor.CurrentActionPoints >= cost;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

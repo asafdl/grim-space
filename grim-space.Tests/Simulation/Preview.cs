@@ -14,8 +14,8 @@ internal static class Preview
 	public static ActorPreview Simulate(BattleOrchestrator battle)
 	{
 		var actor = battle.PlayerAgent.Sim.StateOf<ActorState>(battle.PlayerId);
-		return new ActorPreview(actor.Position, actor.ActionPoints);
+		return new ActorPreview(actor.Position, actor.CurrentActionPoints);
 	}
 
-	internal readonly record struct ActorPreview(Coord Position, int ActionPoints);
+	internal readonly record struct ActorPreview(Coord Position, int CurrentActionPoints);
 }

@@ -37,7 +37,7 @@ public sealed class RamActionTests
 	{
 		var (player, battle) = RamBattle(enemyOffset: 3);
 		var enemy = battle.Engine.World.UnitRegistry.UnitOf(EnemyId);
-		var startHull = enemy.State.HullPoints;
+		var startHull = enemy.State.CurrentHullPoints;
 		var startShields = TotalShields(enemy.State);
 		var startPos = player.State.Position;
 		var usesBefore = player.State.UsesRemaining(EAbilityKind.Ram);
@@ -50,7 +50,7 @@ public sealed class RamActionTests
 
 		Assert.Equal(startPos + Coord.Forward * 2, player.State.Position);
 		Assert.True(
-			enemy.State.HullPoints < startHull || TotalShields(enemy.State) < startShields);
+			enemy.State.CurrentHullPoints < startHull || TotalShields(enemy.State) < startShields);
 		Assert.Equal(usesBefore - 1, player.State.UsesRemaining(EAbilityKind.Ram));
 	}
 
@@ -87,7 +87,7 @@ public sealed class RamActionTests
 	}
 
 	private static int TotalShields(State state) =>
-		Enum.GetValues<ESpatialOrientation>().Sum(face => state.ShieldPoints[face]);
+		Enum.GetValues<ESpatialOrientation>().Sum(face => state.CurrentShieldPoints[face]);
 
 	private static (Unit Player, BattleOrchestrator Battle) RamBattle(int enemyOffset)
 	{

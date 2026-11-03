@@ -91,11 +91,11 @@ public sealed class InventoryTests
 	{
 		var inventory = new Inventory();
 		inventory.Register(ShipInstance.FromCatalog("fighter-a", EType.Fighter), OwnerA);
-		inventory.Get("fighter-a").HullPoints = 1;
+		inventory.Get("fighter-a").CurrentHullPoints = 1;
 
 		var copy = inventory.Get("fighter-a").Clone();
 
-		Assert.Equal(1, copy.HullPoints);
+		Assert.Equal(1, copy.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -120,7 +120,7 @@ public sealed class InventoryTests
 	{
 		var inventory = new Inventory();
 		inventory.Register(ShipInstance.FromCatalog("repurposed-miner-a", EType.RepurposedMiner), OwnerA);
-		var shields = ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).MaxShieldPoints.Clone();
+		var shields = ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner).BaseShieldPoints.Clone();
 		shields[GrimSpace.Math.Grid.ESpatialOrientation.Forward] = 1;
 
 		inventory.ApplyHandoff(new GrimSpace.Battle.Objectives.UnitStateHandoff(
@@ -129,8 +129,8 @@ public sealed class InventoryTests
 			0,
 			shields));
 
-		Assert.Equal(0, inventory.Get("repurposed-miner-a").HullPoints);
-		Assert.Equal(1, inventory.Get("repurposed-miner-a").ShieldPoints[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
+		Assert.Equal(0, inventory.Get("repurposed-miner-a").CurrentHullPoints);
+		Assert.Equal(1, inventory.Get("repurposed-miner-a").CurrentShieldPoints[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
 	}
 
 	[Fact]
@@ -153,13 +153,13 @@ public sealed class InventoryTests
 	{
 		var inventory = new Inventory();
 		inventory.Register(ShipInstance.FromCatalog("fighter-a", EType.Fighter), OwnerA);
-		inventory.Get("fighter-a").HullPoints = 2;
+		inventory.Get("fighter-a").CurrentHullPoints = 2;
 
 		var snapshot = inventory.CaptureSnapshot();
 		var restored = new Inventory();
 		restored.RestoreSnapshot(snapshot);
 
 		Assert.True(restored.IsOwnedBy("fighter-a", OwnerA));
-		Assert.Equal(2, restored.Get("fighter-a").HullPoints);
+		Assert.Equal(2, restored.Get("fighter-a").CurrentHullPoints);
 	}
 }

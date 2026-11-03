@@ -18,9 +18,9 @@ public sealed class CarrierDomainTests
 	{
 		var maneuverability = ShipCatalog.SpecFor(EType.Carrier).Maneuverability;
 		var configuration = ShipCatalog.NewRunLoadoutFor(EType.Carrier);
-		Assert.Equal(3, maneuverability.MaxActionPoints);
-		Assert.Equal((2 * 100), configuration.MaxHullPoints);
-		Assert.Equal((2 * 100), configuration.MaxShieldPoints.MaxOnAnyFace);
+		Assert.Equal(3, maneuverability.BaseActionPoints);
+		Assert.Equal((2 * 100), configuration.BaseHullPoints);
+		Assert.Equal((2 * 100), configuration.BaseShieldPoints.MaxOnAnyFace);
 		Assert.Equal(0, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.ScrapDroneSwarm));
 		Assert.Equal(1, CatalogExpectations.UsesPerTurn(EType.Carrier, EAbilityKind.LightningCannon));
 	}

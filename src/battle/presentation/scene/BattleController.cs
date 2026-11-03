@@ -951,10 +951,10 @@ public partial class BattleController : Node3D
 	{
 		if (_currentFrame.FocusState.Id == state.Id)
 			_battleHud.CommandHud.ApplyDefenses(
-				state.HullPoints,
-				state.Loadout.MaxHullPoints,
-				state.ShieldPoints,
-				state.Loadout.MaxShieldPoints);
+				state.CurrentHullPoints,
+				state.Loadout.BaseHullPoints,
+				state.CurrentShieldPoints,
+				state.Loadout.BaseShieldPoints);
 	}
 
 	internal static bool ShouldApplyFrameUnitStates(EBattlePhase phase) =>

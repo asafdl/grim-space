@@ -182,7 +182,7 @@ public sealed class OneWithTheVoidTests
 	{
 		var shields = 0;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			shields += state.ShieldPoints[face];
-		return state.HullPoints + shields;
+			shields += state.CurrentShieldPoints[face];
+		return state.CurrentHullPoints + shields;
 	}
 }

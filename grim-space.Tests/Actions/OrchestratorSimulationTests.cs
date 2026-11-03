@@ -40,7 +40,7 @@ public sealed class OrchestratorSimulationTests
 		Assert.False(battle.PlayerAgent.Sim.TryEnqueue(actions: steps));
 		Assert.Empty(battle.PlayerAgent.Sim.Actions);
 		Assert.Equal(origin, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).Position);
-		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).ActionPoints);
+		Assert.Equal(1, battle.PlayerAgent.Sim.StateOf<ActorState>(PlayerId).CurrentActionPoints);
 	}
 
 	[Fact]
@@ -58,7 +58,7 @@ public sealed class OrchestratorSimulationTests
 		Assert.Equal(origin + new Coord(1, 0, 0), state.Position);
 		Assert.Equal(new Coord(1, 0, 0), state.Fore);
 		Assert.Equal(Coord.Forward, state.Dorsal);
-		Assert.Equal(3, state.ActionPoints);
+		Assert.Equal(3, state.CurrentActionPoints);
 	}
 
 }

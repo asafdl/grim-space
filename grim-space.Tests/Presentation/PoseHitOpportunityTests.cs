@@ -149,9 +149,9 @@ public sealed class PoseHitOpportunityTests
 		if (injured)
 		{
 			if (shieldDamage)
-				ally.State.ShieldPoints[ESpatialOrientation.Forward] -= 100;
+				ally.State.CurrentShieldPoints[ESpatialOrientation.Forward] -= 100;
 			else
-				ally.State.HullPoints -= 100;
+				ally.State.CurrentHullPoints -= 100;
 		}
 		var battle = BattleTestFixture.BeginSimulation(
 			BattleTestFixture.ScrapPlayer(origin),
@@ -181,9 +181,9 @@ public sealed class PoseHitOpportunityTests
 		}
 		Assert.Equal(worldVersion, sim.WorldVersion);
 		Assert.Empty(sim.Actions);
-		Assert.Equal(before.HullPoints, sim.World.StateOf(ally.State.Id).HullPoints);
-		Assert.Equal(before.ShieldPoints[ESpatialOrientation.Forward],
-			sim.World.StateOf(ally.State.Id).ShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(before.CurrentHullPoints, sim.World.StateOf(ally.State.Id).CurrentHullPoints);
+		Assert.Equal(before.CurrentShieldPoints[ESpatialOrientation.Forward],
+			sim.World.StateOf(ally.State.Id).CurrentShieldPoints[ESpatialOrientation.Forward]);
 	}
 
 	[Fact]

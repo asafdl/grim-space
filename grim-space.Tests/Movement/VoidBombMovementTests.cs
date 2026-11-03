@@ -21,12 +21,12 @@ public sealed class VoidBombMovementTests
 		Assert.True(sim.TryEnqueue(new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Port)));
 		Assert.Equal(
 			body.MovementActionPoints - body.LateralMoveApCost,
-			state.ActionPoints);
+			state.CurrentActionPoints);
 
 		Assert.True(sim.TryEnqueue(new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Forward)));
 		Assert.Equal(
 			body.MovementActionPoints - body.LateralMoveApCost - body.ForwardMoveApCost,
-			state.ActionPoints);
+			state.CurrentActionPoints);
 	}
 
 	[Fact]

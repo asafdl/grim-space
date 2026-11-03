@@ -48,8 +48,8 @@ public sealed class CommitBattleOutcomeEffect(
 		_previousHullByUnitId = new Dictionary<string, int>(StringComparer.Ordinal);
 		foreach (var target in targets)
 		{
-			_previousHullByUnitId[target.State.Id] = target.State.HullPoints;
-			target.State.HullPoints = 0;
+			_previousHullByUnitId[target.State.Id] = target.State.CurrentHullPoints;
+			target.State.CurrentHullPoints = 0;
 		}
 
 		return CommitBattleOutcomeRules.EvaluateObjective(world, ETeam.Player);
@@ -62,6 +62,6 @@ public sealed class CommitBattleOutcomeEffect(
 			return;
 
 		foreach (var (unitId, hull) in _previousHullByUnitId)
-			world.StateOf(unitId).HullPoints = hull;
+			world.StateOf(unitId).CurrentHullPoints = hull;
 	}
 }

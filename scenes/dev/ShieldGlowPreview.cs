@@ -126,7 +126,7 @@ public partial class ShieldGlowPreview : Node3D
 		var start = StartStates();
 		var before = start["shield-changing"];
 		if (sample is 0 or 2 or 3)
-			before.ShieldPoints.Fill(0);
+			before.CurrentShieldPoints.Fill(0);
 		if (sample == 3)
 			TemporaryShields.GrantPerFace(before, "preview", 50);
 		if (sample == 5)
@@ -143,7 +143,7 @@ public partial class ShieldGlowPreview : Node3D
 				record = new Record<ShieldsChangedFacts>(ShieldsChangedFacts.Capture(after));
 				break;
 			case 1:
-				var damage = after.ShieldPoints[ESpatialOrientation.Forward];
+				var damage = after.CurrentShieldPoints[ESpatialOrientation.Forward];
 				Defense.AbsorbWithShields(after, ESpatialOrientation.Forward, damage);
 				record = new Record<ImpactFacts>(new(
 					"shield-control", after.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, damage, 0));

@@ -60,18 +60,18 @@ public static class ShieldBrace
 	public static void Activate(State unit, ESpatialOrientation targetFace)
 	{
 		ArgumentNullException.ThrowIfNull(unit);
-		var snapshot = unit.ShieldPoints.Clone();
+		var snapshot = unit.CurrentShieldPoints.Clone();
 		var percent = PilotSkillPercents.Brace.ShieldConsolidationPercent;
 		var pooled = 0;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 		{
-			var current = unit.ShieldPoints[face];
+			var current = unit.CurrentShieldPoints[face];
 			var moved = ScalePercent(current, percent);
-			unit.ShieldPoints[face] = current - moved;
+			unit.CurrentShieldPoints[face] = current - moved;
 			pooled += moved;
 		}
 
-		unit.ShieldPoints[targetFace] += pooled;
+		unit.CurrentShieldPoints[targetFace] += pooled;
 		unit.ShieldBraceUsedThisTurn = true;
 		Clear(unit);
 		unit.Statuses.Add(CreateStatus(unit.Id, targetFace, snapshot, damagePending: 0));
@@ -108,7 +108,7 @@ public static class ShieldBrace
 	{
 		var total = 0;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			total += unit.ShieldPoints[face];
+			total += unit.CurrentShieldPoints[face];
 		return total;
 	}
 
@@ -140,8 +140,8 @@ public static class ShieldBrace
 			var share = shieldDamage / others.Length
 				+ (i < shieldDamage % others.Length ? 1 : 0);
 			var face = others[i];
-			var absorbed = System.Math.Min(unit.ShieldPoints[face], share);
-			unit.ShieldPoints[face] -= absorbed;
+			var absorbed = System.Math.Min(unit.CurrentShieldPoints[face], share);
+			unit.CurrentShieldPoints[face] -= absorbed;
 			remaining -= share;
 		}
 	}
@@ -152,12 +152,12 @@ public static class ShieldBrace
 		var snapshotTotal = TotalPermanentShields(snapshot);
 		if (total <= 0 || snapshotTotal <= 0)
 		{
-			unit.ShieldPoints.Fill(0);
+			unit.CurrentShieldPoints.Fill(0);
 			return;
 		}
 
 		var faces = Enum.GetValues<ESpatialOrientation>();
-		var max = unit.Loadout.MaxShieldPoints;
+		var max = unit.Loadout.BaseShieldPoints;
 		var assigned = 0;
 		for (var i = 0; i < faces.Length; i++)
 		{
@@ -168,7 +168,7 @@ public static class ShieldBrace
 					total * (decimal)snapshot[face] / snapshotTotal,
 					System.MidpointRounding.AwayFromZero);
 			target = System.Math.Min(target, max[face]);
-			unit.ShieldPoints[face] = target;
+			unit.CurrentShieldPoints[face] = target;
 			assigned += target;
 		}
 
@@ -178,12 +178,12 @@ public static class ShieldBrace
 			var progress = false;
 			foreach (var face in faces)
 			{
-				var room = max[face] - unit.ShieldPoints[face];
+				var room = max[face] - unit.CurrentShieldPoints[face];
 				if (room <= 0)
 					continue;
 
 				var add = System.Math.Min(room, leftover);
-				unit.ShieldPoints[face] += add;
+				unit.CurrentShieldPoints[face] += add;
 				leftover -= add;
 				progress = true;
 				if (leftover <= 0)

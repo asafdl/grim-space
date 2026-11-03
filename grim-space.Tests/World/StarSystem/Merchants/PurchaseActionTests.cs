@@ -57,7 +57,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 	public void Commit_Repair_RemainsAvailable()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		ship.HullPoints = 1;
+		ship.CurrentHullPoints = 1;
 		SeedResources(engine.World, credits: 500, scrap: 500);
 
 		var records = engine.Commit(CreateAction(
@@ -70,14 +70,14 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			engine));
 
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
-		Assert.Equal(after.Loadout.MaxHullPoints, after.HullPoints);
+		Assert.Equal(after.Loadout.BaseHullPoints, after.CurrentHullPoints);
 	}
 
 	[Fact]
 	public void Commit_RechargeAll_RemainsAvailable()
 	{
 		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
-		ship.ShieldPoints.Fill(0);
+		ship.CurrentShieldPoints.Fill(0);
 		SeedResources(engine.World, credits: 5_000, scrap: 0);
 
 		var records = engine.Commit(CreateAction(
@@ -90,7 +90,7 @@ public sealed class PurchaseActionTests(StarMapFixture maps)
 			engine));
 
 		var after = Assert.Single(records.OfType<Record<MerchantShipPurchase>>()).Value.After;
-		Assert.Equal(after.TotalMaxShieldPoints, after.TotalCurrentShieldPoints);
+		Assert.Equal(after.TotalBaseShieldPoints, after.TotalCurrentShieldPoints);
 	}
 
 	private static PurchaseAction CreateSyntheticPurchase(

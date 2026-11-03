@@ -230,18 +230,18 @@ internal static class BattleTestFixture
 		result.Fore = gridBasis.Forward;
 		result.Dorsal = gridBasis.Up;
 		result.Starboard = gridBasis.Right;
-		result.ActionPoints = System.Math.Max(0, result.ActionPoints - pathApSpent);
+		result.CurrentActionPoints = System.Math.Max(0, result.CurrentActionPoints - pathApSpent);
 		var pathMpSpent = steps.OfType<HeadingTurnAction>().Sum(heading =>
 			result.Maneuverability.TryGetHeadingMpCost(heading.Turn, out var cost) ? cost : 0);
-		result.ManeuverPoints = System.Math.Max(0, result.ManeuverPoints - pathMpSpent);
+		result.CurrentManeuverPoints = System.Math.Max(0, result.CurrentManeuverPoints - pathMpSpent);
 		return new MovePathSession(
 			actorId,
 			steps,
 			checkpoints,
 			pathApSpent,
 			pathMpSpent,
-			result.ActionPoints,
-			result.ManeuverPoints,
+			result.CurrentActionPoints,
+			result.CurrentManeuverPoints,
 			result);
 	}
 
@@ -270,7 +270,7 @@ internal static class BattleTestFixture
 
 	private static Unit WithAp(Unit unit, int actionPoints)
 	{
-		unit.State.ActionPoints = actionPoints;
+		unit.State.CurrentActionPoints = actionPoints;
 		return unit;
 	}
 }

@@ -15,10 +15,10 @@ public sealed class RepurposedMinerDomainTests
 		var maneuverability = ShipCatalog.SpecFor(EType.RepurposedMiner).Maneuverability;
 		var configuration = ShipCatalog.NewRunLoadoutFor(EType.RepurposedMiner);
 
-		var maxShields = configuration.MaxShieldPoints;
+		var maxShields = configuration.BaseShieldPoints;
 
-		Assert.Equal(4, maneuverability.MaxActionPoints);
-		Assert.Equal((1 * 100), configuration.MaxHullPoints);
+		Assert.Equal(4, maneuverability.BaseActionPoints);
+		Assert.Equal((1 * 100), configuration.BaseHullPoints);
 		Assert.Equal((3 * 100), maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Forward]);
 		Assert.Equal(0, maxShields[GrimSpace.Math.Grid.ESpatialOrientation.Retro]);
 		Assert.Equal(2, CatalogExpectations.UsesPerTurn(EType.RepurposedMiner, EAbilityKind.ScrapDroneSwarm));

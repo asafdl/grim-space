@@ -17,11 +17,11 @@ public sealed class RogueSpec : ShipSpec
 	public override EType Chassis => EType.Rogue;
 	public override EOperatorClassId ClassId => EOperatorClassId.Rogue;
 	public override int Initiative => 50;
-	public override int DefaultMaxHullPoints => 120;
+	public override int DefaultBaseHullPoints => 120;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(4, 4, reverseApCost: 1);
 
-	public override FaceShieldPoints DefaultMaxShieldPoints
+	public override FaceShieldPoints DefaultBaseShieldPoints
 	{
 		get
 		{

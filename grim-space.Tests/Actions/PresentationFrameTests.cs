@@ -450,9 +450,9 @@ public sealed class PresentationFrameTests
 		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
 		var enemyId = BattleTestFixture.FirstEnemyId(battle);
 		var enemy = battle.PlayerAgent.Sim.StateOf<ActorState>(enemyId);
-		enemy.HullPoints = 1;
+		enemy.CurrentHullPoints = 1;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			enemy.ShieldPoints[face] = 0;
+			enemy.CurrentShieldPoints[face] = 0;
 
 		Assert.True(BattleTestCommands.FireLightningCannon(battle));
 
@@ -541,7 +541,7 @@ public sealed class PresentationFrameTests
 				BattleTestFixture.RepurposedMiner(new Coord(8, 8, 8), "far-enemy"),
 			]);
 		BattleTestFixture.FrameBuilder(battle).Interaction.SetRangeEnemy("far-enemy");
-		battle.PlayerAgent.Sim.StateOf<ActorState>("far-enemy").HullPoints = 0;
+		battle.PlayerAgent.Sim.StateOf<ActorState>("far-enemy").CurrentHullPoints = 0;
 
 		var target = BattleTestCommands.Frame(battle).RangeEnemy;
 

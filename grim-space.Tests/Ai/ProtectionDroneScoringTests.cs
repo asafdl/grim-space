@@ -19,7 +19,7 @@ public sealed class ProtectionDroneScoringTests
 		var minerPos = new Coord(8, 6, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, new Coord(1, 0, 0), Coord.Up);
 		var ally = CreateUnit(ETeam.Enemy, "ally", allyPos, EType.Fighter, new Coord(-1, 0, 0), Coord.Up);
-		ally.State.ActionPoints = 0;
+		ally.State.CurrentActionPoints = 0;
 		var miner = CreateUnit(
 			ETeam.Enemy,
 			"miner",
@@ -27,7 +27,7 @@ public sealed class ProtectionDroneScoringTests
 			EType.RepurposedMiner,
 			new Coord(1, 0, 0),
 			Coord.Up);
-		miner.State.ActionPoints = 0;
+		miner.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, [ally, miner]);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, miner);
@@ -46,7 +46,7 @@ public sealed class ProtectionDroneScoringTests
 		var minerPos = new Coord(8, 6, 5);
 		var player = CreateUnit(ETeam.Player, "player", playerPos, EType.Fighter, Coord.Forward, Coord.Up);
 		var ally = CreateUnit(ETeam.Enemy, "ally", allyPos, EType.Fighter, new Coord(-1, 0, 0), Coord.Up);
-		ally.State.ActionPoints = 0;
+		ally.State.CurrentActionPoints = 0;
 		var miner = CreateUnit(
 			ETeam.Enemy,
 			"miner",
@@ -54,7 +54,7 @@ public sealed class ProtectionDroneScoringTests
 			EType.RepurposedMiner,
 			new Coord(1, 0, 0),
 			Coord.Up);
-		miner.State.ActionPoints = 0;
+		miner.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, [ally, miner]);
 		var actions = await BattleTestFixture.AwaitUnitActions(battle, miner);

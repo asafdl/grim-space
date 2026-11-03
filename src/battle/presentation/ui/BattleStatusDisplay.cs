@@ -70,7 +70,7 @@ public sealed record BattleStatusDisplay(
 			{
 				Details = $"Stacks: {unit.ReactiveShieldsStacks}\nReductions stack multiplicatively. Resets at the start of your turn.",
 			}),
-			"passive:StationaryDamageDeflection" => ("ManeuverPoints", PilotSkillCatalog.Get(EPilotSkillId.DefensiveManeuvers).Tooltip),
+			"passive:StationaryDamageDeflection" => ("CurrentManeuverPoints", PilotSkillCatalog.Get(EPilotSkillId.DefensiveManeuvers).Tooltip),
 			"passive:OneWithTheVoid" => ("VoidBombLauncher", PilotSkillCatalog.Get(EPilotSkillId.OneWithTheVoid).Tooltip),
 			_ => throw new InvalidDataException($"Unknown battle status display '{status.InstanceId}'."),
 		};

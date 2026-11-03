@@ -38,8 +38,8 @@ internal readonly record struct ChassisBuffTotals(
 	int OverdrivePoints,
 	int WeaponDamagePercent,
 	int RangeSteps,
-	int ActionPoints,
-	int ManeuverPoints);
+	int CurrentActionPoints,
+	int CurrentManeuverPoints);
 
 internal static class ChassisBuffCatalog
 {
@@ -224,12 +224,12 @@ internal static class ChassisBuffCatalog
 		ArgumentNullException.ThrowIfNull(baseline);
 		ArgumentNullException.ThrowIfNull(offers);
 		var totals = Sum(offers);
-		var shields = baseline.MaxShieldPoints.Clone();
+		var shields = baseline.BaseShieldPoints.Clone();
 		var shieldScale = 100 + totals.ShieldPercent;
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 			shields[face] = System.Math.Max(0, Scale(shields[face] + totals.ShieldFlat, shieldScale));
 
-		var hull = System.Math.Max(0, Scale(baseline.MaxHullPoints, 100 + totals.HullPercent));
+		var hull = System.Math.Max(0, Scale(baseline.BaseHullPoints, 100 + totals.HullPercent));
 		return ShipLoadout.Create(
 			spec,
 			hull,

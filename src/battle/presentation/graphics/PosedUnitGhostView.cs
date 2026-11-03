@@ -68,8 +68,8 @@ public sealed partial class PosedUnitGhostView : Node3D
 			Starboard = GrimSpace.Math.Grid.Coord.Cross(spec.Dorsal, spec.Fore),
 			Maneuverability = chassis.Maneuverability,
 			HeatProfile = chassis.Heat,
-			HullPoints = loadout.MaxHullPoints,
-			ShieldPoints = loadout.MaxShieldPoints.Clone(),
+			CurrentHullPoints = loadout.BaseHullPoints,
+			CurrentShieldPoints = loadout.BaseShieldPoints.Clone(),
 		};
 		var view = _view
 			?? throw new InvalidOperationException("Posed ghost view was not initialized.");

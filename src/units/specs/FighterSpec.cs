@@ -17,11 +17,11 @@ public sealed class FighterSpec : ShipSpec
 	public override EType Chassis => EType.Fighter;
 	public override EOperatorClassId ClassId => EOperatorClassId.SpaceRanger;
 	public override int Initiative => 40;
-	public override int DefaultMaxHullPoints => 200;
+	public override int DefaultBaseHullPoints => 200;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(4, 3);
 
-	public override FaceShieldPoints DefaultMaxShieldPoints
+	public override FaceShieldPoints DefaultBaseShieldPoints
 	{
 		get
 		{
@@ -46,7 +46,7 @@ public sealed class FighterSpec : ShipSpec
 
 		return ShipLoadout.Create(
 			this,
-			DefaultMaxHullPoints,
+			DefaultBaseHullPoints,
 			shields,
 			[
 				new InstalledAbility(EAbilityKind.LightningCannon, ESpatialOrientation.Forward),

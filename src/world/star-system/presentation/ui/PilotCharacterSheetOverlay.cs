@@ -173,12 +173,12 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			rail.AddChild(BuildMeter(
 				"SHIELD",
 				assignedShip.TotalCurrentShieldPoints,
-				assignedShip.TotalMaxShieldPoints,
+				assignedShip.TotalBaseShieldPoints,
 				new Color(0.25f, 0.62f, 0.95f)));
 			rail.AddChild(BuildMeter(
 				"HULL",
-				assignedShip.HullPoints,
-				assignedShip.Loadout.MaxHullPoints,
+				assignedShip.CurrentHullPoints,
+				assignedShip.Loadout.BaseHullPoints,
 				new Color(0.85f, 0.15f, 0.18f)));
 		}
 

@@ -134,7 +134,7 @@ public sealed class SpawnRepurposedMinerActionTests
 		FillLivingRepurposedMiners(sim.World, carrierId, CatalogExpectations.DefaultMinerBaySpec().MaxLivingChildren);
 
 		var doomed = UnitRegistry.For(sim.World).All.First(unit => unit.State.Type == EType.RepurposedMiner);
-		doomed.State.HullPoints = 0;
+		doomed.State.CurrentHullPoints = 0;
 		StateMountTestKit.SetCooldownRemaining(sim.World.StateOf(carrierId), EAbilityKind.MinerBay, 0);
 
 		Assert.True(sim.TryEnqueue(new SpawnRepurposedMinerAction(

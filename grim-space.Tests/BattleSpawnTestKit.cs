@@ -48,8 +48,8 @@ internal static class BattleSpawnTestKit
 			FighterSpec.Instance,
 			ShipLoadout.Create(
 				FighterSpec.Instance,
-				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxHullPoints,
-				ShipCatalog.NewRunLoadoutFor(EType.Fighter).MaxShieldPoints,
+				ShipCatalog.NewRunLoadoutFor(EType.Fighter).BaseHullPoints,
+				ShipCatalog.NewRunLoadoutFor(EType.Fighter).BaseShieldPoints,
 				installed));
 
 	public static ShipInstance FighterWithGoopGun(
@@ -73,8 +73,8 @@ internal static class BattleSpawnTestKit
 			gooper,
 			ShipLoadout.Create(
 				gooper,
-				baseline.MaxHullPoints,
-				baseline.MaxShieldPoints,
+				baseline.BaseHullPoints,
+				baseline.BaseShieldPoints,
 				installed));
 	}
 }

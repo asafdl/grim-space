@@ -531,8 +531,8 @@ ability. Only the jump currently opts in. Reset facts identify the affected moun
 for replay and action-log projection.
 
 Chassis hull/shield values are base capacities. Gear bonuses produce the equipped
-loadout's `MaxHullPoints` / `MaxShieldPoints`; these are repair/recharge targets,
-not independent chassis ceilings. `ShipInstance.HullPoints` / `ShieldPoints`
+loadout's `BaseHullPoints` / `BaseShieldPoints`; these are repair/recharge targets,
+not independent chassis ceilings. `ShipInstance.CurrentHullPoints` / `CurrentShieldPoints`
 store current condition separately. Flat shield gear bonuses apply to every face,
 including faces whose base capacity is zero.
 

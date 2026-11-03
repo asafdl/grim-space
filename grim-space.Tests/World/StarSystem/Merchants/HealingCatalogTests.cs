@@ -13,8 +13,8 @@ public sealed class HealingCatalogTests
 	public void HealingCatalog_ListsRepairAndRechargeServices()
 	{
 		var ship = ShipInstance.FromCatalog("fighter-1", EType.Fighter);
-		ship.HullPoints = (1 * 100);
-		ship.ShieldPoints.Fill(0);
+		ship.CurrentHullPoints = (1 * 100);
+		ship.CurrentShieldPoints.Fill(0);
 
 		var offers = MerchantCatalog.ListFor(
 			EMerchantCatalog.Healing,
@@ -35,7 +35,7 @@ public sealed class HealingCatalogTests
 		Assert.Equal(default, recharge.Target);
 		Assert.True(recharge.Cost.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(
-			ship.TotalMaxShieldPoints * StarMarketSeed.ShieldRechargeCreditsPerPoint / 100,
+			ship.TotalBaseShieldPoints * StarMarketSeed.ShieldRechargeCreditsPerPoint / 100,
 			credits);
 
 		Assert.Single(offers, offer =>

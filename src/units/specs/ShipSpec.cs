@@ -12,8 +12,8 @@ public abstract class ShipSpec
 	public abstract EType Chassis { get; }
 	public abstract EOperatorClassId ClassId { get; }
 	public abstract int Initiative { get; }
-	public abstract int DefaultMaxHullPoints { get; }
-	public abstract FaceShieldPoints DefaultMaxShieldPoints { get; }
+	public abstract int DefaultBaseHullPoints { get; }
+	public abstract FaceShieldPoints DefaultBaseShieldPoints { get; }
 	public abstract ManeuverabilitySpec Maneuverability { get; }
 	public virtual HeatSpec Heat => HeatSpec.Standard;
 	public abstract IReadOnlyList<WeaponSlot> Slots { get; }
@@ -24,7 +24,7 @@ public abstract class ShipSpec
 	public virtual ShipLoadout NewDefaultLoadout() =>
 		ShipLoadout.Create(
 			this,
-			DefaultMaxHullPoints,
-			DefaultMaxShieldPoints,
+			DefaultBaseHullPoints,
+			DefaultBaseShieldPoints,
 			Slots.Select(slot => new InstalledAbility(slot.Mount.Kind, slot.Mount.Facet)).ToArray());
 }

@@ -21,5 +21,5 @@ public sealed class SyncDefensiveManeuversMpUsedFromPoolEffect : IEffect<BattleW
 		world.StateOf(actorId).DefensiveManeuversMpUsed = _previousMpUsed;
 
 	internal static int MpUsedFromPool(State actor) =>
-		System.Math.Max(0, actor.Maneuverability.MaxManeuverPoints - actor.ManeuverPoints);
+		System.Math.Max(0, actor.Maneuverability.BaseManeuverPoints - actor.CurrentManeuverPoints);
 }

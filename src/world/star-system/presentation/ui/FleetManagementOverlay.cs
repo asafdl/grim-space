@@ -285,10 +285,10 @@ public sealed partial class FleetManagementOverlay : Control
 		rows.AddChild(SummaryRow("CHASSIS", ship.Chassis));
 		rows.AddChild(SummaryRow("SHIP CLASS", ship.ClassId.DisplayName()));
 		rows.AddChild(SummaryRow("GEAR TIER", ship.GearTier.ToString()));
-		rows.AddChild(SummaryRow("HULL", $"{ship.Hull} / {ship.MaxHull}", HullColor));
-		rows.AddChild(SummaryRow("SHIELDS", $"{ship.Shields} / {ship.MaxShields}", ShieldColor));
-		rows.AddChild(SummaryRow("ACTION POINTS", ship.ActionPoints.ToString(), ActionPointColor));
-		rows.AddChild(SummaryRow("MANEUVER POINTS", ship.ManeuverPoints.ToString(), ManeuverPointColor));
+		rows.AddChild(SummaryRow("HULL", $"{ship.Hull} / {ship.BaseHull}", HullColor));
+		rows.AddChild(SummaryRow("SHIELDS", $"{ship.Shields} / {ship.BaseShields}", ShieldColor));
+		rows.AddChild(SummaryRow("ACTION POINTS", ship.CurrentActionPoints.ToString(), ActionPointColor));
+		rows.AddChild(SummaryRow("MANEUVER POINTS", ship.CurrentManeuverPoints.ToString(), ManeuverPointColor));
 		rows.AddChild(SummaryRow("INITIATIVE", ship.Initiative.ToString(), InitiativeColor));
 		foreach (var row in rows.GetChildren().OfType<HBoxContainer>())
 			row.AddThemeConstantOverride(

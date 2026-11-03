@@ -82,9 +82,9 @@ public sealed class DetonateActionTests
 		Assert.True(UnitRegistry.For(sim.World).Contains(torpedoId));
 		Assert.False(sim.StateOf<ActorState>(torpedoId).IsAlive);
 		Assert.True(TotalShields(sim.StateOf<ActorState>(PlayerId)) < playerShieldsBefore
-			|| sim.StateOf<ActorState>(PlayerId).HullPoints < battle.Engine.World.StateOf(PlayerId).HullPoints);
+			|| sim.StateOf<ActorState>(PlayerId).CurrentHullPoints < battle.Engine.World.StateOf(PlayerId).CurrentHullPoints);
 		Assert.True(TotalShields(sim.StateOf<ActorState>(enemy.State.Id)) < enemyShieldsBefore
-			|| sim.StateOf<ActorState>(enemy.State.Id).HullPoints < enemy.State.HullPoints);
+			|| sim.StateOf<ActorState>(enemy.State.Id).CurrentHullPoints < enemy.State.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -107,7 +107,7 @@ public sealed class DetonateActionTests
 		var battle = BattleWithTorpedo(out var torpedoId);
 		var torpedoPos = new Coord(5, 5, 5);
 		battle.Engine.World.StateOf(torpedoId).Position = torpedoPos;
-		battle.Engine.World.StateOf(torpedoId).ActionPoints = 0;
+		battle.Engine.World.StateOf(torpedoId).CurrentActionPoints = 0;
 		battle.Engine.World.StateOf(torpedoId).FuelRemaining = CatalogExpectations.DefaultVoidBombLauncher().FuelTurns;
 		battle.Engine.World.StateOf(PlayerId).Position = new Coord(0, 0, 0);
 		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
@@ -279,10 +279,10 @@ public sealed class DetonateActionTests
 	{
 		var total = 0;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			total += state.ShieldPoints[face];
+			total += state.CurrentShieldPoints[face];
 		return total;
 	}
 
 	private static int TotalDurability(GrimSpace.Battle.Units.State state) =>
-		state.HullPoints + TotalShields(state);
+		state.CurrentHullPoints + TotalShields(state);
 }

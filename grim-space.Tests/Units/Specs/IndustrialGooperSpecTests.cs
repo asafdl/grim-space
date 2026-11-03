@@ -28,9 +28,9 @@ public sealed class IndustrialGooperSpecTests
 		var spec = IndustrialGooperSpec.Instance;
 		var loadout = spec.NewDefaultLoadout();
 
-		Assert.Equal((3 * 100), loadout.MaxHullPoints);
+		Assert.Equal((3 * 100), loadout.BaseHullPoints);
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-			Assert.Equal((3 * 100), loadout.MaxShieldPoints[face]);
+			Assert.Equal((3 * 100), loadout.BaseShieldPoints[face]);
 		Assert.Equal(
 			[
 				new AbilityMount(EAbilityKind.Ram, ESpatialOrientation.Forward),
@@ -45,7 +45,7 @@ public sealed class IndustrialGooperSpecTests
 		var fromCatalog = ShipCatalog.LoadoutForTier(EType.IndustrialGooper, EShipGearTier.T0);
 		var fromSpec = IndustrialGooperSpec.Instance.NewDefaultLoadout();
 
-		Assert.True(fromCatalog.MaxShieldPoints.Matches(fromSpec.MaxShieldPoints));
+		Assert.True(fromCatalog.BaseShieldPoints.Matches(fromSpec.BaseShieldPoints));
 		Assert.Equal(fromSpec.InstalledAbilities.Count, fromCatalog.InstalledAbilities.Count);
 	}
 }

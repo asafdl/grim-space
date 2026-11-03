@@ -20,7 +20,7 @@ public sealed class BraceActionTests
 	{
 		var (player, battle) = PlayerWithBraceBattle();
 		SetSymmetricShields(player.State, 100);
-		player.State.ShieldPoints[ESpatialOrientation.Port] = 50;
+		player.State.CurrentShieldPoints[ESpatialOrientation.Port] = 50;
 
 		BattleTestApply.TryApplyOne(
 			BraceDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward),
@@ -49,7 +49,7 @@ public sealed class BraceActionTests
 	{
 		var (player, battle) = PlayerWithBraceBattle();
 		SetSymmetricShields(player.State, 100);
-		var max = player.State.Loadout.MaxShieldPoints[ESpatialOrientation.Forward];
+		var max = player.State.Loadout.BaseShieldPoints[ESpatialOrientation.Forward];
 
 		BattleTestApply.TryApplyOne(
 			BraceDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward),
@@ -57,16 +57,16 @@ public sealed class BraceActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(34, player.State.ShieldPoints[ESpatialOrientation.Port]);
-		Assert.True(player.State.ShieldPoints[ESpatialOrientation.Forward] > max);
+		Assert.Equal(34, player.State.CurrentShieldPoints[ESpatialOrientation.Port]);
+		Assert.True(player.State.CurrentShieldPoints[ESpatialOrientation.Forward] > max);
 	}
 
 	[Fact]
 	public void Brace_RedistributesShieldDamageToOtherFacesOnRelease()
 	{
 		var (player, battle) = PlayerWithBraceBattle(EType.Fighter);
-		player.State.ShieldPoints[ESpatialOrientation.Forward] = 100;
-		player.State.ShieldPoints[ESpatialOrientation.Port] = 100;
+		player.State.CurrentShieldPoints[ESpatialOrientation.Forward] = 100;
+		player.State.CurrentShieldPoints[ESpatialOrientation.Port] = 100;
 
 		BattleTestApply.TryApplyOne(
 			BraceDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward),
@@ -74,7 +74,7 @@ public sealed class BraceActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Equal(34, player.State.ShieldPoints[ESpatialOrientation.Port]);
+		Assert.Equal(34, player.State.CurrentShieldPoints[ESpatialOrientation.Port]);
 		Defense.AbsorbWithShields(
 			player.State,
 			ESpatialOrientation.Forward,
@@ -87,13 +87,13 @@ public sealed class BraceActionTests
 
 		Assert.False(ShieldBrace.IsActive(player.State));
 		Assert.Null(ShieldBrace.TryPayload(player.State));
-		Assert.True(player.State.ShieldPoints[ESpatialOrientation.Port] < 100);
+		Assert.True(player.State.CurrentShieldPoints[ESpatialOrientation.Port] < 100);
 	}
 
 	private static void SetSymmetricShields(State state, int amount)
 	{
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			state.ShieldPoints[face] = amount;
+			state.CurrentShieldPoints[face] = amount;
 	}
 
 	private static (Unit Player, BattleOrchestrator Battle) PlayerWithBraceBattle(

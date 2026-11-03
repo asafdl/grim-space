@@ -77,7 +77,7 @@ public sealed class HelpABotterOutTests
 			ETeam.Player,
 			extraCell,
 			new UserExecutionAgent());
-		ally.State.HullPoints = 50;
+		ally.State.CurrentHullPoints = 50;
 		var battle = BeginBattleWithSkill(
 			player,
 			[ally, BattleTestFixture.Enemy(origin + Coord.Forward * 8)]);
@@ -85,7 +85,7 @@ public sealed class HelpABotterOutTests
 
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(action));
 
-		Assert.Equal(150, battle.PlayerAgent.Sim.StateOf<State>("ally").HullPoints);
+		Assert.Equal(150, battle.PlayerAgent.Sim.StateOf<State>("ally").CurrentHullPoints);
 	}
 
 	private static GrimSpace.Battle.Runtime.ActorRuntime ActorRuntimeFromSkill(EPilotSkillId skillId) =>

@@ -149,7 +149,7 @@ public sealed class HeatAccountingTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var state = battle.Engine.World.StateOf(PlayerId);
-		state.ActionPoints = 4;
+		state.CurrentActionPoints = 4;
 
 		Assert.True(BattleTestApply.TryApplyOne(
 			ApDeltaDef.Instance.Bind(PlayerId, -2),
@@ -157,7 +157,7 @@ public sealed class HeatAccountingTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId));
 
-		Assert.Equal(2, state.ActionPoints);
+		Assert.Equal(2, state.CurrentActionPoints);
 		Assert.Equal(0, state.Heat);
 	}
 }

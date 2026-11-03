@@ -16,8 +16,8 @@ public static class HudTooltipIconCatalog
 		["Heat"] = new("res://assets/ui/battle/heat.png", new Color(0.78f, 0.3f, 0.08f)), // hex #c64d14
 		["Overdrive"] = new("res://assets/ui/battle/heat.png", new Color(1f, 0.68f, 0.1f)), // hex #ffad1a
 		["Overheat"] = new("res://assets/ui/battle/heat.png", new Color(0.04f, 0.58f, 1f)), // hex #0a94ff
-		["ActionPoints"] = new("res://assets/ui/battle/action_points.svg", new Color(0.78f, 0.12f, 0.27f)), // hex #c61e46
-		["ManeuverPoints"] = new("res://assets/ui/battle/maneuver_points.png", new Color(0.4f, 0.3f, 0.62f)), // hex #664f9e
+		["CurrentActionPoints"] = new("res://assets/ui/battle/action_points.svg", new Color(0.78f, 0.12f, 0.27f)), // hex #c61e46
+		["CurrentManeuverPoints"] = new("res://assets/ui/battle/maneuver_points.png", new Color(0.4f, 0.3f, 0.62f)), // hex #664f9e
 		["Range"] = new("res://assets/ui/battle/range.png", new Color(0.62f, 0.86f, 0.96f)), // hex #9edbf5
 		["ScrapDroneSwarm"] = new("res://assets/ui/abilities/scrap_drone_swarm.svg", new Color(0.98f, 0.82f, 0.14f)), // hex #feca22
 		["LightningCannon"] = new("res://assets/ui/abilities/lightning_cannon.svg", new Color(0.38f, 0.68f, 1f)), // hex #61adff

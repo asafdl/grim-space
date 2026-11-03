@@ -64,11 +64,11 @@ public sealed class ShipCatalogLoadoutForTierTests
 
 	private static void AssertLoadoutEquivalent(ShipLoadout expected, ShipLoadout actual)
 	{
-		Assert.Equal(expected.MaxHullPoints, actual.MaxHullPoints);
+		Assert.Equal(expected.BaseHullPoints, actual.BaseHullPoints);
 		Assert.Equal(expected.HullUpgradeTier, actual.HullUpgradeTier);
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 		{
-			Assert.Equal(expected.MaxShieldPoints[face], actual.MaxShieldPoints[face]);
+			Assert.Equal(expected.BaseShieldPoints[face], actual.BaseShieldPoints[face]);
 			Assert.Equal(expected.ShieldUpgradeTiers[face], actual.ShieldUpgradeTiers[face]);
 		}
 
@@ -141,14 +141,14 @@ public sealed class ShipCatalogLoadoutForTierTests
 
 	private static bool AreLoadoutEquivalent(ShipLoadout expected, ShipLoadout actual)
 	{
-		if (expected.MaxHullPoints != actual.MaxHullPoints
+		if (expected.BaseHullPoints != actual.BaseHullPoints
 			|| expected.HullUpgradeTier != actual.HullUpgradeTier
 			|| expected.InstalledAbilities.Count != actual.InstalledAbilities.Count)
 			return false;
 
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
 		{
-			if (expected.MaxShieldPoints[face] != actual.MaxShieldPoints[face]
+			if (expected.BaseShieldPoints[face] != actual.BaseShieldPoints[face]
 				|| expected.ShieldUpgradeTiers[face] != actual.ShieldUpgradeTiers[face])
 				return false;
 		}
@@ -165,9 +165,9 @@ public sealed class ShipCatalogLoadoutForTierTests
 
 	private static int UpgradeWeight(ShipLoadout loadout)
 	{
-		var weight = loadout.MaxHullPoints;
+		var weight = loadout.BaseHullPoints;
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-			weight += loadout.MaxShieldPoints[face];
+			weight += loadout.BaseShieldPoints[face];
 		weight += loadout.WeaponDamagePercent;
 		weight += loadout.OverdriveDamageBonusPercent;
 		weight += loadout.Buffs.Count;

@@ -17,7 +17,7 @@ public sealed class ActionBudgetExhaustionTests
 		for (var i = 0; i < 4; i++)
 			Assert.True(session.TryEnqueue(new MoveStepAction(PlayerId)));
 
-		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).ActionPoints);
+		Assert.Equal(0, session.StateOf<ActorState>(PlayerId).CurrentActionPoints);
 		LegalActionProbe.AssertExhausted(session, PlayerId, MoveDef.Instance);
 	}
 
@@ -31,8 +31,8 @@ public sealed class ActionBudgetExhaustionTests
 			new RollAction(PlayerId, ERollDirection.CounterClockwise),
 			new MoveStepAction(PlayerId)));
 
-		Assert.Equal(3, session.StateOf<ActorState>(PlayerId).ActionPoints);
-		Assert.Equal(1, session.StateOf<ActorState>(PlayerId).ManeuverPoints);
+		Assert.Equal(3, session.StateOf<ActorState>(PlayerId).CurrentActionPoints);
+		Assert.Equal(1, session.StateOf<ActorState>(PlayerId).CurrentManeuverPoints);
 	}
 
 	[Fact]

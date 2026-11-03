@@ -17,8 +17,8 @@ public sealed class ShipLoadoutTests
 		Assert.Throws<ArgumentException>(() =>
 			ShipLoadout.Create(
 				FighterSpec.Instance,
-				FighterSpec.Instance.DefaultMaxHullPoints,
-				FighterSpec.Instance.DefaultMaxShieldPoints,
+				FighterSpec.Instance.DefaultBaseHullPoints,
+				FighterSpec.Instance.DefaultBaseShieldPoints,
 				installed));
 	}
 
@@ -28,8 +28,8 @@ public sealed class ShipLoadoutTests
 		var lightningCannonMount = new AbilityMount(EAbilityKind.LightningCannon, ESpatialOrientation.Forward);
 		var loadout = ShipLoadout.Create(
 			FighterSpec.Instance,
-			FighterSpec.Instance.DefaultMaxHullPoints,
-			FighterSpec.Instance.DefaultMaxShieldPoints,
+			FighterSpec.Instance.DefaultBaseHullPoints,
+			FighterSpec.Instance.DefaultBaseShieldPoints,
 			[new InstalledAbility(lightningCannonMount.Kind, ESpatialOrientation.Forward)]);
 
 		Assert.Single(loadout.InstalledAbilities);

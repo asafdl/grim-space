@@ -58,7 +58,7 @@ public sealed class LightningCannonReachTests
 	{
 		var ap = 0;
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
-		enemy.State.ActionPoints = ap;
+		enemy.State.CurrentActionPoints = ap;
 		var gap = OffensiveReach.OptimisticMoveBubble(ap) + MaxPerTurnWeaponReach(enemy.State) + 1;
 		var player = CreateUnit(ETeam.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
 
@@ -67,7 +67,7 @@ public sealed class LightningCannonReachTests
 
 		Assert.Equal(
 			EnemySearchInput.FacingWeight
-				+ enemy.State.Maneuverability.MaxActionPoints * EnemySearchInput.ApproachWeight,
+				+ enemy.State.Maneuverability.BaseActionPoints * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 
@@ -76,7 +76,7 @@ public sealed class LightningCannonReachTests
 	{
 		var player = CreateUnit(ETeam.Player, "player", new Coord(6, 5, 5), EType.Fighter);
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
-		enemy.State.ActionPoints = 0;
+		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
@@ -84,7 +84,7 @@ public sealed class LightningCannonReachTests
 		Assert.Equal(
 			EnemySearchInput.DamageHitBonus
 				+ EnemySearchInput.FacingWeight
-				+ enemy.State.Maneuverability.MaxActionPoints * EnemySearchInput.ApproachWeight,
+				+ enemy.State.Maneuverability.BaseActionPoints * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 
@@ -93,7 +93,7 @@ public sealed class LightningCannonReachTests
 	{
 		var player = CreateUnit(ETeam.Player, "player", new Coord(4, 5, 5), EType.Fighter);
 		var repurposedMiner = CreateUnit(ETeam.Enemy, "repurposedMiner", new Coord(0, 5, 5), EType.RepurposedMiner);
-		repurposedMiner.State.ActionPoints = 0;
+		repurposedMiner.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, repurposedMiner);
 		var bound = EnemySearchInput.UpperBound(battle.Engine.World, repurposedMiner.State.Id);
@@ -101,7 +101,7 @@ public sealed class LightningCannonReachTests
 		Assert.Equal(
 			EnemySearchInput.DamageHitBonus
 				+ EnemySearchInput.FacingWeight
-				+ repurposedMiner.State.Maneuverability.MaxActionPoints * EnemySearchInput.ApproachWeight,
+				+ repurposedMiner.State.Maneuverability.BaseActionPoints * EnemySearchInput.ApproachWeight,
 			bound);
 	}
 

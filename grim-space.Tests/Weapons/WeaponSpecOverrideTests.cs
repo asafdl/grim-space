@@ -25,8 +25,8 @@ public sealed class WeaponSpecOverrideTests
 				RepurposedMinerSpec.Instance,
 				ShipLoadout.Create(
 					RepurposedMinerSpec.Instance,
-					RepurposedMinerSpec.Instance.DefaultMaxHullPoints,
-					RepurposedMinerSpec.Instance.DefaultMaxShieldPoints,
+					RepurposedMinerSpec.Instance.DefaultBaseHullPoints,
+					RepurposedMinerSpec.Instance.DefaultBaseShieldPoints,
 					installed)),
 			ETeam.Player,
 			new Coord(10, 10, 10),

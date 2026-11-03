@@ -109,7 +109,7 @@ public sealed class PlayerPartyMultiShipTests
 		Assert.True(SelectActiveShip(run, secondId));
 
 		var selected = run.ItemInventory.Get(secondId);
-		selected.HullPoints = 1;
+		selected.CurrentHullPoints = 1;
 		run.ItemInventory.Update(selected);
 		var offering = MerchantPurchaseTestHarness.RepairHull;
 		SeedResources(run.StarSystem.Map, credits: 500, scrap: 500);
@@ -133,8 +133,8 @@ public sealed class PlayerPartyMultiShipTests
 
 		var repaired = run.ItemInventory.Get(secondId);
 		var untouched = run.ItemInventory.Get(first);
-		Assert.Equal(repaired.Loadout.MaxHullPoints, repaired.HullPoints);
-		Assert.Equal(untouched.Loadout.MaxHullPoints, untouched.HullPoints);
+		Assert.Equal(repaired.Loadout.BaseHullPoints, repaired.CurrentHullPoints);
+		Assert.Equal(untouched.Loadout.BaseHullPoints, untouched.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -142,7 +142,7 @@ public sealed class PlayerPartyMultiShipTests
 	{
 		using var run = RunState.CreateNewRun(42);
 		var ship = run.ItemInventory.Get(run.GetFieldedShipIds()[0]);
-		ship.ShieldPoints.Fill(0);
+		ship.CurrentShieldPoints.Fill(0);
 		run.ItemInventory.Update(ship);
 
 		var registry = PersistenceRegistry.CreateDefault();

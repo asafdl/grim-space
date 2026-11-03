@@ -23,9 +23,9 @@ public sealed class LightningCannonActionTests
 
 	private static int TotalDurability(GrimSpace.Battle.Units.State state)
 	{
-		var total = state.HullPoints;
+		var total = state.CurrentHullPoints;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-			total += state.ShieldPoints[face];
+			total += state.CurrentShieldPoints[face];
 		return total;
 	}
 
@@ -181,8 +181,8 @@ public sealed class LightningCannonActionTests
 			new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(enemyPos);
 		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
-		enemy.State.ShieldPoints[hitFace] = (1 * 100);
-		var hullBefore = enemy.State.HullPoints;
+		enemy.State.CurrentShieldPoints[hitFace] = (1 * 100);
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			enemy,
@@ -194,8 +194,8 @@ public sealed class LightningCannonActionTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 
 		var previewEnemy = battle.PlayerAgent.Sim.World.StateOf(enemy.State.Id);
-		Assert.Equal(0, previewEnemy.ShieldPoints[hitFace]);
-		Assert.Equal(hullBefore - 100, previewEnemy.HullPoints);
+		Assert.Equal(0, previewEnemy.CurrentShieldPoints[hitFace]);
+		Assert.Equal(hullBefore - 100, previewEnemy.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -210,8 +210,8 @@ public sealed class LightningCannonActionTests
 			new UserExecutionAgent());
 		var enemy = BattleTestFixture.Enemy(enemyPos);
 		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(playerPos);
-		enemy.State.ShieldPoints[hitFace] = (3 * 100);
-		var hullBefore = enemy.State.HullPoints;
+		enemy.State.CurrentShieldPoints[hitFace] = (3 * 100);
+		var hullBefore = enemy.State.CurrentHullPoints;
 		var battle = BattleTestFixture.BeginSimulation(
 			player,
 			enemy,
@@ -223,8 +223,8 @@ public sealed class LightningCannonActionTests
 		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction(PlayerId)));
 
 		var previewEnemy = battle.PlayerAgent.Sim.World.StateOf(enemy.State.Id);
-		Assert.Equal(0, previewEnemy.ShieldPoints[hitFace]);
-		Assert.Equal(hullBefore, previewEnemy.HullPoints);
+		Assert.Equal(0, previewEnemy.CurrentShieldPoints[hitFace]);
+		Assert.Equal(hullBefore, previewEnemy.CurrentHullPoints);
 	}
 
 	private static Coord EnemyInLightningCannonLine(Coord playerPos) =>
