@@ -5,7 +5,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public static class IndustrialGooperMesh
 {
 	private const string ModelPath = "res://assets/models/ships/gooper.glb";
-	private const float Length = 0.7f;
+	private const float Length = 1.4f;
 	private static PackedScene? _model;
 
 	public static MeshInstance3D CreateHullInstance()
