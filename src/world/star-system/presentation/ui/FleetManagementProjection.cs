@@ -107,6 +107,7 @@ internal static class FleetManagementProjection
 			EType.IndustrialGooper => "Industrial Gooper",
 			EType.RepurposedMiner => "Repurposed Miner",
 			EType.VoidBomb => "Void Bomb",
+			EType.Rogue => "Stalker",
 			_ => chassis.ToString(),
 		};
 

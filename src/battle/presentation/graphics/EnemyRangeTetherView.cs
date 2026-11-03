@@ -291,6 +291,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 			EType.IndustrialGooper => "Industrial Gooper",
 			EType.RepurposedMiner => "Repurposed Miner",
 			EType.VoidBomb => "Void Bomb",
+			EType.Rogue => "Stalker",
 			_ => type.ToString(),
 		};
 

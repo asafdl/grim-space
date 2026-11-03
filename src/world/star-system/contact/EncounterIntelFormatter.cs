@@ -28,6 +28,7 @@ public static class EncounterIntelFormatter
 			BattleUnitType.IndustrialGooper => "Industrial Gooper",
 			BattleUnitType.Fighter => "Fighter",
 			BattleUnitType.Carrier => "Carrier",
+			BattleUnitType.Rogue => "Stalker",
 			BattleUnitType.VoidBomb => "VoidBomb",
 			_ => chassis.ToString(),
 		};

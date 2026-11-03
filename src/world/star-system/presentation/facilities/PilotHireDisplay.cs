@@ -45,6 +45,7 @@ internal static class PilotHireDisplay
 			EType.RepurposedMiner => "Repurposed Miner",
 			EType.IndustrialGooper => "Industrial Gooper",
 			EType.Gunship => "Gunship",
+			EType.Rogue => "Stalker",
 			_ => chassis.ToString(),
 		};
 
