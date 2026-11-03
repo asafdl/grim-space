@@ -14,6 +14,54 @@ namespace GrimSpace.Tests.Effects;
 [BattleTestSuite]
 public sealed class ApplyAreaDamageEffectTests
 {
+	[Theory]
+	[InlineData(0, 245)]
+	[InlineData(20, 225)]
+	[InlineData(69, 176)]
+	[InlineData(70, 0)]
+	[InlineData(100, 0)]
+	public void HullBreachBonusMultipliesEntireShotOnlyWhenBaseHitExceedsShields(
+		int shields, int expectedHullDamage)
+	{
+		var (player, enemy, battle, face) = DamageBattle();
+		enemy.State.HullPoints = 1000;
+		enemy.State.ShieldPoints[face] = shields;
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.HighSpeedRod,
+			new HashSet<Coord> { enemy.State.Position },
+			70,
+			player.State.Position,
+			hullBreachDamagePercent: 350);
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
+
+		effect.Apply(battle.Engine.World, runtime, player.State.Id);
+
+		Assert.Equal(1000 - expectedHullDamage, enemy.State.HullPoints);
+		Assert.Equal(System.Math.Max(0, shields - 70), enemy.State.ShieldPoints[face]);
+		effect.Undo(battle.Engine.World, runtime, player.State.Id);
+		Assert.Equal(1000, enemy.State.HullPoints);
+		Assert.Equal(shields, enemy.State.ShieldPoints[face]);
+	}
+
+	[Fact]
+	public void DamageRewritesPreserveHullBreachMultiplier()
+	{
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.HighSpeedRod, new HashSet<Coord>(), 70, Coord.Zero,
+			hullBreachDamagePercent: 350);
+		Assert.All(
+			new[]
+			{
+				effect.WithAdditionalDamage(10),
+				effect.WithAdditionalShieldDamage(10),
+				effect.WithShieldDamageBonusPercent(20),
+				effect.WithAdjacentHitDamagePercent(150),
+				effect.WithDamageBonusPercent(20),
+				effect.WithAddedDamageBonusPercent(20),
+			},
+			rewritten => Assert.Equal(350, rewritten.HullBreachDamagePercent));
+	}
+
 	[Fact]
 	public void WithAdditionalShieldDamage_AddsOnlyToShieldBonus()
 	{

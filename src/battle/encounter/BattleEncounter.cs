@@ -29,6 +29,7 @@ public sealed class BattleEncounter
 		EType.Fighter,
 		EType.RepurposedMiner,
 		EType.IndustrialGooper,
+		EType.Rogue,
 	];
 
 	private static readonly EType[] DevEnemyChassis =
@@ -86,6 +87,7 @@ public sealed class BattleEncounter
 			Coord.Zero,
 			lateral * 4,
 			lateral * -4,
+			anchor.Dorsal * 4,
 		};
 
 		var side = playerSide ? "dev" : "enemy-dev";

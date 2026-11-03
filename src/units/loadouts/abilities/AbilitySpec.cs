@@ -21,6 +21,8 @@ public abstract record AbilitySpec
 			EAbilityKind.VoidBombLauncher => VoidBombLauncherSpec.Baseline,
 			EAbilityKind.GoopGun => GoopGunSpec.Baseline,
 			EAbilityKind.Ram => RamSpec.Baseline,
+			EAbilityKind.HighSpeedRod => HighSpeedRodSpec.Baseline,
+			EAbilityKind.RoadsWeDontNeedRoads => RoadsWeDontNeedRoadsSpec.Baseline,
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
 		};
 
@@ -299,6 +301,28 @@ public sealed record RamSpec(
 	}
 }
 
+public sealed record HighSpeedRodSpec(
+	int UsesPerTurn = 1,
+	int Damage = 70,
+	int Range = 4,
+	int HullBreachDamagePercent = 350) : AbilitySpec, IPerTurnAbility, IAreaDamage
+{
+	public static HighSpeedRodSpec Baseline { get; } = new();
+	public override EAbilityKind Kind => EAbilityKind.HighSpeedRod;
+
+	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal) =>
+		Enumerable.Range(1, Range).Select(distance => origin + direction * distance).ToArray();
+}
+
+public sealed record RoadsWeDontNeedRoadsSpec(
+	int CooldownTurns = 3,
+	int Range = 4) : AbilitySpec, ICooldownAbility
+{
+	public static RoadsWeDontNeedRoadsSpec Baseline { get; } = new();
+	public override EAbilityKind Kind => EAbilityKind.RoadsWeDontNeedRoads;
+	public bool ResetsCooldownOnKill => true;
+}
+
 public interface IPerTurnAbility
 {
 	int UsesPerTurn { get; }
@@ -307,4 +331,5 @@ public interface IPerTurnAbility
 public interface ICooldownAbility
 {
 	int CooldownTurns { get; }
+	bool ResetsCooldownOnKill => false;
 }

@@ -12,6 +12,7 @@ using GrimSpace.Math.Grid;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Core.Actions;
+using GrimSpace.Battle.Effects;
 
 namespace GrimSpace.Battle.World;
 
@@ -42,7 +43,11 @@ public sealed class BattleWorld
 		BattleWorld world,
 		ActorRuntime runtime,
 		IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> effects) =>
-		BattleStatuses.RewriteOutgoing(action, world, effects);
+		BattleStatuses.RewriteOutgoing(action, world, effects)
+			.Select(effect => effect is ApplyAreaDamageEffect or ApplyChainLightningDamageEffect
+				? new ResetCooldownOnKillEffect(effect)
+				: effect)
+			.ToArray();
 
 	public string BattleId { get; }
 	public EObjective Objective { get; }

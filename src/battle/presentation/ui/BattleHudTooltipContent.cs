@@ -5,6 +5,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 public enum Icon
 {
 	Damage,
+	Crit,
 	Heal,
 	Hull,
 	Shield,
@@ -14,6 +15,7 @@ public enum Icon
 	ActionPoints,
 	ManeuverPoints,
 	Cooldown,
+	KillReset,
 }
 
 // Battle copy keeps Icon.* token names; content model is shared.

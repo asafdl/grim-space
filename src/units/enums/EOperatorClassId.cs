@@ -6,4 +6,5 @@ public enum EOperatorClassId
 	SpaceRanger,
 	Support,
 	Tank,
+	Rogue,
 }

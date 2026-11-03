@@ -149,6 +149,11 @@ public static class ActionLog
 	{
 		switch (entry)
 		{
+			case HighSpeedRodAction a:
+				actorId = a.ActorId;
+				weapon = "High-Speed Rod";
+				mount = $"{FormatEnum(a.MountedOn)} mount";
+				return true;
 			case ScrapDroneSwarmAction a:
 				actorId = a.ActorId;
 				weapon = "Scrap Drone Swarm";
@@ -185,6 +190,10 @@ public static class ActionLog
 		string sourceId)
 	{
 		var impacts = new List<ImpactFacts>();
+		while (i < history.Count
+			&& history[i] is Record<HeatChangedFacts> { Value.ActorId: var heatedActor }
+			&& heatedActor == sourceId)
+			i++;
 		if (i < history.Count
 			&& history[i] is Record<AreaDamageFacts> { Value.SourceId: var areaSourceId }
 			&& areaSourceId == sourceId)
@@ -240,6 +249,12 @@ public static class ActionLog
 	private static Entry? FormatOne(ITimelineEntry entry, Func<string, string> displayName) =>
 		entry switch
 		{
+			RoadsWeDontNeedRoadsAction a => new Entry(
+				"Roads? We Don't Need Roads",
+				[displayName(a.ActorId), $"Jump to {a.Destination}"]),
+			Record<CooldownResetOnKillFacts> { Value: var reset } => new Entry(
+				"Cooldown reset",
+				[displayName(reset.ActorId), $"{FormatEnum(reset.Mount.Kind)} · Kill credited"]),
 			VoidBombAction a => new Entry(
 				"Launch void bomb",
 				[displayName(a.ActorId), $"{FormatEnum(a.MountedOn)} mount"]),

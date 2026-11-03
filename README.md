@@ -459,7 +459,45 @@ Capability interfaces (metadata + helpers, still in units):
 
 [`BattleSpawn.Ship`](src/battle/encounter/BattleSpawn.cs) carries a **cloned** `ShipInstance` at layout time; strategic player spawns also snapshot **`PilotId`** on the spawn (encounter save/load), so battle portraits use deployment identity rather than live ship assignment. Battle [`State`](src/battle/units/State.cs) holds [`ShipLoadout`](src/units/ShipLoadout.cs) and creates one runtime counter set per mount. Spawns use [`ISpawnable.ChildSpec`](src/units/loadouts/abilities/ISpawnable.cs) (chassis spec for the child) via [`Factory.ChildFromSpawnableMount`](src/battle/units/Factory.cs). Battle reads each mount's effective [`AbilitySpec`](src/units/loadouts/abilities/AbilitySpec.cs); spawned torpedoes snapshot those effective values onto battle [`State.Projectile`](src/battle/units/VoidBombProjectile.cs).
 
-Catalog loadouts are baseline ship configurations and may leave permissible mounts empty. DevDefault fields the three playable classes on the player side and Fighter/Carrier/Gooper on the enemy side, all on T0 catalog loadouts; classified pilots get every global and class skill learned.
+Catalog loadouts are baseline ship configurations and may leave permissible mounts empty. DevDefault fields Fighter/Support/Tank/Rogue on the player side and Fighter/Carrier/Gooper on the enemy side, all on T0 catalog loadouts; classified pilots get every global and class skill learned.
+
+The Rogue class and [`RogueSpec`](src/units/specs/RogueSpec.cs) chassis are registered
+and included as the fourth player ship in the dev duel, but not yet included in
+run starting squads, merchant/recruit pools, or enemy generation.
+Its base stats are 120 hull, 50 shields on each face except
+retro (0), 4 AP, 4 MP, and initiative 50. Reverse translation costs 1 AP; other
+movement and rotation costs remain standard. Its model is `assets/models/ships/spaceship-rouge.glb`,
+rotated 180 degrees to align its nose with gameplay forward and normalized to
+60% of Fighter's forward length (0.54). The turn-flow portrait is rendered from
+that model; the class icon temporarily uses the generic hull icon.
+
+Rogue has two chassis abilities, both costing 0 AP and generating 20 base heat:
+
+- **High-Speed Rod:** independent dorsal and ventral mounts, each firing once
+  per turn along a 4-cell (4 km) line stopped by the first living ship or obstacle.
+  Normal damage is 70. If the normal outgoing hit exceeds the struck face's
+  effective shields (including temporary shields), multiply the entire hit by
+  3.5 before incoming defense modifiers. Equality does not trigger the bonus.
+  Gear weapon-damage and overdrive bonuses apply through the existing damage
+  pipeline; the hull-breach multiplier is preserved by effect rewrites.
+- **Roads? We Don't Need Roads:** teleport 1-4 cells along a single world-grid
+  axis, ignoring intervening obstacles/ships. The landing cell must be empty,
+  passable, and in bounds. Heading and roll are preserved. Cooldown is 3 turns,
+  using normal mount cooldown upkeep; a kill credited to the ship or one of its
+  owned child units resets it immediately. Damage resolution owns the reset in
+  both simulation and live commit, with undo restoring the prior cooldown.
+
+Kill-triggered cooldown resets use
+[`ResetCooldownOnKillEffect`](src/battle/effects/ResetCooldownOnKillEffect.cs),
+which reads `ICooldownAbility.ResetsCooldownOnKill` rather than naming a specific
+ability. Only the jump currently opts in. Reset facts identify the affected mount
+for replay and action-log projection.
+
+Chassis hull/shield values are base capacities. Gear bonuses produce the equipped
+loadout's `MaxHullPoints` / `MaxShieldPoints`; these are repair/recharge targets,
+not independent chassis ceilings. `ShipInstance.HullPoints` / `ShieldPoints`
+store current condition separately. Flat shield gear bonuses apply to every face,
+including faces whose base capacity is zero.
 
 **Upgrade target identity:** run-level **`shipId`** plus either ability kind + facet or a shield face. Merchant packs set an explicit target level on that target; they do not blindly increment it. [`RunShipRegistry.Register`](src/run/RunShipRegistry.cs) is insert-only and idempotent; loadout changes use [`Update`](src/run/RunShipRegistry.cs).
 

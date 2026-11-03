@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -7,7 +8,10 @@ public static class ShipMesh
 {
 	private const string FighterPath = "res://assets/models/ships/spaceship.glb";
 	private const float FighterLength = 0.9f;
+	private const float RogueLength = FighterLength * 0.6f;
+	private const string RoguePath = "res://assets/models/ships/spaceship-rouge.glb";
 	private static PackedScene? _fighterModel;
+	private static PackedScene? _rogueModel;
 
 	public static int SurfaceIndex(ESpatialOrientation face) =>
 		face switch
@@ -21,24 +25,32 @@ public static class ShipMesh
 			_ => throw new ArgumentOutOfRangeException(nameof(face), face, null),
 		};
 
-	public static MeshInstance3D CreateFighterHull()
+	public static MeshInstance3D CreateHull(EType chassis)
 	{
-		_fighterModel ??= GD.Load<PackedScene>(FighterPath)
-			?? throw new InvalidOperationException($"Could not load fighter model '{FighterPath}'.");
-		var scene = _fighterModel.Instantiate<Node3D>();
+		var (path, model) = chassis switch
+		{
+			EType.Fighter => (FighterPath, _fighterModel ??= GD.Load<PackedScene>(FighterPath)),
+			EType.Rogue => (RoguePath, _rogueModel ??= GD.Load<PackedScene>(RoguePath)),
+			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
+		};
+		if (model is null)
+			throw new InvalidOperationException($"Could not load {chassis} model '{path}'.");
+		var scene = model.Instantiate<Node3D>();
+		if (chassis == EType.Rogue)
+			scene.RotateY(Mathf.Pi);
 
 		try
 		{
 			var meshes = scene.FindChildren("*", "MeshInstance3D", true, false)
 				.OfType<MeshInstance3D>().ToArray();
 			if (meshes.Length == 0)
-				throw new InvalidOperationException($"Fighter model '{FighterPath}' has no meshes.");
+				throw new InvalidOperationException($"{chassis} model '{path}' has no meshes.");
 
 			var bounds = default(Aabb);
 			for (var i = 0; i < meshes.Length; i++)
 			{
 				if (meshes[i].Mesh is not { } mesh)
-					throw new InvalidOperationException($"Fighter model '{FighterPath}' has an empty mesh.");
+					throw new InvalidOperationException($"{chassis} model '{path}' has an empty mesh.");
 
 				var transform = Transform3D.Identity;
 				for (Node3D? node = meshes[i]; node is not null; node = node.GetParent() as Node3D)
@@ -54,12 +66,13 @@ public static class ShipMesh
 			}
 
 			if (bounds.Size.Z <= 0f)
-				throw new InvalidOperationException($"Fighter model '{FighterPath}' has no forward extent.");
+				throw new InvalidOperationException($"{chassis} model '{path}' has no forward extent.");
 
-			var scale = FighterLength / bounds.Size.Z;
+			var length = chassis == EType.Rogue ? RogueLength : FighterLength;
+			var scale = length / bounds.Size.Z;
 			var hull = new MeshInstance3D
 			{
-				Name = "FighterHull",
+				Name = $"{chassis}Hull",
 				Position = -bounds.GetCenter() * scale,
 				Scale = Vector3.One * scale,
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,

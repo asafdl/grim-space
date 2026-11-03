@@ -9,6 +9,7 @@ public static class OperatorClassCompatibility
 		EOperatorClassId.SpaceRanger => "Space Ranger",
 		EOperatorClassId.Support => "Forward Deployed Engineer",
 		EOperatorClassId.Tank => "Tank",
+		EOperatorClassId.Rogue => "Rogue",
 		EOperatorClassId.Unclassified => "Unclassified",
 		_ => throw new ArgumentOutOfRangeException(nameof(operatorClass), operatorClass, null),
 	};

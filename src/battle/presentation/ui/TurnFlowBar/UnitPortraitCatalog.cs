@@ -12,6 +12,7 @@ public static class UnitPortraitCatalog
 	private const string VoidBombPortraitPath = "res://assets/ui/unit_portraits/void_bomb.png";
 	private const string IndustrialGooperPortraitPath = "res://assets/ui/unit_portraits/industrial_gooper.png";
 	private const string GunshipPortraitPath = "res://assets/ui/unit_portraits/gunship.png";
+	private const string RoguePortraitPath = "res://assets/ui/unit_portraits/rogue.png";
 	private const int PortraitSize = 52;
 
 	private static Texture2D? _fighter;
@@ -20,6 +21,7 @@ public static class UnitPortraitCatalog
 	private static Texture2D? _voidBomb;
 	private static Texture2D? _industrialGooper;
 	private static Texture2D? _gunship;
+	private static Texture2D? _rogue;
 
 	public static Texture2D? For(EType type) =>
 		type switch
@@ -30,6 +32,7 @@ public static class UnitPortraitCatalog
 			EType.VoidBomb => _voidBomb ??= SvgIconLoader.LoadRaw(VoidBombPortraitPath, PortraitSize),
 			EType.IndustrialGooper => _industrialGooper ??= SvgIconLoader.LoadRaw(IndustrialGooperPortraitPath, PortraitSize),
 			EType.Gunship => _gunship ??= SvgIconLoader.LoadRaw(GunshipPortraitPath, PortraitSize),
+			EType.Rogue => _rogue ??= SvgIconLoader.LoadRaw(RoguePortraitPath, PortraitSize),
 			_ => null,
 		};
 }

@@ -987,6 +987,8 @@ public static class SaveDtoMapper
 			EAbilityKind.VoidBombLauncher => Deserialize<VoidBombLauncherSpec>(dto.Data),
 			EAbilityKind.GoopGun => Deserialize<GoopGunSpec>(dto.Data),
 			EAbilityKind.Ram => Deserialize<RamSpec>(dto.Data),
+			EAbilityKind.HighSpeedRod => Deserialize<HighSpeedRodSpec>(dto.Data),
+			EAbilityKind.RoadsWeDontNeedRoads => Deserialize<RoadsWeDontNeedRoadsSpec>(dto.Data),
 			_ => throw new InvalidDataException($"Unsupported ability kind '{dto.Kind}'."),
 		};
 	}

@@ -240,6 +240,9 @@ public partial class TurnReplayPlayer : Node3D
 				case Record<HeatChangedFacts> { Value: var heat }:
 					ApplyHeatChanged(heat);
 					break;
+				case Record<CooldownResetOnKillFacts> { Value: var reset }:
+					_clipContext.ReplayState.ApplyCooldownResetOnKill(reset);
+					break;
 				case Record<ShieldsChangedFacts> { Value: var shields }:
 					if (PlayShieldChange(shields))
 						return;

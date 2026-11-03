@@ -239,6 +239,32 @@ public static class AbilityHudCatalog
 					unit.UsesRemaining(EAbilityKind.Ram),
 					unit.MaxUsesPerTurn(EAbilityKind.Ram)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.Ram)),
+			HighSpeedRodDef => new(
+				EPlayerMode.HighSpeedRod,
+				def,
+				new AbilityTargetingSpec(
+					AdjacentMountedSource,
+					AbilitySourceMeshes.CreateHighSpeedRod,
+					new Color(0.2f, 0.95f, 0.9f, 0.5f)),
+				"res://assets/ui/abilities/high_speed_rod.svg",
+				BattleHudCopy.HighSpeedRodTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.UsesRemaining(EAbilityKind.HighSpeedRod),
+					unit.MaxUsesPerTurn(EAbilityKind.HighSpeedRod)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.HighSpeedRod)),
+			RoadsWeDontNeedRoadsDef => new(
+				EPlayerMode.RoadsWeDontNeedRoads,
+				def,
+				new AbilityTargetingSpec(
+					JumpDestination,
+					() => ShipMesh.CreateHull(EType.Rogue),
+					new Color(0.65f, 0.45f, 1f, 0.5f)),
+				"res://assets/ui/abilities/roads_we_dont_need_roads.svg",
+				BattleHudCopy.RoadsWeDontNeedRoadsTooltipFor,
+				(unit, _) => BattleHudCopy.Charges(
+					unit.ReadyMounts(EAbilityKind.RoadsWeDontNeedRoads),
+					unit.MountCount(EAbilityKind.RoadsWeDontNeedRoads)),
+				legality => legality.RoadsWeDontNeedRoads),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};
@@ -253,8 +279,14 @@ public static class AbilityHudCatalog
 		return new AbilitySourcePose(
 			actor.Position + direction,
 			direction,
-			actor.Dorsal,
+			Coord.Dot(direction, actor.Dorsal) == 0 ? actor.Dorsal : actor.Fore,
 			mounted.MountedOn);
+	}
+
+	private static AbilitySourcePose JumpDestination(State actor, IAction action)
+	{
+		var jump = Require<RoadsWeDontNeedRoadsAction>(action);
+		return new AbilitySourcePose(jump.Destination, actor.Fore, actor.Dorsal);
 	}
 
 	private static AbilitySourcePose ForwardSource<TAction>(State actor, IAction action)

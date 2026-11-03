@@ -8,7 +8,8 @@ public readonly record struct AbilityLegality(
 	bool OverchargeEngines,
 	bool Brace,
 	bool ProtectionDrone = false,
-	bool HeatVents = false)
+	bool HeatVents = false,
+	bool RoadsWeDontNeedRoads = false)
 {
 	public static AbilityLegality Empty { get; } = new(WeaponPeek.Empty, false, false, false, false, false);
 }

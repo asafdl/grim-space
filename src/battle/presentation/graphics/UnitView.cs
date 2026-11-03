@@ -170,7 +170,7 @@ public partial class UnitView : Node3D
 		else if (state.Type == EType.IndustrialGooper)
 			BindIndustrialGooper();
 		else
-			BindShip();
+			BindShip(state.Type);
 
 		ApplyGearTierHullTint(state);
 		BindShieldBubble(state);
@@ -792,9 +792,9 @@ public partial class UnitView : Node3D
 			showOnUnit);
 	}
 
-	private void BindShip()
+	private void BindShip(EType chassis)
 	{
-		_hull = ShipMesh.CreateFighterHull();
+		_hull = ShipMesh.CreateHull(chassis);
 		_visualRoot.AddChild(_hull);
 	}
 

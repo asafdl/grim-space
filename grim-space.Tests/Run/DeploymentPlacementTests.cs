@@ -23,6 +23,27 @@ namespace GrimSpace.Tests.Run;
 public sealed class DeploymentPlacementTests
 {
 	[Fact]
+	public void DevDefault_IncludesRogueAsFourthPlayerShipWithoutChangingEnemies()
+	{
+		var encounter = BattleEncounter.DevDefault();
+		var players = encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player).ToArray();
+		var enemies = encounter.Spawns.Where(spawn => spawn.Team == ETeam.Enemy).ToArray();
+
+		Assert.Equal(
+			new[] { EType.Fighter, EType.RepurposedMiner, EType.IndustrialGooper, EType.Rogue },
+			players.Select(spawn => spawn.Ship.Spec.Chassis));
+		Assert.Equal(
+			new[] { EType.Fighter, EType.Carrier, EType.IndustrialGooper },
+			enemies.Select(spawn => spawn.Ship.Spec.Chassis));
+		Assert.Equal(encounter.Spawns.Count, encounter.Spawns.Select(spawn => spawn.Position).Distinct().Count());
+		var rogue = players[3];
+		Assert.NotNull(rogue.Pilot);
+		Assert.IsType<GrimSpace.Battle.Player.UserExecutionAgent>(rogue.ExecutionAgent);
+		Assert.Equal(3, rogue.Ship.Loadout.InstalledAbilities.Count);
+		Assert.Equal(players[0].Position + players[0].Dorsal * 4, rogue.Position);
+	}
+
+	[Fact]
 	public void DevDuel_PlacesPlayerOnLowXAndEnemyOnHighX()
 	{
 		var (player, enemy) = DeploymentPlacement.DevDuel(
@@ -260,7 +281,7 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void DevDefault_FieldsThreeClassesAtT0WithFullClassSkills()
+	public void DevDefault_FieldsFourClassesAtT0WithFullClassSkills()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
 		Assert.Equal(
@@ -268,6 +289,7 @@ public sealed class DeploymentPlacementTests
 				BattleUnitType.Fighter,
 				BattleUnitType.RepurposedMiner,
 				BattleUnitType.IndustrialGooper,
+				BattleUnitType.Rogue,
 			],
 			encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player)
 				.Select(spawn => spawn.Ship.Spec.Chassis)
@@ -330,7 +352,7 @@ public sealed class DeploymentPlacementTests
 			BattleEncounter.DevDefault(seed: 7, gridSize: 32),
 			gridSize: 32);
 
-		Assert.Equal("fighter-dev-7", battle.PlayerId);
+		Assert.Equal("rogue-dev-7", battle.PlayerId);
 		Assert.Equal("fighter-enemy-dev-7", BattleTestFixture.FirstEnemyId(battle));
 	}
 

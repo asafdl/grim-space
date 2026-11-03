@@ -21,7 +21,8 @@ public sealed class ApplyAreaDamageEffect(
 	int damageBonusPercent = 0,
 	bool destroySource = false,
 	bool alliesTakeDamage = true,
-	bool overdriveBonusIncluded = false) : IEffect<BattleWorld, ActorRuntime>
+	bool overdriveBonusIncluded = false,
+	int hullBreachDamagePercent = 100) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> Cells => cells;
@@ -33,6 +34,7 @@ public sealed class ApplyAreaDamageEffect(
 	public int AdjacentHitDamageRangeCells => adjacentHitDamageRangeCells;
 	public int DamageBonusPercent => damageBonusPercent;
 	public bool OverdriveBonusIncluded => overdriveBonusIncluded;
+	public int HullBreachDamagePercent => hullBreachDamagePercent;
 
 	public ApplyAreaDamageEffect WithAdditionalDamage(int amount) =>
 		new(
@@ -47,7 +49,8 @@ public sealed class ApplyAreaDamageEffect(
 			damageBonusPercent,
 			destroySource,
 			alliesTakeDamage,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			hullBreachDamagePercent);
 
 	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
@@ -62,7 +65,8 @@ public sealed class ApplyAreaDamageEffect(
 			damageBonusPercent,
 			destroySource,
 			alliesTakeDamage,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			hullBreachDamagePercent);
 
 	public ApplyAreaDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
@@ -77,7 +81,8 @@ public sealed class ApplyAreaDamageEffect(
 			damageBonusPercent,
 			destroySource,
 			alliesTakeDamage,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			hullBreachDamagePercent);
 
 	public ApplyAreaDamageEffect WithAdjacentHitDamagePercent(int percent, int rangeCells = 1) =>
 		new(
@@ -92,7 +97,8 @@ public sealed class ApplyAreaDamageEffect(
 			damageBonusPercent,
 			destroySource,
 			alliesTakeDamage,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			hullBreachDamagePercent);
 
 	public ApplyAreaDamageEffect WithDamageBonusPercent(int percent) =>
 		new(
@@ -107,7 +113,8 @@ public sealed class ApplyAreaDamageEffect(
 			percent,
 			destroySource,
 			alliesTakeDamage,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			hullBreachDamagePercent);
 
 	public ApplyAreaDamageEffect WithAddedDamageBonusPercent(int percent, bool includesOverdrive = false) =>
 		new(
@@ -122,7 +129,8 @@ public sealed class ApplyAreaDamageEffect(
 			damageBonusPercent + percent,
 			destroySource,
 			alliesTakeDamage,
-			overdriveBonusIncluded || includesOverdrive);
+			overdriveBonusIncluded || includesOverdrive,
+			hullBreachDamagePercent);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -197,6 +205,9 @@ public sealed class ApplyAreaDamageEffect(
 		if (origin.ManhattanDistanceTo(unit.Position) == adjacentHitDamageRangeCells
 			&& adjacentHitDamagePercent != 100)
 			appliedDamage = ScalePercent(appliedDamage, adjacentHitDamagePercent);
+
+		if (hullBreachDamagePercent != 100 && appliedDamage > shieldBefore)
+			appliedDamage = ScalePercent(appliedDamage, hullBreachDamagePercent);
 
 		appliedDamage = BattleStatuses.RewriteIncomingDamage(unit.Statuses, appliedDamage);
 

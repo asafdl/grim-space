@@ -58,6 +58,7 @@ public static class AbilityActivation
 	public static IAction CreateExecutionAction(AbilityActivationChoice choice) =>
 		choice.Action switch
 		{
+			RoadsWeDontNeedRoadsAction jump => jump,
 			VoidBombAction torpedo when torpedo.SpawnedUnitId == Capabilities.PreviewVoidBombId =>
 				VoidBombDef.Instance.Bind(torpedo.ActorId, torpedo.MountedOn),
 			VoidBombAction torpedo =>

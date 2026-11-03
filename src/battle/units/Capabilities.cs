@@ -120,6 +120,8 @@ public static class Capabilities
 			EAbilityKind.VoidBombLauncher => VoidBombDef.Instance,
 			EAbilityKind.GoopGun => GoopGunDef.Instance,
 			EAbilityKind.Ram => RamDef.Instance,
+			EAbilityKind.HighSpeedRod => HighSpeedRodDef.Instance,
+			EAbilityKind.RoadsWeDontNeedRoads => RoadsWeDontNeedRoadsDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),
 		};
 
@@ -171,6 +173,7 @@ public static class Capabilities
 			EType.Carrier => CarrierSpec.Instance,
 			EType.RepurposedMiner => RepurposedMinerSpec.Instance,
 			EType.VoidBomb => VoidBombSpec.Instance,
+			EType.Rogue => RogueSpec.Instance,
 			_ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
 		};
 }

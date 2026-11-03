@@ -16,6 +16,7 @@ public static class ShipCatalog
 			EType.Carrier => CarrierSpec.Instance,
 			EType.RepurposedMiner => RepurposedMinerSpec.Instance,
 			EType.VoidBomb => VoidBombSpec.Instance,
+			EType.Rogue => RogueSpec.Instance,
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};
 
@@ -50,7 +51,7 @@ public static class ShipCatalog
 	private static ShipLoadout BaselineLoadoutFor(EType chassis) =>
 		chassis switch
 		{
-			EType.Fighter or EType.Gunship or EType.IndustrialGooper or EType.Carrier or EType.RepurposedMiner or EType.VoidBomb =>
+			EType.Fighter or EType.Gunship or EType.IndustrialGooper or EType.Carrier or EType.RepurposedMiner or EType.VoidBomb or EType.Rogue =>
 				SpecFor(chassis).NewDefaultLoadout(),
 			_ => throw new ArgumentOutOfRangeException(nameof(chassis), chassis, null),
 		};

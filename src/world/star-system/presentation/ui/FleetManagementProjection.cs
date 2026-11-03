@@ -131,6 +131,8 @@ internal static class FleetManagementProjection
 			EAbilityKind.VoidBombLauncher => "Void Bomb Launcher",
 			EAbilityKind.GoopGun => "Goop Gun",
 			EAbilityKind.Ram => "Ram",
+			EAbilityKind.HighSpeedRod => "High-Speed Rod",
+			EAbilityKind.RoadsWeDontNeedRoads => "Roads? We Don't Need Roads",
 			_ => kind.ToString(),
 		};
 
@@ -174,6 +176,18 @@ internal static class FleetManagementProjection
 				new("DAMAGE", ram.Damage.ToString()),
 				new("RANGE", ram.Range.ToString()),
 				new("USES PER TURN", ram.UsesPerTurn.ToString()),
+			],
+			HighSpeedRodSpec rod =>
+			[
+				new("DAMAGE", rod.Damage.ToString()),
+				new("HULL BREACH MULTIPLIER", $"{rod.HullBreachDamagePercent / 100m:0.##}x"),
+				new("RANGE", rod.Range.ToString()),
+				new("USES PER TURN", rod.UsesPerTurn.ToString()),
+			],
+			RoadsWeDontNeedRoadsSpec jump =>
+			[
+				new("RANGE", jump.Range.ToString()),
+				new("COOLDOWN", jump.CooldownTurns.ToString()),
 			],
 			_ => [],
 		};

@@ -15,4 +15,6 @@ public enum EPlayerMode
 	Brace,
 	ProtectionDrone,
 	Ram,
+	HighSpeedRod,
+	RoadsWeDontNeedRoads,
 }

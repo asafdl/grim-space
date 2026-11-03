@@ -19,6 +19,35 @@ public partial class HazardBurstView : Node3D
 			spray.Cancel();
 	}
 
+	public void PlayRodShot(Coord origin, Coord destination, double duration)
+	{
+		var start = WorldMapping.ToWorld(origin);
+		var end = WorldMapping.ToWorld(destination);
+		if (start == end)
+			return;
+		var direction = (end - start).Normalized();
+		var material = new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			AlbedoColor = new Color(0.2f, 0.95f, 0.9f),
+			EmissionEnabled = true,
+			Emission = new Color(0.2f, 0.95f, 0.9f),
+		};
+		var rod = new MeshInstance3D
+		{
+			Mesh = new BoxMesh { Size = new Vector3(0.06f, 0.06f, 0.6f) * WorldMapping.CellSize },
+			MaterialOverride = material,
+			Position = start,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+		};
+		PresentationLayers.MarkUx(rod);
+		AddChild(rod);
+		rod.LookAt(end, Mathf.Abs(direction.Dot(Vector3.Up)) > 0.9f ? Vector3.Right : Vector3.Up, true);
+		var tween = CreateTween();
+		tween.TweenProperty(rod, "position", end, duration);
+		PresentationTween.ChainFree(tween, rod);
+	}
+
 	public void PlayShotBurst(
 		Coord origin,
 		Vector3 direction,

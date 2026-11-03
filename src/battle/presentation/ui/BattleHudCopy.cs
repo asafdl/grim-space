@@ -123,6 +123,7 @@ internal static class BattleHudCopy
 		{
 			EPlayerMode.SpawnRepurposedMiner => PickLaunchBay,
 			EPlayerMode.Detonate => PickVoidBomb,
+			EPlayerMode.RoadsWeDontNeedRoads => "Pick jump destination",
 			_ => PickFiringMount,
 		};
 
@@ -231,6 +232,26 @@ internal static class BattleHudCopy
 			"Ram",
 			$"Smash into an enemy up to {BattleDistance.ApproximateCells(ram.Range)}.",
 			$"[icon: {Icon.Damage}, text: {ram.Damage}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
+
+	public static BattleHudTooltipContent HighSpeedRodTooltipFor(UnitDisplayState unit)
+	{
+		var rod = FirstInstalled<HighSpeedRodSpec>(unit, EAbilityKind.HighSpeedRod)
+			?? throw new InvalidOperationException("High-Speed Rod tooltip requires an installed rod.");
+		return new(
+			"High-Speed Rod",
+			$"Fire up to {BattleDistance.ApproximateCells(rod.Range)}, Crit when hitting hull.",
+			$"[icon: {Icon.Damage}, text: {rod.Damage}] [icon: {Icon.Crit}, text: x{rod.HullBreachDamagePercent / 100m:0.##}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
+	}
+
+	public static BattleHudTooltipContent RoadsWeDontNeedRoadsTooltipFor(UnitDisplayState unit)
+	{
+		var jump = FirstInstalled<RoadsWeDontNeedRoadsSpec>(unit, EAbilityKind.RoadsWeDontNeedRoads)
+			?? throw new InvalidOperationException("Jump tooltip requires an installed jump ability.");
+		return new(
+			"Roads? We Don't Need Roads",
+			$"Teleport up to {BattleDistance.ApproximateCells(jump.Range)}. Reset cooldown on kill.",
+			$"[icon: {Icon.Cooldown}, text: {jump.CooldownTurns} turns] [icon: {Icon.KillReset}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
+	}
 
 	public static BattleHudTooltipContent SpawnRepurposedMinerTooltipFor(UnitDisplayState unit) =>
 		FirstInstalled<MinerBaySpec>(unit, EAbilityKind.MinerBay) is { } bay

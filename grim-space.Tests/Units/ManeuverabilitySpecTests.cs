@@ -112,6 +112,7 @@ public sealed class ManeuverabilitySpecTests
 
 	[Theory]
 	[InlineData(EType.Fighter, 4, 3)]
+	[InlineData(EType.Rogue, 4, 4)]
 	[InlineData(EType.Carrier, 3, 1)]
 	[InlineData(EType.RepurposedMiner, 4, 2)]
 	[InlineData(EType.VoidBomb, 4, 0)]
@@ -131,6 +132,8 @@ public sealed class ManeuverabilitySpecTests
 	[InlineData(EType.Fighter)]
 	[InlineData(EType.Carrier)]
 	[InlineData(EType.RepurposedMiner)]
+	[InlineData(EType.Gunship)]
+	[InlineData(EType.IndustrialGooper)]
 	public void RegularChassisUseInitialStandardCosts(EType chassis)
 	{
 		var maneuverability = ShipCatalog.SpecFor(chassis).Maneuverability;

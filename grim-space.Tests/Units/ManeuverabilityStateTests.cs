@@ -11,6 +11,7 @@ public sealed class ManeuverabilityStateTests
 {
 	[Theory]
 	[InlineData(EType.Fighter, 4, 3)]
+	[InlineData(EType.Rogue, 4, 4)]
 	[InlineData(EType.Carrier, 3, 1)]
 	[InlineData(EType.RepurposedMiner, 4, 2)]
 	[InlineData(EType.VoidBomb, 4, 0)]

@@ -115,7 +115,8 @@ public sealed class PlanningPreview
 			actions.Any(action => action is OverchargeEnginesAction),
 			actions.Any(action => action is BraceAction),
 			actions.Any(action => action is ProtectionDroneAction),
-			actions.Any(action => action is HeatVentsAction));
+			actions.Any(action => action is HeatVentsAction),
+			actions.Any(action => action is RoadsWeDontNeedRoadsAction));
 
 	public static WeaponPeek Weapons(IReadOnlyList<IAction> actions)
 	{
@@ -124,6 +125,7 @@ public sealed class PlanningPreview
 		var lightningCannon = false;
 		var goopGun = false;
 		var ram = false;
+		var highSpeedRod = false;
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 
 		foreach (var action in actions)
@@ -145,6 +147,9 @@ public sealed class PlanningPreview
 				case RamAction:
 					ram = true;
 					break;
+				case HighSpeedRodAction:
+					highSpeedRod = true;
+					break;
 				case VoidBombAction torpedo:
 					torpedoMounts.Add(torpedo.MountedOn);
 					break;
@@ -157,7 +162,8 @@ public sealed class PlanningPreview
 			lightningCannon,
 			goopGun,
 			torpedoMounts,
-			ram);
+			ram,
+			highSpeedRod);
 	}
 
 	public AreaActionPreviews AreaPreviews(

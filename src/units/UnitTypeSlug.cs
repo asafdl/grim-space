@@ -12,6 +12,7 @@ public static class UnitTypeSlug
 		EType.Carrier => "carrier",
 		EType.RepurposedMiner => "repurposed-miner",
 		EType.VoidBomb => "void_bomb",
+		EType.Rogue => "rogue",
 		_ => throw new ArgumentOutOfRangeException(nameof(type)),
 	};
 }

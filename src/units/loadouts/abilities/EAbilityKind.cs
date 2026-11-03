@@ -8,4 +8,6 @@ public enum EAbilityKind
 	VoidBombLauncher,
 	GoopGun,
 	Ram,
+	HighSpeedRod,
+	RoadsWeDontNeedRoads,
 }

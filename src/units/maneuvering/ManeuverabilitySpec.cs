@@ -49,14 +49,17 @@ public sealed class ManeuverabilitySpec
 			_headingMpCosts,
 			_rollMpCosts);
 
-	public static ManeuverabilitySpec StandardShip(int maxActionPoints, int maxManeuverPoints) =>
+	public static ManeuverabilitySpec StandardShip(
+		int maxActionPoints,
+		int maxManeuverPoints,
+		int reverseApCost = 2) =>
 		new(
 			maxActionPoints,
 			maxManeuverPoints,
 			new Dictionary<ESpatialOrientation, int>
 			{
 				[ESpatialOrientation.Forward] = 1,
-				[ESpatialOrientation.Retro] = 2,
+				[ESpatialOrientation.Retro] = reverseApCost,
 				[ESpatialOrientation.Port] = 1,
 				[ESpatialOrientation.Starboard] = 1,
 				[ESpatialOrientation.Dorsal] = 1,

@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Units.Enums;
 
 public partial class WreckageDeathPreview : Node3D
 {
@@ -40,7 +41,7 @@ public partial class WreckageDeathPreview : Node3D
 	private void SpawnShip()
 	{
 		_ship = new Node3D { Name = "PreviewShip" };
-		_ship.AddChild(ShipMesh.CreateFighterHull());
+		_ship.AddChild(ShipMesh.CreateHull(EType.Fighter));
 		AddChild(_ship);
 		_status.Text = $"Ship destruction preview\nExplosion + {DebrisCount} drifting fragments";
 		_timer.Start(IntactSeconds);
