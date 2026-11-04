@@ -14,9 +14,12 @@ internal sealed class ContractSpawnMemberJsonConverter :
 	{
 		using var document = JsonDocument.ParseValue(ref reader);
 		var payload = document.RootElement;
-		if (!payload.TryGetProperty("chassis", out var chassis)
-			|| !payload.TryGetProperty("gearTier", out var gearTier))
-			throw new JsonException("Contract spawn member is missing chassis or gear tier.");
+		if (payload.ValueKind != JsonValueKind.Object
+			|| payload.EnumerateObject().Any(property =>
+				property.Name is not ("chassis" or "gearTier")))
+			throw new JsonException("Contract spawn member does not match the current shape.");
+		var chassis = payload.GetProperty("chassis");
+		var gearTier = payload.GetProperty("gearTier");
 
 		return (
 			(EType)chassis.GetInt32(),

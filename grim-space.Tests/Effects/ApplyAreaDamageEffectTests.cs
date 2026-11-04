@@ -125,68 +125,36 @@ public sealed class ApplyAreaDamageEffectTests
 		Assert.Equal(2, enemy.State.CurrentShieldPoints[hitFace]);
 	}
 
-	[Theory]
-	[InlineData(0, 2)]
-	[InlineData(6, 1)]
-	public void Apply_DefensiveManeuversRollHalvesDamage(
-		int rollIndex,
-		int expectedHullDamage)
+	[Fact]
+	public void Apply_DefensiveManeuversReducesDamageAndUndoRestoresHull()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		InstallDefensiveManeuvers(battle.Engine.World, enemy.State.Id);
 		enemy.State.DefensiveManeuversMpUsed = 0;
-		enemy.State.DefensiveManeuversRollIndex = rollIndex;
 		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
-			2,
+			200,
 			player.State.Position);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 
 		effect.Apply(battle.Engine.World, runtime, player.State.Id);
 
-		Assert.Equal(hullBefore - expectedHullDamage, enemy.State.CurrentHullPoints);
-		Assert.Equal(rollIndex + 1, enemy.State.DefensiveManeuversRollIndex);
+		Assert.Equal(hullBefore - 180, enemy.State.CurrentHullPoints);
 
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
 		Assert.Equal(hullBefore, enemy.State.CurrentHullPoints);
-		Assert.Equal(rollIndex, enemy.State.DefensiveManeuversRollIndex);
 	}
 
 	[Fact]
-	public void Apply_DoesNotRollDeflectionWithoutQualifyingTurn()
+	public void Apply_DefensiveManeuversInactiveAfterSpendingMp()
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		InstallDefensiveManeuvers(battle.Engine.World, enemy.State.Id);
 		enemy.State.DefensiveManeuversMpUsed = 1;
-		enemy.State.DefensiveManeuversRollIndex = 6;
-		var hullBefore = enemy.State.CurrentHullPoints;
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { enemy.State.Position },
-			2,
-			player.State.Position);
-
-		effect.Apply(
-			battle.Engine.World,
-			battle.Engine.ActorRuntimes.For(player.State.Id),
-			player.State.Id);
-
-		Assert.Equal(hullBefore - 2, enemy.State.CurrentHullPoints);
-		Assert.Equal(6, enemy.State.DefensiveManeuversRollIndex);
-	}
-
-	[Fact]
-	public void Apply_DeflectionRetainsConfiguredDamagePercent()
-	{
-		var (player, enemy, battle, hitFace) = DamageBattle();
-		enemy.State.CurrentShieldPoints[hitFace] = 0;
-		InstallDefensiveManeuvers(battle.Engine.World, enemy.State.Id);
-		enemy.State.DefensiveManeuversMpUsed = 0;
-		enemy.State.DefensiveManeuversRollIndex = 6;
 		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
@@ -199,7 +167,7 @@ public sealed class ApplyAreaDamageEffectTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 100, enemy.State.CurrentHullPoints);
+		Assert.Equal(hullBefore - 200, enemy.State.CurrentHullPoints);
 	}
 
 	[Fact]

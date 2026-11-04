@@ -301,9 +301,9 @@ Retain current loss behavior for this experiment unless separately changed.
 
 Save data will need class qualification and an unambiguous representation of
 the purchased equipment package/tier. Existing snapshots may contain
-individually upgraded ships and pilots without a class. A migration or explicit
-save-version incompatibility policy must be chosen before runtime rollout; this
-document does not choose how old pilots are classified or old upgrades valued.
+individually upgraded ships and pilots without a class. Prior save formats are
+intentionally unsupported: the runtime bumps the format version and does not
+migrate old pilots or individually upgraded ships.
 
 ## Presentation requirements
 
@@ -378,7 +378,7 @@ does not establish that the roster loop is fun.
 - Starting roster/equipment and the early availability of compatible hires
   and ships.
 - Replacement or retirement of upgrade-specific pilot perks.
-- Save compatibility policy.
+- Confirm that prior save formats remain unsupported and are not migrated.
 
 Resale/trade-ins, class switching, and new pilot-survival rules are deferred,
 not implicit parts of this proposal.

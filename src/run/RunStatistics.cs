@@ -37,11 +37,11 @@ public sealed class RunStatistics
 	public RunStatisticsDto CaptureSnapshot() =>
 		new(BattlesWon, BattlesLost, CreditsEarned);
 
-	public void RestoreSnapshot(RunStatisticsDto? dto)
+	public void RestoreSnapshot(RunStatisticsDto dto)
 	{
-		BattlesWon = dto?.BattlesWon ?? 0;
-		BattlesLost = dto?.BattlesLost ?? 0;
-		CreditsEarned = dto?.CreditsEarned ?? 0;
+		BattlesWon = dto.BattlesWon;
+		BattlesLost = dto.BattlesLost;
+		CreditsEarned = dto.CreditsEarned;
 	}
 }
 

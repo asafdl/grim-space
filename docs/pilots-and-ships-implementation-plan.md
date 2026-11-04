@@ -56,7 +56,7 @@ Prepare a concrete proposal for approval covering:
 | Stock | Ship brokers list all approved Fighter tiers at once; pilot hire uses the full recruitable background pool |
 | Hiring | Confirm pilot-only hire price now that the bundled ship is removed |
 | Obsolete perk | Decide whether to retire or redesign "I Know a Bot"; no implicit purchase-discount conversion |
-| Save policy | Choose explicit incompatibility or a defined migration for old classes, ships, and learned obsolete perks |
+| Save policy | Older save formats are unsupported; bump the format version and do not migrate old classes, ships, or obsolete perks |
 
 These are not reasons to build a configurable framework. Prefer the smallest
 catalog/model extension that expresses the approved packages and requirements.
@@ -105,7 +105,7 @@ save policy, and bounded implementation surface.
 - Avoid globally replacing the shared tier roller: preserve enemy generation
   unless a specific shared change is required and tested.
 - Carry new identity through clone, creation, and persistence paths; implement
-  the agreed version/migration policy here so the model change is not lossy.
+  bump the save format and keep prior versions unsupported; do not migrate old snapshots.
 - Give new-run pilots and starter ships valid baseline values.
 
 Tests: exact package output, independent instance condition, identity surviving

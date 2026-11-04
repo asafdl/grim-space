@@ -17,7 +17,7 @@ public sealed record StarMapContractDto(
 	string? StateType,
 	JsonElement State,
 	int? ExpiresAtTick,
-	EContractCategory Category = EContractCategory.Standard);
+	EContractCategory Category);
 
 internal sealed record MaintainContractBoardDto(
 	string ActorId,

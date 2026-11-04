@@ -17,12 +17,12 @@ internal sealed class FleetJsonConverter : JsonConverter<Fleet>
 		var payload = document.RootElement;
 		var state = payload.GetProperty("state").Deserialize<FleetState>(options)
 			?? throw new JsonException("Fleet state is missing.");
-		var members = payload.TryGetProperty("members", out var membersPayload)
-			? membersPayload.Deserialize<IReadOnlyList<FleetMember>>(options)
-			: [];
-		var registrations = payload.TryGetProperty("registrations", out var registrationsPayload)
-			? registrationsPayload.Deserialize<IReadOnlyList<ShipSpawnDeclaration>>(options)
-			: [];
+		var members = payload.GetProperty("members")
+			.Deserialize<IReadOnlyList<FleetMember>>(options)
+			?? throw new JsonException("Fleet members are missing.");
+		var registrations = payload.GetProperty("registrations")
+			.Deserialize<IReadOnlyList<ShipSpawnDeclaration>>(options)
+			?? throw new JsonException("Fleet registrations are missing.");
 		return new Fleet(state, members, registrations);
 	}
 

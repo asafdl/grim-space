@@ -8,7 +8,7 @@ public sealed record BattleStatusDto(
 	int Priority,
 	IReadOnlyList<string> ActionTags,
 	EStatusPolarity Polarity,
-	ESpatialOrientation? Face = null,
-	FaceShieldDto? Snapshot = null,
-	int DamagePending = 0,
-	FaceShieldDto? Remaining = null);
+	ESpatialOrientation? Face,
+	FaceShieldDto? Snapshot,
+	int DamagePending,
+	FaceShieldDto? Remaining);

@@ -136,7 +136,6 @@ public sealed class ActorRuntimeAssemblyTests
 		using var original = BattleOrchestrator.FromEncounter(encounter, gridSize: 12);
 		var player = original.Engine.World.StateOf(original.PlayerId);
 		player.DefensiveManeuversMpUsed = 2;
-		player.DefensiveManeuversRollIndex = 7;
 		player.ShieldDynamoGrantedPerFace = 10;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			player.CurrentShieldPoints[face] = 40;
@@ -167,7 +166,6 @@ public sealed class ActorRuntimeAssemblyTests
 		}
 		var restoredPlayer = restoredWorld.StateOf(original.PlayerId);
 		Assert.Equal(2, restoredPlayer.DefensiveManeuversMpUsed);
-		Assert.Equal(7, restoredPlayer.DefensiveManeuversRollIndex);
 		Assert.Equal(10, restoredPlayer.ShieldDynamoGrantedPerFace);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			Assert.Equal(40, restoredPlayer.CurrentShieldPoints[face]);

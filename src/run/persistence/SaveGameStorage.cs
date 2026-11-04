@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using GrimSpace.Core.Log;
 
 namespace GrimSpace.Run.Persistence;
@@ -22,7 +23,12 @@ public interface ISaveGameStorage
 public sealed class FileSystemSaveGameStorage : ISaveGameStorage
 {
 	private static readonly JsonSerializerOptions JsonOptions =
-		ReflectionJson.CreateOptions(options => options.WriteIndented = true);
+		ReflectionJson.CreateOptions(options =>
+		{
+			options.WriteIndented = true;
+			options.RespectRequiredConstructorParameters = true;
+			options.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+		});
 
 	private readonly string _path;
 	private readonly string _temporaryPath;

@@ -192,14 +192,7 @@ public sealed class PersistenceRegistry
 	private static PurchaseAction ReadPurchase(JsonElement element)
 	{
 		var dto = Deserialize<PurchaseDto>(element);
-		var endpoint = dto.Endpoint
-			?? new FacilityMerchantEndpoint(
-				dto.PoiId
-				?? throw new InvalidDataException("Purchase action is missing a merchant endpoint."),
-				dto.FacilityId
-				?? throw new InvalidDataException("Purchase action is missing a facility id."),
-				dto.OperatorName
-				?? throw new InvalidDataException("Purchase action is missing an operator name."));
+		var endpoint = dto.Endpoint;
 		return new PurchaseAction(
 			dto.ActorId,
 			endpoint,
@@ -207,16 +200,13 @@ public sealed class PersistenceRegistry
 			dto.Offering,
 			dto.Target,
 			SaveDtoMapper.RestoreShip(dto.Before),
-			dto.QuotedCost ?? ResourceBundle.Empty);
+			dto.QuotedCost);
 	}
 
 	private static JsonElement WritePurchase(PurchaseAction value) =>
 		Serialize(new PurchaseDto(
 			value.ActorId,
 			value.Endpoint,
-			null,
-			null,
-			null,
 			value.Catalog,
 			value.Offering,
 			value.Target,

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
@@ -401,17 +400,6 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
-	public void DefaultRegistry_RoundTripsLegacyContractMerchantVisit()
-	{
-		var registry = PersistenceRegistry.CreateDefault();
-#pragma warning disable CS0618
-		var action = new VisitContractMerchantAction("fleet", "poi", "facility", "operator");
-#pragma warning restore CS0618
-
-		Assert.Equal(action, registry.Read(registry.Write(action)));
-	}
-
-	[Fact]
 	public void DefaultRegistry_RoundTripsFleetSpawnerAction()
 	{
 		var map = StarMap.Create(42);
@@ -592,7 +580,7 @@ public sealed class SaveGamePersistenceTests
 
 		Assert.Equal(1, capturedCannon.DamageUpgradeTier);
 		Assert.Equal(1, capturedCannon.RangeUpgradeTier);
-		Assert.Null(capturedCannon.Spec);
+		Assert.Equal(EAbilityKind.LightningCannon, capturedCannon.Kind);
 		Assert.Equal(ship.Id, restored.Id);
 		Assert.Equal(ship.Spec.Chassis, restored.Spec.Chassis);
 		Assert.Equal(ship.CurrentHullPoints, restored.CurrentHullPoints);
@@ -624,23 +612,6 @@ public sealed class SaveGamePersistenceTests
 
 		Assert.True(restoredListing.Pricing.FixedCost.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(999, credits);
-	}
-
-	[Fact]
-	public void SaveDtoMapper_LegacySaveWithoutMarket_SeedsMerchants()
-	{
-		var map = StarMap.Create(42);
-		var registry = PersistenceRegistry.CreateDefault();
-		var captured = SaveDtoMapper.CaptureStarMap(map, registry);
-		var legacySave = captured with { Market = null };
-
-		var restored = SaveDtoMapper.RestoreStarMap(legacySave, registry);
-		var ship = ShipInstance.FromCatalog("legacy-merchant", EType.Fighter);
-
-		Assert.True(MerchantCatalog.ListFor(
-			EMerchantCatalog.Healing,
-			ship,
-			restored).Count > 0);
 	}
 
 	[Fact]
@@ -718,6 +689,9 @@ public sealed class SaveGamePersistenceTests
 				copy.Facilities
 					.SelectMany(facility => facility.Operators)
 					.Select(operatorEntry => operatorEntry.Name));
+			Assert.Equal(
+				original.Facilities.SelectMany(facility => facility.Operators),
+				copy.Facilities.SelectMany(facility => facility.Operators));
 		}
 
 		var originalAdmin = Assert.IsType<AdministrativeCore>(
@@ -725,67 +699,6 @@ public sealed class SaveGamePersistenceTests
 		var restoredAdmin = Assert.IsType<AdministrativeCore>(
 			restored.PointsOfInterest.Single(poi => poi is AdministrativeCore));
 		Assert.Equal(originalAdmin.PhysicalForm, restoredAdmin.PhysicalForm);
-	}
-
-	[Fact]
-	public void SaveDtoMapper_RestoresLegacyCombatProfileAndFleetParticipants()
-	{
-		var map = StarMap.Create(42);
-		const string playerId = "save-test-player";
-		StarSystemTestHarness.AddPlayerFleet(map, playerId);
-		map.FleetRegistry.Add(
-			StarSystemTestHarness.CreatePirateFleet(
-				"save-test-pirate",
-				new Coord(20, 0, 20),
-				EFaction.Pirates));
-		var registry = PersistenceRegistry.CreateDefault();
-		var captured = SaveDtoMapper.CaptureStarMap(map, registry);
-		var legacyState = JsonNode.Parse(captured.Fleets[0].State.GetRawText())!.AsObject();
-		legacyState["combatProfile"] = new JsonObject();
-		var legacyFleet = captured.Fleets[0] with
-		{
-			State = JsonSerializer.SerializeToElement(legacyState, registry.Options),
-		};
-		var legacySave = captured with
-		{
-			Fleets = captured.Fleets
-				.Select((fleet, index) => index == 0 ? legacyFleet : fleet)
-				.ToArray(),
-		};
-
-		var restored = SaveDtoMapper.RestoreStarMap(legacySave, registry);
-		var player = restored.FleetRegistry.FleetOf(playerId);
-		var targetIds = restored.FleetRegistry.All
-			.Where(fleet => fleet.State.Id != playerId)
-			.Select(fleet => fleet.State.Id)
-			.ToArray();
-
-		Assert.Contains(
-			restored.FleetRegistry.All,
-			fleet => fleet.State.Faction == EFaction.Pirates);
-		Assert.Contains(
-			restored.FleetRegistry.All,
-			fleet => fleet.State.Faction == EFaction.TheOptimality);
-		foreach (var targetId in targetIds)
-		{
-			var target = restored.FleetRegistry.FleetOf(targetId);
-			var action = new PursueContactAction(
-				playerId,
-				new FleetContactTarget(targetId),
-				Assert.IsType<FleetTravel.AtRest>(target.State.Travel).Position,
-				TransitPath.FromPoints(
-					[
-						Assert.IsType<FleetTravel.AtRest>(player.State.Travel).Position,
-						Assert.IsType<FleetTravel.AtRest>(target.State.Travel).Position,
-					],
-					[1.0, 1.0]),
-				EContactIntent.Engagement);
-
-			Assert.True(PursueContactDef.Instance.IsLegal(
-				action,
-				restored,
-				new GrimSpace.World.StarSystem.Runtime.ActorRuntime()));
-		}
 	}
 
 	[Fact]
@@ -994,55 +907,6 @@ public sealed class SaveGamePersistenceTests
 			registry);
 
 		Assert.Equal(99, restored.StateOf(orchestrator.PlayerId).Initiative);
-	}
-
-	[Fact]
-	public void RestoreBattleWorld_DefaultsMissingInitiativeToChassis()
-	{
-		using var orchestrator = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
-			gridSize: 12);
-		var registry = new PersistenceRegistry();
-		var dto = SaveDtoMapper.CaptureBattleWorld(orchestrator.Engine.World, registry);
-		var json = JsonSerializer.SerializeToNode(dto, registry.Options)!.AsObject();
-		foreach (var unit in json["units"]!.AsArray())
-			unit!.AsObject().Remove("initiative");
-
-		var legacyDto = JsonSerializer.Deserialize<BattleWorldSaveDto>(
-			json,
-			registry.Options)!;
-		var restored = SaveDtoMapper.RestoreBattleWorld(legacyDto, registry);
-
-		Assert.All(restored.UnitRegistry.All, unit =>
-			Assert.Equal(
-				ShipCatalog.SpecFor(unit.State.Type).Initiative,
-				unit.State.Initiative));
-	}
-
-	[Fact]
-	public void RestoreBattleWorld_DefaultsMissingManeuverPointsToChassisAllotment()
-	{
-		using var orchestrator = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
-			gridSize: 12);
-		var registry = new PersistenceRegistry();
-		var dto = SaveDtoMapper.CaptureBattleWorld(orchestrator.Engine.World, registry);
-		var json = JsonSerializer.SerializeToNode(dto, registry.Options)!.AsObject();
-		foreach (var unit in json["units"]!.AsArray())
-		{
-			unit!.AsObject().Remove("maneuverPoints");
-			unit.AsObject().Remove("maxMp");
-		}
-
-		var legacyDto = JsonSerializer.Deserialize<BattleWorldSaveDto>(
-			json,
-			registry.Options)!;
-		var restored = SaveDtoMapper.RestoreBattleWorld(legacyDto, registry);
-		var player = restored.StateOf(orchestrator.PlayerId);
-
-		Assert.Equal(
-			ShipCatalog.SpecFor(player.Type).Maneuverability.BaseManeuverPoints,
-			player.CurrentManeuverPoints);
 	}
 
 	private sealed record ReflectionSample(

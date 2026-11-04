@@ -1,6 +1,5 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Statuses;
-using GrimSpace.Math;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Units;
@@ -93,32 +92,11 @@ public static class Defense
 		unit.CurrentHullPoints = System.Math.Max(unit.CurrentHullPoints - hullDamage, 0);
 	}
 
-	public static IncomingHit RetainHit(IncomingHit hit, int retainedPercent) =>
-		new(
-			ScalePercent(hit.Damage, retainedPercent),
-			ScalePercent(hit.ShieldDamageBonus, retainedPercent));
-
 	public static IncomingHit ScaleHitDamageTaken(IncomingHit hit, int retainedPercent)
 	{
 		var reducedTotal = ScalePercent(hit.Damage + hit.ShieldDamageBonus, retainedPercent);
 		var damage = ScalePercent(hit.Damage, retainedPercent);
 		return new IncomingHit(damage, reducedTotal - damage);
-	}
-
-	public static bool RollsDeflection(
-		State unit,
-		int rollIndex,
-		EImpactCause cause,
-		int chancePercent,
-		int? sourceSalt = null)
-	{
-		var mixer = new StableSeedMixer()
-			.Add(unit.Id)
-			.Add(rollIndex)
-			.Add((int)cause);
-		if (sourceSalt is int salt)
-			mixer.Add(salt);
-		return new StableRandom(mixer.Value).NextDouble() < chancePercent / 100.0;
 	}
 
 	public static int ScalePercent(int amount, int percent) =>

@@ -125,7 +125,7 @@ public static class PilotSkillCatalog
 				[EPilotCapabilityId.StationaryDamageDeflection],
 				new HudTooltipContent(
 					"Defensive Maneuvers",
-					$"If you spend no maneuver points during your turn, gain a {PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent}% chance to deflect {PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent}% damage from each hit until your next turn ends."),
+					$"If you spend no maneuver points during your turn, gain {100 - PilotSkillPercents.DefensiveManeuvers.DamageTakenPercent}% damage resistance from each hit until your next turn ends."),
 				minimumEarnedLevel: 3,
 				audience: PilotSkillAudience.ForOperatorClasses(
 					EOperatorClassId.Support,

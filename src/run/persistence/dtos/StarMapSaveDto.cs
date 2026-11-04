@@ -20,4 +20,4 @@ public sealed record StarMapSaveDto(
 	bool WaitingForPlayerInput,
 	string? ActiveNarrativeId,
 	TimelineSnapshotDto Timeline,
-	StarMarketDto? Market = null);
+	StarMarketDto Market);

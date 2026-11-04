@@ -8,6 +8,6 @@ public sealed record TemporaryOperatorRoleDto(
 	string OperatorName,
 	EFacilityOperatorRole Role,
 	string SourceId,
-	EMerchantSubtype? MerchantSubtype = null,
-	EOperatorAssignmentPriority? Priority = null,
-	int? AcceptsSourcesUntilTick = null);
+	EMerchantSubtype? MerchantSubtype,
+	EOperatorAssignmentPriority Priority,
+	int? AcceptsSourcesUntilTick);

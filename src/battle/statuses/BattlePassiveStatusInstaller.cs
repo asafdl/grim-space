@@ -248,21 +248,12 @@ public static class BattlePassiveStatusInstaller
 				Priority = 200,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
-				RewriteIncomingHit = (_, target, _, cause, _, hit) =>
-				{
-					var unit = target.State;
-					if (hit.Damage <= 0 || unit.DefensiveManeuversMpUsed != 0)
-						return hit;
-					if (!Defense.RollsDeflection(
-						unit,
-						unit.DefensiveManeuversRollIndex++,
-						cause,
-						PilotSkillPercents.DefensiveManeuvers.DeflectChancePercent))
-						return hit;
-					return Defense.RetainHit(
-						hit,
-						PilotSkillPercents.DefensiveManeuvers.DeflectDamageTakenPercent);
-				},
+				RewriteIncomingHit = (_, target, _, _, _, hit) =>
+					hit.Damage <= 0 || target.State.DefensiveManeuversMpUsed != 0
+						? hit
+						: Defense.ScaleHitDamageTaken(
+							hit,
+							PilotSkillPercents.DefensiveManeuvers.DamageTakenPercent),
 			},
 			EPilotCapabilityId.ShieldDynamo => new BattleStatus
 			{

@@ -8,9 +8,9 @@ public sealed record StarSystemRuntimeDto(
 	JsonElement? PendingCompletion,
 	int PendingCompletionTick,
 	long JourneyIdSequence,
-	IReadOnlyDictionary<string, int>? IgnoreUntilTickByTargetId = null,
-	int ActionCooldownUntilTick = 0,
-	string? SelectedMemberShipId = null,
-	long FuelLedgerJourneyId = 0,
-	double FuelChargedDistanceAlongCurrentJourney = 0,
-	double FuelUnchargedDistance = 0);
+	IReadOnlyDictionary<string, int> IgnoreUntilTickByTargetId,
+	int ActionCooldownUntilTick,
+	string? SelectedMemberShipId,
+	long FuelLedgerJourneyId,
+	double FuelChargedDistanceAlongCurrentJourney,
+	double FuelUnchargedDistance);

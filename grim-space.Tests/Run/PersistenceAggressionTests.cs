@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run.Persistence;
 using GrimSpace.World.Factions;
@@ -17,43 +16,6 @@ namespace GrimSpace.Tests.Run;
 [IntegrationTestSuite]
 public sealed class PersistenceAggressionTests
 {
-	[Fact]
-	public void RuntimeCooldowns_RoundTripAndLegacyRestoreAsEmpty()
-	{
-		var registry = PersistenceRegistry.CreateDefault();
-		var runtime = new ActorRuntime();
-		runtime.ActionCooldownUntilTick = 20;
-		runtime.IgnoreUntilTickByTargetId["target"] = 30;
-
-		runtime.SelectedMemberShipId = "gunship";
-		runtime.FuelLedgerJourneyId = 9;
-		runtime.FuelChargedDistanceAlongCurrentJourney = 12.5;
-		runtime.FuelUnchargedDistance = 3.25;
-		var dto = SaveDtoMapper.CaptureRuntime("actor", runtime, registry);
-		var restoredDto = JsonSerializer.Deserialize<StarSystemRuntimeDto>(
-			JsonSerializer.Serialize(dto))!;
-		var restored = new ActorRuntime();
-		SaveDtoMapper.RestoreRuntime(restoredDto, restored, registry);
-
-		Assert.Equal(20, restored.ActionCooldownUntilTick);
-		Assert.Equal(30, restored.IgnoreUntilTickByTargetId["target"]);
-		Assert.Equal("gunship", restored.SelectedMemberShipId);
-		Assert.Equal(9, restored.FuelLedgerJourneyId);
-		Assert.Equal(12.5, restored.FuelChargedDistanceAlongCurrentJourney);
-		Assert.Equal(3.25, restored.FuelUnchargedDistance);
-
-		var legacyDto = JsonSerializer.Deserialize<StarSystemRuntimeDto>(
-			"""{"ActorId":"actor","CachedPath":null,"PendingCompletion":null,"PendingCompletionTick":0,"JourneyIdSequence":0}""")!;
-		var legacyRuntime = new ActorRuntime();
-		SaveDtoMapper.RestoreRuntime(legacyDto, legacyRuntime, registry);
-
-		Assert.Equal(0, legacyRuntime.ActionCooldownUntilTick);
-		Assert.Empty(legacyRuntime.IgnoreUntilTickByTargetId);
-		Assert.Null(legacyRuntime.SelectedMemberShipId);
-		Assert.Equal(0, legacyRuntime.FuelLedgerJourneyId);
-		Assert.Equal(0, legacyRuntime.FuelUnchargedDistance);
-	}
-
 	[Fact]
 	public void RuntimeCooldowns_ForkAndResetAreIsolated()
 	{
@@ -76,7 +38,7 @@ public sealed class PersistenceAggressionTests
 	}
 
 	[Fact]
-	public void FleetAggression_RoundTripsAndLegacyDefaultsToZero()
+	public void FleetAggression_RoundTrips()
 	{
 		var map = StarMap.Create(42);
 		map.FleetRegistry.Add(CreatePirateFleet(7));
@@ -87,35 +49,6 @@ public sealed class PersistenceAggressionTests
 		Assert.Equal(
 			7,
 			restored.FleetRegistry.FleetOf("aggressive-pirate").State.AggressionRating);
-
-		var state = JsonNode.Parse(captured.Fleets
-			.Single(fleet => fleet.State.GetRawText().Contains(
-				"aggressive-pirate",
-				StringComparison.Ordinal))
-			.State.GetRawText())!.AsObject();
-		state.Remove("AggressionRating");
-		var legacyFleet = captured.Fleets.Single(fleet =>
-			fleet.State.GetRawText().Contains(
-				"aggressive-pirate",
-				StringComparison.Ordinal)) with
-		{
-			State = JsonSerializer.SerializeToElement(state, registry.Options),
-		};
-		var legacySave = captured with
-		{
-			Fleets = captured.Fleets
-				.Select(fleet => fleet.State.GetRawText().Contains(
-						"aggressive-pirate",
-						StringComparison.Ordinal)
-					? legacyFleet
-					: fleet)
-				.ToArray(),
-		};
-
-		var restoredLegacy = SaveDtoMapper.RestoreStarMap(legacySave, registry);
-		Assert.Equal(
-			0,
-			restoredLegacy.FleetRegistry.FleetOf("aggressive-pirate").State.AggressionRating);
 	}
 
 	private static Fleet CreatePirateFleet(int aggressionRating) =>

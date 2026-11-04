@@ -237,12 +237,6 @@ public sealed class Pilot
 
 	internal static Pilot FromPersistence(PilotPersistenceDto dto)
 	{
-		var claimedLevel = dto.ClaimedLevel > 0
-			? dto.ClaimedLevel
-			: PilotProgression.LevelFor(dto.ExperiencePoints);
-		var baseSalary = dto.BaseSalaryCredits > 0
-			? dto.BaseSalaryCredits
-			: StrategicEconomyConfig.DefaultBaseSalaryCredits;
 		return new(
 			dto.Id,
 			dto.Name,
@@ -254,9 +248,9 @@ public sealed class Pilot
 			dto.AssignedShipId,
 			dto.IsActive,
 			dto.ExperiencePoints,
-			claimedLevel,
-			dto.LearnedSkills ?? EmptySkills,
-			baseSalary,
+			dto.ClaimedLevel,
+			dto.LearnedSkills,
+			dto.BaseSalaryCredits,
 			dto.MissedSalaryPeriods,
 			dto.MissedHazardPeriods);
 	}

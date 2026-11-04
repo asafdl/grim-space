@@ -125,7 +125,7 @@ public sealed class InTheFrayTests
 	}
 
 	[Fact]
-	public void Apply_DeflectionRunsAfterInTheFrayReduction()
+	public void Apply_DefensiveManeuversStacksWithInTheFray()
 	{
 		var target = BattleTestFixture.Player(new Coord(5, 5, 5));
 		var shooter = BattleTestFixture.RepurposedMiner(new Coord(9, 5, 5), "shooter");
@@ -143,13 +143,12 @@ public sealed class InTheFrayTests
 			[target.State.Id],
 			pilots);
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
-		target.State.CurrentShieldPoints[hitFace] = 6;
+		target.State.CurrentShieldPoints[hitFace] = 300;
 		target.State.DefensiveManeuversMpUsed = 0;
-		target.State.DefensiveManeuversRollIndex = 6;
 
-		ApplyDamage(shooter, target, battle, damage: 3);
+		ApplyDamage(shooter, target, battle, damage: 100);
 
-		Assert.Equal(5, target.State.CurrentShieldPoints[hitFace]);
+		Assert.Equal(240, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]

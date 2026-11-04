@@ -16,6 +16,8 @@ public static class PersistenceJson
 	{
 		var options = ReflectionJson.CreateOptions(o =>
 		{
+			o.RespectRequiredConstructorParameters = true;
+			o.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
 			o.IncludeFields = true;
 			o.Converters.Add(new FleetJsonConverter());
 			o.Converters.Add(new ShipInstanceJsonConverter());

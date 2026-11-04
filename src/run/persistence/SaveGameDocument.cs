@@ -11,7 +11,7 @@ public sealed record SaveGameDocument(
 	[property: JsonPropertyName("activeScene")] string ActiveScene,
 	[property: JsonPropertyName("payload")] JsonElement Payload)
 {
-	public const int CurrentFormatVersion = 8;
+	public const int CurrentFormatVersion = 9;
 	public const string DefaultSaveSlotId = "slot-1";
 
 	public static SaveGameDocument Create(

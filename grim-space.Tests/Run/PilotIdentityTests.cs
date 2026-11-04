@@ -154,6 +154,14 @@ public sealed class PilotIdentityTests
 			EPilotQuirkId.NeuroDrugAddict,
 			EPilotQuirkId.NeuroDrugAddict,
 			"ship-1",
+			ExperiencePoints: 0,
+			ClaimedLevel: 1,
+			LearnedSkills: [],
+			IsActive: false,
+			ActiveOrder: -1,
+			BaseSalaryCredits: 1,
+			MissedSalaryPeriods: 0,
+			MissedHazardPeriods: 0,
 			ClassId: EOperatorClassId.SpaceRanger);
 
 		Assert.Throws<ArgumentException>(() => Pilot.FromPersistence(dto));

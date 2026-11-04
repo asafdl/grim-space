@@ -470,7 +470,7 @@ Battle-local reacting conditions live on a status list on unit [`State`](src/bat
 | Folds (outgoing, area, incoming damage/hit, shield/hull channels) | `BattleStatuses` |
 | Shield/hull absorb and damage application | [`Defense`](src/battle/units/Defense.cs) — no capability rules |
 | Heat flags | `State.Overdrive` / `State.Overheat` stay economy; `BattleStatuses.SyncOverdrive` / `SyncOverheat` mirror them into statuses after any flag change or restore. Overdrive's threshold-crossing shot is the sole Apply-time exception |
-| Economy and once-per-turn legality | `ShieldBraceUsedThisTurn`, `DefensiveManeuversMpUsed` / `DefensiveManeuversRollIndex`, `ProtectionDroneRollIndex` / cooldown, AP/MP, mount counters, cooldowns |
+| Economy and once-per-turn legality | `ShieldBraceUsedThisTurn`, `DefensiveManeuversMpUsed`, cooldown, AP/MP, mount counters, cooldowns |
 | Detonate | Stays untagged; One With the Void is checked at Apply time via `HasOneWithTheVoid` |
 | Legacy battle pipeline | `BattlePilotCapabilityPipelineFactory.Build` returns an empty modifier list; `Supports` only filters grants |
 

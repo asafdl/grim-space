@@ -18,7 +18,6 @@ using GrimSpace.Units.Enums;
 using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Loadouts.Defenses;
-using GrimSpace.Units.Specs;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
@@ -81,6 +80,7 @@ public static class SaveDtoMapper
 			: null;
 		runtime.PendingCompletion = dto.PendingCompletion is { } pending
 			? registry.Read(pending) as IAction
+			?? throw new InvalidDataException("Saved runtime completion is not an action.")
 			: null;
 		runtime.PendingCompletionTick = dto.PendingCompletionTick;
 		runtime.JourneyIdSequence = dto.JourneyIdSequence;
@@ -91,11 +91,8 @@ public static class SaveDtoMapper
 			dto.FuelChargedDistanceAlongCurrentJourney,
 			dto.FuelUnchargedDistance);
 		runtime.IgnoreUntilTickByTargetId.Clear();
-		if (dto.IgnoreUntilTickByTargetId is not null)
-		{
-			foreach (var (targetId, ignoreUntilTick) in dto.IgnoreUntilTickByTargetId)
-				runtime.IgnoreUntilTickByTargetId[targetId] = ignoreUntilTick;
-		}
+		foreach (var (targetId, ignoreUntilTick) in dto.IgnoreUntilTickByTargetId)
+			runtime.IgnoreUntilTickByTargetId[targetId] = ignoreUntilTick;
 	}
 
 	public static BattleEncounterSaveDto CaptureBattleEncounter(BattleEncounter encounter)
@@ -140,9 +137,7 @@ public static class SaveDtoMapper
 			Seed = dto.Seed,
 			Id = dto.Id,
 			Objective = dto.Objective,
-			XpDifficulty = dto.XpDifficulty <= 0
-				? BattleEncounter.DefaultXpDifficulty
-				: dto.XpDifficulty,
+			XpDifficulty = dto.XpDifficulty,
 			Spawns = dto.Spawns.Select(RestoreBattleSpawn).ToArray(),
 			WorldHazards = dto.Hazards.Select(hazard => new BattleHazardSpawn
 			{
@@ -252,7 +247,6 @@ public static class SaveDtoMapper
 			state.ShieldBraceUsedThisTurn,
 			state.HeatVentsUsedThisTurn,
 			state.DefensiveManeuversMpUsed,
-			state.DefensiveManeuversRollIndex,
 			state.ShieldDynamoGrantedPerFace,
 			state.ThirstForScrapStacks,
 			state.ReactiveShieldsStacks,
@@ -285,11 +279,11 @@ public static class SaveDtoMapper
 			dto.Dorsal,
 			dto.ParentId);
 		state.Starboard = dto.Starboard;
-		state.Initiative = dto.Initiative ?? state.Initiative;
+		state.Initiative = dto.Initiative;
 		state.CurrentActionPoints = dto.CurrentActionPoints;
 		var maneuverability = dto.Projectile?.Maneuverability() ?? state.Maneuverability;
-		var maxMp = dto.BaseMp ?? maneuverability.BaseManeuverPoints;
-		state.CurrentManeuverPoints = dto.CurrentManeuverPoints ?? maxMp;
+		var maxMp = dto.BaseMp;
+		state.CurrentManeuverPoints = dto.CurrentManeuverPoints;
 		state.FuelRemaining = dto.FuelRemaining;
 		RestoreStatuses(state, dto.Statuses);
 		state.ShieldsUpUsedThisTurn = dto.ShieldsUpUsedThisTurn;
@@ -298,7 +292,6 @@ public static class SaveDtoMapper
 		state.ShieldBraceUsedThisTurn = dto.ShieldBraceUsedThisTurn;
 		state.HeatVentsUsedThisTurn = dto.HeatVentsUsedThisTurn;
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
-		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
 		state.ShieldDynamoGrantedPerFace = dto.ShieldDynamoGrantedPerFace;
 		state.ThirstForScrapStacks = dto.ThirstForScrapStacks;
 		state.ReactiveShieldsStacks = dto.ReactiveShieldsStacks;
@@ -378,7 +371,6 @@ public static class SaveDtoMapper
 				state.ShieldBraceUsedThisTurn,
 				state.HeatVentsUsedThisTurn,
 				state.DefensiveManeuversMpUsed,
-				state.DefensiveManeuversRollIndex,
 				state.ShieldDynamoGrantedPerFace,
 				state.ThirstForScrapStacks,
 				state.ReactiveShieldsStacks,
@@ -495,8 +487,7 @@ public static class SaveDtoMapper
 					role.Role,
 					role.MerchantSubtype,
 					role.SourceId,
-					role.Priority
-						?? FacilityOperatorTemporaryRoles.PriorityFor(role.Role),
+					role.Priority,
 					role.AcceptsSourcesUntilTick)));
 			return poi;
 		}).ToArray();
@@ -515,7 +506,7 @@ public static class SaveDtoMapper
 			default!);
 		var fleets = new FleetRegistry();
 		foreach (var saved in dto.Fleets)
-			fleets.Add(RestoreFleet(saved));
+			fleets.Add(RestoreFleet(saved, registry));
 		var contracts = new ContractRegistry();
 		contracts.RestoreSnapshot(
 			dto.Contracts.Select(contract => RestoreContract(contract, registry)).Select(entry =>
@@ -569,11 +560,8 @@ public static class SaveDtoMapper
 				listing.GearTier,
 				listing.Cost)).ToArray());
 
-	private static StarMarket RestoreMarket(StarMarketDto? dto)
+	private static StarMarket RestoreMarket(StarMarketDto dto)
 	{
-		if (dto is null)
-			return StarMarketSeed.Create();
-
 		var merchantListings = dto.MerchantListings.Select(saved =>
 		{
 			MerchantCatalog.Offering? offering = saved.OfferingKind is { } kind
@@ -624,9 +612,9 @@ public static class SaveDtoMapper
 			fleet.Members.Select(member => member.Id).ToArray(),
 			fleet.Registrations);
 
-	private static Fleet RestoreFleet(StarMapFleetDto dto)
+	private static Fleet RestoreFleet(StarMapFleetDto dto, PersistenceRegistry registry)
 	{
-		var state = JsonSerializer.Deserialize<StarMapStateData>(dto.State)
+		var state = JsonSerializer.Deserialize<StarMapStateData>(dto.State, registry.Options)
 			?? throw new InvalidDataException("Fleet state is missing.");
 		var restored = new StarState
 		{
@@ -731,7 +719,7 @@ public static class SaveDtoMapper
 				dto.Category);
 		return (
 			contract,
-			RestoreContractState(dto.State, dto.StateType, contract, registry),
+			RestoreContractState(dto.State, dto.StateType, registry),
 			dto.ExpiresAtTick);
 	}
 
@@ -739,57 +727,52 @@ public static class SaveDtoMapper
 		JsonElement payload,
 		JsonSerializerOptions options)
 	{
-		if (payload.TryGetProperty("route", out var route))
-		{
-			var pickupPoiId = payload.GetProperty("pickupPoiId").GetString()
-				?? throw new InvalidDataException("Delivery pickup POI is missing.");
-			var restoredRoute = JsonSerializer.Deserialize<DeliveryRoute>(route, options)
-				?? throw new InvalidDataException("Delivery route is missing.");
-			var config = payload.TryGetProperty("config", out var configPayload)
-				? JsonSerializer.Deserialize<DeliveryGenerationConfig>(configPayload, options)
-				: null;
-			return new DeliveryObjective(pickupPoiId, restoredRoute, config);
-		}
-
-		throw new InvalidDataException("Delivery route is missing.");
+		var pickupPoiId = payload.GetProperty("pickupPoiId").GetString()
+			?? throw new InvalidDataException("Delivery pickup POI is missing.");
+		var route = JsonSerializer.Deserialize<DeliveryRoute>(
+			payload.GetProperty("route"),
+			options)
+			?? throw new InvalidDataException("Delivery route is missing.");
+		var config = JsonSerializer.Deserialize<DeliveryGenerationConfig>(
+			payload.GetProperty("config"),
+			options)
+			?? throw new InvalidDataException("Delivery generation config is missing.");
+		return new DeliveryObjective(pickupPoiId, route, config);
 	}
 
 	private static ContractState? RestoreContractState(
 		JsonElement statePayload,
 		string? stateType,
-		Contract contract,
 		PersistenceRegistry registry)
 	{
-		if (statePayload.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+		if (statePayload.ValueKind == JsonValueKind.Null && stateType is null)
 			return null;
+		if (statePayload.ValueKind != JsonValueKind.Object || stateType is null)
+			throw new InvalidDataException("Saved contract state is malformed.");
 
-		var state = stateType switch
+		return stateType switch
 		{
 			nameof(DeliveryContractState) => RestoreDeliveryContractState(
 				statePayload,
 				registry.Options),
 			nameof(HuntContractState) => JsonSerializer.Deserialize<HuntContractState>(
-				statePayload,
-				registry.Options),
+					statePayload,
+					registry.Options)
+				?? throw new InvalidDataException("Saved hunt contract state is missing."),
 			nameof(WreckageContractState) => JsonSerializer.Deserialize<WreckageContractState>(
-				statePayload,
-				registry.Options),
+					statePayload,
+					registry.Options)
+				?? throw new InvalidDataException("Saved wreckage contract state is missing."),
 			nameof(LeadContractState) => JsonSerializer.Deserialize<LeadContractState>(
-				statePayload,
-				registry.Options),
-			_ => JsonSerializer.Deserialize<ContractState>(statePayload, registry.Options),
+					statePayload,
+					registry.Options)
+				?? throw new InvalidDataException("Saved lead contract state is missing."),
+			nameof(ContractState) => JsonSerializer.Deserialize<ContractState>(
+					statePayload,
+					registry.Options)
+				?? throw new InvalidDataException("Saved contract state is missing."),
+			_ => throw new InvalidDataException($"Unknown contract state type '{stateType}'."),
 		};
-		if (state is not null && state.GetType() != typeof(ContractState))
-			return state;
-
-		if (state is null)
-			return null;
-
-		return ContractState.CreateFor(
-			contract,
-			state.Status,
-			state.AcceptedAtTick,
-			state.HolderUnitId);
 	}
 
 	private static DeliveryContractState RestoreDeliveryContractState(
@@ -801,19 +784,16 @@ public static class SaveDtoMapper
 		var status = payload.GetProperty("status").Deserialize<EContractStatus>(options);
 		var acceptedAtTick = payload.GetProperty("acceptedAtTick").Deserialize<int?>(options);
 		var holderUnitId = payload.GetProperty("holderUnitId").GetString();
-		var progress = payload.TryGetProperty("progress", out var progressPayload)
-			? JsonSerializer.Deserialize<DeliveryProgress>(progressPayload, options)
-			: new DeliveryProgress(
-				JsonSerializer.Deserialize<IReadOnlyList<bool>>(
-					payload.GetProperty("deliveryProgressLegs"),
-					options)
-					?? throw new InvalidDataException("Delivery progress is missing."));
+		var progress = JsonSerializer.Deserialize<DeliveryProgress>(
+			payload.GetProperty("progress"),
+			options)
+			?? throw new InvalidDataException("Delivery progress is missing.");
 		return new DeliveryContractState(
 			contractId,
 			status,
 			acceptedAtTick,
 			holderUnitId,
-			progress ?? throw new InvalidDataException("Delivery progress is missing."));
+			progress);
 	}
 
 	private sealed record StarMapStateData(
@@ -823,11 +803,11 @@ public static class SaveDtoMapper
 		double EngageRadius, double VisionRadius,
 		Engagement? CurrentEngagement, TravelTarget TravelTarget,
 		string PendingWreckContractId,
-		int AggressionRating = 0,
-		EFleetSpawnerSource SpawnerSource = EFleetSpawnerSource.None,
-		int? FleetSpawnerExpiresAtTick = null,
-		string? SourceContractId = null,
-		FleetPursuitDirective? PursuitDirective = null);
+		int AggressionRating,
+		EFleetSpawnerSource SpawnerSource,
+		int? FleetSpawnerExpiresAtTick,
+		string? SourceContractId,
+		FleetPursuitDirective? PursuitDirective);
 
 	private sealed record StarMapTravelData(
 		Coord? AtRestPosition,
@@ -894,11 +874,11 @@ public static class SaveDtoMapper
 				unitDto.Dorsal,
 				unitDto.ParentId);
 			state.Starboard = unitDto.Starboard;
-			state.Initiative = unitDto.Initiative ?? state.Initiative;
+			state.Initiative = unitDto.Initiative;
 			state.CurrentActionPoints = unitDto.CurrentActionPoints;
 			var maneuverability = unitDto.Projectile?.Maneuverability() ?? state.Maneuverability;
-			var maxMp = unitDto.BaseMp ?? maneuverability.BaseManeuverPoints;
-			state.CurrentManeuverPoints = unitDto.CurrentManeuverPoints ?? maxMp;
+			var maxMp = unitDto.BaseMp;
+			state.CurrentManeuverPoints = unitDto.CurrentManeuverPoints;
 			state.FuelRemaining = unitDto.FuelRemaining;
 			RestoreStatuses(state, unitDto.Statuses);
 			state.ShieldsUpUsedThisTurn = unitDto.ShieldsUpUsedThisTurn;
@@ -907,7 +887,6 @@ public static class SaveDtoMapper
 			state.ShieldBraceUsedThisTurn = unitDto.ShieldBraceUsedThisTurn;
 			state.HeatVentsUsedThisTurn = unitDto.HeatVentsUsedThisTurn;
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
-			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
 			state.ShieldDynamoGrantedPerFace = unitDto.ShieldDynamoGrantedPerFace;
 			state.ThirstForScrapStacks = unitDto.ThirstForScrapStacks;
 			state.ReactiveShieldsStacks = unitDto.ReactiveShieldsStacks;
@@ -948,55 +927,12 @@ public static class SaveDtoMapper
 		return world;
 	}
 
-	private static InstalledAbility RestoreInstalledAbility(InstalledAbilityDto dto)
-	{
-		if (dto.Kind is { } kind)
-		{
-			return new InstalledAbility(
-				kind,
-				dto.MountedOn,
-				dto.DamageUpgradeTier,
-				dto.RangeUpgradeTier);
-		}
-
-		if (dto.Spec is null)
-			throw new InvalidDataException("Installed ability is missing both kind and legacy spec data.");
-
-		var effective = RestoreAbility(dto.Spec);
-		try
-		{
-			return new InstalledAbility(effective, dto.MountedOn);
-		}
-		catch (ArgumentException exception)
-		{
-			throw new InvalidDataException(
-				$"Legacy ability '{effective.Kind}' does not match its canonical baseline and upgrades.",
-				exception);
-		}
-	}
-
-	private static AbilitySpec RestoreAbility(AbilitySpecDto dto)
-	{
-		if (!Enum.TryParse<EAbilityKind>(dto.Kind, ignoreCase: false, out var kind))
-			throw new InvalidDataException($"Unknown ability kind '{dto.Kind}'.");
-
-		return kind switch
-		{
-			EAbilityKind.ScrapDroneSwarm => Deserialize<ScrapDroneSwarmSpec>(dto.Data),
-			EAbilityKind.LightningCannon => RestoreLightningCannonSpec(dto.Data),
-			EAbilityKind.MinerBay => new MinerBaySpec(
-				dto.Data.GetProperty("CooldownTurns").GetInt32(),
-				RepurposedMinerSpec.Instance,
-				dto.Data.GetProperty("MaxLivingChildren").GetInt32()),
-			EAbilityKind.VoidBombLauncher => Deserialize<VoidBombLauncherSpec>(dto.Data),
-			EAbilityKind.GoopGun => Deserialize<GoopGunSpec>(dto.Data),
-			EAbilityKind.Ram => Deserialize<RamSpec>(dto.Data),
-			EAbilityKind.HighSpeedRod => Deserialize<HighSpeedRodSpec>(dto.Data),
-			EAbilityKind.RoadsWeDontNeedRoads => Deserialize<RoadsWeDontNeedRoadsSpec>(dto.Data),
-			EAbilityKind.ProtectionDrone => Deserialize<ProtectionDroneSpec>(dto.Data),
-			_ => throw new InvalidDataException($"Unsupported ability kind '{dto.Kind}'."),
-		};
-	}
+	private static InstalledAbility RestoreInstalledAbility(InstalledAbilityDto dto) =>
+		new(
+			dto.Kind,
+			dto.MountedOn,
+			dto.DamageUpgradeTier,
+			dto.RangeUpgradeTier);
 
 	private static IReadOnlyList<TimelineEntryDto> Flatten<TEntry>(
 		IReadOnlyDictionary<int, IReadOnlyList<TEntry>> buckets,
@@ -1036,12 +972,11 @@ public static class SaveDtoMapper
 	private static BattleStatusDto CaptureStatus(BattleStatus status) =>
 		BattleStatusJsonConverter.ToDto(status);
 
-	private static void RestoreStatuses(BattleUnitState state, IReadOnlyList<BattleStatusDto>? dtos)
+	private static void RestoreStatuses(BattleUnitState state, IReadOnlyList<BattleStatusDto> dtos)
 	{
-		state.Statuses.Clear();
 		if (dtos is null)
-			return;
-
+			throw new InvalidDataException("Saved battle statuses are missing.");
+		state.Statuses.Clear();
 		foreach (var dto in dtos)
 		{
 			state.Statuses.Add(
@@ -1052,22 +987,16 @@ public static class SaveDtoMapper
 	private static void RestoreHeat(
 		BattleUnitState state,
 		int heat,
-		int? heatCapacity,
-		int? heatClearPerTurn,
-		float? heatGainMultiplier,
+		int heatCapacity,
+		int heatClearPerTurn,
+		float heatGainMultiplier,
 		bool overdrive,
 		bool overheat)
 	{
 		state.Heat = heat;
 		state.Overdrive = overdrive;
 		state.Overheat = overheat;
-		if (heatCapacity is not null || heatClearPerTurn is not null || heatGainMultiplier is not null)
-		{
-			state.HeatProfile = new HeatSpec(
-				heatCapacity ?? state.HeatProfile.Capacity,
-				heatClearPerTurn ?? state.HeatProfile.ClearPerTurn,
-				heatGainMultiplier ?? state.HeatProfile.GainMultiplier);
-		}
+		state.HeatProfile = new HeatSpec(heatCapacity, heatClearPerTurn, heatGainMultiplier);
 
 		BattleStatuses.SyncOverdrive(state);
 		BattleStatuses.SyncOverheat(state);
@@ -1087,40 +1016,4 @@ public static class SaveDtoMapper
 		return points;
 	}
 
-	private static LightningCannonSpec RestoreLightningCannonSpec(JsonElement data)
-	{
-		var spec = Deserialize<LightningCannonSpec>(data);
-		if (data.TryGetProperty("MaxChains", out _))
-		{
-			return spec with
-			{
-				ChainRange = spec.ChainRange > 0
-					? spec.ChainRange
-					: LightningCannonSpec.Baseline.ChainRange,
-				ChainFalloffPercentPerHop = spec.ChainFalloffPercentPerHop > 0
-					? spec.ChainFalloffPercentPerHop
-					: LightningCannonSpec.Baseline.ChainFalloffPercentPerHop,
-			};
-		}
-
-		var pyramidDepth = data.TryGetProperty("PyramidRange", out var pyramid)
-			? pyramid.GetInt32()
-			: 0;
-		var maxChains = pyramidDepth > 0
-			? System.Math.Max(1, pyramidDepth)
-			: LightningCannonSpec.Baseline.MaxChains;
-		var lineLength = spec.LineLength + pyramidDepth;
-
-		return spec with
-		{
-			LineLength = lineLength,
-			MaxChains = maxChains,
-			ChainRange = LightningCannonSpec.Baseline.ChainRange,
-			ChainFalloffPercentPerHop = LightningCannonSpec.Baseline.ChainFalloffPercentPerHop,
-		};
-	}
-
-	private static T Deserialize<T>(JsonElement data) =>
-		JsonSerializer.Deserialize<T>(data)
-		?? throw new InvalidDataException($"Unable to restore '{typeof(T).Name}'.");
 }

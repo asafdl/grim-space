@@ -94,6 +94,30 @@ public sealed class RunStatePersistenceTests
 	}
 
 	[Fact]
+	public void SaveDocument_JsonRoundTripsRunWithActiveBattle()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun(tutorialsEnabled: true);
+		run.ActiveBattle = BattleEncounter.DevDefault(123, 12);
+		using var battle = BattleOrchestrator.FromEncounter(run.ActiveBattle, gridSize: 12);
+		var registry = PersistenceRegistry.CreateDefault();
+		var document = SaveGameDocument.Create(
+			"test",
+			"battle",
+			run.CaptureSnapshot(registry, battle.Engine.World),
+			options: registry.Options);
+
+		var snapshot = ReflectionJson.Read<RunStateSnapshotDto>(document.Payload, registry.Options);
+		using var restored = State.FromSnapshot(snapshot, registry);
+		var restoredWorld = SaveDtoMapper.RestoreBattleWorld(snapshot.BattleWorld!, registry);
+
+		Assert.Equal(run.GetFieldedShipIds(), restored.GetFieldedShipIds());
+		Assert.Equal(run.ActiveBattle.Id, restored.ActiveBattle!.Id);
+		Assert.Equal(
+			battle.Engine.World.UnitRegistry.Ids.Order(),
+			restoredWorld.UnitRegistry.Ids.Order());
+	}
+
+	[Fact]
 	public void Snapshot_RestoresRunOwnedStateAndBindings()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun(tutorialsEnabled: true);

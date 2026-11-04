@@ -12,7 +12,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 namespace GrimSpace.Tests.Effects;
 
 [BattleTestSuite]
-public sealed class ProtectionDroneDeflectionTests
+public sealed class ProtectionDroneResistanceTests
 {
 	[Fact]
 	public void Apply_ProtectionDroneBuffStacksWithDefensiveManeuvers()
@@ -26,7 +26,6 @@ public sealed class ProtectionDroneDeflectionTests
 				"pilot",
 				[EPilotSkillId.DefensiveManeuvers])));
 		enemy.State.DefensiveManeuversMpUsed = 0;
-		enemy.State.DefensiveManeuversRollIndex = 6;
 		GrantProtectionDroneBuff(enemy.State, battle);
 		var hullBefore = enemy.State.CurrentHullPoints;
 		var effect = new ApplyAreaDamageEffect(
@@ -40,8 +39,7 @@ public sealed class ProtectionDroneDeflectionTests
 			battle.Engine.ActorRuntimes.For(player.State.Id),
 			player.State.Id);
 
-		Assert.Equal(hullBefore - 90, enemy.State.CurrentHullPoints);
-		Assert.Equal(7, enemy.State.DefensiveManeuversRollIndex);
+		Assert.Equal(hullBefore - 162, enemy.State.CurrentHullPoints);
 	}
 
 	[Fact]

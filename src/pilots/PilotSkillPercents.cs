@@ -38,10 +38,8 @@ public static class PilotSkillPercents
 
 	public static class DefensiveManeuvers
 	{
-		public const int DeflectChancePercent = 25;
-
-		/// <summary>Fraction of each hit's damage retained after a successful deflect (50 = take half).</summary>
-		public const int DeflectDamageTakenPercent = 50;
+		/// <summary>Fraction of each hit's damage retained while stationary (90 = take 10% less).</summary>
+		public const int DamageTakenPercent = 90;
 	}
 
 	public static class ShieldDynamo

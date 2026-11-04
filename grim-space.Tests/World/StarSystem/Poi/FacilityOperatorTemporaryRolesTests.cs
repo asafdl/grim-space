@@ -410,7 +410,7 @@ public sealed class FacilityOperatorTemporaryRolesTests
 	}
 
 	[Fact]
-	public void FromSnapshot_DropsLegacyGeneratedContractAssignments()
+	public void FromSnapshot_DropsReconciledContractAssignments()
 	{
 		var roles = FacilityOperatorTemporaryRoles.FromSnapshot(
 		[

@@ -17,7 +17,7 @@ internal sealed class ResourceBundleJsonConverter : JsonConverter<ResourceBundle
 	{
 		var values = JsonSerializer.Deserialize<Dictionary<ResourceId, int>>(
 			ref reader,
-			options) ?? [];
+			options) ?? throw new JsonException("Resource bundle payload is missing.");
 		return ResourceBundle.Create(values);
 	}
 
@@ -101,18 +101,24 @@ internal sealed class WreckageOutcomeJsonConverter : JsonConverter<WreckageOutco
 	{
 		using var document = JsonDocument.ParseValue(ref reader);
 		var value = document.RootElement;
-		if (value.TryGetProperty("loot", out var loot))
+		if (value.ValueKind != JsonValueKind.Object
+			|| value.EnumerateObject().Any(property =>
+				property.Name is not ("loot" or "fleet")))
+			throw new JsonException("Wreckage outcome does not match the current shape.");
+		var hasLoot = value.TryGetProperty("loot", out var loot);
+		var hasFleet = value.TryGetProperty("fleet", out var fleet);
+		if (hasLoot == hasFleet)
+			throw new InvalidDataException(
+				"Wreckage outcome must contain exactly one of 'loot' or 'fleet'.");
+
+		if (hasLoot)
 			return new WreckageOutcome.Salvage(
 				JsonSerializer.Deserialize<ResourceBundle>(loot, options)
 				?? throw new InvalidDataException("Wreckage salvage loot is missing."));
 
-		if (value.TryGetProperty("fleet", out var fleet))
-			return new WreckageOutcome.Ambush(
-				JsonSerializer.Deserialize<FleetSpawnSpec>(fleet, options)
-				?? throw new InvalidDataException("Wreckage ambush fleet is missing."));
-
-		throw new InvalidDataException(
-			"Wreckage outcome must contain either 'loot' or 'fleet'.");
+		return new WreckageOutcome.Ambush(
+			JsonSerializer.Deserialize<FleetSpawnSpec>(fleet, options)
+			?? throw new InvalidDataException("Wreckage ambush fleet is missing."));
 	}
 
 	public override void Write(

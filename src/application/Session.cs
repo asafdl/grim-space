@@ -98,13 +98,11 @@ public partial class Session : Node
 		if (result != LoadResult.Success)
 			return result;
 
-		document = SaveGameMigrator.MigrateToCurrent(document!);
-
 		State? restored = null;
 		try
 		{
 			var snapshot = ReflectionJson.Read<RunStateSnapshotDto>(
-				document.Payload,
+				document!.Payload,
 				_persistenceRegistry.Options);
 			restored = State.FromSnapshot(snapshot, _persistenceRegistry);
 			AdoptRun(restored);

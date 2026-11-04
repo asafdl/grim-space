@@ -35,7 +35,6 @@ public sealed class State
 	public int OverchargeEnginesCooldownRemaining { get; set; }
 	public int MarkWeakspotCooldownRemaining { get; set; }
 	public int DefensiveManeuversMpUsed { get; set; }
-	public int DefensiveManeuversRollIndex { get; set; }
 	public int ShieldDynamoGrantedPerFace { get; set; }
 	public int ThirstForScrapStacks { get; set; }
 	public int ReactiveShieldsStacks { get; set; }
@@ -116,7 +115,6 @@ public sealed class State
 			OverchargeEnginesCooldownRemaining = OverchargeEnginesCooldownRemaining,
 			MarkWeakspotCooldownRemaining = MarkWeakspotCooldownRemaining,
 			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
-			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			ShieldDynamoGrantedPerFace = ShieldDynamoGrantedPerFace,
 			ThirstForScrapStacks = ThirstForScrapStacks,
 			ReactiveShieldsStacks = ReactiveShieldsStacks,

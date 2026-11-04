@@ -13,24 +13,23 @@ internal sealed class DeliveryProgressJsonConverter : JsonConverter<DeliveryProg
 	{
 		using var document = JsonDocument.ParseValue(ref reader);
 		var payload = document.RootElement;
-		var completedLegs = payload.GetProperty("completedLegs").Deserialize<IReadOnlyList<bool>>(options)
+		var completedLegs = payload.GetProperty("completedLegs")
+			.Deserialize<IReadOnlyList<bool>>(options)
 			?? throw new JsonException("Delivery completed legs are missing.");
-		var currentLegIndex = payload.TryGetProperty("currentLegIndex", out var legIndex)
-			? legIndex.GetInt32()
-			: 0;
-		var activationTick = payload.TryGetProperty("activationTick", out var activation)
-			? activation.Deserialize<int?>(options)
-			: null;
-		var deadlineTick = payload.TryGetProperty("deadlineTick", out var deadline)
-			? deadline.Deserialize<int?>(options)
-			: null;
-		var redirectAcknowledged = payload.TryGetProperty("redirectAcknowledged", out var redirect)
-			&& redirect.GetBoolean();
-		var interceptorFleetId = payload.TryGetProperty("interceptorFleetId", out var interceptor)
-			? interceptor.GetString()
-			: null;
-		var interceptionState = ReadInterceptionState(payload, interceptorFleetId);
-		var failureReason = ReadFailureReason(payload);
+		var currentLegIndex = payload.GetProperty("currentLegIndex").GetInt32();
+		var activationTick = payload.GetProperty("activationTick").Deserialize<int?>(options);
+		var deadlineTick = payload.GetProperty("deadlineTick").Deserialize<int?>(options);
+		var redirectAcknowledged = payload.GetProperty("redirectAcknowledged").GetBoolean();
+		var interceptorFleetId = payload.GetProperty("interceptorFleetId").GetString();
+		var stateElement = payload.GetProperty("interceptionState");
+		if (stateElement.ValueKind != JsonValueKind.String
+			|| !Enum.TryParse<EDeliveryInterceptionState>(
+				stateElement.GetString(),
+				ignoreCase: true,
+				out var interceptionState)
+			|| !Enum.IsDefined(interceptionState))
+			throw new JsonException("Delivery interception state is invalid.");
+		var failureReason = ReadFailureReason(payload.GetProperty("failureReason"));
 
 		return new DeliveryProgress(
 			completedLegs,
@@ -61,43 +60,17 @@ internal sealed class DeliveryProgressJsonConverter : JsonConverter<DeliveryProg
 		writer.WriteEndObject();
 	}
 
-	private static EDeliveryInterceptionState ReadInterceptionState(
-		JsonElement payload,
-		string? interceptorFleetId)
+	private static EDeliveryFailureReason? ReadFailureReason(JsonElement element)
 	{
-		if (payload.TryGetProperty("interceptionState", out var stateElement)
-			&& stateElement.ValueKind == JsonValueKind.String
-			&& Enum.TryParse<EDeliveryInterceptionState>(
-				stateElement.GetString(),
-				ignoreCase: true,
-				out var parsed))
-			return parsed;
-
-		if (payload.TryGetProperty("interceptorResolved", out var resolved)
-			&& resolved.GetBoolean())
-			return EDeliveryInterceptionState.Resolved;
-
-		if (payload.TryGetProperty("interceptionTriggered", out var triggered)
-			&& triggered.GetBoolean())
-			return EDeliveryInterceptionState.Pending;
-
-		if (!string.IsNullOrEmpty(interceptorFleetId))
-			return EDeliveryInterceptionState.Assigned;
-
-		return EDeliveryInterceptionState.None;
-	}
-
-	private static EDeliveryFailureReason? ReadFailureReason(JsonElement payload)
-	{
-		if (!payload.TryGetProperty("failureReason", out var reasonElement)
-			|| reasonElement.ValueKind == JsonValueKind.Null)
+		if (element.ValueKind == JsonValueKind.Null)
 			return null;
 
-		if (reasonElement.ValueKind == JsonValueKind.String
+		if (element.ValueKind == JsonValueKind.String
 			&& Enum.TryParse<EDeliveryFailureReason>(
-				reasonElement.GetString(),
+				element.GetString(),
 				ignoreCase: true,
-				out var reason))
+				out var reason)
+			&& Enum.IsDefined(reason))
 			return reason;
 
 		throw new JsonException("Delivery failure reason is invalid.");
