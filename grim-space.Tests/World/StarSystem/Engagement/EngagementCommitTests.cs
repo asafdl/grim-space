@@ -179,6 +179,40 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void ForcedDefeat_DestroysFieldedSquadAndResolvesThroughNormalRunFlow()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var shipIds = run.GetFieldedShipIds().ToArray();
+		Assert.True(shipIds.Length > 1);
+		var engagement = CommitPlayerEngagement(run);
+		using var orchestrator = run.CreateActiveBattleOrchestrator();
+		BattleOutcome? outcome = null;
+		using var subscription = orchestrator.Subscribe<Record<BattleOutcome>>(
+			record => outcome = record.Value);
+
+		orchestrator.ForceOutcome(EBattleResult.Lose);
+
+		Assert.Equal(EBattleResult.Lose, orchestrator.Engine.World.battleResult);
+		Assert.Equal(GrimSpace.Battle.EBattlePhase.BattleOver, orchestrator.Phase);
+		Assert.NotNull(outcome);
+		Assert.Equal(EBattleResult.Lose, outcome.Result);
+		Assert.All(shipIds, shipId =>
+		{
+			Assert.False(orchestrator.Engine.World.StateOf(shipId).IsAlive);
+			Assert.Contains(outcome.StateHandoffs, handoff =>
+				handoff.Id == shipId && handoff.CurrentHullPoints == 0);
+			Assert.False(run.ItemInventory.TryGet(shipId, out _));
+			Assert.False(run.PilotRegistry.TryGetForShip(shipId, out _));
+		});
+		Assert.True(run.StarSystem.Map.FleetRegistry.Contains("pirate-a"));
+		Assert.False(run.StarSystem.Map.FleetRegistry.Contains(RunState.PlayerFleetUnitId));
+		Assert.Null(run.ActiveBattle);
+		Assert.True(run.IsRunOver);
+		Assert.Equal(1, run.CaptureStatisticsSummary().BattlesLost);
+		Assert.True(run.TryReturnFromBattle(engagement.EngagementId));
+	}
+
+	[Fact]
 	public void RegeneratingStarSystem_DisposesOldEngagementSubscription()
 	{
 		using var run = RunState.CreateNewRun(42);

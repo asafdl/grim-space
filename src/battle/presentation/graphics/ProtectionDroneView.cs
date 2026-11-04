@@ -70,6 +70,10 @@ public partial class ProtectionDroneView : Node3D
 
 	private void UpdatePose()
 	{
+		// Move ghosts bind before entering the tree; _Process applies the pose afterward.
+		if (!IsInsideTree() || !_target.IsInsideTree())
+			return;
+
 		var time = (float)_elapsed;
 		var destination = _target.GlobalTransform * _offset
 			+ Vector3.Up * (0.08f * Mathf.Sin(time * 3f));

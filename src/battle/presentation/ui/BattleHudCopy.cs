@@ -62,10 +62,6 @@ internal static class BattleHudCopy
 	public const string ActionLogTitle = "Action Log";
 	public const string ActionLogEmpty = "(no actions yet)";
 
-	public const string OutcomeWin = "You Win!";
-	public const string OutcomeLose = "You Lose";
-	public const string OutcomeDraw = "Draw";
-	public const string OutcomeDefault = "Battle Over";
 	public const string Reset = "Reset";
 	public const string ReturnToStarMap = "Return to Star Map";
 	public const string ReturnToMainMenu = "Main Menu";
@@ -104,15 +100,6 @@ internal static class BattleHudCopy
 			ESpatialOrientation.Dorsal => "Dorsal",
 			ESpatialOrientation.Ventral => "Ventral",
 			_ => face.ToString(),
-		};
-
-	public static string OutcomeTitle(EBattleResult result) =>
-		result switch
-		{
-			EBattleResult.Win => OutcomeWin,
-			EBattleResult.Lose => OutcomeLose,
-			EBattleResult.Tie => OutcomeDraw,
-			_ => OutcomeDefault,
 		};
 
 	public static string PickTargets(int picked, int max) =>

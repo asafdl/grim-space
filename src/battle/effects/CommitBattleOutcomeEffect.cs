@@ -43,7 +43,7 @@ public sealed class CommitBattleOutcomeEffect(
 		var player = units.UnitOf(playerId);
 		var targets = forcedResult == EBattleResult.Win
 			? units.All.Where(unit => player.RelationTo(unit) == EUnitRelation.Opponent)
-			: [player];
+			: units.All.Where(unit => unit.Team == ETeam.Player);
 
 		_previousHullByUnitId = new Dictionary<string, int>(StringComparer.Ordinal);
 		foreach (var target in targets)

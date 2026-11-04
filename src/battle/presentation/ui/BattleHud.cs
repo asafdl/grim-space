@@ -25,7 +25,6 @@ public partial class BattleHud : Node
 
 	public BattleCommandHud CommandHud { get; private set; } = null!;
 	public TurnFlowBar TurnFlowBar { get; private set; } = null!;
-	public BattleOutcomeOverlay OutcomeOverlay { get; private set; } = null!;
 	public BattleVictoryOverlay VictoryOverlay { get; private set; } = null!;
 	public BattlePauseMenuOverlay PauseMenu { get; private set; } = null!;
 
@@ -178,9 +177,6 @@ public partial class BattleHud : Node
 		_actionLogLayer.AddChild(_actionLogHost);
 		AddChild(_actionLogLayer);
 
-		OutcomeOverlay = new BattleOutcomeOverlay();
-		AddChild(OutcomeOverlay);
-
 		VictoryOverlay = new BattleVictoryOverlay();
 		AddChild(VictoryOverlay);
 
@@ -194,7 +190,6 @@ public partial class BattleHud : Node
 		var battleTheme = HudThemes.Load(HudThemeFamily.Battle);
 		topMargin.Theme = battleTheme;
 		_actionLogHost.Theme = battleTheme;
-		OutcomeOverlay.ApplyTheme(MenuUi.Theme);
 		PauseMenu.ApplyTheme(MenuUi.Theme);
 		_simulationPhaseBanner.Theme = battleTheme;
 		CommandHud.Theme = battleTheme;
@@ -364,15 +359,14 @@ public partial class BattleHud : Node
 		_actionLogPanel.SetEntries(frame.ActionLogEntries);
 		_actionLogLayer.Visible = !hideHud && GameSettings.ShowActionLog;
 
-		var showScorecard = frame.ShowOutcomeOverlay
-			&& victorySummary is not null
-			&& frame.Outcome is EBattleResult.Win or EBattleResult.Lose;
-		VictoryOverlay.Visible = showScorecard;
-		OutcomeOverlay.Visible = frame.ShowOutcomeOverlay && !showScorecard;
-		if (showScorecard)
-			VictoryOverlay.Sync(victorySummary!, _strategicBattle, frame.Outcome);
-		else if (frame.ShowOutcomeOverlay)
-			OutcomeOverlay.SetOutcome(frame.Outcome, frame.ActionLogEntries, _strategicBattle);
+		VictoryOverlay.Visible = frame.ShowOutcomeOverlay;
+		if (frame.ShowOutcomeOverlay)
+		{
+			if (victorySummary is null || frame.Outcome is not (EBattleResult.Win or EBattleResult.Lose))
+				throw new InvalidOperationException("A finished battle requires a win or defeat scorecard.");
+
+			VictoryOverlay.Sync(victorySummary, _strategicBattle, frame.Outcome);
+		}
 
 		_bottomHud.Visible = !hideHud;
 		if (hideHud)

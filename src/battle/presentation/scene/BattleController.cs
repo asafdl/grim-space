@@ -68,6 +68,7 @@ public partial class BattleController : Node3D
 
 	private bool _strategicBattle;
 	private IReadOnlyList<BattleSpawn> _encounterSpawns = [];
+	private readonly Dictionary<string, Pilot> _encounterPilots = new(StringComparer.Ordinal);
 	private int _xpDifficulty = BattleEncounter.DefaultXpDifficulty;
 	private EBattlePhase _lastPhase = (EBattlePhase)(-1);
 	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
@@ -115,6 +116,13 @@ public partial class BattleController : Node3D
 			_battle = BattleOrchestrator.FromEncounter(devEncounter);
 			backdropSeed = devEncounter.Seed;
 		}
+		foreach (var spawn in _encounterSpawns)
+		{
+			if (spawn.PilotId is { } pilotId
+				&& Session.Instance.Run.PilotRegistry.TryGet(pilotId, out var pilot))
+				_encounterPilots[pilotId] = pilot;
+		}
+
 		Session.Instance.RegisterAutosaveContext(
 			() => _battle.Engine.World,
 			() => new SaveGateState(
@@ -338,8 +346,7 @@ public partial class BattleController : Node3D
 		_battleHud.CommandHud.FocusRequested += _translator.OnFocusCamera;
 		_battleHud.CommandHud.CycleTargetRequested += CycleEnemyFocus;
 		_battleHud.CommandHud.ReturnToPlayerRequested += _translator.OnReturnToPlayer;
-		_battleHud.OutcomeOverlay.ResetRequested += OnOutcomeOverlayAction;
-		_battleHud.VictoryOverlay.ContinueRequested += OnOutcomeOverlayAction;
+		_battleHud.VictoryOverlay.ContinueRequested += OnScorecardContinue;
 		_battleHud.RestartRequested += _translator.OnRestart;
 		_battleHud.RetireRequested += _translator.OnRetire;
 		_battleHud.MainMenuRequested += GoToMainMenu;
@@ -1009,10 +1016,12 @@ public partial class BattleController : Node3D
 			_encounterSpawns,
 			_xpDifficulty,
 			_frames.BattleTimelineEntries,
-			pilotId => run.PilotRegistry.TryGet(pilotId, out var pilot) ? pilot : null);
+			pilotId => run.PilotRegistry.TryGet(pilotId, out var pilot)
+				? pilot
+				: _encounterPilots.GetValueOrDefault(pilotId));
 	}
 
-	private void OnOutcomeOverlayAction()
+	private void OnScorecardContinue()
 	{
 		if (_strategicBattle)
 			ReturnToStarMap();

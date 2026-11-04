@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Ids;
 using GrimSpace.Run;
@@ -79,10 +80,12 @@ public sealed class RunOverTests
 	public void BattleLose_WipingAllPilots_SetsRunOver()
 	{
 		using var run = RunState.CreateNewRun(42);
+		var pilots = run.PilotRegistry.All.ToDictionary(pilot => pilot.Id, StringComparer.Ordinal);
 		var shipIds = run.GetFieldedShipIds().ToArray();
 		Assert.NotEmpty(shipIds);
 
 		var engagementId = LaunchPirateEngagement(run);
+		var spawns = run.ActiveBattle!.Spawns;
 		var handoffs = shipIds
 			.Select(id => OutcomeTestKit.Handoff(
 				id,
@@ -98,6 +101,26 @@ public sealed class RunOverTests
 		Assert.True(run.IsRunOver);
 		Assert.True(fired);
 		Assert.Empty(run.PilotRegistry.All);
+
+		var summary = BattleVictorySummaryBuilder.Build(
+			outcome,
+			spawns,
+			PilotProgression.DefaultXpDifficulty,
+			[],
+			pilotId => run.PilotRegistry.TryGet(pilotId, out var pilot)
+				? pilot
+				: pilots.GetValueOrDefault(pilotId));
+
+		Assert.Equal(shipIds.Length, summary.Pilots.Count);
+		Assert.All(summary.Pilots, row =>
+		{
+			Assert.True(row.IsScrapped);
+			Assert.Equal(0, row.ExperienceEarned);
+			Assert.Contains(pilots.Values, pilot =>
+				pilot.Name == row.DisplayName
+				&& pilot.PortraitId == row.PortraitId
+				&& pilot.ExperiencePoints == row.ExperiencePointsBefore);
+		});
 	}
 
 	[Fact]
@@ -131,12 +154,20 @@ public sealed class RunOverTests
 				RunState.PlayerFleetUnitId);
 		var engagementId = run.StarSystem.Map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id;
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var pilotSnapshots = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
+		foreach (var pilot in run.PilotRegistry.Active)
+		{
+			if (pilot.AssignedShipId is { } shipId)
+				pilotSnapshots[shipId] = PilotBattleSnapshot.FromSkills(
+					pilot.Id, pilot.LearnedSkills, pilot.PortraitId);
+		}
 		run.ActiveBattle = EngagementBattleFactory.Create(
 			[playerFleet, pirateFleet],
 			run.ItemInventory,
 			1,
 			engagementId,
-			playerFleet.State.Id);
+			playerFleet.State.Id,
+			pilotSnapshots);
 		return engagementId;
 	}
 }

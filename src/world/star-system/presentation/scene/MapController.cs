@@ -289,6 +289,9 @@ public partial class MapController : Node3D
 			onBegin => _orchestrator.Subscribe<BeginNarrativeAction>(
 				action => onBegin(action.NarrativeId)),
 			_strategicHud.PresentSystemError);
+		if (Session.Instance.Run.IsRunOver)
+			return;
+
 		if (ShouldInitializeTutorials())
 		{
 			var run = Session.Instance.Run;
@@ -334,11 +337,17 @@ public partial class MapController : Node3D
 
 	public override void _Process(double delta)
 	{
+		if (Session.Instance.Run.IsRunOver)
+			return;
+
 		_view.SetCameraDistance(_camera.Distance);
 		SyncRosterModalPause();
 
 		if (_orchestrator.CanAdvance && !_director.IsTransitioning)
 			AdvanceSimulation(delta);
+
+		if (Session.Instance.Run.IsRunOver)
+			return;
 
 		var world = _orchestrator.Map;
 		ReportStaleWaitingForPlayerInputInvariant(world);

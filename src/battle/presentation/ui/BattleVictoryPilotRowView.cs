@@ -82,6 +82,7 @@ public sealed partial class BattleVictoryPilotRowView : Control
 		};
 		_item.SetTrailingContent(CreateScoreTrailing(row.ScoreGrade, _levelUpIcon));
 		AddChild(_item);
+		_item.MinimumSizeChanged += UpdateMinimumSize;
 
 		_xpBar = PilotExperienceMeter.CreateBar();
 		_xpBar.ZIndex = 2;
@@ -125,6 +126,9 @@ public sealed partial class BattleVictoryPilotRowView : Control
 		Resized += LayoutChrome;
 		Callable.From(LayoutChrome).CallDeferred();
 	}
+
+	public override Vector2 _GetMinimumSize() =>
+		_item?.GetCombinedMinimumSize() ?? Vector2.Zero;
 
 	public void BeginRowReveal(float durationSeconds)
 	{

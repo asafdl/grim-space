@@ -11,7 +11,7 @@ public static class GameSettings
 
 	public static readonly Vector2I DesignCanvasSize = new(1920, 1080);
 	public static bool MouseCameraPanEnabled { get; private set; } = true;
-	public static bool ShowActionLog { get; private set; } = true;
+	public static bool ShowActionLog { get; private set; } = false;
 
 	public static readonly Vector2I[] SupportedResolutions =
 	[
@@ -167,9 +167,9 @@ public static class GameSettings
 	public static bool ReadShowActionLog()
 	{
 		if (!TryLoad(out var config))
-			return true;
+			return false;
 
-		return config!.GetValue("gameplay", "show_action_log", true).AsBool();
+		return config!.GetValue("gameplay", "show_action_log", false).AsBool();
 	}
 
 	public static void ApplyMouseCameraPan(bool enabled) =>

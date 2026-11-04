@@ -503,7 +503,7 @@ public partial class GameSettingsMenu : Control
 			case SettingsTab.Gameplay:
 				_showTutorials.Value = true;
 				_mouseCameraPan.Value = true;
-				_showActionLog.Value = true;
+				_showActionLog.Value = false;
 				break;
 			case SettingsTab.KeyBindings:
 				_keyBindingsTab.ResetToDefaults();

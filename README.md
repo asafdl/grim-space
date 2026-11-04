@@ -96,6 +96,10 @@ Prefer **records over actions** when the consumer needs resolved identity or out
 
 Presentation scenes stay thin. [`MapController`](src/world/star-system/presentation/scene/MapController.cs) enqueues domain actions and binds HUD feeds to `Run.Transitions`; it does not construct battles or drive scene transitions. [`BattleController`](src/battle/presentation/scene/BattleController.cs) asks `Run.State` for `CreateActiveBattleOrchestrator()` on the strategic path (outcome subscription is already on the run) or builds a dev-only encounter with no `ActiveBattle`. Dev duel explicitly bypasses strategic run state.
 
+The battle scorecard uses current pilot registry data for survivors and immutable battle-entry pilot data for casualties, whose registry entries are removed when the outcome commits, before replay finishes.
+
+Both victory and defeat use this scorecard. The dev menu's forced defeat destroys the deployed player squad and commits the normal battle outcome, including ship/pilot removal and run-over handling; it does not merely switch to a defeat screen.
+
 When replacing or regenerating a star-system, `Run.State` disposes old engine subscriptions and rebinds the inbox so listeners do not leak across maps. `Session` only unsubscribes from `BattleReady`, disposes the previous run, assigns the new run, and resubscribes—no special-case wiring for prepared runs.
 
 ### Engagement costs
