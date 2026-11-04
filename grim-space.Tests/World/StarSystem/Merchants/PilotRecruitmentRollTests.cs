@@ -39,7 +39,8 @@ public sealed class PilotRecruitmentRollTests
 		var map = StarMap.Create(7);
 		var candidates = PilotRecruitment.RollCandidates(map, "lead-contract-2");
 
-		Assert.Equal(PilotRecruitment.CandidatesPerLead, candidates.Count);
+		Assert.Equal(7, candidates.Count);
+		Assert.Equal(Enumerable.Range(0, 7), candidates.Select(candidate => candidate.Slot));
 	}
 
 	[Fact]
@@ -82,20 +83,15 @@ public sealed class PilotRecruitmentRollTests
 	}
 
 	[Fact]
-	public void RollCandidates_CanProduceAllOperatorClasses()
+	public void RollCandidates_EachSaleIncludesEveryOperatorClass()
 	{
-		var seen = new HashSet<EOperatorClassId>();
-		for (var seed = 0; seed < 200 && seen.Count < PilotRecruitment.RecruitableOperatorClassIds.Count; seed++)
+		for (var seed = 0; seed < 20; seed++)
 		{
 			var map = StarMap.Create(seed);
-			foreach (var candidate in PilotRecruitment.RollCandidates(map, "class-mix"))
-				seen.Add(candidate.Profile.ClassId);
+			var candidates = PilotRecruitment.RollCandidates(map, $"class-mix-{seed}");
+			foreach (var classId in PilotRecruitment.RecruitableOperatorClassIds)
+				Assert.Contains(candidates, candidate => candidate.Profile.ClassId == classId);
 		}
-
-		Assert.Contains(EOperatorClassId.SpaceRanger, seen);
-		Assert.Contains(EOperatorClassId.Support, seen);
-		Assert.Contains(EOperatorClassId.Tank, seen);
-		Assert.Contains(EOperatorClassId.Rogue, seen);
 	}
 
 	[Fact]
@@ -119,7 +115,7 @@ public sealed class PilotRecruitmentRollTests
 			[1]);
 
 		Assert.Equal(PilotRecruitment.CandidatesPerLead, all.Count);
-		Assert.Equal(2, available.Count);
+		Assert.Equal(6, available.Count);
 		Assert.DoesNotContain(available, candidate => candidate.Slot == 1);
 	}
 }

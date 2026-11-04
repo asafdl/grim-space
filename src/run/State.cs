@@ -559,10 +559,12 @@ public sealed class State : IDisposable
 	public static State CreateNewRun(int seed = 0, bool tutorialsEnabled = false)
 	{
 		var run = new State();
+		var rng = new Random(seed);
 		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
 		run.ApplyPlayerShipAcquire(
 			new ShipSpawnDeclaration(playerShipId, BattleUnitType.Fighter),
-			createStarterPilot: true);
+			createStarterPilot: true,
+			rng);
 		var engineerShipId = TypedIdGenerator.NextId(
 			UnitTypeSlug.For(BattleUnitType.RepurposedMiner));
 		run.ApplyPlayerShipAcquire(
@@ -570,7 +572,8 @@ public sealed class State : IDisposable
 				engineerShipId,
 				BattleUnitType.RepurposedMiner,
 				EShipGearTier.T0),
-			createStarterPilot: false);
+			createStarterPilot: false,
+			rng);
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
 			run.GetFieldedShipIds(),
@@ -788,14 +791,16 @@ public sealed class State : IDisposable
 
 	private void ApplyPlayerShipAcquire(
 		ShipSpawnDeclaration declaration,
-		bool createStarterPilot = false)
+		bool createStarterPilot = false,
+		Random? rng = null)
 	{
-		ApplyPlayerShipAcquireWithPilot(declaration, createStarterPilot);
+		ApplyPlayerShipAcquireWithPilot(declaration, createStarterPilot, rng);
 	}
 
 	private void ApplyPlayerShipAcquireWithPilot(
 		ShipSpawnDeclaration declaration,
-		bool createStarterPilot)
+		bool createStarterPilot,
+		Random? rng = null)
 	{
 		ItemInventory.Register(declaration, PlayerFleetUnitId);
 		var shipClass = ShipCatalog.SpecFor(declaration.Chassis).ClassId;
@@ -805,8 +810,8 @@ public sealed class State : IDisposable
 			return;
 
 		var pilot = createStarterPilot
-			? Pilot.CreateStarterForShip(declaration.ShipId)
-			: Pilot.CreateForShip(declaration.ShipId, shipClass);
+			? Pilot.CreateStarterForShip(declaration.ShipId, rng)
+			: Pilot.CreateForShip(declaration.ShipId, shipClass, rng);
 		PilotRegistry.Register(pilot);
 		PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);
 	}

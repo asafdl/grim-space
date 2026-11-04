@@ -74,7 +74,6 @@ public sealed class ContractNarrativePickerTests(StarMapFixture maps)
 
 		Assert.Equal("Quiet Opportunity", narrative.Title);
 		Assert.Contains("{destination}", narrative.Briefing);
-		Assert.Contains("{merchant}", narrative.Briefing);
 	}
 
 	[Fact]

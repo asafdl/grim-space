@@ -389,6 +389,8 @@ public sealed class PilotRegistryTests
 	{
 		using var run = State.CreateNewRun(42);
 		var pilot = RunTestKit.StarterRangerPilot(run);
+		foreach (var other in run.PilotRegistry.All.Where(p => p.Id != pilot.Id).ToArray())
+			Assert.True(run.TryDismissPilot(other.Id));
 		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 100));
 		Assert.True(run.TryLearnPilotSkill(pilot.Id, EPilotSkillId.DronesYearnForMines));
 		var registry = PersistenceRegistry.CreateDefault();

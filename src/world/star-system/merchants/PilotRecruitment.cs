@@ -9,7 +9,7 @@ namespace GrimSpace.World.StarSystem.Merchants;
 
 public static class PilotRecruitment
 {
-	public const int CandidatesPerLead = 3;
+	public const int CandidatesPerLead = 7;
 
 	private const string HireRollScope = "pilot-hire";
 
@@ -49,6 +49,8 @@ public static class PilotRecruitment
 			throw new InvalidOperationException("No pilot backgrounds are configured for recruitment.");
 		if (RecruitableOperatorClassIds.Count == 0)
 			throw new InvalidOperationException("No operator classes are configured for recruitment.");
+		if (CandidatesPerLead < RecruitableOperatorClasses.Length)
+			throw new InvalidOperationException("Pilot recruitment requires enough slots to offer every operator class.");
 
 		var candidates = new PilotHireCandidate[CandidatesPerLead];
 		for (var slot = 0; slot < CandidatesPerLead; slot++)
@@ -57,8 +59,10 @@ public static class PilotRecruitment
 			var portraitId = Pilot.RollRecruitPortraitId(SlotRng(map.Seed, contractId, slot, "portrait"));
 			var backgroundId = RecruitableBackgrounds[
 				SlotRng(map.Seed, contractId, slot, "background").Next(RecruitableBackgrounds.Length)];
-			var classId = RecruitableOperatorClasses[
-				SlotRng(map.Seed, contractId, slot, "class").Next(RecruitableOperatorClasses.Length)];
+			var classId = slot < RecruitableOperatorClasses.Length
+				? RecruitableOperatorClasses[slot]
+				: RecruitableOperatorClasses[
+					SlotRng(map.Seed, contractId, slot, "class").Next(RecruitableOperatorClasses.Length)];
 			var baseSalary = StrategicEconomyConfig.RollBaseSalaryCredits(
 				SlotRng(map.Seed, contractId, slot, "salary"));
 			var profile = new PilotRecruitProfile(

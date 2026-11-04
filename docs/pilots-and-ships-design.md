@@ -196,7 +196,8 @@ requirement.
 ### Pilot hiring currently bundles hardware
 
 [PilotRecruitment](../src/world/star-system/merchants/PilotRecruitment.cs)
-generates three deterministic candidates per lead. Every candidate currently
+generates seven deterministic candidates per lead, including at least one of each
+recruitable operator class; the remaining three classes are rolled. Every candidate currently
 includes a T0 Repurposed Miner, begins with zero XP, and receives no rolled
 learned skills or quirks. Background and salary vary; the hiring price is fixed.
 
