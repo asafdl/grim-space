@@ -50,7 +50,8 @@ public sealed class MerchantPresenter
 		ArgumentNullException.ThrowIfNull(onStateChanged);
 		_onStateChanged = onStateChanged;
 
-		var layer = new CanvasLayer { Layer = 5 };
+		// Above strategic HUD and facade pins; below roster/error dialogs and pause menus.
+		var layer = new CanvasLayer { Layer = 13 };
 		host.AddChild(layer);
 		_catalogHud = new CatalogMerchantHudOverlay();
 		_catalogHud.PurchaseRequested += OnCatalogPurchaseRequested;
