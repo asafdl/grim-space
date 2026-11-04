@@ -42,6 +42,7 @@ public partial class TurnReplayPlayer : Node3D
 	private IReadOnlyList<string> _activationOrder = [];
 	private int _flowCompletedCount;
 	private int _entryIndex;
+	private IAction? _currentAction;
 	private string? _activeActorId;
 
 	private int _turnNumber;
@@ -130,6 +131,7 @@ public partial class TurnReplayPlayer : Node3D
 		_activationOrder = replay.ActivationOrder;
 		_flowCompletedCount = 0;
 		_entryIndex = 0;
+		_currentAction = null;
 		_turnNumber = turnNumber;
 		_participants = participants.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
 		foreach (var (actorId, view) in _unitViews)
@@ -171,6 +173,7 @@ public partial class TurnReplayPlayer : Node3D
 					break;
 				case IAction action:
 				{
+					_currentAction = action;
 					if (_activeActorId != action.ActorId)
 					{
 						if (_activeActorId is not null && _unitViews.TryGetValue(_activeActorId, out var previous))
@@ -384,7 +387,7 @@ public partial class TurnReplayPlayer : Node3D
 			return false;
 
 		var duration = view.AnimateShields(state);
-		if (duration <= 0)
+		if (duration <= 0 || IsOwnManeuver(shields.TargetId))
 			return false;
 		_clipContext.ReportInterest?.Invoke(new CameraInterest(
 			UnitInterestPoints(_clipContext.ReplayState, shields.TargetId, shields.TargetId),
@@ -398,6 +401,11 @@ public partial class TurnReplayPlayer : Node3D
 		};
 		return true;
 	}
+
+	// Per-AP shield passives (Shield Dynamo) fire on every maneuver step; animate them without stalling the move.
+	private bool IsOwnManeuver(string actorId) =>
+		_currentAction is MoveStepAction or HeadingTurnAction or RollAction
+		&& _currentAction.ActorId == actorId;
 
 	private bool PlayImpact(ImpactFacts impact)
 	{
