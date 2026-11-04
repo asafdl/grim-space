@@ -821,7 +821,19 @@ public partial class BattleController : Node3D
 			frame.ReachableMoveHeadings,
 			ColorForFrameActor(frame, frame.FocusId),
 			selected: frame.SelectedMove is not null);
-		_targetOpportunityOverlay.Apply(frame.PreviewUnits, frame.PoseHitOpportunities);
+		var lethalTargets = frame.AbilityDamage
+			.Where(entry => entry.Value.IsLethal)
+			.Select(entry => new PoseHitOpportunity(
+				entry.Key,
+				TargetOpportunityOverlay.LethalIconPath,
+				TargetOpportunityOverlay.LethalIconTint))
+			.ToArray();
+		_targetOpportunityOverlay.Apply(
+			frame.PreviewUnits,
+			frame.PoseHitOpportunities.Concat(lethalTargets).ToArray(),
+			verticalOffsetPx: lethalTargets.Length > 0
+				? TargetOpportunityOverlay.LethalVerticalOffsetPx
+				: 34f);
 		_abilitySourcePicker.Apply(
 			frame.AbilityChoices.Count > 1 ? [] : frame.AbilityChoices,
 			frame.AbilityHoveredIndex);
@@ -911,7 +923,8 @@ public partial class BattleController : Node3D
 			frame.PreviewUnits[closest.EnemyId],
 			pickHotkey: frame.TargetPick is { CanConfirmPick: true }
 				? GameInputBindings.PrimaryLabel("battle_primary_click")
-				: null);
+				: null,
+			damage: frame.AbilityDamage.GetValueOrDefault(closest.EnemyId));
 	}
 
 	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)

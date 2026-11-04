@@ -270,6 +270,23 @@ Movement uses two independently refilled resources. Action points (AP) pay for t
 
 ### Shield presentation
 
+During player planning, [`PresentationFrame.AbilityDamage`](src/battle/presentation/ui/PresentationFrame.cs)
+contains damage from the currently aimed ability only: the hovered mount, or the sole legal choice.
+[`PlanningPreview`](src/battle/presentation/PlanningPreview.cs) peeks the existing simulation and projects
+resolved `ImpactFacts` into hull and per-face shield loss without changing the queue or live world.
+Each impact captures effective shield and hull points before damage alongside the resolved losses.
+Its derived `IsLethal` property identifies a positive-hull-to-zero transition; both kill-triggered
+cooldown/passive effects and the preview consume it without scanning world state for deaths.
+Movement, inspection, and disabled input publish no aimed damage.
+The predicted lost portions of the reticle's hull and shield rails pulse from their original red/blue
+to white once per second, with a soft white glow; unaffected portions retain their original colors.
+For chained hits, the shield rail follows the face taking the most shield damage rather than assuming
+the player-facing shield was hit. Every ship the aimed ability would destroy receives a borderless
+off-white skull with a soft halo above it; changing aim or leaving targeting clears these indicators.
+Run [`target_damage_preview.tscn`](scenes/dev/target_damage_preview.tscn) with F6 to compare
+nonlethal and lethal hit fixtures using the real animated reticle and skull renderers.
+The scene does not commit an attack.
+
 Shield-changing abilities and expiry effects emit [`ShieldsChangedFacts`](src/battle/effects/facts/ShieldsChangedFacts.cs)
 with detached per-face shield points, temporary grants, and Brace state. Replay applies those resolved snapshots
 rather than re-running ability rules. Damage and healing retain their existing `ImpactFacts` / `HealFacts` paths.

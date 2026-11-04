@@ -7,6 +7,7 @@ using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -30,6 +31,8 @@ public sealed class PresentationFrame
 	public required IReadOnlyList<AbilityActivationChoice> AbilityChoices { get; init; }
 	public int? AbilityHoveredIndex { get; init; }
 	public AbilityActivationChoice? HoveredAbilityChoice { get; init; }
+	public IReadOnlyDictionary<string, AbilityDamagePreview> AbilityDamage { get; init; } =
+		new Dictionary<string, AbilityDamagePreview>();
 	public required IReadOnlySet<string> ThreatenedUnitIds { get; init; }
 	public required TurnVolumePreviews VoidBombPreviews { get; init; }
 	public ActionInstruction Instruction { get; init; }
@@ -55,6 +58,11 @@ public sealed class PresentationFrame
 }
 
 public readonly record struct EnemyRangeTarget(string EnemyId, float SeparationMeters);
+
+public sealed record AbilityDamagePreview(
+	int HullDamage,
+	FaceShieldPoints ShieldDamage,
+	bool IsLethal);
 
 public sealed record TargetPickFrame(
 	ITargetedActionDef Def,

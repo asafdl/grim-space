@@ -24,7 +24,7 @@ public sealed class BattleVictorySummaryTests
 				"void-bomb-1",
 				EType.VoidBomb,
 				default)),
-			new Record<ImpactFacts>(new ImpactFacts("void-bomb-1", "enemy-1", default, default, 0, 20)),
+			new Record<ImpactFacts>(new ImpactFacts("void-bomb-1", "enemy-1", default, default, 0, 20, 0, 20)),
 		};
 		var players = new HashSet<string>(StringComparer.Ordinal) { "fighter-a" };
 
@@ -43,8 +43,8 @@ public sealed class BattleVictorySummaryTests
 				"void-bomb-1",
 				EType.VoidBomb,
 				default)),
-			new Record<ImpactFacts>(new ImpactFacts("void-bomb-1", "enemy-1", default, default, 5, 20)),
-			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-a", default, default, 0, 12)),
+			new Record<ImpactFacts>(new ImpactFacts("void-bomb-1", "enemy-1", default, default, 5, 20, 5, 100)),
+			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-a", default, default, 0, 12, 0, 100)),
 		};
 		var players = new HashSet<string>(StringComparer.Ordinal) { "fighter-a" };
 
@@ -98,8 +98,8 @@ public sealed class BattleVictorySummaryTests
 			});
 		var timeline = new ITimelineEntry[]
 		{
-			new Record<ImpactFacts>(new ImpactFacts("fighter-a", "enemy-1", default, default, 0, 400)),
-			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-b", default, default, 0, 30)),
+			new Record<ImpactFacts>(new ImpactFacts("fighter-a", "enemy-1", default, default, 0, 400, 0, 400)),
+			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-b", default, default, 0, 30, 0, 100)),
 		};
 
 		var summary = BattleVictorySummaryBuilder.Build(
@@ -183,8 +183,8 @@ public sealed class BattleVictorySummaryTests
 			]);
 		var timeline = new ITimelineEntry[]
 		{
-			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-a", default, default, 0, 80)),
-			new Record<ImpactFacts>(new ImpactFacts("fighter-b", "enemy-1", default, default, 0, 10)),
+			new Record<ImpactFacts>(new ImpactFacts("enemy-1", "fighter-a", default, default, 0, 80, 0, 80)),
+			new Record<ImpactFacts>(new ImpactFacts("fighter-b", "enemy-1", default, default, 0, 10, 0, 10)),
 		};
 
 		var summary = BattleVictorySummaryBuilder.Build(

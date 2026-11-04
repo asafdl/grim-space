@@ -5,6 +5,7 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
@@ -15,6 +16,41 @@ namespace GrimSpace.Tests.Effects;
 [BattleTestSuite]
 public sealed class ApplyAreaDamageEffectTests
 {
+	[Theory]
+	[InlineData(50, 0, true)]
+	[InlineData(100, 0, true)]
+	[InlineData(101, 0, false)]
+	[InlineData(50, 75, false)]
+	[InlineData(50, 100, false)]
+	public void ImpactCapturesBeforeValuesAndDerivesLethality(int hull, int shields, bool lethal)
+	{
+		var (player, enemy, battle, face) = DamageBattle();
+		using var cleanup = battle;
+		enemy.State.CurrentHullPoints = hull;
+		enemy.State.CurrentShieldPoints[face] = shields;
+		var effect = new ApplyAreaDamageEffect(
+			EImpactCause.HighSpeedRod,
+			new HashSet<Coord> { enemy.State.Position },
+			100,
+			player.State.Position);
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
+
+		var records = effect.Apply(battle.Engine.World, runtime, player.State.Id);
+
+		var impact = Assert.Single(records.OfType<Record<ImpactFacts>>()).Value;
+		Assert.Equal(hull, impact.HullBefore);
+		Assert.Equal(shields, impact.ShieldBefore);
+		Assert.Equal(hull - enemy.State.CurrentHullPoints, impact.HullDamage);
+		Assert.Equal(shields - enemy.State.CurrentShieldPoints[face], impact.ShieldDamage);
+		Assert.Equal(lethal, impact.IsLethal);
+
+		effect.Undo(battle.Engine.World, runtime, player.State.Id);
+
+		Assert.Equal(hull, enemy.State.CurrentHullPoints);
+		Assert.Equal(shields, enemy.State.CurrentShieldPoints[face]);
+		Assert.Equal(lethal, impact.IsLethal);
+	}
+
 	[Theory]
 	[InlineData(0, 245)]
 	[InlineData(20, 225)]

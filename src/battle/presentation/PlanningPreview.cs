@@ -12,6 +12,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Presentation;
 
@@ -43,6 +44,32 @@ public sealed class PlanningPreview
 				unit => unit.State.Id,
 				unit => UnitDisplayState.Capture(unit.State, sim.RuntimeFor(unit.State.Id))),
 			units.ToDictionary(unit => unit.State.Id, unit => unit.Team));
+	}
+
+	public IReadOnlyDictionary<string, AbilityDamagePreview> AbilityDamage(
+		BattleSimulation sim,
+		IAction action)
+	{
+		var peek = sim.Peek(action)
+			?? throw new InvalidOperationException("Cannot preview damage for an illegal ability action.");
+		var damage = new Dictionary<string, AbilityDamagePreview>(StringComparer.Ordinal);
+		foreach (var impacts in peek.Records
+			.OfType<Record<ImpactFacts>>()
+			.Select(record => record.Value)
+			.GroupBy(impact => impact.TargetId))
+		{
+			var hullDamage = impacts.Sum(impact => impact.HullDamage);
+			var shieldDamage = new FaceShieldPoints();
+			foreach (var impact in impacts)
+				shieldDamage[impact.Face] += impact.ShieldDamage;
+			if (hullDamage > 0 || shieldDamage.MaxOnAnyFace > 0)
+				damage.Add(impacts.Key, new AbilityDamagePreview(
+					hullDamage,
+					shieldDamage,
+					impacts.Any(impact => impact.IsLethal)));
+		}
+
+		return damage;
 	}
 
 	public IReadOnlyList<MovePathOption> MoveOptions(

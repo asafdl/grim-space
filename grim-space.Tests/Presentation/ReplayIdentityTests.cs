@@ -14,6 +14,21 @@ namespace GrimSpace.Tests.Presentation;
 [BattleTestSuite]
 public sealed class ReplayIdentityTests
 {
+	[Theory]
+	[InlineData(50, 0, false)]
+	[InlineData(50, 49, false)]
+	[InlineData(50, 50, true)]
+	[InlineData(50, 100, true)]
+	[InlineData(0, 0, false)]
+	[InlineData(0, 100, false)]
+	public void ImpactLethalityRequiresPositiveHullToBeDepleted(int hullBefore, int hullDamage, bool lethal)
+	{
+		var impact = new ImpactFacts(
+			"source", "target", default, default, 0, hullDamage, 0, hullBefore);
+
+		Assert.Equal(lethal, impact.IsLethal);
+	}
+
 	[Fact]
 	public void Classify_PlayerActor_ReturnsPlayerPhase()
 	{
@@ -74,7 +89,9 @@ public sealed class ReplayIdentityTests
 			Cause: EImpactCause.ScrapDroneSwarmBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 1,
-			HullDamage: 0);
+			HullDamage: 0,
+			ShieldBefore: target.CurrentShieldPoints[ESpatialOrientation.Forward],
+			HullBefore: target.CurrentHullPoints);
 
 		var points = TurnReplayPlayer.UnitInterestPoints(replayState, impact.SourceId, impact.TargetId);
 
@@ -139,7 +156,9 @@ public sealed class ReplayIdentityTests
 			Cause: EImpactCause.LightningCannonBurst,
 			Face: ESpatialOrientation.Forward,
 			ShieldDamage: 2,
-			HullDamage: 1);
+			HullDamage: 1,
+			ShieldBefore: 2,
+			HullBefore: 10);
 
 		Assert.Equal(3, impact.TotalDamage);
 	}

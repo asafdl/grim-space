@@ -146,7 +146,8 @@ public partial class ShieldGlowPreview : Node3D
 				var damage = after.CurrentShieldPoints[ESpatialOrientation.Forward];
 				Defense.AbsorbWithShields(after, ESpatialOrientation.Forward, damage);
 				record = new Record<ImpactFacts>(new(
-					"shield-control", after.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, damage, 0));
+					"shield-control", after.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, damage, 0,
+					damage, before.CurrentHullPoints));
 				break;
 			case 2:
 				var restored = Defense.RestoreShieldsOnFace(after, ESpatialOrientation.Forward, 100);

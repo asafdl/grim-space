@@ -8,7 +8,10 @@ public readonly record struct ImpactFacts(
 	EImpactCause Cause,
 	ESpatialOrientation Face,
 	int ShieldDamage,
-	int HullDamage)
+	int HullDamage,
+	int ShieldBefore,
+	int HullBefore)
 {
 	public int TotalDamage => ShieldDamage + HullDamage;
+	public bool IsLethal => HullBefore > 0 && HullDamage >= HullBefore;
 }

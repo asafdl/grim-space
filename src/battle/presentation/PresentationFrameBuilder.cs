@@ -159,6 +159,9 @@ public sealed class PresentationFrameBuilder
 		}
 
 		var showWeaponPreviews = acceptsCommands && !battle.IsBattleOver && !isInspecting;
+		var aimedAbility = canControl && state.Mode != EPlayerMode.Move
+			? hoveredAbilityChoice ?? AbilityActivation.ImmediateChoice(abilityChoices)
+			: null;
 		var areaActions = showWeaponPreviews
 			? _preview.AreaPreviews(sim, playerId, legalCapabilities)
 			: AreaActionPreviews.Empty;
@@ -255,6 +258,9 @@ public sealed class PresentationFrameBuilder
 			AbilityChoices = abilityChoices,
 			AbilityHoveredIndex = canControl ? state.AbilityHoveredIndex : null,
 			HoveredAbilityChoice = canControl ? hoveredAbilityChoice : null,
+			AbilityDamage = aimedAbility is not null
+				? _preview.AbilityDamage(sim, aimedAbility.Action)
+				: new Dictionary<string, AbilityDamagePreview>(),
 			ThreatenedUnitIds = threatenedUnitIds,
 			VoidBombPreviews = torpedoPreviews,
 			Instruction = instruction,

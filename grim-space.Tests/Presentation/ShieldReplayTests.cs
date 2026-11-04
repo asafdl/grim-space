@@ -60,7 +60,9 @@ public sealed class ShieldReplayTests
 		Assert.True(replay.StateOf(state.Id).CurrentShieldPoints[ESpatialOrientation.Forward]
 			> state.Loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
 		Assert.NotNull(ShieldBrace.TryPayload(replay.StateOf(state.Id)));
-		var impact = new ImpactFacts("enemy", state.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, 40, 0);
+		var impact = new ImpactFacts(
+			"enemy", state.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, 40, 0,
+			Defense.EffectiveShield(state, ESpatialOrientation.Forward), state.CurrentHullPoints);
 		Defense.AbsorbWithShields(state, impact.Face, impact.ShieldDamage);
 		replay.ApplyImpact(impact);
 		Assert.Equal(40, ShieldBrace.TryPayload(replay.StateOf(state.Id))!.DamagePending);
@@ -87,7 +89,8 @@ public sealed class ShieldReplayTests
 		replay.ApplyShields(Assert.IsType<Record<ShieldsChangedFacts>>(Assert.Single(grant)).Value);
 		Defense.AbsorbWithShields(state, ESpatialOrientation.Forward, 10);
 		replay.ApplyImpact(new ImpactFacts(
-			"enemy", state.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, 10, 0));
+			"enemy", state.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, 10, 0,
+			20, state.CurrentHullPoints));
 
 		var records = new ApplyAreaAllyHealEffect(
 			EImpactCause.ScrapDroneSwarmBurst, new HashSet<Coord> { state.Position }, 50)

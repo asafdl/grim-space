@@ -199,7 +199,9 @@ public sealed class ApplyChainLightningDamageEffect(
 			Cause: cause,
 			Face: face,
 			ShieldDamage: shieldDamage,
-			HullDamage: hullDamage);
+			HullDamage: hullDamage,
+			ShieldBefore: shieldBefore,
+			HullBefore: hullBefore);
 	}
 
 	private static int ScalePercent(int amount, int percent) =>

@@ -20,19 +20,12 @@ public sealed class ApplyKillTriggersEffect(IEffect<BattleWorld, ActorRuntime> d
 	{
 		_previous.Clear();
 		_previousStacks.Clear();
-		var aliveBefore = world.UnitRegistry.All
-			.Where(unit => unit.State.IsAlive)
-			.Select(unit => unit.State.Id)
-			.ToHashSet(StringComparer.Ordinal);
 		var records = damageEffect.Apply(world, runtime, actorId).ToList();
 		var impacts = records.OfType<Record<ImpactFacts>>().Select(record => record.Value).ToArray();
 		var creditedTargets = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var impact in impacts)
 		{
-			if (!aliveBefore.Contains(impact.TargetId)
-				|| world.StateOf(impact.TargetId).IsAlive
-				|| impact.HullDamage <= 0
-				|| !creditedTargets.Add(impact.TargetId))
+			if (!impact.IsLethal || !creditedTargets.Add(impact.TargetId))
 				continue;
 
 			var sourceId = impact.SourceId;

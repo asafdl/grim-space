@@ -1,5 +1,7 @@
 using Godot;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
@@ -108,7 +110,8 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		float separationMeters,
 		UnitDisplayState? sourceState = null,
 		UnitDisplayState? targetState = null,
-		string? pickHotkey = null)
+		string? pickHotkey = null,
+		AbilityDamagePreview? damage = null)
 	{
 		_source = source;
 		_target = target;
@@ -120,6 +123,14 @@ public sealed partial class EnemyRangeTetherView : Node3D
 
 		_distanceLabel.Text = BattleDistance.Format(separationMeters);
 		var shieldFace = targetState.ToBodyFrame().HitFaceFrom(sourceState.Position);
+		if (damage is not null)
+		{
+			foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			{
+				if (damage.ShieldDamage[face] > damage.ShieldDamage[shieldFace])
+					shieldFace = face;
+			}
+		}
 		var maxShield = targetState.Loadout.BaseShieldPoints[shieldFace];
 		_targetInfo.Set(
 			$"{DisplayName(targetState.Type).ToUpperInvariant()} "
@@ -134,7 +145,13 @@ public sealed partial class EnemyRangeTetherView : Node3D
 				? targetState.Heat / (float)targetState.HeatCapacity
 				: 0f,
 			targetState.HeatProfile.Participates,
-			pickHotkey);
+			pickHotkey,
+			hullDamageRatio: targetState.BaseHullPoints > 0 && damage is not null
+				? damage.HullDamage / (float)targetState.BaseHullPoints
+				: 0f,
+			shieldDamageRatio: maxShield > 0 && damage is not null
+				? damage.ShieldDamage[shieldFace] / (float)maxShield
+				: 0f);
 		Show();
 		UpdateVisual();
 	}

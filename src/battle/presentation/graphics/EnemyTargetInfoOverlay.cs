@@ -23,8 +23,11 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 	private readonly Label _pickHotkey;
 	private float _hullRatio;
 	private float _shieldRatio;
+	private float _hullDamageRatio;
+	private float _shieldDamageRatio;
 	private float _heatRatio;
 	private bool _showsHeat;
+	private double _damagePulseTime;
 
 	public EnemyTargetInfoOverlay()
 	{
@@ -87,11 +90,15 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 		float shieldRatio,
 		float heatRatio,
 		bool showsHeat,
-		string? pickHotkey = null)
+		string? pickHotkey = null,
+		float hullDamageRatio = 0f,
+		float shieldDamageRatio = 0f)
 	{
 		GetNode<Label>("Identity").Text = identity;
 		_hullRatio = Mathf.Clamp(hullRatio, 0f, 1f);
 		_shieldRatio = Mathf.Clamp(shieldRatio, 0f, 1f);
+		_hullDamageRatio = Mathf.Clamp(hullDamageRatio, 0f, _hullRatio);
+		_shieldDamageRatio = Mathf.Clamp(shieldDamageRatio, 0f, _shieldRatio);
 		_heatRatio = Mathf.Clamp(heatRatio, 0f, 1f);
 		_showsHeat = showsHeat;
 		_pickHotkey.Visible = pickHotkey is not null;
@@ -99,20 +106,30 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 		QueueRedraw();
 	}
 
-	public override void _Process(double delta) =>
+	public override void _Process(double delta)
+	{
 		_reticle.Rotate(ReticleRotationRadiansPerSecond * (float)delta);
+		if (_hullDamageRatio <= 0f && _shieldDamageRatio <= 0f)
+		{
+			_damagePulseTime = 0;
+			return;
+		}
+
+		_damagePulseTime = (_damagePulseTime + delta) % 1;
+		QueueRedraw();
+	}
 
 	public override void _Draw()
 	{
 		const float shieldStart = -Mathf.Pi * 0.5f;
 		const float hullStart = Mathf.Pi * 0.5f;
-		DrawRail(shieldStart, _shieldRatio, ShieldColor);
-		DrawRail(hullStart, _hullRatio, HullColor);
+		DrawRail(shieldStart, _shieldRatio, ShieldColor, _shieldDamageRatio);
+		DrawRail(hullStart, _hullRatio, HullColor, _hullDamageRatio);
 		if (_showsHeat)
 			DrawRail(0f, _heatRatio, HeatBarColor);
 	}
 
-	private void DrawRail(float start, float ratio, Color color)
+	private void DrawRail(float start, float ratio, Color color, float damageRatio = 0f)
 	{
 		var end = start + RailSpan;
 		DrawArc(
@@ -145,5 +162,27 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 			color,
 			RailWidth,
 			true);
+		if (damageRatio > 0f)
+		{
+			var pulse = (1f - Mathf.Cos((float)_damagePulseTime * Mathf.Tau)) * 0.5f;
+			DrawArc(
+				RailCenter,
+				RailRadius,
+				Mathf.Lerp(start, end, ratio - damageRatio),
+				Mathf.Lerp(start, end, ratio),
+				RailPointCount,
+				new Color(1f, 1f, 1f, pulse * 0.22f),
+				RailWidth + 6f,
+				true);
+			DrawArc(
+				RailCenter,
+				RailRadius,
+				Mathf.Lerp(start, end, ratio - damageRatio),
+				Mathf.Lerp(start, end, ratio),
+				RailPointCount,
+				color.Lerp(Colors.White, pulse),
+				RailWidth,
+				true);
+		}
 	}
 }

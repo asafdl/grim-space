@@ -276,7 +276,9 @@ public sealed class ApplyAreaDamageEffect(
 			Cause: cause,
 			Face: face,
 			ShieldDamage: shieldDamage,
-			HullDamage: hullDamage);
+			HullDamage: hullDamage,
+			ShieldBefore: shieldBefore,
+			HullBefore: hullBefore);
 	}
 
 	internal static int CrossingOverdriveBonusPercent(State actor)

@@ -7,6 +7,10 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class TargetOpportunityOverlay : Node2D
 {
+	public const string LethalIconPath = "res://assets/ui/battle/lethal_hit.svg";
+	public const float LethalVerticalOffsetPx = 140f;
+	public static readonly Color LethalIconTint = new(0.96f, 0.94f, 0.86f);
+
 	private const float BadgePx = 32f;
 	private const float GlyphPx = 28f;
 	private const float VerticalOffsetPx = 34f;
@@ -15,6 +19,7 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 	private Camera3D _camera = null!;
 	private IReadOnlyDictionary<string, UnitDisplayState> _previewUnits = new Dictionary<string, UnitDisplayState>();
 	private IReadOnlyList<PoseHitOpportunity> _opportunities = [];
+	private float _verticalOffsetPx = VerticalOffsetPx;
 	private readonly Dictionary<(string Path, Color Tint, bool TintIcon), Texture2D> _glyphCache = new();
 	private readonly List<IconBadge> _activeBadges = [];
 	private readonly Stack<IconBadge> _freeBadges = [];
@@ -23,10 +28,12 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 
 	public void Apply(
 		IReadOnlyDictionary<string, UnitDisplayState> previewUnits,
-		IReadOnlyList<PoseHitOpportunity> opportunities)
+		IReadOnlyList<PoseHitOpportunity> opportunities,
+		float verticalOffsetPx = VerticalOffsetPx)
 	{
 		_previewUnits = previewUnits;
 		_opportunities = opportunities;
+		_verticalOffsetPx = verticalOffsetPx;
 		Visible = opportunities.Count > 0;
 		ReleaseActiveBadges();
 		if (Visible)
@@ -62,9 +69,10 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 				var badge = AcquireBadge();
 				badge.Apply(
 					GetGlyph(opportunity.IconPath, opportunity.IconTint, opportunity.TintIcon),
-					opportunity.IconTint);
+					opportunity.IconTint,
+					glowingSkull: opportunity.IconPath == LethalIconPath);
 				badge.Position = screenCenter
-					+ new Vector2(fanOffset - BadgePx * 0.5f, -VerticalOffsetPx - BadgePx * 0.5f);
+					+ new Vector2(fanOffset - BadgePx * 0.5f, -_verticalOffsetPx - BadgePx * 0.5f);
 				badge.Visible = true;
 				_activeBadges.Add(badge);
 			}
@@ -107,18 +115,41 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 	private sealed partial class IconBadge : PanelContainer
 	{
 		private readonly TextureRect _glyph;
+		private readonly MarginContainer _pad;
+		private readonly ShaderMaterial _glowMaterial = new()
+		{
+			Shader = new Shader
+			{
+				Code =
+					"""
+					shader_type canvas_item;
+
+					void fragment() {
+						vec2 uv = (UV - vec2(0.5)) * 1.4 + vec2(0.5);
+						vec4 glyph = texture(TEXTURE, uv);
+						float halo = 0.0;
+						for (int i = 0; i < 16; i++) {
+							float angle = float(i) * 6.283185 / 16.0;
+							vec2 direction = vec2(cos(angle), sin(angle));
+							halo += texture(TEXTURE, uv + direction * TEXTURE_PIXEL_SIZE * 2.0).a;
+							halo += texture(TEXTURE, uv + direction * TEXTURE_PIXEL_SIZE * 4.0).a * 0.8;
+							halo += texture(TEXTURE, uv + direction * TEXTURE_PIXEL_SIZE * 6.0).a * 0.4;
+						}
+						halo /= 35.2;
+						COLOR = vec4(glyph.a > 0.0 ? glyph.rgb : vec3(0.96, 0.94, 0.86),
+							glyph.a + (1.0 - glyph.a) * min(halo * 1.4, 0.6));
+					}
+					""",
+			},
+		};
 
 		public IconBadge()
 		{
 			CustomMinimumSize = new Vector2(BadgePx, BadgePx);
 			MouseFilter = Control.MouseFilterEnum.Ignore;
 
-			var pad = new MarginContainer();
-			pad.AddThemeConstantOverride("margin_left", 6);
-			pad.AddThemeConstantOverride("margin_right", 6);
-			pad.AddThemeConstantOverride("margin_top", 6);
-			pad.AddThemeConstantOverride("margin_bottom", 6);
-			AddChild(pad);
+			_pad = new MarginContainer();
+			AddChild(_pad);
 
 			_glyph = new TextureRect
 			{
@@ -128,12 +159,25 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 				MouseFilter = Control.MouseFilterEnum.Ignore,
 			};
-			pad.AddChild(_glyph);
+			_pad.AddChild(_glyph);
 		}
 
-		public void Apply(Texture2D glyph, Color accent)
+		public void Apply(Texture2D glyph, Color accent, bool glowingSkull)
 		{
 			_glyph.Texture = glyph;
+			_glyph.Material = glowingSkull ? _glowMaterial : null;
+			_glyph.CustomMinimumSize = Vector2.One * (glowingSkull ? 36f : GlyphPx);
+			var padding = glowingSkull ? 2 : 6;
+			_pad.AddThemeConstantOverride("margin_left", padding);
+			_pad.AddThemeConstantOverride("margin_right", padding);
+			_pad.AddThemeConstantOverride("margin_top", padding);
+			_pad.AddThemeConstantOverride("margin_bottom", padding);
+			if (glowingSkull)
+			{
+				AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+				return;
+			}
+
 			var border = Brighten(accent, 0.2f);
 			AddThemeStyleboxOverride("panel", new StyleBoxFlat
 			{

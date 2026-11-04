@@ -77,7 +77,9 @@ public sealed class ActionLogTests
 				Cause: EImpactCause.LightningCannonBurst,
 				Face: ESpatialOrientation.Dorsal,
 				ShieldDamage: 2,
-				HullDamage: 1)),
+				HullDamage: 1,
+				ShieldBefore: 2,
+				HullBefore: 10)),
 		];
 
 		var lines = ActionLog.Format(history, id => id switch
@@ -173,7 +175,9 @@ public sealed class ActionLogTests
 				Cause: EImpactCause.ScrapDroneSwarmBurst,
 				Face: ESpatialOrientation.Forward,
 				ShieldDamage: 1,
-				HullDamage: 0)),
+				HullDamage: 0,
+				ShieldBefore: 1,
+				HullBefore: 10)),
 			new MoveStepAction("fighter-a"),
 		];
 

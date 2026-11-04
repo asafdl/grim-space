@@ -75,6 +75,14 @@ public sealed class ResetCooldownOnKillEffectTests
 
 		Assert.Equal(resets ? 0 : 3, player.State.CooldownRemaining(mount));
 		Assert.Equal(resets ? 1 : 0, records.OfType<Record<CooldownResetOnKillFacts>>().Count());
+		var lethalImpacts = records.OfType<Record<ImpactFacts>>()
+			.Where(record => record.Value.IsLethal).ToArray();
+		Assert.Equal(resets ? 1 : 0, lethalImpacts.Length);
+		if (resets)
+		{
+			Assert.Equal(player.State.Id, lethalImpacts[0].Value.SourceId);
+			Assert.Equal(enemy.State.Id, lethalImpacts[0].Value.TargetId);
+		}
 		effect.Undo(battle.Engine.World, runtime, player.State.Id);
 		Assert.Equal(3, player.State.CooldownRemaining(mount));
 		Assert.Equal(hull, enemy.State.CurrentHullPoints);
@@ -100,6 +108,7 @@ public sealed class ResetCooldownOnKillEffectTests
 		Assert.False(enemy.State.IsAlive);
 		Assert.Equal(3, player.State.CooldownRemaining(mount));
 		Assert.Empty(records.OfType<Record<CooldownResetOnKillFacts>>());
+		Assert.True(Assert.Single(records.OfType<Record<ImpactFacts>>()).Value.IsLethal);
 	}
 
 	[Fact]

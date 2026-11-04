@@ -120,7 +120,8 @@ public partial class RamPreview : Node3D
 			[new RamAction(actor.Id),
 				new Record<AreaDamageFacts>(new(actor.Id, EImpactCause.RamImpact,
 					actor.Position, new HashSet<Coord> { target.Position })),
-				new Record<ImpactFacts>(new(actor.Id, target.Id, EImpactCause.RamImpact, face, 0, damage))],
+				new Record<ImpactFacts>(new(actor.Id, target.Id, EImpactCause.RamImpact, face, 0, damage,
+					target.CurrentShieldPoints[face], target.CurrentHullPoints))],
 			end), 1, new Dictionary<string, ETeam>
 		{
 			[actor.Id] = ETeam.Player,
