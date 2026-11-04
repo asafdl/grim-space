@@ -23,6 +23,7 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.ReactiveShields,
 		EPilotCapabilityId.StationaryDamageDeflection,
 		EPilotCapabilityId.ShieldDynamo,
+		EPilotCapabilityId.ThirstForScrap,
 		EPilotCapabilityId.OneWithTheVoid,
 	];
 
@@ -79,6 +80,24 @@ public static class BattlePassiveStatusInstaller
 					effect is ApplyAreaDamageEffect area
 						? area.WithAdditionalDamage(PilotSkillPercents.ScrapDrone.SwarmAdditionalDamage)
 						: effect,
+			},
+			EPilotCapabilityId.ThirstForScrap => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteOutgoing = (_, world, effect) =>
+				{
+					var bonus = world.StateOf(actorId).ThirstForScrapStacks
+						* PilotSkillPercents.ThirstForScrap.DamageBonusPercentPerKill;
+					return effect switch
+					{
+						ApplyAreaDamageEffect area => area.WithAddedDamageBonusPercent(bonus),
+						ApplyChainLightningDamageEffect chain => chain.WithAddedDamageBonusPercent(bonus),
+						_ => effect,
+					};
+				},
 			},
 			EPilotCapabilityId.HealingSkillRangeBonus => new BattleStatus
 			{

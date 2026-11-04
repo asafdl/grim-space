@@ -243,6 +243,9 @@ public partial class TurnReplayPlayer : Node3D
 				case Record<CooldownResetOnKillFacts> { Value: var reset }:
 					_clipContext.ReplayState.ApplyCooldownResetOnKill(reset);
 					break;
+				case Record<ThirstForScrapChangedFacts> { Value: var changed }:
+					_clipContext.ReplayState.ApplyThirstForScrap(changed);
+					break;
 				case Record<ShieldsChangedFacts> { Value: var shields }:
 					if (PlayShieldChange(shields))
 						return;

@@ -77,12 +77,17 @@ public sealed record BattleStatusDisplay(
 			}),
 			"passive:StationaryDamageDeflection" => ("CurrentManeuverPoints", PilotSkillCatalog.Get(EPilotSkillId.DefensiveManeuvers).Tooltip),
 			"passive:ShieldDynamo" => ("Shield", PilotSkillCatalog.Get(EPilotSkillId.ShieldDynamo).Tooltip),
+			"passive:ThirstForScrap" => ("Damage", PilotSkillCatalog.Get(EPilotSkillId.ThirstForScrap).Tooltip with
+			{
+				Details = $"Stacks: {unit.ThirstForScrapStacks}\nCurrent damage bonus: +{unit.ThirstForScrapStacks * PilotSkillPercents.ThirstForScrap.DamageBonusPercentPerKill}%. Lasts for this battle.",
+			}),
 			"passive:OneWithTheVoid" => ("VoidBombLauncher", PilotSkillCatalog.Get(EPilotSkillId.OneWithTheVoid).Tooltip),
 			_ => throw new InvalidDataException($"Unknown battle status display '{status.InstanceId}'."),
 		};
 		int? stacks = key switch
 		{
 			"passive:ReactiveShields" => unit.ReactiveShieldsStacks,
+			"passive:ThirstForScrap" => unit.ThirstForScrapStacks,
 			"buff:TemporaryShield" => statuses.Count,
 			_ => null,
 		};

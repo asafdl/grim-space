@@ -37,4 +37,5 @@ public sealed record BattleUnitSaveDto(
 	int? HeatClearPerTurn = null,
 	float? HeatGainMultiplier = null,
 	bool Overdrive = false,
-	bool Overheat = false);
+	bool Overheat = false,
+	int ThirstForScrapStacks = 0);

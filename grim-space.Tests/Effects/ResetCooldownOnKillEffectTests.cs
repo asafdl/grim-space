@@ -1,10 +1,15 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -14,6 +19,40 @@ namespace GrimSpace.Tests.Effects;
 [BattleTestSuite]
 public sealed class ResetCooldownOnKillEffectTests
 {
+	[Theory]
+	[InlineData(50, 1)]
+	[InlineData(500, 0)]
+	[InlineData(0, 0)]
+	public void ThirstForScrap_NewEnemyKillGrantsStackAndUndoRestoresIt(int hull, int addedStacks)
+	{
+		var (battle, player, enemy) = CreateBattle();
+		using var cleanup = battle;
+		var world = battle.Engine.World;
+		var runtime = ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ThirstForScrap]));
+		BattlePassiveStatusInstaller.InstallFromCapabilities(world, player.State.Id, runtime);
+		player.State.ThirstForScrapStacks = 2;
+		enemy.State.CurrentHullPoints = hull;
+		enemy.State.CurrentShieldPoints.Fill(0);
+		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
+			EImpactCause.HighSpeedRod, new HashSet<Coord> { enemy.State.Position }, 100, player.State.Position));
+
+		var records = effect.Apply(world, runtime, player.State.Id);
+
+		Assert.Equal(2 + addedStacks, player.State.ThirstForScrapStacks);
+		Assert.Equal(addedStacks, records.OfType<Record<ThirstForScrapChangedFacts>>().Count());
+		var boosted = Assert.IsType<ApplyAreaDamageEffect>(Assert.Single(BattleStatuses.RewriteOutgoing(
+			new HighSpeedRodAction(player.State.Id, ESpatialOrientation.Forward),
+			world,
+			[new ApplyAreaDamageEffect(EImpactCause.HighSpeedRod, new HashSet<Coord>(), 100, player.State.Position)])));
+		Assert.Equal((2 + addedStacks) * 10, boosted.DamageBonusPercent);
+		Assert.Empty(world.ActivationRoundLists.EntriesFor(player.State.Id));
+
+		effect.Undo(world, runtime, player.State.Id);
+
+		Assert.Equal(2, player.State.ThirstForScrapStacks);
+		Assert.Equal(hull, enemy.State.CurrentHullPoints);
+	}
+
 	[Theory]
 	[InlineData(50, true)]
 	[InlineData(500, false)]
@@ -25,7 +64,7 @@ public sealed class ResetCooldownOnKillEffectTests
 		enemy.State.CurrentShieldPoints.Fill(0);
 		var mount = player.State.FindInstalled(EAbilityKind.RoadsWeDontNeedRoads)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 3;
-		var effect = new ResetCooldownOnKillEffect(new ApplyAreaDamageEffect(
+		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
 			EImpactCause.HighSpeedRod,
 			new HashSet<Coord> { enemy.State.Position },
 			100,
@@ -49,7 +88,7 @@ public sealed class ResetCooldownOnKillEffectTests
 		enemy.State.CurrentShieldPoints.Fill(0);
 		var mount = player.State.FindInstalled(EAbilityKind.VoidBombLauncher)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 3;
-		var effect = new ResetCooldownOnKillEffect(new ApplyAreaDamageEffect(
+		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
 			EImpactCause.LightningCannonBurst,
 			new HashSet<Coord> { enemy.State.Position },
 			100,
@@ -71,7 +110,7 @@ public sealed class ResetCooldownOnKillEffectTests
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 2;
 		enemy.State.ParentId = player.State.Id;
 		enemy.State.CurrentShieldPoints.Fill(0);
-		var effect = new ResetCooldownOnKillEffect(new ApplyAreaDamageEffect(
+		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
 			EImpactCause.VoidBombBlast,
 			new HashSet<Coord> { enemy.State.Position },
 			1000,

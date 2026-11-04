@@ -56,6 +56,14 @@ public static class PilotSkillCatalog
 					$"Mark an enemy shield face within {PilotSkillPercents.MarkWeakspot.RangeCells} km (grid distance) for 1 round. All attacks that hit that face deal {PilotSkillPercents.MarkWeakspot.ShieldDamageBonusPercent}% additional shield damage."),
 				minimumEarnedLevel: 1,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
+			[EPilotSkillId.ThirstForScrap] = new(
+				EPilotSkillId.ThirstForScrap,
+				[EPilotCapabilityId.ThirstForScrap],
+				new HudTooltipContent(
+					"Thirst For Scrap",
+					$"Gain a stacking +{PilotSkillPercents.ThirstForScrap.DamageBonusPercentPerKill}% damage for each enemy killed by this unit or its spawned units this battle."),
+				minimumEarnedLevel: 4,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
 			[EPilotSkillId.ShieldDynamo] = new(
 				EPilotSkillId.ShieldDynamo,
 				[EPilotCapabilityId.ShieldDynamo],

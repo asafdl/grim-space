@@ -254,6 +254,7 @@ public static class SaveDtoMapper
 			state.DefensiveManeuversMpUsed,
 			state.DefensiveManeuversRollIndex,
 			state.ShieldDynamoGrantedPerFace,
+			state.ThirstForScrapStacks,
 			state.ReactiveShieldsStacks,
 			state.Heat,
 			state.Overdrive,
@@ -299,6 +300,7 @@ public static class SaveDtoMapper
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.DefensiveManeuversRollIndex = dto.DefensiveManeuversRollIndex;
 		state.ShieldDynamoGrantedPerFace = dto.ShieldDynamoGrantedPerFace;
+		state.ThirstForScrapStacks = dto.ThirstForScrapStacks;
 		state.ReactiveShieldsStacks = dto.ReactiveShieldsStacks;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.Projectile = dto.Projectile;
@@ -378,6 +380,7 @@ public static class SaveDtoMapper
 				state.DefensiveManeuversMpUsed,
 				state.DefensiveManeuversRollIndex,
 				state.ShieldDynamoGrantedPerFace,
+				state.ThirstForScrapStacks,
 				state.ReactiveShieldsStacks,
 				state.Heat,
 				state.Overdrive,
@@ -906,6 +909,7 @@ public static class SaveDtoMapper
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.DefensiveManeuversRollIndex = unitDto.DefensiveManeuversRollIndex;
 			state.ShieldDynamoGrantedPerFace = unitDto.ShieldDynamoGrantedPerFace;
+			state.ThirstForScrapStacks = unitDto.ThirstForScrapStacks;
 			state.ReactiveShieldsStacks = unitDto.ReactiveShieldsStacks;
 			RestoreHeat(
 				state,

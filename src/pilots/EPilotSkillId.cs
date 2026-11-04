@@ -19,4 +19,5 @@ public enum EPilotSkillId
 	ReactiveShields,
 	ShieldDynamo,
 	MarkWeakspot,
+	ThirstForScrap,
 }

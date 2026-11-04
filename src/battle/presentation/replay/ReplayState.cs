@@ -87,6 +87,9 @@ public sealed class ReplayState
 	public void ApplyCooldownResetOnKill(CooldownResetOnKillFacts reset) =>
 		_states[reset.ActorId].MountRuntimeFor(reset.Mount).CooldownRemaining = 0;
 
+	public void ApplyThirstForScrap(ThirstForScrapChangedFacts changed) =>
+		_states[changed.ActorId].ThirstForScrapStacks = changed.Stacks;
+
 	public void ApplyProtectionDrone(ProtectionDroneChangedFacts drone)
 	{
 		if (!_states.TryGetValue(drone.TargetId, out var state))

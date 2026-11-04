@@ -37,6 +37,7 @@ public sealed class State
 	public int DefensiveManeuversMpUsed { get; set; }
 	public int DefensiveManeuversRollIndex { get; set; }
 	public int ShieldDynamoGrantedPerFace { get; set; }
+	public int ThirstForScrapStacks { get; set; }
 	public int ReactiveShieldsStacks { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public required HeatSpec HeatProfile { get; set; }
@@ -117,6 +118,7 @@ public sealed class State
 			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
 			DefensiveManeuversRollIndex = DefensiveManeuversRollIndex,
 			ShieldDynamoGrantedPerFace = ShieldDynamoGrantedPerFace,
+			ThirstForScrapStacks = ThirstForScrapStacks,
 			ReactiveShieldsStacks = ReactiveShieldsStacks,
 			Maneuverability = Maneuverability,
 			HeatProfile = HeatProfile,

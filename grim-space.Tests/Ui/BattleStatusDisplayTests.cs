@@ -109,6 +109,7 @@ public sealed class BattleStatusDisplayTests
 	[InlineData(EPilotCapabilityId.ReactiveShields, "Reactive Shields")]
 	[InlineData(EPilotCapabilityId.StationaryDamageDeflection, "Defensive Maneuvers")]
 	[InlineData(EPilotCapabilityId.ShieldDynamo, "Shield Dynamo")]
+	[InlineData(EPilotCapabilityId.ThirstForScrap, "Thirst For Scrap")]
 	[InlineData(EPilotCapabilityId.OneWithTheVoid, "One With The Void")]
 	public void EveryInstalledPassiveHasAnIconAndEffectDescription(EPilotCapabilityId capability, string title)
 	{
@@ -131,6 +132,25 @@ public sealed class BattleStatusDisplayTests
 		Assert.Equal(
 			(HudTooltipContent)BattleHudCopy.ProtectionDroneTooltipFor(ProtectionDroneSpec.Baseline),
 			Assert.Single(BattleStatusDisplay.Capture(Capture(state))).Tooltip);
+	}
+
+	[Theory]
+	[InlineData(0, "+0%")]
+	[InlineData(3, "+30%")]
+	public void ThirstForScrapDisplaysCapturedStacksAndDamageBonus(int stacks, string bonus)
+	{
+		var state = CreateState();
+		state.ThirstForScrapStacks = stacks;
+		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ThirstForScrap, state.Id));
+		var unit = Capture(state);
+		state.ThirstForScrapStacks = 99;
+
+		var display = Assert.Single(BattleStatusDisplay.Capture(unit));
+
+		Assert.Equal(stacks, display.StackCount);
+		Assert.Equal("Damage", display.IconName);
+		Assert.Contains(bonus, display.Tooltip.Details);
+		Assert.Equal(stacks, unit.ToState().ThirstForScrapStacks);
 	}
 
 	[Fact]

@@ -449,6 +449,8 @@ Orientation-based action selection uses [`IOrientedAction` / `IOrientedActionDef
 
 Target-picking skills focus the camera on the current candidate when entering targeting or changing candidates. Face selection retains that target; unchanged presentation refreshes do not override manual camera movement. Mark Weakspot targets enemies within 6 km using Manhattan/grid distance (one cell per km).
 
+Thirst For Scrap is a level-4 Rogue passive: each enemy kill credited to the unit or its spawned descendants immediately grants one battle-local stack, adding 10% damage per stack with no cap. The damage kill-trigger pass also handles opted-in cooldown resets; it grants stacks on new kills rather than scanning timeline history at activation start. Stacks survive forks and battle saves, and are undone with the damage that earned them. Status display shows the stack count and current bonus; replay restores stacks from committed stack-change facts.
+
 Battle-local reacting conditions live on a status list on unit [`State`](src/battle/units/State.cs) (`State.Statuses`); statuses are the only owner of outgoing rewrites, effective-parameter rewrites, and incoming-hit rewrites. Ownership map:
 
 | Concern | Owner |

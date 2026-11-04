@@ -120,6 +120,13 @@ public static class BattleStatuses
 		return state.Statuses.Exists(status => status.InstanceId == instanceId);
 	}
 
+	public static bool HasThirstForScrap(State state)
+	{
+		ArgumentNullException.ThrowIfNull(state);
+		var instanceId = PassiveInstanceId(nameof(EPilotCapabilityId.ThirstForScrap), state.Id);
+		return state.Statuses.Exists(status => status.InstanceId == instanceId);
+	}
+
 	public static void CopyOneWithTheVoidOnto(State source, State destination)
 	{
 		ArgumentNullException.ThrowIfNull(source);

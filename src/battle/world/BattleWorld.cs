@@ -44,7 +44,7 @@ public sealed class BattleWorld
 		IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> effects) =>
 		BattleStatuses.RewriteOutgoing(action, world, effects)
 			.Select(effect => effect is ApplyAreaDamageEffect or ApplyChainLightningDamageEffect
-				? new ResetCooldownOnKillEffect(effect)
+				? new ApplyKillTriggersEffect(effect)
 				: effect)
 			.ToArray();
 

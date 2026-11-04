@@ -57,6 +57,11 @@ public static class PilotSkillPercents
 		public const int DurationEndPasses = 2;
 	}
 
+	public static class ThirstForScrap
+	{
+		public const int DamageBonusPercentPerKill = 10;
+	}
+
 
 	public static class InTheFray
 	{
@@ -89,7 +94,7 @@ public static class PilotSkillPercents
 	{
 		public const int HeatReleased = 40;
 
-		public const int ApCost = 2;
+		public const int ApCost = 1;
 	}
 
 	public static class ReactiveShields

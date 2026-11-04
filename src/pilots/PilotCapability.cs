@@ -23,6 +23,7 @@ public enum EPilotCapabilityId
 	ShipUpgradeDiscount,
 	OptimalityContractCreditBonus,
 	InitiativePenalty,
+	ThirstForScrap,
 }
 
 public enum EPilotCapabilitySourceKind
