@@ -150,6 +150,7 @@ public sealed class ApplyChainLightningDamageEffect(
 			unit.Statuses,
 			world,
 			targetUnit,
+			origin,
 			cause,
 			face,
 			new IncomingHit(appliedDamage, appliedShieldDamageBonus));

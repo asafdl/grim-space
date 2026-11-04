@@ -20,4 +20,5 @@ public enum EPilotSkillId
 	ShieldDynamo,
 	MarkWeakspot,
 	ThirstForScrap,
+	YouLittleRat,
 }

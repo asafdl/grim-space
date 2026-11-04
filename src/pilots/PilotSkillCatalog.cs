@@ -64,6 +64,14 @@ public static class PilotSkillCatalog
 					$"Gain a stacking +{PilotSkillPercents.ThirstForScrap.DamageBonusPercentPerKill}% damage for each enemy killed by this unit or its spawned units this battle."),
 				minimumEarnedLevel: 4,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
+			[EPilotSkillId.YouLittleRat] = new(
+				EPilotSkillId.YouLittleRat,
+				[EPilotCapabilityId.YouLittleRat],
+				new HudTooltipContent(
+					"You Little Rat",
+					$"Take {100 - PilotSkillPercents.YouLittleRat.DamageTakenPercent}% less damage from attacks originating at least {PilotSkillPercents.YouLittleRat.MinimumDistanceCells} km away (grid distance)."),
+				minimumEarnedLevel: 4,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
 			[EPilotSkillId.ShieldDynamo] = new(
 				EPilotSkillId.ShieldDynamo,
 				[EPilotCapabilityId.ShieldDynamo],

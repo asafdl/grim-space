@@ -110,6 +110,7 @@ public sealed class BattleStatusDisplayTests
 	[InlineData(EPilotCapabilityId.StationaryDamageDeflection, "Defensive Maneuvers")]
 	[InlineData(EPilotCapabilityId.ShieldDynamo, "Shield Dynamo")]
 	[InlineData(EPilotCapabilityId.ThirstForScrap, "Thirst For Scrap")]
+	[InlineData(EPilotCapabilityId.YouLittleRat, "You Little Rat")]
 	[InlineData(EPilotCapabilityId.OneWithTheVoid, "One With The Void")]
 	public void EveryInstalledPassiveHasAnIconAndEffectDescription(EPilotCapabilityId capability, string title)
 	{

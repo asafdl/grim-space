@@ -24,6 +24,7 @@ public enum EPilotCapabilityId
 	OptimalityContractCreditBonus,
 	InitiativePenalty,
 	ThirstForScrap,
+	YouLittleRat,
 }
 
 public enum EPilotCapabilitySourceKind

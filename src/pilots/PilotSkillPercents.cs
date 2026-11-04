@@ -62,6 +62,12 @@ public static class PilotSkillPercents
 		public const int DamageBonusPercentPerKill = 10;
 	}
 
+	public static class YouLittleRat
+	{
+		public const int MinimumDistanceCells = 6;
+		public const int DamageTakenPercent = 80;
+	}
+
 
 	public static class InTheFray
 	{

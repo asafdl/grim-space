@@ -219,6 +219,7 @@ public sealed class ApplyAreaDamageEffect(
 			unit.Statuses,
 			world,
 			targetUnit,
+			origin,
 			cause,
 			face,
 			new IncomingHit(appliedDamage, appliedShieldDamageBonus));

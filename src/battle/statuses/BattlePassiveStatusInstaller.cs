@@ -24,6 +24,7 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.StationaryDamageDeflection,
 		EPilotCapabilityId.ShieldDynamo,
 		EPilotCapabilityId.ThirstForScrap,
+		EPilotCapabilityId.YouLittleRat,
 		EPilotCapabilityId.OneWithTheVoid,
 	];
 
@@ -154,13 +155,26 @@ public static class BattlePassiveStatusInstaller
 						hullDamage,
 						PilotSkillPercents.ReinforcedHull.HullDamageTakenPercent),
 			},
+			EPilotCapabilityId.YouLittleRat => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteIncomingHit = (_, target, origin, _, _, hit) =>
+					hit.Damage <= 0
+					|| target.State.Position.ManhattanDistanceTo(origin)
+						< PilotSkillPercents.YouLittleRat.MinimumDistanceCells
+						? hit
+						: Defense.ScaleHitDamageTaken(hit, PilotSkillPercents.YouLittleRat.DamageTakenPercent),
+			},
 			EPilotCapabilityId.InTheFray => new BattleStatus
 			{
 				InstanceId = instanceId,
 				Priority = 100,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
-				RewriteIncomingHit = (world, target, _, _, hit) =>
+				RewriteIncomingHit = (world, target, _, _, _, hit) =>
 					hit.Damage <= 0
 					|| world.CountUnitsInRange(
 						target.State.Id,
@@ -178,7 +192,7 @@ public static class BattlePassiveStatusInstaller
 				Priority = 100,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
-				RewriteIncomingHit = (_, target, _, _, hit) =>
+				RewriteIncomingHit = (_, target, _, _, _, hit) =>
 				{
 					if (hit.Damage <= 0)
 						return hit;
@@ -202,7 +216,7 @@ public static class BattlePassiveStatusInstaller
 				Priority = 200,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
-				RewriteIncomingHit = (_, target, cause, _, hit) =>
+				RewriteIncomingHit = (_, target, _, cause, _, hit) =>
 				{
 					var unit = target.State;
 					if (hit.Damage <= 0 || unit.DefensiveManeuversMpUsed != 0)

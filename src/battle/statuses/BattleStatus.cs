@@ -41,7 +41,7 @@ public sealed class BattleStatus
 	public Func<IAction, BattleWorld, IEffect<BattleWorld, ActorRuntime>, IEffect<BattleWorld, ActorRuntime>>? RewriteOutgoing { get; init; }
 	public Func<IAreaDamage, IReadOnlyList<string>, IAreaDamage>? RewriteArea { get; init; }
 	public Func<int, int>? RewriteIncomingDamage { get; init; }
-	public Func<BattleWorld, Unit, EImpactCause, ESpatialOrientation, IncomingHit, IncomingHit>? RewriteIncomingHit { get; init; }
+	public Func<BattleWorld, Unit, Coord, EImpactCause, ESpatialOrientation, IncomingHit, IncomingHit>? RewriteIncomingHit { get; init; }
 	public Func<int, int>? RewriteShieldDamage { get; init; }
 	public Func<int, int>? RewriteHullDamage { get; init; }
 
@@ -175,7 +175,7 @@ public static class BattleStatuses
 			Priority = 210,
 			ActionTags = [],
 			Polarity = EStatusPolarity.Buff,
-			RewriteIncomingHit = (_, _, _, _, hit) =>
+			RewriteIncomingHit = (_, _, _, _, _, hit) =>
 				hit.Damage <= 0
 					? hit
 					: Defense.ScaleHitDamageTaken(
@@ -191,7 +191,7 @@ public static class BattleStatuses
 			ActionTags = [],
 			Polarity = EStatusPolarity.Debuff,
 			Payload = new MarkWeakspotPayload { Face = face },
-			RewriteIncomingHit = (_, _, _, hitFace, hit) =>
+			RewriteIncomingHit = (_, _, _, _, hitFace, hit) =>
 			{
 				if (hit.Damage <= 0 || hitFace != face)
 					return hit;
@@ -308,6 +308,7 @@ public static class BattleStatuses
 		IEnumerable<BattleStatus> statuses,
 		BattleWorld world,
 		Unit target,
+		Coord origin,
 		EImpactCause cause,
 		ESpatialOrientation face,
 		IncomingHit hit)
@@ -316,7 +317,7 @@ public static class BattleStatuses
 		foreach (var status in Ordered(statuses))
 		{
 			if (status.RewriteIncomingHit is { } rewrite)
-				current = rewrite(world, target, cause, face, current);
+				current = rewrite(world, target, origin, cause, face, current);
 		}
 
 		return current;

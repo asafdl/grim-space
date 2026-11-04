@@ -19,6 +19,7 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.ShieldDynamo
 			or EPilotCapabilityId.MarkWeakspot
 			or EPilotCapabilityId.ThirstForScrap
+			or EPilotCapabilityId.YouLittleRat
 			or EPilotCapabilityId.InTheFray
 			or EPilotCapabilityId.ReactiveShields
 			or EPilotCapabilityId.ReinforcedHull
