@@ -28,9 +28,9 @@ public sealed class IndustrialGooperSpecTests
 		var spec = IndustrialGooperSpec.Instance;
 		var loadout = spec.NewDefaultLoadout();
 
-		Assert.Equal((3 * 100), loadout.BaseHullPoints);
+		Assert.Equal(225, loadout.BaseHullPoints);
 		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
-			Assert.Equal((3 * 100), loadout.BaseShieldPoints[face]);
+			Assert.Equal(150, loadout.BaseShieldPoints[face]);
 		Assert.Equal(
 			[
 				new AbilityMount(EAbilityKind.Ram, ESpatialOrientation.Forward),

@@ -17,7 +17,7 @@ public sealed class IndustrialGooperSpec : ShipSpec
 	public override EType Chassis => EType.IndustrialGooper;
 	public override EOperatorClassId ClassId => EOperatorClassId.Tank;
 	public override int Initiative => 25;
-	public override int DefaultBaseHullPoints => 300;
+	public override int DefaultBaseHullPoints => 225;
 	public override ManeuverabilitySpec Maneuverability { get; } =
 		ManeuverabilitySpec.StandardShip(4, 3);
 
@@ -26,7 +26,7 @@ public sealed class IndustrialGooperSpec : ShipSpec
 		get
 		{
 			var profile = new FaceShieldPoints();
-			profile.Fill(300);
+			profile.Fill(150);
 			return profile;
 		}
 	}
