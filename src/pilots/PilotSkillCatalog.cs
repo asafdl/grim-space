@@ -72,6 +72,22 @@ public static class PilotSkillCatalog
 					$"Take {100 - PilotSkillPercents.YouLittleRat.DamageTakenPercent}% less damage from attacks originating at least {PilotSkillPercents.YouLittleRat.MinimumDistanceCells} km away (grid distance)."),
 				minimumEarnedLevel: 4,
 				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
+			[EPilotSkillId.NothingButMetal] = new(
+				EPilotSkillId.NothingButMetal,
+				[EPilotCapabilityId.NothingButMetal],
+				new HudTooltipContent(
+					"Nothing But Metal",
+					$"Deal +{PilotSkillPercents.NothingButMetal.DamageBonusPercent}% damage when hitting only hull."),
+				minimumEarnedLevel: 5,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
+			[EPilotSkillId.NotFullyFormed] = new(
+				EPilotSkillId.NotFullyFormed,
+				[EPilotCapabilityId.SpawnedUnitDamageBonus],
+				new HudTooltipContent(
+					"Not Fully Formed",
+					$"Deal {PilotSkillPercents.NotFullyFormed.SpawnedUnitDamageBonusPercent}% additional damage against spawned units."),
+				minimumEarnedLevel: 6,
+				audience: PilotSkillAudience.ForOperatorClass(EOperatorClassId.Rogue)),
 			[EPilotSkillId.ShieldDynamo] = new(
 				EPilotSkillId.ShieldDynamo,
 				[EPilotCapabilityId.ShieldDynamo],

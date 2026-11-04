@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Statuses;
@@ -22,7 +23,9 @@ public sealed class ApplyAreaDamageEffect(
 	bool destroySource = false,
 	bool alliesTakeDamage = true,
 	bool overdriveBonusIncluded = false,
-	int hullBreachDamagePercent = 100) : IEffect<BattleWorld, ActorRuntime>
+	int hullBreachDamagePercent = 100,
+	int unshieldedDamageBonusPercent = 0,
+	int spawnedUnitDamageBonusPercent = 0) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> Cells => cells;
@@ -35,6 +38,8 @@ public sealed class ApplyAreaDamageEffect(
 	public int DamageBonusPercent => damageBonusPercent;
 	public bool OverdriveBonusIncluded => overdriveBonusIncluded;
 	public int HullBreachDamagePercent => hullBreachDamagePercent;
+	public int UnshieldedDamageBonusPercent => unshieldedDamageBonusPercent;
+	public int SpawnedUnitDamageBonusPercent => spawnedUnitDamageBonusPercent;
 
 	public ApplyAreaDamageEffect WithAdditionalDamage(int amount) =>
 		new(
@@ -50,7 +55,9 @@ public sealed class ApplyAreaDamageEffect(
 			destroySource,
 			alliesTakeDamage,
 			overdriveBonusIncluded,
-			hullBreachDamagePercent);
+			hullBreachDamagePercent,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyAreaDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
@@ -66,7 +73,9 @@ public sealed class ApplyAreaDamageEffect(
 			destroySource,
 			alliesTakeDamage,
 			overdriveBonusIncluded,
-			hullBreachDamagePercent);
+			hullBreachDamagePercent,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyAreaDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
@@ -82,7 +91,9 @@ public sealed class ApplyAreaDamageEffect(
 			destroySource,
 			alliesTakeDamage,
 			overdriveBonusIncluded,
-			hullBreachDamagePercent);
+			hullBreachDamagePercent,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyAreaDamageEffect WithAdjacentHitDamagePercent(int percent, int rangeCells = 1) =>
 		new(
@@ -98,7 +109,9 @@ public sealed class ApplyAreaDamageEffect(
 			destroySource,
 			alliesTakeDamage,
 			overdriveBonusIncluded,
-			hullBreachDamagePercent);
+			hullBreachDamagePercent,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyAreaDamageEffect WithDamageBonusPercent(int percent) =>
 		new(
@@ -114,7 +127,9 @@ public sealed class ApplyAreaDamageEffect(
 			destroySource,
 			alliesTakeDamage,
 			overdriveBonusIncluded,
-			hullBreachDamagePercent);
+			hullBreachDamagePercent,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyAreaDamageEffect WithAddedDamageBonusPercent(int percent, bool includesOverdrive = false) =>
 		new(
@@ -130,7 +145,23 @@ public sealed class ApplyAreaDamageEffect(
 			destroySource,
 			alliesTakeDamage,
 			overdriveBonusIncluded || includesOverdrive,
-			hullBreachDamagePercent);
+			hullBreachDamagePercent,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
+
+	public ApplyAreaDamageEffect WithUnshieldedDamageBonusPercent(int percent) =>
+		new(
+			cause, cells, damage, origin, shieldDamageBonus, shieldDamageBonusPercent,
+			adjacentHitDamagePercent, adjacentHitDamageRangeCells, damageBonusPercent,
+			destroySource, alliesTakeDamage, overdriveBonusIncluded, hullBreachDamagePercent,
+			percent, spawnedUnitDamageBonusPercent);
+
+	public ApplyAreaDamageEffect WithSpawnedUnitDamageBonusPercent(int percent) =>
+		new(
+			cause, cells, damage, origin, shieldDamageBonus, shieldDamageBonusPercent,
+			adjacentHitDamagePercent, adjacentHitDamageRangeCells, damageBonusPercent,
+			destroySource, alliesTakeDamage, overdriveBonusIncluded, hullBreachDamagePercent,
+			unshieldedDamageBonusPercent, percent);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -197,6 +228,10 @@ public sealed class ApplyAreaDamageEffect(
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.CurrentHullPoints;
 		var bonus = damageBonusPercent;
+		if (shieldBefore == 0)
+			bonus += unshieldedDamageBonusPercent;
+		if (unit.ParentId != BattleActorIds.Rules)
+			bonus += spawnedUnitDamageBonusPercent;
 		if (!overdriveBonusIncluded)
 			bonus += CrossingOverdriveBonusPercent(world.StateOf(actorId));
 		var appliedDamage = bonus == 0

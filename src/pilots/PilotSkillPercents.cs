@@ -68,6 +68,16 @@ public static class PilotSkillPercents
 		public const int DamageTakenPercent = 80;
 	}
 
+	public static class NothingButMetal
+	{
+		public const int DamageBonusPercent = 40;
+	}
+
+	public static class NotFullyFormed
+	{
+		public const int SpawnedUnitDamageBonusPercent = 30;
+	}
+
 
 	public static class InTheFray
 	{

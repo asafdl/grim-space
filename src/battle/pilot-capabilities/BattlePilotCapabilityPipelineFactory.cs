@@ -20,6 +20,8 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.MarkWeakspot
 			or EPilotCapabilityId.ThirstForScrap
 			or EPilotCapabilityId.YouLittleRat
+			or EPilotCapabilityId.NothingButMetal
+			or EPilotCapabilityId.SpawnedUnitDamageBonus
 			or EPilotCapabilityId.InTheFray
 			or EPilotCapabilityId.ReactiveShields
 			or EPilotCapabilityId.ReinforcedHull

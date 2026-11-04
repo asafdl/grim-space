@@ -25,6 +25,8 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.ShieldDynamo,
 		EPilotCapabilityId.ThirstForScrap,
 		EPilotCapabilityId.YouLittleRat,
+		EPilotCapabilityId.NothingButMetal,
+		EPilotCapabilityId.SpawnedUnitDamageBonus,
 		EPilotCapabilityId.OneWithTheVoid,
 	];
 
@@ -81,6 +83,36 @@ public static class BattlePassiveStatusInstaller
 					effect is ApplyAreaDamageEffect area
 						? area.WithAdditionalDamage(PilotSkillPercents.ScrapDrone.SwarmAdditionalDamage)
 						: effect,
+			},
+			EPilotCapabilityId.NothingButMetal => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteOutgoing = (_, _, effect) => effect switch
+				{
+					ApplyAreaDamageEffect area => area.WithUnshieldedDamageBonusPercent(
+						PilotSkillPercents.NothingButMetal.DamageBonusPercent),
+					ApplyChainLightningDamageEffect chain => chain.WithUnshieldedDamageBonusPercent(
+						PilotSkillPercents.NothingButMetal.DamageBonusPercent),
+					_ => effect,
+				},
+			},
+			EPilotCapabilityId.SpawnedUnitDamageBonus => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteOutgoing = (_, _, effect) => effect switch
+				{
+					ApplyAreaDamageEffect area => area.WithSpawnedUnitDamageBonusPercent(
+						PilotSkillPercents.NotFullyFormed.SpawnedUnitDamageBonusPercent),
+					ApplyChainLightningDamageEffect chain => chain.WithSpawnedUnitDamageBonusPercent(
+						PilotSkillPercents.NotFullyFormed.SpawnedUnitDamageBonusPercent),
+					_ => effect,
+				},
 			},
 			EPilotCapabilityId.ThirstForScrap => new BattleStatus
 			{

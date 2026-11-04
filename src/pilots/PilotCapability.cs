@@ -25,6 +25,8 @@ public enum EPilotCapabilityId
 	InitiativePenalty,
 	ThirstForScrap,
 	YouLittleRat,
+	NothingButMetal,
+	SpawnedUnitDamageBonus,
 }
 
 public enum EPilotCapabilitySourceKind

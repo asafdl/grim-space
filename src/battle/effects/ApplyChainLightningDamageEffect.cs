@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Statuses;
@@ -19,7 +20,9 @@ public sealed class ApplyChainLightningDamageEffect(
 	int shieldDamageBonus = 0,
 	int shieldDamageBonusPercent = 0,
 	int damageBonusPercent = 0,
-	bool overdriveBonusIncluded = false) : IEffect<BattleWorld, ActorRuntime>
+	bool overdriveBonusIncluded = false,
+	int unshieldedDamageBonusPercent = 0,
+	int spawnedUnitDamageBonusPercent = 0) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> BeamCells => beamCells;
@@ -31,6 +34,8 @@ public sealed class ApplyChainLightningDamageEffect(
 	public int ShieldDamageBonusPercent => shieldDamageBonusPercent;
 	public int DamageBonusPercent => damageBonusPercent;
 	public bool OverdriveBonusIncluded => overdriveBonusIncluded;
+	public int UnshieldedDamageBonusPercent => unshieldedDamageBonusPercent;
+	public int SpawnedUnitDamageBonusPercent => spawnedUnitDamageBonusPercent;
 
 	public ApplyChainLightningDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
@@ -43,7 +48,9 @@ public sealed class ApplyChainLightningDamageEffect(
 			shieldDamageBonus + amount,
 			shieldDamageBonusPercent,
 			damageBonusPercent,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
@@ -56,7 +63,9 @@ public sealed class ApplyChainLightningDamageEffect(
 			shieldDamageBonus,
 			percent,
 			damageBonusPercent,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithDamageBonusPercent(int percent) =>
 		new(
@@ -69,7 +78,9 @@ public sealed class ApplyChainLightningDamageEffect(
 			shieldDamageBonus,
 			shieldDamageBonusPercent,
 			percent,
-			overdriveBonusIncluded);
+			overdriveBonusIncluded,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithAddedDamageBonusPercent(int percent, bool includesOverdrive = false) =>
 		new(
@@ -82,7 +93,21 @@ public sealed class ApplyChainLightningDamageEffect(
 			shieldDamageBonus,
 			shieldDamageBonusPercent,
 			damageBonusPercent + percent,
-			overdriveBonusIncluded || includesOverdrive);
+			overdriveBonusIncluded || includesOverdrive,
+			unshieldedDamageBonusPercent,
+			spawnedUnitDamageBonusPercent);
+
+	public ApplyChainLightningDamageEffect WithUnshieldedDamageBonusPercent(int percent) =>
+		new(
+			cause, beamCells, hops, baseDamage, chainFalloffPercentPerHop, origin,
+			shieldDamageBonus, shieldDamageBonusPercent, damageBonusPercent, overdriveBonusIncluded,
+			percent, spawnedUnitDamageBonusPercent);
+
+	public ApplyChainLightningDamageEffect WithSpawnedUnitDamageBonusPercent(int percent) =>
+		new(
+			cause, beamCells, hops, baseDamage, chainFalloffPercentPerHop, origin,
+			shieldDamageBonus, shieldDamageBonusPercent, damageBonusPercent, overdriveBonusIncluded,
+			unshieldedDamageBonusPercent, percent);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -136,6 +161,10 @@ public sealed class ApplyChainLightningDamageEffect(
 		var shieldBefore = Defense.EffectiveShield(unit, face);
 		var hullBefore = unit.CurrentHullPoints;
 		var bonus = damageBonusPercent;
+		if (shieldBefore == 0)
+			bonus += unshieldedDamageBonusPercent;
+		if (unit.ParentId != BattleActorIds.Rules)
+			bonus += spawnedUnitDamageBonusPercent;
 		if (!overdriveBonusIncluded)
 			bonus += ApplyAreaDamageEffect.CrossingOverdriveBonusPercent(world.StateOf(actorId));
 		var appliedDamage = bonus == 0

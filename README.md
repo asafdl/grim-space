@@ -453,6 +453,10 @@ Thirst For Scrap is a level-4 Rogue passive: each enemy kill credited to the uni
 
 You Little Rat is a level-4 Rogue passive: incoming hits originating at least 6 km away (Manhattan/grid distance) deal 20% less damage, including shield-only bonus damage. The incoming-hit status uses the same attack origin as shield-hit direction, without looking up the source unit. No activation work is scheduled.
 
+Nothing But Metal is a level-5 Rogue passive: a hit against a face with zero effective shields before that hit gains an additive 40% damage bonus. Temporary shields count; shield-breaking overflow does not qualify. Area targets and chain hops evaluate the condition independently. The installed status configures the damage effect; no activation work or additional persisted counters are needed.
+
+Not Fully Formed is a level-6 Rogue passive: attacks deal 30% additional damage to spawned units with a real parent actor, including spawned patrols and void bombs. It does not apply to ordinary units whose parent is the rules actor.
+
 Battle-local reacting conditions live on a status list on unit [`State`](src/battle/units/State.cs) (`State.Statuses`); statuses are the only owner of outgoing rewrites, effective-parameter rewrites, and incoming-hit rewrites. Ownership map:
 
 | Concern | Owner |

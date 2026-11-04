@@ -82,6 +82,8 @@ public sealed record BattleStatusDisplay(
 				Details = $"Stacks: {unit.ThirstForScrapStacks}\nCurrent damage bonus: +{unit.ThirstForScrapStacks * PilotSkillPercents.ThirstForScrap.DamageBonusPercentPerKill}%. Lasts for this battle.",
 			}),
 			"passive:YouLittleRat" => ("Shield", PilotSkillCatalog.Get(EPilotSkillId.YouLittleRat).Tooltip),
+			"passive:NothingButMetal" => ("Damage", PilotSkillCatalog.Get(EPilotSkillId.NothingButMetal).Tooltip),
+			"passive:SpawnedUnitDamageBonus" => ("Damage", PilotSkillCatalog.Get(EPilotSkillId.NotFullyFormed).Tooltip),
 			"passive:OneWithTheVoid" => ("VoidBombLauncher", PilotSkillCatalog.Get(EPilotSkillId.OneWithTheVoid).Tooltip),
 			_ => throw new InvalidDataException($"Unknown battle status display '{status.InstanceId}'."),
 		};

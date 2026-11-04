@@ -21,4 +21,6 @@ public enum EPilotSkillId
 	MarkWeakspot,
 	ThirstForScrap,
 	YouLittleRat,
+	NothingButMetal,
+	NotFullyFormed,
 }
