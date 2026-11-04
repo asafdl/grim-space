@@ -72,7 +72,7 @@ public sealed class PilotSkillTreeTests
 	[Fact]
 	public void RunState_TryLearnUpdatesRegistry()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 250));
 		Assert.True(run.PilotRegistry.TryGet(pilot.Id, out pilot));

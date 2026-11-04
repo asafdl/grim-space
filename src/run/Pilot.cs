@@ -160,7 +160,10 @@ public sealed class Pilot
 			0);
 	}
 
-	public static Pilot CreateStarterForShip(string assignedShipId, Random? rng = null)
+	public static Pilot CreateStarterForShip(
+		string assignedShipId,
+		Random? rng = null,
+		EOperatorClassId classId = EOperatorClassId.SpaceRanger)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
 		rng ??= Random.Shared;
@@ -169,7 +172,7 @@ public sealed class Pilot
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			EPilotBackgroundId.ScrapDrone,
-			EOperatorClassId.SpaceRanger,
+			classId,
 			EPilotQuirkId.Charismatic,
 			EPilotQuirkId.NeuroDrugAddict,
 			assignedShipId,

@@ -22,7 +22,7 @@ public sealed class BattleSpawnPilotTests
 	[Fact]
 	public void Engagement_Create_AssignsPilotSnapshotToPlayerSpawnsOnly()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = RegisterEnemyFleet(run, "pirate-test", new Coord(4, 0, 0));
@@ -53,7 +53,7 @@ public sealed class BattleSpawnPilotTests
 	[Fact]
 	public void BattleEncounterSave_RoundTripsPilotSnapshot()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var shipToPilot = BuildShipToPilotSnapshot(run);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = RegisterEnemyFleet(run, "pirate-save-test", new Coord(4, 0, 0));
@@ -80,7 +80,7 @@ public sealed class BattleSpawnPilotTests
 	[Fact]
 	public void MultiShipEngagement_EachPlayerSpawnGetsDistinctPilotSnapshot()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var secondId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
 		var shipToPilot = BuildShipToPilotSnapshot(run);

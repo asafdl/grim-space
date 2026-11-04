@@ -18,9 +18,41 @@ namespace GrimSpace.Tests.Run;
 public sealed class PilotRegistryTests
 {
 	[Fact]
+	public void CreateNewRun_SelectsTwoDistinctSeededClassesWithMatchingT0Ships()
+	{
+		var seen = new HashSet<EOperatorClassId>();
+		for (var seed = 0; seed < 12; seed++)
+		{
+			using var first = State.CreateNewRun(seed);
+			using var second = State.CreateNewRun(seed);
+			var pilots = first.PilotRegistry.Active;
+			Assert.Equal(2, pilots.Count);
+			Assert.Equal(2, pilots.Select(pilot => pilot.ClassId).Distinct().Count());
+			Assert.Equal(
+				pilots.Select(pilot => pilot.ClassId),
+				second.PilotRegistry.Active.Select(pilot => pilot.ClassId));
+			foreach (var pilot in pilots)
+			{
+				seen.Add(pilot.ClassId);
+				var ship = first.ItemInventory.Get(pilot.AssignedShipId!);
+				Assert.Equal(pilot.ClassId, ship.Spec.ClassId);
+				Assert.Equal(
+					ShipCatalog.LoadoutForTier(ship.Spec.Chassis, EShipGearTier.T0).InstalledAbilities,
+					ship.Loadout.InstalledAbilities);
+				Assert.Equal(0, pilot.ExperiencePoints);
+				Assert.Empty(pilot.LearnedSkills);
+			}
+		}
+
+		Assert.Equal(
+			new[] { EOperatorClassId.SpaceRanger, EOperatorClassId.Support, EOperatorClassId.Tank, EOperatorClassId.Rogue }.Order(),
+			seen.Order());
+	}
+
+	[Fact]
 	public void CreateNewRun_RegistersPilotForStarterShip()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		Assert.Equal(2, run.GetFieldedShipIds().Count);
 		var shipId = RunTestKit.StarterFighterShipId(run);
 
@@ -42,7 +74,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void CreateNewRun_FieldedRosterIncludesSupportEngineerOnRepurposedMinerT0()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var minerShipId = RunTestKit.StarterRepurposedMinerShipId(run);
 		var ship = run.ItemInventory.Get(minerShipId);
 
@@ -60,7 +92,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void Enlist_AddsSecondPilotWhilePartyOrderStaysShipOrdered()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var fighterShipId = RunTestKit.StarterFighterShipId(run);
 		var minerShipId = RunTestKit.StarterRepurposedMinerShipId(run);
 		var thirdShipId = TypedIdGenerator.NextId("fighter");
@@ -75,7 +107,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAssignPilotToShip_SwapsActivePilotsWhilePreservingFieldedShipOrder()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var fighterShipId = RunTestKit.StarterFighterShipId(run);
 		var minerShipId = RunTestKit.StarterRepurposedMinerShipId(run);
 		var thirdShipId = TypedIdGenerator.NextId("fighter");
@@ -102,7 +134,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAssignPilotToShip_ReplacesActivePilotWithUnassignedPilot()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var shipId = RunTestKit.StarterFighterShipId(run);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var originalPilot));
 		var replacement = Pilot.CreateForShip("reserve-ship");
@@ -124,7 +156,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAssignPilotToShip_KeepsActivePilotWhenMovingToEmptyOwnedShip()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var starterShipId = RunTestKit.StarterFighterShipId(run);
 		Assert.True(run.PilotRegistry.TryGetForShip(starterShipId, out var pilot));
 		var emptyShipId = TypedIdGenerator.NextId("fighter");
@@ -146,7 +178,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAssignPilotToShip_FieldsReservePilotOntoEmptyShipWhenSquadHasRoom()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		Assert.Equal(2, run.PilotRegistry.Active.Count);
 		var emptyShipId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryAcquireOwnedShip(
@@ -167,7 +199,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void EnsureActiveRosterFilledFromAssignments_ActivatesAssignedInactivePilots()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var emptyShipId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryAcquireOwnedShip(
 			new ShipSpawnDeclaration(emptyShipId, BattleUnitType.Fighter, EShipGearTier.T1)));
@@ -186,7 +218,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAssignPilotToShip_RejectsUnknownPilotOrUnownedShip()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 
 		Assert.False(run.TryAssignPilotToShip("missing-pilot", pilot.AssignedShipId!));
@@ -206,7 +238,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAssignPilotToShip_RejectsUnclassifiedShipWithoutChangingRoster()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		var shipId = "unclassified-reserve";
 		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Gunship)));
@@ -228,7 +260,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAssignPilotToShip_RejectsSwapWhenEitherResultingPairingIsIncompatible()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var fighterShipId = RunTestKit.StarterFighterShipId(run);
 		var minerShipId = "unclassified-swap";
 		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration(minerShipId, BattleUnitType.RepurposedMiner)));
@@ -361,7 +393,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void Snapshot_RoundTripsPartyPilotsAndAssignments()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var secondShipId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Fighter)));
 		var registry = PersistenceRegistry.CreateDefault();
@@ -387,7 +419,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void Snapshot_RestoresPlayerStrategicActionPipeline()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		foreach (var other in run.PilotRegistry.All.Where(p => p.Id != pilot.Id).ToArray())
 			Assert.True(run.TryDismissPilot(other.Id));
@@ -440,7 +472,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void RegenerateMap_PreservesPartyAndPilots()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var secondShipId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondShipId, BattleUnitType.Fighter)));
 		var pilotsBefore = run.GetFieldedShipIds()
@@ -466,7 +498,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void FromSnapshot_ThrowsWhenActivePilotHasNoAssignedShip()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var registry = PersistenceRegistry.CreateDefault();
 		var snapshot = run.CaptureSnapshot(registry) with
 		{
@@ -487,7 +519,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void FromSnapshot_RejectsIncompatiblePilotShipPairing()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var minerId = "restored-unclassified-ship";
 		Assert.True(run.TryAcquireOwnedShip(
 			new ShipSpawnDeclaration(minerId, BattleUnitType.RepurposedMiner)));
@@ -508,7 +540,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryDismissPilot_RemovesPilotAndKeepsOwnedShip()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var fighterShipId = RunTestKit.StarterFighterShipId(run);
 		Assert.True(run.PilotRegistry.TryGetForShip(fighterShipId, out var pilot));
 		var pilotId = pilot.Id;
@@ -525,7 +557,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryDismissPilot_RejectsLastPilot()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var fighterShipId = RunTestKit.StarterFighterShipId(run);
 		var minerShipId = RunTestKit.StarterRepurposedMinerShipId(run);
 		Assert.True(run.PilotRegistry.TryGetForShip(fighterShipId, out var fighterPilot));
@@ -551,7 +583,7 @@ public sealed class PilotRegistryTests
 	[Fact]
 	public void TryAcquirePilotHire_RejectsWhenRosterFull()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		RunTestKit.EnlistUntilActivePilotCap(run);
 		Assert.Equal(RunPilotRegistry.MaxPilots, run.PilotRegistry.All.Count);
 

@@ -1,5 +1,7 @@
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
+using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
@@ -51,6 +53,34 @@ public sealed class BattleStatusPersistenceTests
 
 		var status = Assert.Single(restored.Statuses);
 		Assert.NotNull(status.RewriteIncomingHit);
+	}
+
+	[Fact]
+	public void TimelineRoundTrip_RehydratesProtectionDroneFactStatus()
+	{
+		var registry = PersistenceRegistry.CreateDefault();
+		var status = BattleStatuses.CreateProtectionDrone("ally");
+		var written = registry.Write(
+			new Record<ProtectionDroneChangedFacts>(new("player", "ally", status)));
+
+		var restored = Assert.IsType<Record<ProtectionDroneChangedFacts>>(registry.Read(written));
+		Assert.NotNull(restored.Value.Status);
+		Assert.NotNull(restored.Value.Status.RewriteIncomingHit);
+		Assert.Equal(status.InstanceId, restored.Value.Status.InstanceId);
+	}
+
+	[Fact]
+	public void RoundTrip_RestoresMarkWeakspotFace()
+	{
+		var state = BattleTestFixture.Player(Coord.Zero).State;
+		state.Statuses.Add(BattleStatuses.CreateMarkWeakspot(state.Id, ESpatialOrientation.Port));
+
+		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
+
+		var payload = MarkWeakspot.TryPayload(restored);
+		Assert.NotNull(payload);
+		Assert.Equal(ESpatialOrientation.Port, payload.Face);
+		Assert.NotNull(Assert.Single(restored.Statuses).RewriteIncomingHit);
 	}
 
 	[Fact]

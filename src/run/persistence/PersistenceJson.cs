@@ -26,6 +26,7 @@ public static class PersistenceJson
 			o.Converters.Add(new TransitPathJsonConverter());
 			o.Converters.Add(new ContactTargetJsonConverter());
 			o.Converters.Add(new WreckageOutcomeJsonConverter());
+			o.Converters.Add(new BattleStatusJsonConverter());
 		});
 		configure?.Invoke(options);
 		return options;

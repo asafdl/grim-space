@@ -132,7 +132,7 @@ public sealed class DeploymentPlacementTests
 	[Fact]
 	public void ForEngagement_VariedLayout_KeepsSixteenCellSeparation()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-separation");
 
@@ -157,7 +157,7 @@ public sealed class DeploymentPlacementTests
 	[Fact]
 	public void ForEngagement_VariedLayout_ProducesDiagonalEngagementsAcrossSeeds()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-angle");
 
@@ -183,7 +183,7 @@ public sealed class DeploymentPlacementTests
 	[Fact]
 	public void ForEngagement_CanonicalLayout_AlignsThroughGridCenter()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-canonical");
 		var center = new Coord(32, 32, 32);
@@ -218,7 +218,7 @@ public sealed class DeploymentPlacementTests
 	[Fact]
 	public void ForEngagement_TutorialScriptedLayout_PlacesEngagementOnXzPlane()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-scripted");
 		var center = 32;
@@ -247,7 +247,7 @@ public sealed class DeploymentPlacementTests
 	[Fact]
 	public void ForEngagement_TutorialScriptedLayout_SupportsTurnOneTutorialMove()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-turn1");
 

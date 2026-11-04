@@ -1033,20 +1033,8 @@ public static class SaveDtoMapper
 			pair => (IReadOnlyList<ITimelineEntry>)pair.Value.ToArray());
 	}
 
-	private static BattleStatusDto CaptureStatus(BattleStatus status)
-	{
-		var brace = status.Payload as ShieldBracePayload;
-		var temporaryShield = status.Payload as TemporaryShieldPayload;
-		return new BattleStatusDto(
-			status.InstanceId,
-			status.Priority,
-			status.ActionTags.ToArray(),
-			status.Polarity,
-			brace?.Face,
-			brace is null ? null : CaptureFaces(brace.Snapshot),
-			brace?.DamagePending ?? 0,
-			temporaryShield is null ? null : CaptureFaces(temporaryShield.Remaining));
-	}
+	private static BattleStatusDto CaptureStatus(BattleStatus status) =>
+		BattleStatusJsonConverter.ToDto(status);
 
 	private static void RestoreStatuses(BattleUnitState state, IReadOnlyList<BattleStatusDto>? dtos)
 	{
@@ -1056,28 +1044,8 @@ public static class SaveDtoMapper
 
 		foreach (var dto in dtos)
 		{
-			IBattleStatusPayload payload = (dto.Face, dto.Snapshot, dto.Remaining) switch
-			{
-				({ } face, { } snapshot, null) => new ShieldBracePayload
-				{
-					Face = face,
-					Snapshot = RestoreFaces(snapshot),
-					DamagePending = dto.DamagePending,
-				},
-				(null, null, { } remaining) => new TemporaryShieldPayload { Remaining = RestoreFaces(remaining) },
-				(null, null, null) => EmptyStatusPayload.Instance,
-				_ => throw new InvalidDataException($"Status '{dto.InstanceId}' has inconsistent payload data."),
-			};
 			state.Statuses.Add(
-				BattleStatusRehydrator.Rehydrate(
-					new BattleStatus
-					{
-						InstanceId = dto.InstanceId,
-						Priority = dto.Priority,
-						ActionTags = dto.ActionTags,
-						Polarity = dto.Polarity,
-						Payload = payload,
-					}));
+				BattleStatusRehydrator.Rehydrate(BattleStatusJsonConverter.ShellFromDto(dto)));
 		}
 	}
 

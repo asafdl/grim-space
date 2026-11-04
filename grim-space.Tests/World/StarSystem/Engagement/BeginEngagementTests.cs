@@ -22,7 +22,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void BeginEngagement_SetsActiveBattleFromCommittedEngagement()
 	{
-		var run = RunState.CreateNewRun(42);
+		var run = RunTestKit.CreateFighterSupportRun();
 		var playerId = RunState.PlayerFleetUnitId;
 		var pirateId = "pirate-a";
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
@@ -75,7 +75,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void Create_PlacesDuelOpponentsOutsideTurnOneWeaponReachWithAttackerFacingTarget()
 	{
-		var run = RunState.CreateNewRun(42);
+		var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
@@ -100,7 +100,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void Create_UsesInitiatorAsAttacker()
 	{
-		var run = RunState.CreateNewRun(42);
+		var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
@@ -124,7 +124,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void Create_RandomizesThreeDimensionalApproachAndInterceptedHeadingBySeed()
 	{
-		var run = RunState.CreateNewRun(42);
+		var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
@@ -158,7 +158,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void Create_UsesUniqueRepurposedMinerPositions()
 	{
-		var run = RunState.CreateNewRun(42);
+		var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",
@@ -192,7 +192,7 @@ public sealed class BeginEngagementTests
 	[Fact]
 	public void Create_AcceptsSignedGenerationSeed()
 	{
-		var run = RunState.CreateNewRun(42);
+		var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var pirateFleet = StarSystemTestHarness.CreatePirateFleet(
 			"pirate-a",

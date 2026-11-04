@@ -515,7 +515,8 @@ internal/save identifier `Rogue`) are registered
 and included as the fourth player ship in the dev duel. New markets offer Rogue
 ships at T0/T1/T2 for 150/300/600 credits (T2 also costs 1 industrial core), and
 pilot hiring can roll Rogue pilots. Existing saved markets retain their saved
-listings. Run starting squads and enemy generation remain unchanged; Rogue-specific
+listings. New runs select two distinct seeded-random pilot classes from Space Ranger,
+Support, Tank, and Rogue, each with a matching T0 ship. Enemy generation remains unchanged; Rogue-specific
 pilot skills are not yet designed.
 Its base stats are 120 hull, 50 shields on each face except
 retro (0), 4 AP, 4 MP, and initiative 50. Reverse translation costs 1 AP; other

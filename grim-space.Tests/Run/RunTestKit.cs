@@ -9,6 +9,29 @@ namespace GrimSpace.Tests.Run;
 
 internal static class RunTestKit
 {
+	private static int? _fighterSupportSeed;
+
+	public static State CreateFighterSupportRun(bool tutorialsEnabled = false)
+	{
+		if (_fighterSupportSeed is { } knownSeed)
+			return State.CreateNewRun(knownSeed, tutorialsEnabled);
+
+		for (var seed = 0; seed < 1000; seed++)
+		{
+			var run = State.CreateNewRun(seed, tutorialsEnabled);
+			var chassis = run.GetFieldedShipIds()
+				.Select(id => run.ItemInventory.Get(id).Spec.Chassis).ToArray();
+			if (chassis.SequenceEqual(new[] { BattleUnitType.Fighter, BattleUnitType.RepurposedMiner }))
+			{
+				_fighterSupportSeed = seed;
+				return run;
+			}
+			run.Dispose();
+		}
+
+		throw new InvalidOperationException("No seed produced the required Fighter/Support test squad.");
+	}
+
 	public static string StarterFighterShipId(State run) =>
 		run.GetFieldedShipIds()
 			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == BattleUnitType.Fighter);

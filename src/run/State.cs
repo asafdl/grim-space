@@ -560,20 +560,23 @@ public sealed class State : IDisposable
 	{
 		var run = new State();
 		var rng = new Random(seed);
-		var playerShipId = TypedIdGenerator.NextId(UnitTypeSlug.For(BattleUnitType.Fighter));
-		run.ApplyPlayerShipAcquire(
-			new ShipSpawnDeclaration(playerShipId, BattleUnitType.Fighter),
-			createStarterPilot: true,
-			rng);
-		var engineerShipId = TypedIdGenerator.NextId(
-			UnitTypeSlug.For(BattleUnitType.RepurposedMiner));
-		run.ApplyPlayerShipAcquire(
-			new ShipSpawnDeclaration(
-				engineerShipId,
-				BattleUnitType.RepurposedMiner,
-				EShipGearTier.T0),
-			createStarterPilot: false,
-			rng);
+		BattleUnitType[] starterChassis =
+		[
+			BattleUnitType.Fighter,
+			BattleUnitType.RepurposedMiner,
+			BattleUnitType.IndustrialGooper,
+			BattleUnitType.Rogue,
+		];
+		rng.Shuffle(starterChassis);
+		for (var index = 0; index < 2; index++)
+		{
+			var chassis = starterChassis[index];
+			var shipId = TypedIdGenerator.NextId(UnitTypeSlug.For(chassis));
+			run.ApplyPlayerShipAcquire(
+				new ShipSpawnDeclaration(shipId, chassis, EShipGearTier.T0),
+				createStarterPilot: index == 0,
+				rng);
+		}
 		var orchestrator = StarSystemOrchestrator.CreateSession(
 			PlayerFleetUnitId,
 			run.GetFieldedShipIds(),
@@ -810,7 +813,7 @@ public sealed class State : IDisposable
 			return;
 
 		var pilot = createStarterPilot
-			? Pilot.CreateStarterForShip(declaration.ShipId, rng)
+			? Pilot.CreateStarterForShip(declaration.ShipId, rng, shipClass)
 			: Pilot.CreateForShip(declaration.ShipId, shipClass, rng);
 		PilotRegistry.Register(pilot);
 		PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);

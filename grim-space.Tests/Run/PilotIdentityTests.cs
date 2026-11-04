@@ -48,15 +48,19 @@ public sealed class PilotIdentityTests
 		Assert.Equal(profile.ClaimedLevel, pilot.ClaimedLevel);
 	}
 
-	[Fact]
-	public void CreateStarterForShip_AssignsScriptedIdentity()
+	[Theory]
+	[InlineData(EOperatorClassId.SpaceRanger)]
+	[InlineData(EOperatorClassId.Support)]
+	[InlineData(EOperatorClassId.Tank)]
+	[InlineData(EOperatorClassId.Rogue)]
+	public void CreateStarterForShip_AssignsScriptedIdentity(EOperatorClassId classId)
 	{
-		var pilot = Pilot.CreateStarterForShip("fighter-a");
+		var pilot = Pilot.CreateStarterForShip("starter-a", classId: classId);
 
 		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, pilot.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilot.NegativeQuirkId);
-		Assert.Equal(EOperatorClassId.SpaceRanger, pilot.ClassId);
+		Assert.Equal(classId, pilot.ClassId);
 	}
 
 	[Fact]
@@ -167,7 +171,7 @@ public sealed class PilotIdentityTests
 	[Fact]
 	public void RegenerateMap_PreservesPilotIdentity()
 	{
-		using var run = State.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilotBefore = RunTestKit.StarterRangerPilot(run);
 		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilotBefore.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, pilotBefore.PositiveQuirkId);

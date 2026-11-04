@@ -20,7 +20,7 @@ public sealed class HazardPayEconomyTests
 	[Fact]
 	public void Engage_SpendsHazardPayAndClearsMisses()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		DismissOpeningNarrative(run);
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithHazardMissedPeriods(2));
@@ -44,7 +44,7 @@ public sealed class HazardPayEconomyTests
 	[Fact]
 	public void EngagementFact_WithRefusedPilot_ExcludesShipAndFailsEmptyPlayerBattle()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		DismissOpeningNarrative(run);
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		AddPirate(run);

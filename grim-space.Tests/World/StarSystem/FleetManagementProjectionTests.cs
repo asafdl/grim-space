@@ -1,4 +1,5 @@
 using GrimSpace.Units;
+using GrimSpace.Tests.Run;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 using RunState = GrimSpace.Run.State;
@@ -11,7 +12,7 @@ public sealed class FleetManagementProjectionTests
 	[Fact]
 	public void Collect_ProjectsOwnedShipPilotStatsAndAbilities()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var shipId = run.GetFieldedShipIds()
 			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
@@ -60,7 +61,7 @@ public sealed class FleetManagementProjectionTests
 	[Fact]
 	public void Collect_ProjectsPilotAndShipClasses()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var fighterShipId = run.GetFieldedShipIds()
 			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
 		var pilot = run.PilotRegistry.TryGetForShip(fighterShipId, out var fighterPilot)

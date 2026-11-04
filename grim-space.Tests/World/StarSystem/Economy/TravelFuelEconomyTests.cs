@@ -89,7 +89,7 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 	[Fact]
 	public void SaveLoad_MidRoute_PreservesFuelLedger()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var orchestrator = run.StarSystem;
 		var destination = orchestrator.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 		orchestrator.PlayerAgent!.TryQueueMove(destination);
@@ -117,7 +117,7 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 	[Fact]
 	public void Starvation_DamagesFieldedShieldsBeforeHullWhenFuelIsEmpty()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var fuel = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Fuel);
 		Assert.True(
 			run.StarSystem.Map.PlayerResources.TryApply(
@@ -144,7 +144,7 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 	[Fact]
 	public void ApplyStarvationDamage_DrainsShieldsThenHull()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var ship = run.ItemInventory.Get(RunTestKit.StarterFighterShipId(run)).Clone();
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			ship.CurrentShieldPoints[face] = 0;

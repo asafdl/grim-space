@@ -25,6 +25,9 @@ internal static class OutcomeTestKit
 		{
 			"fighter" => EType.Fighter,
 			"carrier" => EType.Carrier,
+			"industrial" when shipId.StartsWith("industrial-gooper-", StringComparison.Ordinal) =>
+				EType.IndustrialGooper,
+			"rogue" => EType.Rogue,
 			"repurposed" when shipId.StartsWith("repurposed-miner-", StringComparison.Ordinal) =>
 				EType.RepurposedMiner,
 			"void_bomb" => EType.VoidBomb,

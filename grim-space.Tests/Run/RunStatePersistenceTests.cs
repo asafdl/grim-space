@@ -23,7 +23,7 @@ public sealed class RunStatePersistenceTests
 	[Fact]
 	public void RegenerateMap_PreservesRunOwnedState()
 	{
-		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
+		using var run = RunTestKit.CreateFighterSupportRun(tutorialsEnabled: true);
 		var shipId = run.GetFieldedShipIds()
 			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
 		var ship = ShipInstance.FromSpec(
@@ -96,7 +96,7 @@ public sealed class RunStatePersistenceTests
 	[Fact]
 	public void Snapshot_RestoresRunOwnedStateAndBindings()
 	{
-		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
+		using var run = RunTestKit.CreateFighterSupportRun(tutorialsEnabled: true);
 		var shipId = run.GetFieldedShipIds()
 			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == EType.Fighter);
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));

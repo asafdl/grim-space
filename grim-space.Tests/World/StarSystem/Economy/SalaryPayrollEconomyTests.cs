@@ -11,7 +11,7 @@ public sealed class SalaryPayrollEconomyTests
 	[Fact]
 	public void Cadence_PaysRosterAndClearsMissedSalary()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithSalaryPayroll(2));
 		Assert.True(
@@ -34,7 +34,7 @@ public sealed class SalaryPayrollEconomyTests
 	[Fact]
 	public void Cadence_IncrementsMissWhenCreditsShort()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		var credits = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
 		Assert.True(
@@ -51,7 +51,7 @@ public sealed class SalaryPayrollEconomyTests
 	[Fact]
 	public void SaveLoad_PreservesSalaryFields()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithSalaryPayroll(3));
 
@@ -68,7 +68,7 @@ public sealed class SalaryPayrollEconomyTests
 	[Fact]
 	public void StarterPilot_HasDefaultBaseSalary()
 	{
-		using var run = RunState.CreateNewRun(42);
+		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		Assert.Equal(StrategicEconomyConfig.DefaultBaseSalaryCredits, pilot.BaseSalaryCredits);
 	}
