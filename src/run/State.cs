@@ -7,6 +7,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Ids;
 using GrimSpace.Core.Log;
 using GrimSpace.Pilots;
+using GrimSpace.Pilots.Barks;
 using GrimSpace.Tutorials;
 
 using GrimSpace.Units;
@@ -41,6 +42,8 @@ public sealed class State : IDisposable
 		_tutorialState?.PendingTutorialGraduation ?? false;
 	public RunTransitionInbox Transitions { get; } = new();
 	public StarSystemOrchestrator StarSystem { get; private set; } = null!;
+	private PilotBarkDirector? _barks;
+	public PilotBarkDirector Barks => _barks ??= new PilotBarkDirector(this, new Random());
 	public BattleEncounter? ActiveBattle { get; internal set; }
 	public BattleOutcome? PendingBattleOutcome { get; private set; }
 	public BattleWorld? RestoredBattleWorld { get; private set; }
@@ -658,6 +661,7 @@ public sealed class State : IDisposable
 			Tutorials.FlowCompleted -= OnTutorialFlowCompleted;
 		Tutorials?.Dispose();
 		Tutorials = null;
+		_barks?.Dispose();
 		ReleaseStarSystemSubscriptions();
 		ReleaseBattleOutcomeSubscription();
 		Transitions.Dispose();
@@ -687,6 +691,7 @@ public sealed class State : IDisposable
 		StarSystem.ResourceTransactionCommitted += OnResourceTransactionForStatistics;
 		StarSystem.BindSalaryPayrollRoster(SnapshotSalaryPayrollRoster);
 		StarSystem.Map.PilotRegistry = PilotRegistry;
+		_barks?.BindStarSystem();
 	}
 
 	private void ReplaceStarSystem(StarSystemOrchestrator orchestrator)

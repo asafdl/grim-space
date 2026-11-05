@@ -5,11 +5,9 @@ using GrimSpace.Presentation.Menu;
 using GrimSpace.Core.Actions;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
-using GrimSpace.Pilots.Barks;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Tutorials;
-using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
@@ -32,9 +30,6 @@ namespace GrimSpace.World.StarSystem.Presentation.Scene;
 public partial class MapController : Node3D
 {
 	private const float SecondsPerTick = 1f / StrategicEconomyConfig.StrategicTicksPerSecond;
-	/// <summary>Above map UI (11), below merchant (13) and strategic modals (14).</summary>
-	private const int PilotSpeechCanvasLayer = 12;
-
 	private static readonly float[] SpeedOptions = [1f, 2f, 4f];
 
 	private MapView _view = null!;
@@ -55,8 +50,6 @@ public partial class MapController : Node3D
 	private WreckController _wreck = null!;
 	private IDisposable _deliveryMeetingSubscription = null!;
 	private IDisposable _pursuitChangedSubscription = null!;
-	private PilotSpeechHost _pilotSpeech = null!;
-	private PilotBarkDirector _barks = null!;
 	private TutorialPresentationBinding? _mapTutorialBinding;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
@@ -281,11 +274,6 @@ public partial class MapController : Node3D
 		_objectivesLinks = new WorldLinkNavigator(_worldFocus, _worldIndicator);
 		_strategicHud.Objectives.LandmarkLinkClicked += OnObjectiveLandmarkLinkClicked;
 
-		_pilotSpeech = new PilotSpeechHost(_strategicHud.PlayerFleet.PortraitAnchorFor, PilotSpeechCanvasLayer);
-		AddChild(_pilotSpeech);
-		_barks = new PilotBarkDirector(_pilotSpeech.Say, new Random());
-		if (Session.Instance.Run.TryConsumeOpening())
-			Callable.From(PlayOpeningBarks).CallDeferred();
 		if (Session.Instance.Run.IsRunOver)
 			return;
 
@@ -339,7 +327,6 @@ public partial class MapController : Node3D
 
 		_view.SetCameraDistance(_camera.Distance);
 		SyncRosterModalPause();
-		_barks.Tick(delta);
 
 		if (_orchestrator.CanAdvance && !_director.IsTransitioning)
 			AdvanceSimulation(delta);
@@ -733,19 +720,6 @@ public partial class MapController : Node3D
 			_orchestrator.PlayerId ?? "",
 			_orchestrator.RuntimeFor,
 			tickFraction);
-	}
-
-	private void PlayOpeningBarks()
-	{
-		foreach (var pilot in Session.Instance.Run.PilotRegistry.Active)
-		{
-			if (!_barks.Script(pilot.Id, PilotBarkCatalog.OpeningLines[0]))
-				continue;
-
-			foreach (var line in PilotBarkCatalog.OpeningLines.Skip(1))
-				_barks.Script(pilot.Id, line);
-			return;
-		}
 	}
 
 	private void OnPlayerPlanningChanged()

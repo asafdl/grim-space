@@ -45,6 +45,23 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 | [`battle_status_hud_preview.tscn`](../scenes/dev/battle_status_hud_preview.tscn) | Battle command HUD with temporary/passive statuses, stack counters, and inspection switching |
 | [`run_over_hud_preview.tscn`](../scenes/dev/run_over_hud_preview.tscn) | Run over (empty roster) |
 
+## Pilot speech
+
+The shared `StrategicHud` owns the pilot speech UI in both the star map and facility scenes
+and registers/unregisters speech handles by pilot ID as roster cards appear/disappear.
+The Godot-free `PilotBarkDirector` owns event subscriptions, bark context,
+speaker/flavor selection, cooldown ticking, and the scripted opener. It subscribes
+on construction and unsubscribes when the run is disposed. The run owns one director;
+the persistent session ticks it, so cooldowns survive scene transitions. Replacing
+the strategic world rebinds its subscription without replacing the director.
+It has no HUD or control references; scenes only register and unregister presentation handles.
+Its delivery subscription listens for committed `ContractStateChanged` records:
+only completed player delivery contracts offer a bark, not intermediate handoffs.
+Each offer uses the director's 70% default chance, then randomly selects an eligible
+visible active pilot, Disdain or Relieved, and a line from that flavor. Global and
+per-pilot cooldowns apply; dialogs do not block or delay barks. Scripted opening
+lines still play once per new run.
+
 ## Palettes
 
 [`HudPalettes`](../src/components/HudPalettes.cs) defines the shared palettes:

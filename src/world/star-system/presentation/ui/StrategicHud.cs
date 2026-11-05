@@ -5,6 +5,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Pilots;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Run;
+using GrimSpace.Ui.Components;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Actions;
@@ -22,7 +23,9 @@ public partial class StrategicHud : CanvasLayer
 {
 	/// <summary>Above map UI (layer 11) facade pins; below pause menu (layer 15).</summary>
 	private const int ModalCanvasLayer = 14;
+	private const int PilotSpeechCanvasLayer = 12;
 
+	private PilotSpeechHost _pilotSpeech = null!;
 	private CanvasLayer _modalLayer = null!;
 	private ObjectivesHud _objectivesHud = null!;
 	private ResourceHud _resourceHud = null!;
@@ -85,10 +88,13 @@ public partial class StrategicHud : CanvasLayer
 		SetProcess(true);
 		SyncObjectives();
 		Session.Instance.Run.EnsureActiveRosterFilledFromAssignments();
+		_pilotSpeech = new PilotSpeechHost(_playerFleetHud.PortraitAnchorFor, PilotSpeechCanvasLayer);
+		AddChild(_pilotSpeech);
+		_playerFleetHud.BindBarks(Session.Instance.Run.Barks, _pilotSpeech);
 		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator, _intents);
 	}
 
-	public override void _Process(double _)
+	public override void _Process(double delta)
 	{
 		SyncObjectives();
 		SyncTravelFuelStatus();

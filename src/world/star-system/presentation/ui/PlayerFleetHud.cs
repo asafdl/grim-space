@@ -4,6 +4,7 @@ using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem;
+using GrimSpace.Pilots.Barks;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -14,6 +15,20 @@ public partial class PlayerFleetHud : MarginContainer
 	private UiButton _fleetButton = null!;
 	private VBoxContainer _pilotColumn = null!;
 	private UserIntentTranslator? _intents;
+	private PilotBarkDirector? _barks;
+	private PilotSpeechHost? _speech;
+
+	public void BindBarks(PilotBarkDirector director, PilotSpeechHost speech)
+	{
+		_barks = director;
+		_speech = speech;
+	}
+
+	public override void _ExitTree()
+	{
+		foreach (var pilotId in _pilots.Keys)
+			_barks?.UnregisterPilot(pilotId);
+	}
 
 	public event Action? FleetManagementRequested;
 	public event Action<string>? PilotSheetRequested;
@@ -74,6 +89,11 @@ public partial class PlayerFleetHud : MarginContainer
 				card.PilotSheetRequested += OnPilotSheetRequested;
 				_pilots[pilot.Id] = card;
 				_pilotColumn.AddChild(card);
+				if (_barks is not null && _speech is { } speech)
+				{
+					var pilotId = pilot.Id;
+					_barks.RegisterPilot(pilotId, line => speech.Say(pilotId, line));
+				}
 			}
 
 			card.SetState(
@@ -93,6 +113,7 @@ public partial class PlayerFleetHud : MarginContainer
 			removed.Selected -= OnPilotSelected;
 			removed.PilotSheetRequested -= OnPilotSheetRequested;
 			removed.QueueFree();
+			_barks?.UnregisterPilot(pilotId);
 			_pilots.Remove(pilotId);
 		}
 	}

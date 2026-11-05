@@ -185,6 +185,9 @@ public partial class Session : Node
 
 	public override void _Process(double delta)
 	{
+		if (IsRunReady())
+			Run.Barks.Tick(delta);
+
 		if (!IsNodeReady() || _fpsLabel is null)
 			return;
 

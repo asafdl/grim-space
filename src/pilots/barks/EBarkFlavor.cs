@@ -8,4 +8,5 @@ public enum EBarkFlavor
 	Relieved,
 	Smug,
 	Bored,
+	Disdain,
 }
