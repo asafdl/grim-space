@@ -57,10 +57,29 @@ the strategic world rebinds its subscription without replacing the director.
 It has no HUD or control references; scenes only register and unregister presentation handles.
 Its delivery subscription listens for committed `ContractStateChanged` records:
 only completed player delivery contracts offer a bark, not intermediate handoffs.
-Each offer uses the director's 70% default chance, then randomly selects an eligible
-visible active pilot, Disdain or Relieved, and a line from that flavor. Global and
+Each selected pilot independently uses the director's 70% default chance, then rolls
+Disdain or Relieved for delivery completion and a line from that flavor. Global and
 per-pilot cooldowns apply; dialogs do not block or delay barks. Scripted opening
 lines still play once per new run.
+
+Committed engagement `ReachContactAction` events also offer a bark when the player
+has an authoritative pending fight/flee decision, whether the player or hostile fleet
+initiated contact. Allowed flavors are Scared, Angry, Surprised, and Bored.
+Other fleets' contacts and delivery/black-market meetings do not trigger this reaction.
+Committed player `ReachWreckageAction` events offer a bark for the pending wreck HUD:
+ambush uses Scared/Angry/Surprised, while salvage uses Relieved/Bored. Both select
+1–3 eligible pilots with independent 70% chances.
+Delivery offers select one pilot; engagement offers roll one to three, capped by
+eligible pilots. The global cooldown gates the whole group once.
+Selected pilots are distinct; failed chance rolls are not replaced, so zero may speak.
+Each successful pilot rolls its own flavor and line, and their bubbles queue
+sequentially. Per-pilot cooldowns start only for accepted lines.
+
+A committed player move schedules one travel-chatter attempt at a random simulation
+tick strictly inside its journey. It selects 1–3 eligible pilots with independent
+70% chances and Bored/Disdain flavors. A new move replaces the attempt; arrival,
+journey replacement, pursuit/engagement, battle, or map regeneration invalidates it.
+Missed attempts are not retried. Simulation timing keeps pauses and travel speed aligned.
 
 ## Palettes
 

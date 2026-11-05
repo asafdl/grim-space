@@ -107,7 +107,7 @@ public sealed class PilotBarkDirectorTests
 	}
 
 	[Fact]
-	public void Offer_WithCandidates_RollsChanceThenPilotFlavorAndLine()
+	public void Offer_WithCandidates_RollsCountPilotChanceFlavorAndLine()
 	{
 		var rng = new RecordingRandom(0.69);
 		var director = Create(rng: rng);
@@ -116,18 +116,59 @@ public sealed class PilotBarkDirectorTests
 
 		Assert.Equal("b", Assert.Single(_said).PilotId);
 		Assert.Contains(_said[0].Line, PilotBarkCatalog.LinesFor(EBarkFlavor.Relieved));
-		Assert.Equal(new[] { "chance", "pick:2", "pick:2", "pick:1" }, rng.Calls);
+		Assert.Equal(new[] { "pick:1", "pick:2", "chance", "pick:2",
+			$"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Relieved).Count}" }, rng.Calls);
 	}
 
 	[Fact]
-	public void Offer_WithCandidates_WhenChanceMisses_DoesNotRollForEachPilot()
+	public void Offer_Group_CapsCountAndSelectsDistinctPilotsWithoutBlockingGroup()
+	{
+		var rng = new RecordingRandom(0);
+		var director = Create(rng: rng);
+
+		Assert.True(director.Offer(["a", "a", "b"], [EBarkFlavor.Angry, EBarkFlavor.Bored],
+			minPilots: 1, maxPilots: 3));
+
+		Assert.Equal(2, _said.Count);
+		Assert.Equal(2, _said.Select(line => line.PilotId).Distinct().Count());
+		Assert.Equal(2, rng.Calls.Count(call => call == "chance"));
+		Assert.Equal(new[] { "pick:2", "pick:2", "chance", "pick:2",
+			$"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Bored).Count}",
+			"pick:1", "chance", "pick:2", $"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Bored).Count}" }, rng.Calls);
+		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Angry], 1, 1, 3));
+	}
+
+	[Fact]
+	public void Offer_Group_WithOneEligiblePilot_SpeaksOnce()
+	{
+		var director = Create(rng: new RecordingRandom(0));
+		director.UnregisterPilot("b");
+
+		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Scared], 1, 1, 3));
+
+		Assert.Equal("a", Assert.Single(_said).PilotId);
+	}
+
+	[Theory]
+	[InlineData(0, 1)]
+	[InlineData(2, 1)]
+	public void Offer_Group_RejectsInvalidCountRange(int min, int max)
+	{
+		var director = Create();
+
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+			director.Offer(["a"], [EBarkFlavor.Scared], minPilots: min, maxPilots: max));
+	}
+
+	[Fact]
+	public void Offer_WithCandidates_WhenChanceMisses_DoesNotRollFlavorOrReplacePilot()
 	{
 		var rng = new RecordingRandom(0.7);
 		var director = Create(rng: rng);
 
 		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Disdain, EBarkFlavor.Relieved]));
 
-		Assert.Equal(new[] { "chance" }, rng.Calls);
+		Assert.Equal(new[] { "pick:1", "pick:2", "chance" }, rng.Calls);
 		Assert.Empty(_said);
 	}
 
@@ -175,14 +216,28 @@ public sealed class PilotBarkDirectorTests
 		Assert.False(director.Offer("b", EBarkFlavor.Smug, 1));
 	}
 
-	private sealed class RecordingRandom(double chance) : Random
+	[Fact]
+	public void Offer_Group_RollsChanceIndependentlyAndDoesNotCooldownSkippedPilot()
+	{
+		var rng = new RecordingRandom(0.7, 0.69);
+		var director = Create(globalGap: 0, rng: rng);
+
+		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Relieved], minPilots: 2, maxPilots: 2));
+
+		Assert.Equal("a", Assert.Single(_said).PilotId);
+		Assert.Equal(2, rng.Calls.Count(call => call == "chance"));
+		Assert.True(director.Offer("b", EBarkFlavor.Relieved, 1));
+	}
+
+	private sealed class RecordingRandom(double chance, double? subsequentChance = null) : Random
 	{
 		public List<string> Calls { get; } = [];
+		private int _chanceCalls;
 
 		public override double NextDouble()
 		{
 			Calls.Add("chance");
-			return chance;
+			return _chanceCalls++ == 0 ? chance : subsequentChance ?? chance;
 		}
 
 		public override int Next(int maxValue)

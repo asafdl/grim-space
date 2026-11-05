@@ -1,9 +1,13 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Log;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem.Actions;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Units;
+using State = GrimSpace.Run.State;
 
 namespace GrimSpace.Pilots.Barks;
 
@@ -15,6 +19,12 @@ public sealed class PilotBarkDirector : IDisposable
 {
 	private static readonly EBarkFlavor[] DeliveryCompletionFlavors =
 		[EBarkFlavor.Disdain, EBarkFlavor.Relieved];
+	private static readonly EBarkFlavor[] EngagementDecisionFlavors =
+		[EBarkFlavor.Scared, EBarkFlavor.Angry, EBarkFlavor.Surprised, EBarkFlavor.Bored];
+	private static readonly EBarkFlavor[] TravelFlavors = [EBarkFlavor.Bored, EBarkFlavor.Disdain];
+	private static readonly EBarkFlavor[] WreckAmbushFlavors =
+		[EBarkFlavor.Scared, EBarkFlavor.Angry, EBarkFlavor.Surprised];
+	private static readonly EBarkFlavor[] WreckSalvageFlavors = [EBarkFlavor.Relieved, EBarkFlavor.Bored];
 
 	public const double DefaultChance = 0.7;
 	public const double DefaultGlobalGapSeconds = 8.0;
@@ -23,6 +33,10 @@ public sealed class PilotBarkDirector : IDisposable
 	private readonly Dictionary<string, Func<string, bool>> _pilotHandles = new(StringComparer.Ordinal);
 	private readonly State? _run;
 	private IDisposable? _deliverySubscription;
+	private IDisposable? _engagementSubscription;
+	private IDisposable? _moveSubscription;
+	private IDisposable? _wreckSubscription;
+	private (long JourneyId, int DueTick, int EndTick)? _travelBark;
 	private bool _openingChecked;
 	private readonly Random _rng;
 	private readonly double _globalGapSeconds;
@@ -56,8 +70,15 @@ public sealed class PilotBarkDirector : IDisposable
 		if (_run is null)
 			throw new InvalidOperationException("Cannot subscribe without a bound run.");
 		_deliverySubscription?.Dispose();
+		_engagementSubscription?.Dispose();
+		_moveSubscription?.Dispose();
+		_wreckSubscription?.Dispose();
+		_travelBark = null;
 		_deliverySubscription = _run.StarSystem
 			.Subscribe<Record<ContractStateChanged>>(OnDeliveryContractStateChanged);
+		_engagementSubscription = _run.StarSystem.Subscribe<ReachContactAction>(OnContactReached);
+		_moveSubscription = _run.StarSystem.Subscribe<MoveAction>(OnMoved);
+		_wreckSubscription = _run.StarSystem.Subscribe<ReachWreckageAction>(OnWreckReached);
 	}
 
 	public void RegisterPilot(string pilotId, Func<string, bool> say)
@@ -72,6 +93,10 @@ public sealed class PilotBarkDirector : IDisposable
 	public void Dispose()
 	{
 		_deliverySubscription?.Dispose();
+		_engagementSubscription?.Dispose();
+		_moveSubscription?.Dispose();
+		_wreckSubscription?.Dispose();
+		_travelBark = null;
 		_pilotHandles.Clear();
 	}
 
@@ -79,12 +104,56 @@ public sealed class PilotBarkDirector : IDisposable
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(deltaSeconds);
 		_now += deltaSeconds;
+		CheckTravelBark();
 		if (_run is null || _openingChecked || _pilotHandles.Count == 0)
 			return;
 
 		_openingChecked = true;
 		if (_run.TryConsumeOpening())
 			PlayOpeningBarks(_run);
+	}
+
+	private void OnMoved(MoveAction action)
+	{
+		if (_run is not { } run || action.UnitId != State.PlayerFleetUnitId)
+			return;
+
+		_travelBark = null;
+		var fleet = run.StarSystem.Map.StateOf(State.PlayerFleetUnitId);
+		if (fleet.Travel is not FleetTravel.Journey journey
+			|| EngagementState.Phase(fleet) != EEngagementPhase.None)
+			return;
+
+		var duration = action.Path.DurationTicks(fleet.SpeedPerTick);
+		if (duration < 2)
+			return;
+
+		_travelBark = (journey.Id, journey.StartTick + 1 + _rng.Next(duration - 1),
+			journey.StartTick + duration);
+	}
+
+	private void CheckTravelBark()
+	{
+		if (_travelBark is not { } pending || _run is not { } run)
+			return;
+
+		var map = run.StarSystem.Map;
+		if (!map.FleetRegistry.TryGet(State.PlayerFleetUnitId, out var fleet)
+			|| fleet.State.Travel is not FleetTravel.Journey journey
+			|| journey.Id != pending.JourneyId
+			|| EngagementState.Phase(fleet.State) != EEngagementPhase.None
+			|| run.ActiveBattle is not null
+			|| map.Timeline.Clock.Current >= pending.EndTick)
+		{
+			_travelBark = null;
+			GameLog.Log("[Barks] Ignore travel: journey ended or interrupted.");
+			return;
+		}
+		if (map.Timeline.Clock.Current < pending.DueTick)
+			return;
+
+		_travelBark = null;
+		OfferActivePilots(run, TravelFlavors, 1, 3);
 	}
 
 	private void OnDeliveryContractStateChanged(Record<ContractStateChanged> record)
@@ -108,10 +177,46 @@ public sealed class PilotBarkDirector : IDisposable
 			return;
 		}
 
+		OfferActivePilots(run, DeliveryCompletionFlavors, 1, 1);
+	}
+
+	private void OnContactReached(ReachContactAction action)
+	{
+		if (_run is not { } run
+			|| action.Intent != EContactIntent.Engagement
+			|| (action.InitiatorId != State.PlayerFleetUnitId && action.TargetId != State.PlayerFleetUnitId)
+			|| !EngagementQueries.TryGetPendingPlayerEngagement(
+				run.StarSystem.Map, State.PlayerFleetUnitId, out _))
+		{
+			GameLog.Log("[Barks] Ignore: no player engagement decision.");
+			return;
+		}
+
+		OfferActivePilots(run, EngagementDecisionFlavors, 1, 3);
+	}
+
+	private void OnWreckReached(ReachWreckageAction action)
+	{
+		if (_run is not { } run
+			|| action.ActorId != State.PlayerFleetUnitId
+			|| !WreckageQueries.TryGetPendingPlayerWreckDecision(
+				run.StarSystem.Map, State.PlayerFleetUnitId, out var pending)
+			|| pending.ContractId != action.ContractId)
+		{
+			GameLog.Log("[Barks] Ignore: no matching player wreck decision.");
+			return;
+		}
+
+		OfferActivePilots(run, pending.IsAmbush ? WreckAmbushFlavors : WreckSalvageFlavors, 1, 3);
+	}
+
+	private void OfferActivePilots(
+		State run, IReadOnlyList<EBarkFlavor> flavors, int minPilots, int maxPilots)
+	{
 		var pilotIds = run.PilotRegistry.Active
 			.Where(pilot => _pilotHandles.ContainsKey(pilot.Id))
 			.Select(pilot => pilot.Id).ToArray();
-		Offer(pilotIds, DeliveryCompletionFlavors);
+		Offer(pilotIds, flavors, minPilots: minPilots, maxPilots: maxPilots);
 	}
 
 	private void PlayOpeningBarks(State run)
@@ -132,11 +237,13 @@ public sealed class PilotBarkDirector : IDisposable
 	public bool Offer(string pilotId, EBarkFlavor flavor, double chance = DefaultChance) =>
 		Offer([pilotId], [flavor], chance);
 
-	/// <summary>Rolls once for the offer, then chooses a pilot off cooldown, a flavor, and a line.</summary>
+	/// <summary>Rolls group size, then selects distinct pilots and rolls chance, flavor, and line per pilot.</summary>
 	public bool Offer(
 		IReadOnlyList<string> pilotIds,
 		IReadOnlyList<EBarkFlavor> flavors,
-		double chance = DefaultChance)
+		double chance = DefaultChance,
+		int minPilots = 1,
+		int maxPilots = 1)
 	{
 		ArgumentNullException.ThrowIfNull(pilotIds);
 		ArgumentNullException.ThrowIfNull(flavors);
@@ -146,6 +253,8 @@ public sealed class PilotBarkDirector : IDisposable
 			ArgumentException.ThrowIfNullOrEmpty(pilotId);
 		ArgumentOutOfRangeException.ThrowIfNegative(chance);
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(chance, 1.0);
+		ArgumentOutOfRangeException.ThrowIfLessThan(minPilots, 1);
+		ArgumentOutOfRangeException.ThrowIfLessThan(maxPilots, minPilots);
 		if (_now - _lastBarkAt < _globalGapSeconds)
 		{
 			GameLog.Log("[Barks] Ignore: global cooldown.");
@@ -164,20 +273,29 @@ public sealed class PilotBarkDirector : IDisposable
 			GameLog.Log("[Barks] Ignore: no eligible pilots.");
 			return false;
 		}
-		var roll = _rng.NextDouble();
-		if (roll >= chance)
+		var minCount = System.Math.Min(minPilots, eligiblePilots.Length);
+		var maxCount = System.Math.Min(maxPilots, eligiblePilots.Length);
+		var count = minCount + _rng.Next(maxCount - minCount + 1);
+		var remaining = eligiblePilots.ToList();
+		var anySpoken = false;
+		for (var i = 0; i < count; i++)
 		{
-			GameLog.Log("[Barks] Ignore: chance roll.");
-			return false;
+			var index = _rng.Next(remaining.Count);
+			var speakerId = remaining[index];
+			remaining.RemoveAt(index);
+			if (_rng.NextDouble() >= chance)
+			{
+				GameLog.Log($"[Barks] Ignore: chance roll, pilot={speakerId}.");
+				continue;
+			}
+			var flavor = flavors[_rng.Next(flavors.Count)];
+			var spoken = Speak(speakerId, PilotBarkCatalog.Roll(flavor, _rng));
+			GameLog.Log(spoken
+				? $"[Barks] Pick flavor={flavor}, pilot={speakerId}."
+				: "[Barks] Ignore: speech handle unavailable or rejected.");
+			anySpoken |= spoken;
 		}
-
-		var speakerId = eligiblePilots[_rng.Next(eligiblePilots.Length)];
-		var flavor = flavors[_rng.Next(flavors.Count)];
-		var spoken = Speak(speakerId, PilotBarkCatalog.Roll(flavor, _rng));
-		GameLog.Log(spoken
-			? $"[Barks] Pick flavor={flavor}, pilot={speakerId}."
-			: "[Barks] Ignore: speech handle unavailable or rejected.");
-		return spoken;
+		return anySpoken;
 	}
 
 	/// <summary>Scripted line: bypasses chance and cooldowns, but still starts them.</summary>
