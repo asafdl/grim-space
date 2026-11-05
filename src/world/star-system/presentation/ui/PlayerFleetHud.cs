@@ -97,6 +97,9 @@ public partial class PlayerFleetHud : MarginContainer
 		}
 	}
 
+	public Control? PortraitAnchorFor(string pilotId) =>
+		_pilots.TryGetValue(pilotId, out var card) ? card.Portrait : null;
+
 	private void OnPilotSelected(string shipId) =>
 		_intents?.TrySelectActiveShip(shipId);
 

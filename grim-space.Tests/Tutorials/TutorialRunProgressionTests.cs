@@ -6,7 +6,6 @@ using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
-using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Contracts.Generation;
 using GrimSpace.World.StarSystem.Poi;
@@ -59,14 +58,9 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void CompleteOpening_WithTutorialsDisabled_DoesNotAddFirstContractStoryObjective()
+	public void NewRun_WithTutorialsDisabled_DoesNotAddFirstContractStoryObjective()
 	{
 		using var run = State.CreateNewRun(42, tutorialsEnabled: false);
-
-		run.StarSystem.PlayerAgent!.TryEnqueue([
-			new CompleteNarrativeAction(State.PlayerFleetUnitId, MapNarratives.OpeningId),
-		]);
-		run.StarSystem.AdvanceClock();
 
 		Assert.DoesNotContain(
 			run.StarSystem.Map.StoryObjectives.Active,
@@ -74,15 +68,10 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void CompleteOpening_WithTutorialsEnabled_AddsFirstContractStoryObjective()
+	public void NewRun_WithTutorialsEnabled_AddsFirstContractStoryObjective()
 	{
 		using var run = State.CreateNewRun(42, tutorialsEnabled: true);
 		var administrativeCoreId = run.StarSystem.Map.Blueprint.SupplyPlan.AdministrativePoiId;
-
-		run.StarSystem.PlayerAgent!.TryEnqueue([
-			new CompleteNarrativeAction(State.PlayerFleetUnitId, MapNarratives.OpeningId),
-		]);
-		run.StarSystem.AdvanceClock();
 
 		Assert.Contains(
 			run.StarSystem.Map.StoryObjectives.Active,

@@ -7,7 +7,6 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
-using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using RunState = GrimSpace.Run.State;
@@ -21,7 +20,6 @@ public sealed class HazardPayEconomyTests
 	public void Engage_SpendsHazardPayAndClearsMisses()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
-		DismissOpeningNarrative(run);
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithHazardMissedPeriods(2));
 		var hazardDue =
@@ -45,7 +43,6 @@ public sealed class HazardPayEconomyTests
 	public void EngagementFact_WithRefusedPilot_ExcludesShipAndFailsEmptyPlayerBattle()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
-		DismissOpeningNarrative(run);
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		AddPirate(run);
 		PrepareAwaitingDecision(run);
@@ -59,17 +56,6 @@ public sealed class HazardPayEconomyTests
 
 		Assert.Null(run.ActiveBattle);
 		Assert.True(run.PilotRegistry.TryGet(pilot.Id, out _));
-	}
-
-	private static void DismissOpeningNarrative(RunState run)
-	{
-		if (run.StarSystem.Map.ActiveNarrativeId is null)
-			return;
-
-		run.StarSystem.PlayerAgent!.TryEnqueue([
-			new CompleteNarrativeAction(RunState.PlayerFleetUnitId, MapNarratives.OpeningId),
-		]);
-		run.StarSystem.AdvanceClock();
 	}
 
 	private static void PrepareAwaitingDecision(RunState run)

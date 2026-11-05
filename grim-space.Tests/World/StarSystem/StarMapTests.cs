@@ -157,7 +157,6 @@ public sealed class StarMapTests
 		var world = StarMap.Create(42);
 		world.Timeline.Clock.Set(7);
 		world.WaitingForPlayerInput = true;
-		world.ActiveNarrativeId = "opening";
 		world.PointsOfInterest[0].NextAvailableTaskTick = 19;
 		world.PlayerResources.TryApply(ResourceBundle.Create(
 			(ResourceId.Credits, 120),
@@ -171,7 +170,6 @@ public sealed class StarMapTests
 		Assert.Equal(world.Seed, copy.Seed);
 		Assert.Equal(world.Blueprint, copy.Blueprint);
 		Assert.Equal(world.WaitingForPlayerInput, copy.WaitingForPlayerInput);
-		Assert.Equal(world.ActiveNarrativeId, copy.ActiveNarrativeId);
 		Assert.Equal(world.Timeline.Clock.Current, copy.Timeline.Clock.Current);
 		Assert.Equal(world.Timeline.History(), copy.Timeline.History());
 		Assert.Equal(

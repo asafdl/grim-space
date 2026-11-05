@@ -128,9 +128,9 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 		Assert.True(before.TotalCurrentShieldPoints > 0);
 		var destination = run.StarSystem.Map.DocksByPoiId[SupplySystemPlan.Copper.StoragePoiId].Position;
 
-		// CreateNewRun leaves WaitingForPlayerInput; queueing a move advances the clock once.
 		Assert.IsType<CourseCommandResult.Queued>(
 			run.StarSystem.PlayerAgent!.TryQueueMove(destination));
+		run.StarSystem.AdvanceClock();
 
 		Assert.IsType<FleetTravel.Journey>(
 			run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId).State.Travel);

@@ -17,7 +17,6 @@ using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Merchants;
-using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Objectives;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
@@ -167,15 +166,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			throw new ArgumentException("Player fleet must contain at least one ship.", nameof(playerShipIds));
 		var map = StarMap.Create(seed, itemInventory);
 		AddPlayerFleet(map, playerFleetUnitId, playerShipIds);
-		return InitializeSession(map, playerFleetUnitId);
-	}
-
-	private static StarSystemOrchestrator InitializeSession(StarMap map, string playerFleetUnitId)
-	{
-		var orchestrator = FromMap(map, playerFleetUnitId);
-		orchestrator.CommitSetup(
-			new BeginNarrativeAction(playerFleetUnitId, MapNarratives.OpeningId));
-		return orchestrator;
+		return FromMap(map, playerFleetUnitId);
 	}
 
 	public static StarSystemOrchestrator FromMap(StarMap map) =>

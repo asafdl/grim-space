@@ -11,9 +11,9 @@ namespace GrimSpace.Tests.StatusModel;
 public sealed class BattleStatusPersistenceTests
 {
 	[Fact]
-	public void FormatVersion_IsNine()
+	public void FormatVersion_IsTen()
 	{
-		Assert.Equal(9, SaveGameDocument.CurrentFormatVersion);
+		Assert.Equal(10, SaveGameDocument.CurrentFormatVersion);
 	}
 
 	[Fact]

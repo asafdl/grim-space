@@ -3,7 +3,7 @@ using GrimSpace.Tests.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Generation;
-using GrimSpace.World.StarSystem.Narrative;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Units;
 using RunState = GrimSpace.Run.State;
 using GrimSpace.Tests.World.StarSystem;
@@ -69,10 +69,12 @@ public sealed class StarSystemRunAssemblyTests(StarMapFixture maps)
 		var map = maps.Fresh(42);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		using var starSystem = StarSystemOrchestrator.FromMap(map, RunState.PlayerFleetUnitId);
-		BeginNarrativeAction? received = null;
-		using var subscription = starSystem.Subscribe<BeginNarrativeAction>(
+		GrantDebugResourcesAction? received = null;
+		using var subscription = starSystem.Subscribe<GrantDebugResourcesAction>(
 			action => received = action);
-		var action = new BeginNarrativeAction(RunState.PlayerFleetUnitId, MapNarratives.OpeningId);
+		var action = new GrantDebugResourcesAction(
+			RunState.PlayerFleetUnitId,
+			ResourceBundle.Create((ResourceId.Credits, 1)));
 
 		starSystem.CommitSetup(action);
 

@@ -18,6 +18,5 @@ public sealed record StarMapSaveDto(
 	IReadOnlyList<StoryObjective> StoryObjectives,
 	IReadOnlyList<ResourceBalanceDto> Resources,
 	bool WaitingForPlayerInput,
-	string? ActiveNarrativeId,
 	TimelineSnapshotDto Timeline,
 	StarMarketDto Market);

@@ -57,8 +57,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 
 	public bool WaitingForPlayerInput { get; internal set; }
 
-	public string? ActiveNarrativeId { get; internal set; }
-
 	internal int DebugAdditionalCompletedContracts { get; private set; }
 
 	internal void BumpDebugDangerProgression() =>
@@ -90,8 +88,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		StarMarket market,
 		PathfindingTerrain pathfindingTerrain,
 		Inventory? itemInventory = null,
-		bool waitingForPlayerInput = false,
-		string? activeNarrativeId = null)
+		bool waitingForPlayerInput = false)
 	{
 		Blueprint = blueprint;
 		PointsOfInterest = pointsOfInterest;
@@ -111,7 +108,6 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		PathfindingTerrain = pathfindingTerrain;
 		ItemInventory = itemInventory;
 		WaitingForPlayerInput = waitingForPlayerInput;
-		ActiveNarrativeId = activeNarrativeId;
 	}
 
 	public bool IsInBounds(Coord point) =>
@@ -154,8 +150,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			Market.CloneForFork(),
 			PathfindingTerrain,
 			ItemInventory,
-			WaitingForPlayerInput,
-			ActiveNarrativeId)
+			WaitingForPlayerInput)
 		{
 			DebugAdditionalCompletedContracts = DebugAdditionalCompletedContracts,
 			PilotRegistry = PilotRegistry,

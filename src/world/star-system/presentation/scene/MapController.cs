@@ -5,15 +5,16 @@ using GrimSpace.Presentation.Menu;
 using GrimSpace.Core.Actions;
 using GrimSpace.Education;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots.Barks;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Tutorials;
+using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Pathfinding;
-using GrimSpace.World.StarSystem.Narrative;
 using GrimSpace.World.StarSystem.Poi.Concrete;
 using GrimSpace.World.StarSystem.Presentation.Atmosphere;
 using GrimSpace.World.StarSystem.Presentation.Camera;
@@ -31,6 +32,9 @@ namespace GrimSpace.World.StarSystem.Presentation.Scene;
 public partial class MapController : Node3D
 {
 	private const float SecondsPerTick = 1f / StrategicEconomyConfig.StrategicTicksPerSecond;
+	/// <summary>Above map UI (11), below merchant (13) and strategic modals (14).</summary>
+	private const int PilotSpeechCanvasLayer = 12;
+
 	private static readonly float[] SpeedOptions = [1f, 2f, 4f];
 
 	private MapView _view = null!;
@@ -51,7 +55,8 @@ public partial class MapController : Node3D
 	private WreckController _wreck = null!;
 	private IDisposable _deliveryMeetingSubscription = null!;
 	private IDisposable _pursuitChangedSubscription = null!;
-	private NarrativeController _narrative = null!;
+	private PilotSpeechHost _pilotSpeech = null!;
+	private PilotBarkDirector _barks = null!;
 	private TutorialPresentationBinding? _mapTutorialBinding;
 	private IWorldFocus _worldFocus = null!;
 	private IWorldIndicator _worldIndicator = null!;
@@ -276,19 +281,11 @@ public partial class MapController : Node3D
 		_objectivesLinks = new WorldLinkNavigator(_worldFocus, _worldIndicator);
 		_strategicHud.Objectives.LandmarkLinkClicked += OnObjectiveLandmarkLinkClicked;
 
-		var narrativeHud = new NarrativeHudOverlay();
-		_uiLayer.AddChild(narrativeHud);
-		_narrative = new NarrativeController(
-			narrativeHud,
-			_worldFocus,
-			_worldIndicator,
-			ResolveNarrative(_orchestrator.Map.ActiveNarrativeId),
-			narrativeId => ResolveNarrative(narrativeId),
-			narrativeId => _orchestrator.PlayerAgent!.TryEnqueue(
-				[new CompleteNarrativeAction(State.PlayerFleetUnitId, narrativeId)]),
-			onBegin => _orchestrator.Subscribe<BeginNarrativeAction>(
-				action => onBegin(action.NarrativeId)),
-			_strategicHud.PresentSystemError);
+		_pilotSpeech = new PilotSpeechHost(_strategicHud.PlayerFleet.PortraitAnchorFor, PilotSpeechCanvasLayer);
+		AddChild(_pilotSpeech);
+		_barks = new PilotBarkDirector(_pilotSpeech.Say, new Random());
+		if (Session.Instance.Run.TryConsumeOpening())
+			Callable.From(PlayOpeningBarks).CallDeferred();
 		if (Session.Instance.Run.IsRunOver)
 			return;
 
@@ -342,6 +339,7 @@ public partial class MapController : Node3D
 
 		_view.SetCameraDistance(_camera.Distance);
 		SyncRosterModalPause();
+		_barks.Tick(delta);
 
 		if (_orchestrator.CanAdvance && !_director.IsTransitioning)
 			AdvanceSimulation(delta);
@@ -458,7 +456,6 @@ public partial class MapController : Node3D
 		_deliveryMeetingSubscription.Dispose();
 		_pursuitChangedSubscription.Dispose();
 		_wreck.Dispose();
-		_narrative.Dispose();
 		if (Session.Instance.Run.Tutorials is { } tutorials)
 			tutorials.FlowCompleted -= OnTutorialFlowCompleted;
 		_mapTutorialBinding?.Dispose();
@@ -481,7 +478,6 @@ public partial class MapController : Node3D
 		}
 
 		if (_strategicHud.TryHandleInput(@event)
-			|| _narrative.TryHandleInput(@event)
 			|| _deliveryMeetingDialog.TryHandleInput(@event)
 			|| _leadSaleMerchant.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event)
@@ -603,7 +599,6 @@ public partial class MapController : Node3D
 		|| _pauseMenu.IsReportDialogOpen
 		|| _pauseMenu.IsSettingsOpen
 		|| _strategicHud.IsBlockingModalOpen
-		|| (_narrative?.IsOpen ?? false)
 		|| (_deliveryMeetingDialog?.IsOpen ?? false)
 		|| (_leadSaleMerchant?.IsOpen ?? false)
 		|| (_engagement?.IsOpen ?? false)
@@ -740,11 +735,18 @@ public partial class MapController : Node3D
 			tickFraction);
 	}
 
-	private NarrativeDefinition? ResolveNarrative(string? narrativeId) =>
-		narrativeId is not null
-		&& MapNarratives.TryGet(narrativeId, _orchestrator.Map, out var narrative)
-			? narrative
-			: null;
+	private void PlayOpeningBarks()
+	{
+		foreach (var pilot in Session.Instance.Run.PilotRegistry.Active)
+		{
+			if (!_barks.Script(pilot.Id, PilotBarkCatalog.OpeningLines[0]))
+				continue;
+
+			foreach (var line in PilotBarkCatalog.OpeningLines.Skip(1))
+				_barks.Script(pilot.Id, line);
+			return;
+		}
+	}
 
 	private void OnPlayerPlanningChanged()
 	{
@@ -840,7 +842,6 @@ public partial class MapController : Node3D
 	private void ClearHyperlinkWorldIndicators()
 	{
 		_objectivesLinks?.ClearIndicator();
-		_narrative.ClearWorldLinkIndicator();
 		_mapTutorialBinding?.ClearWorldLinkIndicator();
 	}
 

@@ -39,6 +39,7 @@ public partial class StrategicHud : CanvasLayer
 	private bool _returnToFleetAfterPilotSheet;
 
 	public ObjectivesHud Objectives => _objectivesHud;
+	public PlayerFleetHud PlayerFleet => _playerFleetHud;
 	public bool IsBlockingModalOpen => _fleetManagement.IsOpen || _pilotSheet.IsOpen;
 	public void PresentInsufficientFunds() => _resourceHud.PresentInsufficientFunds();
 	public void PresentSystemError(string summary, string technicalDetails)

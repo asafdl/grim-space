@@ -39,7 +39,7 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 | [`wreck_ambush_hud_preview.tscn`](../scenes/dev/wreck_ambush_hud_preview.tscn) | Wreck decision (ambush) |
 | [`fleet_management_hud_preview.tscn`](../scenes/dev/fleet_management_hud_preview.tscn) | Fleet management |
 | [`npc_dialog_hud_preview.tscn`](../scenes/dev/npc_dialog_hud_preview.tscn) | NPC dialog |
-| [`narrative_hud_preview.tscn`](../scenes/dev/narrative_hud_preview.tscn) | Narrative pager |
+| [`pilot_speech_hud_preview.tscn`](../scenes/dev/pilot_speech_hud_preview.tscn) | Pilot speech bubbles |
 | [`dev_menu_hud_preview.tscn`](../scenes/dev/dev_menu_hud_preview.tscn) | Dev menu |
 | [`battle_victory_hud_preview.tscn`](../scenes/dev/battle_victory_hud_preview.tscn) | Battle victory scorecard |
 | [`battle_status_hud_preview.tscn`](../scenes/dev/battle_status_hud_preview.tscn) | Battle command HUD with temporary/passive statuses, stack counters, and inspection switching |

@@ -29,6 +29,8 @@ public partial class ShipPilot : PanelContainer
 	public event Action<string>? Selected;
 	public event Action<string>? PilotSheetRequested;
 
+	public Control Portrait => _portrait;
+
 	public override void _Ready()
 	{
 		Build();

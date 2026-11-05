@@ -454,7 +454,6 @@ public static class SaveDtoMapper
 				.Select(pair => ReflectionJson.Map<ResourceBalanceDto>(pair, registry.Options))
 				.ToArray(),
 			map.WaitingForPlayerInput,
-			map.ActiveNarrativeId,
 			Timeline = CaptureTimeline(map.Timeline.ToSnapshot(), registry),
 			Market = CaptureMarket(map.Market),
 		}, registry.Options);
@@ -541,8 +540,7 @@ public static class SaveDtoMapper
 			RestoreMarket(dto.Market),
 			terrain,
 			itemInventory,
-			waitingForPlayerInput: dto.WaitingForPlayerInput,
-			activeNarrativeId: dto.ActiveNarrativeId);
+			waitingForPlayerInput: dto.WaitingForPlayerInput);
 	}
 
 	private static StarMarketDto CaptureMarket(StarMarket market) =>

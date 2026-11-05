@@ -3,7 +3,7 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
-using GrimSpace.World.StarSystem.Narrative;
+using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.Tests.World.StarSystem;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -35,10 +35,10 @@ public sealed class EngineCommitTests(StarMapFixture maps)
 	{
 		using var engine = CreateEngine();
 		var actorId = RunState.PlayerFleetUnitId;
-		var received = new List<BeginNarrativeAction>();
-		using var subscription = engine.Subscribe<BeginNarrativeAction>(received.Add);
-		var direct = new BeginNarrativeAction(actorId, "direct-append");
-		var committed = new BeginNarrativeAction(actorId, MapNarratives.OpeningId);
+		var received = new List<GrantDebugResourcesAction>();
+		using var subscription = engine.Subscribe<GrantDebugResourcesAction>(received.Add);
+		var direct = Grant(actorId, 1);
+		var committed = Grant(actorId, 2);
 
 		engine.World.Timeline.Append(direct);
 		engine.Commit(committed);
@@ -52,11 +52,11 @@ public sealed class EngineCommitTests(StarMapFixture maps)
 		using var engine = CreateEngine();
 		var actorId = RunState.PlayerFleetUnitId;
 		var notifications = 0;
-		var subscription = engine.Subscribe<BeginNarrativeAction>(_ => notifications++);
+		var subscription = engine.Subscribe<GrantDebugResourcesAction>(_ => notifications++);
 
 		subscription.Dispose();
 		subscription.Dispose();
-		engine.Commit(new BeginNarrativeAction(actorId, MapNarratives.OpeningId));
+		engine.Commit(Grant(actorId, 1));
 
 		Assert.Equal(0, notifications);
 	}
@@ -69,10 +69,13 @@ public sealed class EngineCommitTests(StarMapFixture maps)
 		var notifications = 0;
 		using var subscription = engine.Subscribe<IAction>(_ => notifications++);
 
-		engine.Commit(new BeginNarrativeAction(actorId, MapNarratives.OpeningId));
+		engine.Commit(Grant(actorId, 1));
 
 		Assert.Equal(0, notifications);
 	}
+
+	private static GrantDebugResourcesAction Grant(string actorId, int credits) =>
+		new(actorId, ResourceBundle.Create((ResourceId.Credits, credits)));
 
 	private Engine<StarMap, ActorRuntime> CreateEngine()
 	{

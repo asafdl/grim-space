@@ -48,6 +48,16 @@ public sealed class State : IDisposable
 	/// <summary>True when the pilot roster is empty. Independent of battle objective result.</summary>
 	public bool IsRunOver { get; private set; }
 
+	private bool _openingPending;
+
+	/// <summary>True once for a freshly created run; not persisted, so loaded saves never report it.</summary>
+	public bool TryConsumeOpening()
+	{
+		var pending = _openingPending;
+		_openingPending = false;
+		return pending;
+	}
+
 	public RunStatistics Statistics { get; } = new();
 
 	public event Action? BattleReady;
@@ -591,6 +601,7 @@ public sealed class State : IDisposable
 			run.GetFieldedShipIds());
 		run.ConfigureTutorials(tutorialsEnabled);
 		run.RefreshRunOver();
+		run._openingPending = true;
 		return run;
 	}
 
