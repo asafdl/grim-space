@@ -5,9 +5,7 @@
 # grim-space
 
 Early-stage 3D roguelike space game with strategic star-system navigation and tactical turn-based combat on a discrete 3D grid.
-
 Gameplay systems in code come first — placeholder visuals, APIs that change, and design details still being proven out.
-
 Reusable HUD visuals, variants, palettes, and adoption rules are documented in the [UI kit guide](docs/ui-kit.md).
 
 ## Game architecture and boundaries
@@ -326,6 +324,7 @@ Persistence stores statuses as [`BattleStatusDto`](src/run/persistence/dtos/Batt
 
 Tactical replay presents committed healing records with green `+amount` popups, camera interest in the healer and recipient, and the same feedback pause as damage impacts before advancing to the next event.
 Movement-pose opportunity previews show a green healing heart for simulated healing recipients and retain ability icons for damage targets. Fully restored allies emit no healing record and therefore no healing opportunity badge.
+Movement picking favors simulated firing destinations and enemy-axis lines within an 18-pixel proximity band, retaining them up to a 24-pixel release band; direct aim within one pixel overrides assistance. The reference is the reticle enemy, falling back to the nearest enemy from the planning ship position rather than the hovered destination. Heading remains manual. Six dotted X/Y/Z guides extend three cells each way from the movement ghost. The standalone movement-picking lab shares this scoring and guide rendering, but keeps its comparison controls, colored cells, and snap logs out of battle.
 
 ### Ship spec, loadout, and ability spec (`src/units/`)
 

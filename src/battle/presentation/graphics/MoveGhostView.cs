@@ -19,6 +19,7 @@ public sealed partial class MoveGhostView : Node3D
 	private readonly Dictionary<EType, Queue<UnitView>> _freePathViews = [];
 	private Camera3D _camera = null!;
 	private MoveOrientationOverlay _orientationOverlay = null!;
+	private MultiMeshInstance3D _axisGuides = null!;
 
 	public Node3D? GhostShip => _view is { Visible: true } ship ? ship : null;
 
@@ -31,6 +32,8 @@ public sealed partial class MoveGhostView : Node3D
 		_orientationOverlay.Configure(_camera);
 		layer.AddChild(_orientationOverlay);
 		AddChild(layer);
+		_axisGuides = CreateAxisGuides();
+		AddChild(_axisGuides);
 	}
 
 	public void Apply(
@@ -42,6 +45,9 @@ public sealed partial class MoveGhostView : Node3D
 		bool selected)
 	{
 		ApplyPath(checkpoints, pathTemplate);
+		_axisGuides.Visible = state is not null;
+		if (state is not null)
+			_axisGuides.Position = WorldMapping.ToWorld(state.Position);
 		if (state is null)
 		{
 			if (_view is not null)
@@ -73,6 +79,58 @@ public sealed partial class MoveGhostView : Node3D
 
 	public void SetHoldProgress(Coord? heading, float progress) =>
 		_orientationOverlay.SetHoldProgress(heading, progress);
+
+	private static MultiMeshInstance3D CreateAxisGuides()
+	{
+		const int dotsPerRay = 9;
+		var axes = new[]
+		{
+			(Vector3.Right, new Color(1f, 0.35f, 0.3f)),
+			(Vector3.Up, new Color(0.35f, 1f, 0.45f)),
+			(Vector3.Back, new Color(0.35f, 0.65f, 1f)),
+		};
+		var material = new StandardMaterial3D
+		{
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			VertexColorUseAsAlbedo = true,
+		};
+		var dots = new MultiMesh
+		{
+			TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+			UseColors = true,
+			Mesh = new SphereMesh
+			{
+				Radius = 0.045f,
+				Height = 0.09f,
+				RadialSegments = 8,
+				Rings = 4,
+				Material = material,
+			},
+			InstanceCount = axes.Length * 2 * dotsPerRay,
+		};
+		var index = 0;
+		foreach (var (axis, color) in axes)
+		{
+			foreach (var sign in new[] { -1, 1 })
+			{
+				for (var dot = 1; dot <= dotsPerRay; dot++)
+				{
+					var offset = axis * sign * dot * (WorldMapping.CellSize / 3f);
+					dots.SetInstanceTransform(index, new Transform3D(Basis.Identity, offset));
+					dots.SetInstanceColor(index++, color);
+				}
+			}
+		}
+		var guides = new MultiMeshInstance3D
+		{
+			Name = "DottedAxisGuides",
+			Multimesh = dots,
+			Visible = false,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+		};
+		PresentationLayers.MarkUx(guides);
+		return guides;
+	}
 
 	private void ApplyPath(IReadOnlyList<MoveCheckpoint> checkpoints, UnitDisplayState template)
 	{

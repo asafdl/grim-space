@@ -3,6 +3,10 @@
 ## IMPORTANT
 This file is manually edited!
 
+## README changes
+
+Only add content to a README when the user explicitly asks, or when updating an existing section that already covers the topic. Do not create new README sections unless explicitly requested.
+
 ## What this is
 
 **grim-space** is a 3D roguelike space game with **tactical RPG (TRPG)** combat — turn-based squad fights on grid-like battle spaces, wrapped in a procedural run structure (rooms/sectors, permadeath or run-based progression, meta unlocks TBD).

@@ -4,6 +4,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Interaction;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -19,6 +20,7 @@ public sealed class PresentationFrame
 	public bool IsInspecting { get; init; }
 	public bool ShowMovePreview { get; init; }
 	public required IReadOnlyList<MovePathOption> MovePaths { get; init; }
+	public Func<Coord, MovementPickPreference>? MovementPickPreference { get; init; }
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
 	public required IReadOnlyDictionary<string, ETeam> PreviewUnitTeams { get; init; }
 	public EnemyRangeTarget? RangeEnemy { get; init; }

@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
@@ -26,6 +27,11 @@ public sealed class PlanningPreview
 	private readonly MovePreviewCache _moveCache = new();
 
 	private BattleSimulation? _lastSim;
+	private int _pickWorldVersion = -1;
+	private IReadOnlyList<IAction> _pickActions = [];
+	private string? _pickActorId;
+	private string? _pickEnemyId;
+	private Func<Coord, MovementPickPreference>? _pickPreference;
 	private BattleSimulation? _envelopeCacheSim;
 	private int _envelopeCacheWorldVersion;
 	private IReadOnlyList<IAction> _envelopeCacheActions = [];
@@ -141,6 +147,50 @@ public sealed class PlanningPreview
 	{
 		EnsureSim(sim);
 		return new RouteHitPreview(selectedMove.Steps).GetHitOpportunities(sim, playerId);
+	}
+
+	/// <summary>
+	/// Lazily scores destinations across reachable poses without selecting a heading.
+	/// Reuses scores only while the planning simulation, world version, actions, actor, and target match.
+	/// </summary>
+	public Func<Coord, MovementPickPreference> MovementPickPreferences(
+		BattleSimulation sim,
+		string actorId,
+		string enemyId,
+		IReadOnlyList<MovePathOption> paths)
+	{
+		EnsureSim(sim);
+		if (_pickPreference is not null
+			&& _pickWorldVersion == sim.WorldVersion
+			&& _pickActorId == actorId
+			&& _pickEnemyId == enemyId
+			&& _pickActions.SequenceEqual(sim.Actions))
+			return _pickPreference;
+
+		var enemyPosition = sim.World.StateOf(enemyId).Position;
+		var options = paths.Where(path => path.Steps.Count > 0)
+			.GroupBy(path => path.EndPosition)
+			.ToDictionary(group => group.Key, group => group.ToArray());
+		var preferences = new Dictionary<Coord, MovementPickPreference>();
+		_pickWorldVersion = sim.WorldVersion;
+		_pickActions = sim.Actions.ToArray();
+		_pickActorId = actorId;
+		_pickEnemyId = enemyId;
+		_pickPreference = coordinate =>
+		{
+			if (preferences.TryGetValue(coordinate, out var cached))
+				return cached;
+			if (!options.TryGetValue(coordinate, out var reachable))
+				throw new InvalidOperationException($"No movement preview for assisted pick {coordinate}.");
+
+			// Only queried destinations are simulated. Heading remains a separate player choice.
+			var canHit = reachable.Any(option =>
+				PoseHitOpportunities(sim, actorId, option).Any(hit => hit.TargetId == enemyId));
+			var preference = MovementPick.Alignment(coordinate, enemyPosition, canHit);
+			preferences.Add(coordinate, preference);
+			return preference;
+		};
+		return _pickPreference;
 	}
 
 	public IReadOnlyList<MoveCheckpoint> CommittedMoveCheckpoints(BattleSimulation sim, string playerId) =>
@@ -297,6 +347,10 @@ public sealed class PlanningPreview
 
 	public void ClearCaches()
 	{
+		_pickPreference = null;
+		_pickActions = [];
+		_pickActorId = null;
+		_pickEnemyId = null;
 		_moveCache.Clear();
 		_envelopeCacheSim = null;
 		_envelopeCacheActions = [];

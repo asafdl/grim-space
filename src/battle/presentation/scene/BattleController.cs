@@ -619,7 +619,8 @@ public partial class BattleController : Node3D
 			reopenMoveCell: frame.ReopenMoveCell,
 			requiresFacePickAfterTargets:
 				_frames.Interaction.ActiveAbilitySpec?.RequiresFacePickAfterTargets == true,
-			facePickActive: frame.FacePickTargetId is not null);
+			facePickActive: frame.FacePickTargetId is not null,
+			movementPickPreference: frame.MovementPickPreference);
 		ApplyFrame(frame);
 		if (frame.TargetingFocusId is { } targetId
 			&& (previousFrame?.TargetingFocusId != targetId

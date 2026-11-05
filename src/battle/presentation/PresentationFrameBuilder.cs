@@ -221,13 +221,17 @@ public sealed class PresentationFrameBuilder
 				: [];
 
 		Coord? reopenMoveCell = null;
+		// Choose assistance from the ship, not the hover: a pick must not switch its own reference enemy.
+		var movementEnemy = canControl && state.Mode == EPlayerMode.Move
+			? FindRangeEnemy(battle, previewUnits, previewUnitTeams, state.RangeEnemyId)
+			: null;
 		var rangeEnemy = targetPick is not null
 			? SessionRangeTarget(previewUnits, playerId, targetPick.CandidateId)
 			: FindRangeEnemy(
 				battle,
 				previewUnits,
 				previewUnitTeams,
-				state.RangeEnemyId,
+				movementEnemy?.EnemyId ?? state.RangeEnemyId,
 				activeMovePreview?.ResultState.Position);
 		if (canControl
 			&& state.Mode == EPlayerMode.Move
@@ -248,6 +252,10 @@ public sealed class PresentationFrameBuilder
 				&& (isInspecting ? EPlayerMode.Move : state.Mode) == EPlayerMode.Move
 				&& (canControl || isInspecting),
 			MovePaths = moveOptions,
+			MovementPickPreference = movementEnemy is { } assistEnemy
+				&& previewUnits[assistEnemy.EnemyId].IsAlive
+					? _preview.MovementPickPreferences(sim, playerId, assistEnemy.EnemyId, moveOptions)
+					: null,
 			PreviewUnits = previewUnits,
 			PreviewUnitTeams = previewUnitTeams,
 			RangeEnemy = rangeEnemy,

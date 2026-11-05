@@ -5,6 +5,7 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Units;
@@ -474,6 +475,34 @@ public sealed class PresentationFrameTests
 		Assert.Equal(battle.PlayerId, frame.FocusId);
 		Assert.False(frame.IsInspecting);
 		Assert.Null(BattleTestFixture.FrameBuilder(battle).Interaction.FocusId);
+	}
+
+	[Fact]
+	public void MovementAssistMatchesReticleAndKeepsReferenceStableAcrossHover()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(BattleTestFixture.Player(origin),
+			[
+				BattleTestFixture.Enemy(origin + Coord.Forward * 4),
+				BattleTestFixture.RepurposedMiner(origin - Coord.Forward * 5, "other-enemy"),
+			]);
+		var builder = BattleTestFixture.FrameBuilder(battle);
+		var initial = BattleTestCommands.Frame(battle);
+		var destination = origin - Coord.Forward;
+		Assert.NotNull(initial.MovementPickPreference);
+		builder.Interaction.SetMoveHover(destination, initial.MovePaths);
+		var hovered = BattleTestCommands.Frame(battle);
+		Assert.Equal(initial.RangeEnemy!.Value.EnemyId, hovered.RangeEnemy!.Value.EnemyId);
+		Assert.Same(initial.MovementPickPreference, hovered.MovementPickPreference);
+		builder.Interaction.SetRangeEnemy("other-enemy");
+		var retargeted = BattleTestCommands.Frame(battle);
+		Assert.Equal("other-enemy", retargeted.RangeEnemy!.Value.EnemyId);
+		Assert.NotSame(hovered.MovementPickPreference, retargeted.MovementPickPreference);
+		var preference = retargeted.MovementPickPreference!(destination);
+		Assert.Equal(MovementPick.Alignment(destination, origin - Coord.Forward * 5, preference.CanHit),
+			preference);
+		BattleTestCommands.Focus(battle, "other-enemy");
+		Assert.Null(BattleTestCommands.Frame(battle).MovementPickPreference);
 	}
 
 	[Fact]

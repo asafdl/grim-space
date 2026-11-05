@@ -8,15 +8,22 @@ public readonly record struct MovementPickCandidate(
 	float RadiusPx,
 	float CameraDepth);
 
+public readonly record struct MovementPickPreference(bool CanHit, int AlignedAxes, long AlignmentError);
+
 public static class MovementPick
 {
+	private const float AssistanceBandPx = 6f;
+	private const float SnapBandPx = 18f;
+	private const float SnapReleaseBandPx = 24f;
+	private const float DirectAimPx = 1f;
 	private const float TieBandPx = 2f;
 	private const float MinimumHysteresisPx = 2f;
 	private const float HysteresisFraction = 0.20f;
 
 	public static Coord? Resolve(
 		IReadOnlyList<MovementPickCandidate> candidates,
-		Coord? currentHovered = null)
+		Coord? currentHovered = null,
+		Func<Coord, MovementPickPreference>? preference = null)
 	{
 		if (candidates.Count == 0)
 			return null;
@@ -32,6 +39,9 @@ public static class MovementPick
 
 		if (eligible.Count == 0)
 			return null;
+
+		if (preference is not null)
+			return SelectAssisted(eligible, currentHovered, preference);
 
 		var challenger = SelectDeterministic(eligible);
 		if (challenger is null)
@@ -61,6 +71,49 @@ public static class MovementPick
 			return challenger;
 
 		return retained;
+	}
+
+	private static Coord? SelectAssisted(
+		IReadOnlyList<MovementPickCandidate> eligible,
+		Coord? currentHovered,
+		Func<Coord, MovementPickPreference> preference)
+	{
+		var minimum = eligible.Min(candidate => candidate.DistancePx);
+		if (minimum <= DirectAimPx)
+			return SelectDeterministic(eligible.Where(candidate => candidate.DistancePx == minimum).ToArray());
+
+		var nearby = eligible.Where(candidate =>
+			candidate.DistancePx <= minimum + SnapBandPx
+			|| candidate.Coordinate == currentHovered && candidate.DistancePx <= minimum + SnapReleaseBandPx)
+			.Select(candidate => (Candidate: candidate, Preference: preference(candidate.Coordinate)))
+			.Where(item => item.Candidate.DistancePx <= minimum + AssistanceBandPx
+				|| item.Preference.CanHit || item.Preference.AlignedAxes == 2)
+			.ToArray();
+		if (nearby.Length == 1)
+			return nearby[0].Candidate.Coordinate;
+
+		var ranked = nearby
+			.OrderByDescending(item => item.Preference.CanHit)
+			.ThenByDescending(item => item.Preference.AlignedAxes)
+			.ThenBy(item => item.Preference.AlignmentError)
+			.ToArray();
+		var best = ranked[0].Preference;
+		var finalists = ranked.Where(item => item.Preference == best).Select(item => item.Candidate).ToArray();
+		// Strong destinations get a wider release band; ordinary alignment stays a weak tie-break.
+		return Resolve(finalists, currentHovered);
+	}
+
+	public static MovementPickPreference Alignment(Coord coordinate, Coord enemy, bool canHit)
+	{
+		var distances = new[]
+		{
+			System.Math.Abs((long)coordinate.X - enemy.X),
+			System.Math.Abs((long)coordinate.Y - enemy.Y),
+			System.Math.Abs((long)coordinate.Z - enemy.Z),
+		};
+		Array.Sort(distances);
+		return new MovementPickPreference(canHit, distances.Count(distance => distance == 0),
+			distances[0] + distances[1]);
 	}
 
 	internal static Coord? SelectDeterministic(IReadOnlyList<MovementPickCandidate> eligible)

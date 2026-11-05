@@ -33,6 +33,7 @@ public sealed partial class UserIntentTranslator : Node
 	private double _rollScrollButtonCooldownMs;
 	private EPlayerMode _mode = EPlayerMode.Move;
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
+	private Func<Coord, MovementPickPreference>? _movePickPreference;
 	private IReadOnlyList<AbilityActivationChoice> _abilityChoices = [];
 	private int? _abilityHoveredIndex;
 	private TargetPickFrame? _targetPick;
@@ -120,7 +121,8 @@ public sealed partial class UserIntentTranslator : Node
 		TargetPickFrame? targetPick,
 		Coord? reopenMoveCell,
 		bool requiresFacePickAfterTargets = false,
-		bool facePickActive = false)
+		bool facePickActive = false,
+		Func<Coord, MovementPickPreference>? movementPickPreference = null)
 	{
 		_enabled = enabled;
 		_canIssueActions = canIssueActions;
@@ -128,6 +130,7 @@ public sealed partial class UserIntentTranslator : Node
 		_mode = mode;
 		_reopenMoveCell = reopenMoveCell;
 		_moveOptions = moveOptions;
+		_movePickPreference = movementPickPreference;
 		_abilityChoices = abilityChoices;
 		_abilityHoveredIndex = abilityHoveredIndex;
 		_targetPick = targetPick;
@@ -618,7 +621,8 @@ public sealed partial class UserIntentTranslator : Node
 			GetViewport(),
 			screenPosition,
 			_moveOptions,
-			currentHovered);
+			currentHovered,
+			_movePickPreference);
 
 	private void CancelMoveSelection() => MoveSelectionCanceled?.Invoke();
 

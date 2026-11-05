@@ -314,6 +314,8 @@ public partial class MapController : Node3D
 			_director.SetInitialMode(CinematicPresentationMode.ModeId);
 
 		_settledPresentationModeId = _director.CurrentModeId;
+		if (ForcesStrategicPause(_settledPresentationModeId))
+			_orchestrator.SetStepped();
 		RefreshPlayerVisibleFleets(0f);
 		TryAutoEnterDockedFacade();
 		_units.Sync(_orchestrator, 0f, IsPlayerFleetVisible, _hidePlayerBeacon);
@@ -751,8 +753,7 @@ public partial class MapController : Node3D
 
 	private void HandlePauseRequest()
 	{
-		if (_director.CurrentModeId == OverviewPresentationMode.ModeId
-			&& _orchestrator.IsStepped)
+		if (ForcesStrategicPause(_director.CurrentModeId) && _orchestrator.IsStepped)
 		{
 			UnpauseToCinematic();
 			return;
@@ -764,9 +765,12 @@ public partial class MapController : Node3D
 	private void UnpauseToCinematic()
 	{
 		_orchestrator.SetRunning();
-		if (_director.CurrentModeId == OverviewPresentationMode.ModeId)
+		if (ForcesStrategicPause(_director.CurrentModeId))
 			_director.TryEnter(CinematicPresentationMode.ModeId);
 	}
+
+	private static bool ForcesStrategicPause(string? modeId) =>
+		modeId is OverviewPresentationMode.ModeId or FacadePresentationMode.ModeId;
 
 	private void SyncSettledPresentationMode()
 	{
@@ -780,11 +784,12 @@ public partial class MapController : Node3D
 		var previousModeId = _settledPresentationModeId;
 		_settledPresentationModeId = currentModeId;
 
-		if (currentModeId == OverviewPresentationMode.ModeId)
+		if (ForcesStrategicPause(currentModeId))
 			_orchestrator.SetStepped();
-		else if (previousModeId == OverviewPresentationMode.ModeId)
+		else if (ForcesStrategicPause(previousModeId))
 		{
-			ClearHyperlinkWorldIndicators();
+			if (previousModeId == OverviewPresentationMode.ModeId)
+				ClearHyperlinkWorldIndicators();
 			if (currentModeId == CinematicPresentationMode.ModeId
 				&& !_strategicHud.IsBlockingModalOpen)
 				_orchestrator.SetRunning();
@@ -807,7 +812,7 @@ public partial class MapController : Node3D
 			return;
 
 		_pausedForRosterModal = false;
-		if (_pauseMenu.Visible || _director.CurrentModeId == OverviewPresentationMode.ModeId)
+		if (_pauseMenu.Visible || ForcesStrategicPause(_director.CurrentModeId))
 			return;
 
 		_orchestrator.SetRunning();
@@ -870,6 +875,7 @@ public partial class MapController : Node3D
 
 	private void OnFacilityEntered(FacilityEntry entry)
 	{
+		_orchestrator.SetStepped();
 		MapNavigationContext.EnterFacility(entry.PoiId, entry.Facility.Id);
 		GetTree().ChangeSceneToFile(entry.Facility.ScenePath);
 	}

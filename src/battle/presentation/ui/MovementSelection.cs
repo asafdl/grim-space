@@ -27,10 +27,11 @@ public static class MovementSelection
 		Viewport viewport,
 		Vector2 screenPos,
 		IReadOnlyList<MovePathOption> paths,
-		Coord? currentHovered = null)
+		Coord? currentHovered = null,
+		Func<Coord, MovementPickPreference>? preference = null)
 	{
 		var candidates = BuildCandidates(camera, viewport, screenPos, paths);
-		return MovementPick.Resolve(candidates, currentHovered);
+		return MovementPick.Resolve(candidates, currentHovered, preference);
 	}
 
 	public static MovePathOption? ResolveOption(

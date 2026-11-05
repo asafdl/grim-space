@@ -3,6 +3,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Units;
 using GrimSpace.Components;
@@ -215,6 +216,96 @@ public sealed class PoseHitOpportunityTests
 		Assert.DoesNotContain(
 			turnedAwayHits,
 			opportunity => opportunity.IconPath == "res://assets/ui/abilities/lightning_cannon.svg");
+	}
+
+	[Fact]
+	public void MovementPreferenceMatchesAnyReachablePoseWithoutChangingHeadingOrSimulation()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
+		var preview = new PlanningPreview();
+		var sim = battle.PlayerAgent.Sim;
+		var options = BattleTestCommands.MoveOptions(battle);
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		var destination = origin + Coord.Forward;
+		var poses = options.Where(option => option.EndPosition == destination).ToArray();
+		var expectedHit = poses.Any(option =>
+			preview.PoseHitOpportunities(sim, PlayerId, option).Any(hit => hit.TargetId == enemyId));
+		Assert.True(expectedHit);
+		var original = options.First(option => option.EndPosition == destination);
+		var version = sim.WorldVersion;
+		var actions = sim.Actions.ToArray();
+		var score = preview.MovementPickPreferences(sim, PlayerId, enemyId, options);
+
+		Assert.Equal(MovementPick.Alignment(destination, sim.World.StateOf(enemyId).Position, expectedHit),
+			score(destination));
+		Assert.Equal(score(destination), score(destination));
+		Assert.Same(original, options.First(option => option.EndPosition == destination));
+		Assert.Equal(version, sim.WorldVersion);
+		Assert.Equal(actions, sim.Actions);
+		Assert.Same(score, preview.MovementPickPreferences(sim, PlayerId, enemyId, options));
+	}
+
+	[Fact]
+	public void MovementPreferenceCacheRefreshesAfterMoveUndoAndNewSimulation()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
+		var preview = new PlanningPreview();
+		var sim = battle.PlayerAgent.Sim;
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		var initial = preview.MovementPickPreferences(sim, PlayerId, enemyId, BattleTestCommands.MoveOptions(battle));
+		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
+		var moved = preview.MovementPickPreferences(sim, PlayerId, enemyId, BattleTestCommands.MoveOptions(battle));
+		Assert.NotSame(initial, moved);
+		Assert.True(BattleTestCommands.Undo(battle));
+		var undone = preview.MovementPickPreferences(sim, PlayerId, enemyId, BattleTestCommands.MoveOptions(battle));
+		Assert.NotSame(moved, undone);
+		var forked = preview.MovementPickPreferences(sim.Fork(), PlayerId, enemyId, BattleTestCommands.MoveOptions(battle));
+		Assert.NotSame(undone, forked);
+	}
+
+	[Fact]
+	public void MovementPreferenceCacheRefreshesWhenTargetOrActorChanges()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = BattleTestFixture.BeginSimulation(BattleTestFixture.Player(origin),
+			[
+				BattleTestFixture.Enemy(origin + Coord.Forward * 4),
+				BattleTestFixture.RepurposedMiner(new Coord(8, 8, 8), "other-enemy"),
+			]);
+		var sim = battle.PlayerAgent.Sim;
+		var preview = new PlanningPreview();
+		var options = BattleTestCommands.MoveOptions(battle);
+		var first = preview.MovementPickPreferences(sim, PlayerId, "enemy", options);
+		var second = preview.MovementPickPreferences(sim, PlayerId, "other-enemy", options);
+		Assert.NotSame(first, second);
+		var actorOptions = preview.MoveOptions(sim, PlayerId, "enemy", isPlanning: true);
+		var otherActor = preview.MovementPickPreferences(sim, "enemy", "other-enemy", actorOptions);
+		Assert.NotSame(second, otherActor);
+	}
+
+	[Fact]
+	public void MovementPreferenceUpdatesFiringScoreAfterWeaponUseAndUndo()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = TurnOrchestrationTests.CreateOrchestrator(
+			origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
+		var sim = battle.PlayerAgent.Sim;
+		var preview = new PlanningPreview();
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		var destination = origin + Coord.Forward;
+		var initial = preview.MovementPickPreferences(sim, PlayerId, enemyId, BattleTestCommands.MoveOptions(battle));
+		Assert.True(initial(destination).CanHit);
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
+		var spent = preview.MovementPickPreferences(sim, PlayerId, enemyId, BattleTestCommands.MoveOptions(battle));
+		Assert.NotSame(initial, spent);
+		Assert.False(spent(destination).CanHit);
+		Assert.True(BattleTestCommands.Undo(battle));
+		var restored = preview.MovementPickPreferences(sim, PlayerId, enemyId, BattleTestCommands.MoveOptions(battle));
+		Assert.True(restored(destination).CanHit);
 	}
 
 	private static MovePathOption RouteAt(
