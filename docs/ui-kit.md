@@ -47,6 +47,32 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 
 ## Pilot speech
 
+Battle presentation registers allied encounter pilots with the same run-owned director.
+The focused ship's merc speaks beside the ability-HUD portrait when visible; other
+allies (and focused allies with a hidden portrait) speak above their rendered ship,
+offset two world units along +Y and projected into the screen overlay at constant UI size.
+Ship bubbles omit the portrait connector. Anchor resolution runs each frame, so
+focus changes move an active bubble without restarting its typewriter. Hidden,
+non-live, behind-camera, or offscreen ship anchors are unavailable. Battle exit
+unregisters its handles.
+
+After a damaging impact on a player unit visibly completes, replay supplies its
+currently living allied ships to the bark director. It selects 1–3 mercs with
+independent 20% chances and Scared/Angry/Surprised/Disdain flavors. Every qualifying
+hit rolls again: battle barks neither check nor start global or per-pilot real-time
+cooldowns. Replay blocks,
+frames each selected speaker, then waits for the actual bubble queue to finish
+before framing the next speaker or continuing. No selected speakers means no
+additional wait. Dead ships are excluded using replay state, not simulation end
+state. Scene exit clears pending speech and prevents replay continuations.
+
+`PilotBarkDirector.Select` returns pilot/flavor/text decisions without displaying
+them or starting cooldowns. Playback can frame each selected speaker before calling
+`Present`; presentation starts cooldowns only if the registered handle accepts the
+line and the decision uses cooldowns. Battle decisions do not use cooldowns.
+`Present` does not reroll or recheck group cooldowns. Ordinary strategic
+`Offer` calls select and present immediately through this same path.
+
 The shared `StrategicHud` owns the pilot speech UI in both the star map and facility scenes
 and registers/unregisters speech handles by pilot ID as roster cards appear/disappear.
 The Godot-free `PilotBarkDirector` owns event subscriptions, bark context,
@@ -57,7 +83,7 @@ the strategic world rebinds its subscription without replacing the director.
 It has no HUD or control references; scenes only register and unregister presentation handles.
 Its delivery subscription listens for committed `ContractStateChanged` records:
 only completed player delivery contracts offer a bark, not intermediate handoffs.
-Each selected pilot independently uses the director's 70% default chance, then rolls
+Each selected pilot independently uses the director's 40% default chance, then rolls
 Disdain or Relieved for delivery completion and a line from that flavor. Global and
 per-pilot cooldowns apply; dialogs do not block or delay barks. Scripted opening
 lines still play once per new run.
@@ -68,7 +94,7 @@ initiated contact. Allowed flavors are Scared, Angry, Surprised, and Bored.
 Other fleets' contacts and delivery/black-market meetings do not trigger this reaction.
 Committed player `ReachWreckageAction` events offer a bark for the pending wreck HUD:
 ambush uses Scared/Angry/Surprised, while salvage uses Relieved/Bored. Both select
-1–3 eligible pilots with independent 70% chances.
+1–3 eligible pilots with independent default chances.
 Delivery offers select one pilot; engagement offers roll one to three, capped by
 eligible pilots. The global cooldown gates the whole group once.
 Selected pilots are distinct; failed chance rolls are not replaced, so zero may speak.
@@ -77,7 +103,7 @@ sequentially. Per-pilot cooldowns start only for accepted lines.
 
 A committed player move schedules one travel-chatter attempt at a random simulation
 tick strictly inside its journey. It selects 1–3 eligible pilots with independent
-70% chances and Bored/Disdain flavors. A new move replaces the attempt; arrival,
+default chances and Bored/Disdain flavors. A new move replaces the attempt; arrival,
 journey replacement, pursuit/engagement, battle, or map regeneration invalidates it.
 Missed attempts are not retried. Simulation timing keeps pauses and travel speed aligned.
 

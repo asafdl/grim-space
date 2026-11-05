@@ -24,6 +24,7 @@ using GrimSpace.Components;
 using GrimSpace.Education;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Tutorials;
+using GrimSpace.Ui.Components;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Scene;
@@ -69,6 +70,9 @@ public partial class BattleController : Node3D
 	private bool _strategicBattle;
 	private IReadOnlyList<BattleSpawn> _encounterSpawns = [];
 	private readonly Dictionary<string, Pilot> _encounterPilots = new(StringComparer.Ordinal);
+	private PilotSpeechHost _pilotSpeech = null!;
+	private readonly Dictionary<string, string> _pilotShipIds = new(StringComparer.Ordinal);
+	private bool _exiting;
 	private int _xpDifficulty = BattleEncounter.DefaultXpDifficulty;
 	private EBattlePhase _lastPhase = (EBattlePhase)(-1);
 	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
@@ -222,6 +226,16 @@ public partial class BattleController : Node3D
 		_battleHud.TurnFlowBar.SetPortraitResolver(PortraitForUnit);
 		_battleHud.TurnFlowBar.SetPortraitTintResolver(PortraitTintForUnit);
 		AddChild(_battleHud);
+		_pilotSpeech = new PilotSpeechHost(ResolvePilotSpeechAnchor, 12);
+		AddChild(_pilotSpeech);
+		foreach (var spawn in _encounterSpawns)
+		{
+			if (spawn.Team != ETeam.Player || spawn.PilotId is not { } pilotId)
+				continue;
+
+			_pilotShipIds.Add(pilotId, spawn.Ship.Id);
+			Session.Instance.Run.Barks.RegisterPilot(pilotId, line => _pilotSpeech.Say(pilotId, line));
+		}
 
 		_translator = new UserIntentTranslator(
 			_battle.PlayerId,
@@ -247,7 +261,8 @@ public partial class BattleController : Node3D
 			states => _battleView.ApplyUnitStates(states, ColorForActor),
 			ApplyReplayState,
 			_goopHazardView.Show,
-			_goopHazardView.Remove);
+			_goopHazardView.Remove,
+			PlayHitReaction);
 		_replayPlayer.TurnFlowIndexChanged += OnTurnFlowIndexChanged;
 		AddChild(_replayPlayer);
 
@@ -683,9 +698,10 @@ public partial class BattleController : Node3D
 			?? _currentFrame.PreviewUnits[_battle.PlayerId].Position;
 		var enemies = _currentFrame.PreviewUnits
 			.Where(pair =>
-				pair.Value.IsAlive
-				&& _currentFrame.PreviewUnitTeams.TryGetValue(pair.Key, out var team)
-				&& team == ETeam.Enemy)
+				PresentationFrameBuilder.IsBoardEnemy(
+					_battle,
+					_currentFrame.PreviewUnitTeams,
+					pair.Key))
 			.OrderBy(pair =>
 			{
 				var offset = pair.Value.Position - playerPosition;
@@ -830,10 +846,7 @@ public partial class BattleController : Node3D
 			.ToArray();
 		_targetOpportunityOverlay.Apply(
 			frame.PreviewUnits,
-			frame.PoseHitOpportunities.Concat(lethalTargets).ToArray(),
-			verticalOffsetPx: lethalTargets.Length > 0
-				? TargetOpportunityOverlay.LethalVerticalOffsetPx
-				: 34f);
+			frame.PoseHitOpportunities.Concat(lethalTargets).ToArray());
 		_abilitySourcePicker.Apply(
 			frame.AbilityChoices.Count > 1 ? [] : frame.AbilityChoices,
 			frame.AbilityHoveredIndex);
@@ -949,6 +962,75 @@ public partial class BattleController : Node3D
 	}
 
 	private void OnTutorialFlowCompleted(TutorialFlow _) => RefreshPresentation();
+
+	private void PlayHitReaction(
+		ImpactFacts impact, ETeam targetTeam, IReadOnlyList<string> livingShipIds, Action completed)
+	{
+		if (_exiting)
+			return;
+
+		var living = livingShipIds.ToHashSet(StringComparer.Ordinal);
+		var pilotIds = _pilotShipIds
+			.Where(pair => living.Contains(pair.Value))
+			.Select(pair => pair.Key).ToArray();
+		var barks = Session.Instance.Run.Barks;
+		var decisions = barks.SelectPlayerHit(impact, targetTeam, pilotIds);
+		var index = 0;
+		void Next()
+		{
+			if (_exiting)
+				return;
+			while (index < decisions.Count)
+			{
+				var decision = decisions[index++];
+				if (!_pilotShipIds.TryGetValue(decision.PilotId, out var shipId)
+					|| !_battleView.UnitViews.TryGetValue(shipId, out var view)
+					|| view.VisualState != UnitVisualState.Live)
+					continue;
+
+				_cameraDirector.BeginBark(view.GlobalPosition + Vector3.Up * 2f);
+				GetTree().CreateTimer(BattleCameraDirector.CombatInterestTween).Timeout += () =>
+				{
+					if (_exiting)
+						return;
+					if (barks.Present(decision))
+						_pilotSpeech.WhenIdle(Next);
+					else
+						Next();
+				};
+				return;
+			}
+			_cameraDirector.EndBark();
+			completed();
+		}
+
+		if (decisions.Count == 0)
+			completed();
+		else
+			_pilotSpeech.WhenIdle(Next);
+	}
+
+	private PilotSpeechHost.Anchor? ResolvePilotSpeechAnchor(string pilotId)
+	{
+		if (!_pilotShipIds.TryGetValue(pilotId, out var shipId)
+			|| !_battleView.UnitViews.TryGetValue(shipId, out var view)
+			|| view.VisualState != UnitVisualState.Live
+			|| !view.IsVisibleInTree())
+			return null;
+
+		if (_currentFrame is not null && _currentFrame.FocusId == shipId
+			&& PilotSpeechHost.PortraitAnchor(_battleHud.CommandHud.PilotPortrait) is { } portrait)
+			return portrait;
+
+		var position = view.GlobalPosition + Vector3.Up * 2f;
+		if (_camera.IsPositionBehind(position))
+			return null;
+		var screen = _camera.UnprojectPosition(position);
+		if (!GetViewport().GetVisibleRect().HasPoint(screen))
+			return null;
+
+		return new PilotSpeechHost.Anchor(new Rect2(screen, Vector2.Zero), Above: true);
+	}
 
 	private Vector3 GetPlayerRenderedPosition() =>
 		GetUnitRenderedPosition(_battle.PlayerId);
@@ -1082,6 +1164,11 @@ public partial class BattleController : Node3D
 
 	public override void _ExitTree()
 	{
+		_exiting = true;
+		_cameraDirector?.EndBark();
+		_pilotSpeech?.Clear();
+		foreach (var pilotId in _pilotShipIds.Keys)
+			Session.Instance.Run.Barks.UnregisterPilot(pilotId);
 		Session.Instance.ClearAutosaveContext();
 		_camera.ManualInputStarted -= _cameraDirector.OnManualInputStarted;
 		_camera.ManualInputStarted -= _translator.OnCameraManualInputStarted;

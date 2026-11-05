@@ -8,7 +8,6 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class TargetOpportunityOverlay : Node2D
 {
 	public const string LethalIconPath = "res://assets/ui/battle/lethal_hit.svg";
-	public const float LethalVerticalOffsetPx = 140f;
 	public static readonly Color LethalIconTint = new(0.96f, 0.94f, 0.86f);
 
 	private const float BadgePx = 32f;
@@ -19,7 +18,6 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 	private Camera3D _camera = null!;
 	private IReadOnlyDictionary<string, UnitDisplayState> _previewUnits = new Dictionary<string, UnitDisplayState>();
 	private IReadOnlyList<PoseHitOpportunity> _opportunities = [];
-	private float _verticalOffsetPx = VerticalOffsetPx;
 	private readonly Dictionary<(string Path, Color Tint, bool TintIcon), Texture2D> _glyphCache = new();
 	private readonly List<IconBadge> _activeBadges = [];
 	private readonly Stack<IconBadge> _freeBadges = [];
@@ -28,12 +26,10 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 
 	public void Apply(
 		IReadOnlyDictionary<string, UnitDisplayState> previewUnits,
-		IReadOnlyList<PoseHitOpportunity> opportunities,
-		float verticalOffsetPx = VerticalOffsetPx)
+		IReadOnlyList<PoseHitOpportunity> opportunities)
 	{
 		_previewUnits = previewUnits;
 		_opportunities = opportunities;
-		_verticalOffsetPx = verticalOffsetPx;
 		Visible = opportunities.Count > 0;
 		ReleaseActiveBadges();
 		if (Visible)
@@ -54,29 +50,37 @@ public sealed partial class TargetOpportunityOverlay : Node2D
 
 		foreach (var group in _opportunities.GroupBy(opportunity => opportunity.TargetId))
 		{
-			if (!_previewUnits.TryGetValue(group.Key, out var unit) || !unit.IsAlive)
+			if (!_previewUnits.TryGetValue(group.Key, out var unit)
+				|| (!unit.IsAlive && group.All(opportunity => opportunity.IconPath != LethalIconPath)))
 				continue;
 
 			var screenCenter = _camera.UnprojectPosition(WorldMapping.ToWorld(unit.Position));
-			var icons = group.ToList();
+			var icons = group.Where(opportunity => opportunity.IconPath != LethalIconPath).ToList();
 			var count = icons.Count;
 			for (var i = 0; i < count; i++)
 			{
-				var opportunity = icons[i];
 				var fanOffset = count == 1
 					? 0f
 					: (i - (count - 1) * 0.5f) * FanSpacingPx;
-				var badge = AcquireBadge();
-				badge.Apply(
-					GetGlyph(opportunity.IconPath, opportunity.IconTint, opportunity.TintIcon),
-					opportunity.IconTint,
-					glowingSkull: opportunity.IconPath == LethalIconPath);
-				badge.Position = screenCenter
-					+ new Vector2(fanOffset - BadgePx * 0.5f, -_verticalOffsetPx - BadgePx * 0.5f);
-				badge.Visible = true;
-				_activeBadges.Add(badge);
+				ShowBadge(icons[i], screenCenter + new Vector2(fanOffset, -VerticalOffsetPx));
 			}
+
+			if (group.FirstOrDefault(opportunity => opportunity.IconPath == LethalIconPath) is { } lethal)
+				ShowBadge(lethal, _camera.UnprojectPosition(
+					EnemyRangeTetherView.ReticleCenter(WorldMapping.ToWorld(unit.Position), _camera)));
 		}
+	}
+
+	private void ShowBadge(PoseHitOpportunity opportunity, Vector2 center)
+	{
+		var badge = AcquireBadge();
+		badge.Apply(
+			GetGlyph(opportunity.IconPath, opportunity.IconTint, opportunity.TintIcon),
+			opportunity.IconTint,
+			glowingSkull: opportunity.IconPath == LethalIconPath);
+		badge.Position = center - Vector2.One * BadgePx * 0.5f;
+		badge.Visible = true;
+		_activeBadges.Add(badge);
 	}
 
 	private Texture2D GetGlyph(string? iconPath, Color tint, bool tintIcon)

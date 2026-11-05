@@ -76,7 +76,7 @@ public sealed class PresentationFrameBuilder
 
 		var isInspecting = focusId != playerId;
 		if (state.RangeEnemyId is { } rangeEnemyId
-			&& !IsLivingEnemy(previewUnits, previewUnitTeams, rangeEnemyId))
+			&& !IsBoardEnemy(battle, previewUnitTeams, rangeEnemyId))
 			state.ClearRangeEnemy();
 		var canControl = acceptsCommands && isPlanning && !isInspecting;
 		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
@@ -221,6 +221,14 @@ public sealed class PresentationFrameBuilder
 				: [];
 
 		Coord? reopenMoveCell = null;
+		var rangeEnemy = targetPick is not null
+			? SessionRangeTarget(previewUnits, playerId, targetPick.CandidateId)
+			: FindRangeEnemy(
+				battle,
+				previewUnits,
+				previewUnitTeams,
+				state.RangeEnemyId,
+				activeMovePreview?.ResultState.Position);
 		if (canControl
 			&& state.Mode == EPlayerMode.Move
 			&& !isInspecting
@@ -242,14 +250,7 @@ public sealed class PresentationFrameBuilder
 			MovePaths = moveOptions,
 			PreviewUnits = previewUnits,
 			PreviewUnitTeams = previewUnitTeams,
-			RangeEnemy = targetPick is not null
-				? SessionRangeTarget(previewUnits, playerId, targetPick.CandidateId)
-				: FindRangeEnemy(
-					battle,
-					previewUnits,
-					previewUnitTeams,
-					state.RangeEnemyId,
-					activeMovePreview?.ResultState.Position),
+			RangeEnemy = rangeEnemy,
 			TargetPick = targetPick,
 			FacePickTargetId = facePickTargetId,
 			Weapons = weapons,
@@ -258,8 +259,8 @@ public sealed class PresentationFrameBuilder
 			AbilityChoices = abilityChoices,
 			AbilityHoveredIndex = canControl ? state.AbilityHoveredIndex : null,
 			HoveredAbilityChoice = canControl ? hoveredAbilityChoice : null,
-			AbilityDamage = aimedAbility is not null
-				? _preview.AbilityDamage(sim, aimedAbility.Action)
+			AbilityDamage = canControl
+				? _preview.AbilityDamage(sim, playerId, aimedAbility?.Action, rangeEnemy?.EnemyId)
 				: new Dictionary<string, AbilityDamagePreview>(),
 			ThreatenedUnitIds = threatenedUnitIds,
 			VoidBombPreviews = torpedoPreviews,
@@ -352,15 +353,17 @@ public sealed class PresentationFrameBuilder
 			return null;
 
 		var source = sourcePosition ?? player.Position;
-		if (requestedEnemyId is { } enemyId && IsLivingEnemy(units, teams, enemyId))
-			return RangeTarget(enemyId, source, units[enemyId].Position);
+		if (requestedEnemyId is { } enemyId
+			&& IsBoardEnemy(battle, teams, enemyId)
+			&& units.TryGetValue(enemyId, out var requested))
+			return RangeTarget(enemyId, source, requested.Position);
 
 		EnemyRangeTarget? closest = null;
 		foreach (var (id, team) in teams)
 		{
 			if (team != ETeam.Enemy
-				|| !units.TryGetValue(id, out var enemy)
-				|| !enemy.IsAlive)
+				|| !IsBoardEnemy(battle, teams, id)
+				|| !units.TryGetValue(id, out var enemy))
 				continue;
 
 			var candidate = RangeTarget(id, source, enemy.Position);
@@ -375,14 +378,17 @@ public sealed class PresentationFrameBuilder
 		return closest;
 	}
 
-	private static bool IsLivingEnemy(
-		IReadOnlyDictionary<string, UnitDisplayState> units,
+	/// <summary>
+	/// Board presence for reticle / cycle: alive in the authoritative battle world.
+	/// Planning-preview death must not drop a still-present enemy from RangeEnemy.
+	/// </summary>
+	internal static bool IsBoardEnemy(
+		BattleOrchestrator battle,
 		IReadOnlyDictionary<string, ETeam> teams,
 		string unitId) =>
 		teams.TryGetValue(unitId, out var team)
 		&& team == ETeam.Enemy
-		&& units.TryGetValue(unitId, out var unit)
-		&& unit.IsAlive;
+		&& TargetPickSpec.IsLiving(battle.Engine.World, unitId);
 
 	private static EnemyRangeTarget RangeTarget(string enemyId, Coord source, Coord target)
 		=> new(enemyId, BattleDistance.SeparationMeters(source, target));

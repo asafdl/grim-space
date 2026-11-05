@@ -65,6 +65,7 @@ public partial class TargetDamagePreview : Node3D
 				i == 0 ? state.CurrentHullPoints / 3 : state.CurrentHullPoints,
 				state.CurrentShieldPoints[face], state.CurrentHullPoints);
 			var shieldDamage = new FaceShieldPoints { [face] = impact.ShieldDamage };
+			var shieldBefore = new FaceShieldPoints { [face] = impact.ShieldBefore };
 			var tether = new EnemyRangeTetherView();
 			tether.Configure(new GrimSpace.Math.Grid.Grid(20, 20, 20));
 			AddChild(tether);
@@ -72,7 +73,8 @@ public partial class TargetDamagePreview : Node3D
 				source, view,
 				BattleDistance.SeparationMeters(sourceState.Position, state.Position),
 				sourceDisplay, unit,
-				damage: new AbilityDamagePreview(impact.HullDamage, shieldDamage, impact.IsLethal));
+				damage: new AbilityDamagePreview(
+					impact.HullDamage, shieldDamage, impact.HullBefore, shieldBefore, impact.IsLethal));
 			if (impact.IsLethal)
 				skulls.Add(new PoseHitOpportunity(
 					unit.Id, TargetOpportunityOverlay.LethalIconPath, TargetOpportunityOverlay.LethalIconTint));
@@ -83,7 +85,7 @@ public partial class TargetDamagePreview : Node3D
 		var badges = new TargetOpportunityOverlay();
 		badges.Configure(camera);
 		layer.AddChild(badges);
-		badges.Apply(units, skulls, verticalOffsetPx: TargetOpportunityOverlay.LethalVerticalOffsetPx);
+		badges.Apply(units, skulls);
 		var label = new Label
 		{
 			Position = new Vector2(24, 24),

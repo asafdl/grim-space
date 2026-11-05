@@ -46,26 +46,49 @@ public sealed class PlanningPreview
 			units.ToDictionary(unit => unit.State.Id, unit => unit.Team));
 	}
 
+	/// <summary>
+	/// Aggregates impacts from the aimed ability (all targets) plus the player's queued actions
+	/// (reticle target only). Queued records live on the sim queue, so undo clears them.
+	/// </summary>
 	public IReadOnlyDictionary<string, AbilityDamagePreview> AbilityDamage(
 		BattleSimulation sim,
-		IAction action)
+		string playerId,
+		IAction? aimedAction,
+		string? reticleTargetId)
 	{
-		var peek = sim.Peek(action)
-			?? throw new InvalidOperationException("Cannot preview damage for an illegal ability action.");
+		var aimed = aimedAction is null
+			? []
+			: (sim.Peek(aimedAction)
+				?? throw new InvalidOperationException("Cannot preview damage for an illegal ability action.")).Records;
+		var queued = reticleTargetId is null
+			? []
+			: Enumerable.Range(0, sim.Actions.Count)
+				.Where(i => sim.Actions[i].ActorId == playerId)
+				.SelectMany(sim.RecordsFor)
+				.OfType<Record<ImpactFacts>>()
+				.Where(record => record.Value.TargetId == reticleTargetId);
 		var damage = new Dictionary<string, AbilityDamagePreview>(StringComparer.Ordinal);
-		foreach (var impacts in peek.Records
-			.OfType<Record<ImpactFacts>>()
+		foreach (var impacts in queued
+			.Concat(aimed.OfType<Record<ImpactFacts>>())
 			.Select(record => record.Value)
 			.GroupBy(impact => impact.TargetId))
 		{
-			var hullDamage = impacts.Sum(impact => impact.HullDamage);
+			var hullDamage = 0;
 			var shieldDamage = new FaceShieldPoints();
+			var shieldBefore = new FaceShieldPoints();
 			foreach (var impact in impacts)
+			{
+				hullDamage += impact.HullDamage;
+				if (shieldDamage[impact.Face] == 0)
+					shieldBefore[impact.Face] = impact.ShieldBefore;
 				shieldDamage[impact.Face] += impact.ShieldDamage;
+			}
 			if (hullDamage > 0 || shieldDamage.MaxOnAnyFace > 0)
 				damage.Add(impacts.Key, new AbilityDamagePreview(
 					hullDamage,
 					shieldDamage,
+					impacts.First().HullBefore,
+					shieldBefore,
 					impacts.Any(impact => impact.IsLethal)));
 		}
 

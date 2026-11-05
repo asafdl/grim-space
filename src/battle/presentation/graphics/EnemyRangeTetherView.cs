@@ -14,6 +14,13 @@ public sealed partial class EnemyRangeTetherView : Node3D
 	private const float TetherMarkLength = 0.22f;
 	private const float TetherMarkSpacing = 0.72f;
 	private const float EndpointChangeThresholdSquared = 0.000001f;
+	private const float TargetInfoPixelSize = 0.023f;
+	private static readonly Vector2I TargetInfoSize = new(240, 208);
+
+	/// <summary>World-space centre of the billboarded reticle ring for a target at <paramref name="targetWorld"/>.</summary>
+	public static Vector3 ReticleCenter(Vector3 targetWorld, Camera3D camera) =>
+		targetWorld - camera.GlobalBasis.Y
+			* (EnemyTargetInfoOverlay.RailCenter.Y - TargetInfoSize.Y * 0.5f) * TargetInfoPixelSize;
 
 	private readonly ImmediateMesh _lineMesh = new();
 	private readonly ArrayMesh _gridMesh = new();
@@ -81,7 +88,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		var targetInfoViewport = new SubViewport
 		{
 			Name = "TargetInfoViewport",
-			Size = new Vector2I(240, 208),
+			Size = TargetInfoSize,
 			TransparentBg = true,
 			Disable3D = true,
 			RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
@@ -96,7 +103,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 			Texture = targetInfoViewport.GetTexture(),
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
 			FixedSize = false,
-			PixelSize = 0.023f,
+			PixelSize = TargetInfoPixelSize,
 			TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
 			Shaded = false,
 		};
@@ -132,14 +139,18 @@ public sealed partial class EnemyRangeTetherView : Node3D
 			}
 		}
 		var maxShield = targetState.Loadout.BaseShieldPoints[shieldFace];
+		var hullBefore = damage?.HullBefore ?? targetState.CurrentHullPoints;
+		var shieldBefore = damage is not null && damage.ShieldDamage[shieldFace] > 0
+			? damage.ShieldBefore[shieldFace]
+			: targetState.CurrentShieldPoints[shieldFace];
 		_targetInfo.Set(
 			$"{DisplayName(targetState.Type).ToUpperInvariant()} "
 				+ $"({ShipLoadoutGearTier.FromLoadout(targetState.Loadout, targetState.Type)})",
 			targetState.BaseHullPoints > 0
-				? targetState.CurrentHullPoints / (float)targetState.BaseHullPoints
+				? hullBefore / (float)targetState.BaseHullPoints
 				: 0f,
 			maxShield > 0
-				? targetState.CurrentShieldPoints[shieldFace] / (float)maxShield
+				? shieldBefore / (float)maxShield
 				: 0f,
 			targetState.HeatCapacity > 0
 				? targetState.Heat / (float)targetState.HeatCapacity

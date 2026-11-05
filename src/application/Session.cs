@@ -110,12 +110,19 @@ public partial class Session : Node
 			NavigateToRunScene();
 			return LoadResult.Success;
 		}
-		catch (JsonException)
+		catch (JsonException ex)
 		{
+			GameLog.LogException(ex, "Failed to restore save game (corrupt payload).");
 			return LoadResult.Corrupt;
 		}
-		catch (InvalidDataException)
+		catch (InvalidDataException ex)
 		{
+			GameLog.LogException(ex, "Failed to restore save game (invalid data).");
+			return LoadResult.Corrupt;
+		}
+		catch (NotSupportedException ex)
+		{
+			GameLog.LogException(ex, "Failed to restore save game (unsupported payload shape).");
 			return LoadResult.Corrupt;
 		}
 		catch (Exception ex)

@@ -12,7 +12,7 @@ public sealed partial class EnemyTargetInfoOverlay : Control
 	private const int RailPointCount = 24;
 	private const string ReticleTexturePath = "res://assets/ui/battle/enemy_target_reticle.svg";
 
-	private static readonly Vector2 RailCenter = new(120f, 116f);
+	internal static readonly Vector2 RailCenter = new(120f, 116f);
 	private static readonly Color HeatBarColor = new(0.78f, 0.3f, 0.08f);
 	private static readonly Color RailUnderlayColor = new(0.01f, 0.03f, 0.05f, 0.96f);
 	private static readonly Color EmptyRailColor = new(0.36f, 0.48f, 0.58f, 0.92f);

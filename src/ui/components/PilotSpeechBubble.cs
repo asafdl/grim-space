@@ -32,6 +32,7 @@ public sealed partial class PilotSpeechBubble : Control
 	private bool _leaving;
 
 	public event Action? Finished;
+	public bool ShowTail { set => _tail.Visible = value; }
 
 	public PilotSpeechBubble(string text)
 	{

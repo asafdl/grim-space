@@ -8,6 +8,8 @@ using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Units;
 using State = GrimSpace.Run.State;
+using GrimSpace.Battle.Effects;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Pilots.Barks;
 
@@ -17,6 +19,8 @@ namespace GrimSpace.Pilots.Barks;
 /// </summary>
 public sealed class PilotBarkDirector : IDisposable
 {
+	public sealed record Decision(string PilotId, EBarkFlavor Flavor, string Text, bool StartsCooldown = true);
+
 	private static readonly EBarkFlavor[] DeliveryCompletionFlavors =
 		[EBarkFlavor.Disdain, EBarkFlavor.Relieved];
 	private static readonly EBarkFlavor[] EngagementDecisionFlavors =
@@ -25,8 +29,11 @@ public sealed class PilotBarkDirector : IDisposable
 	private static readonly EBarkFlavor[] WreckAmbushFlavors =
 		[EBarkFlavor.Scared, EBarkFlavor.Angry, EBarkFlavor.Surprised];
 	private static readonly EBarkFlavor[] WreckSalvageFlavors = [EBarkFlavor.Relieved, EBarkFlavor.Bored];
+	private static readonly EBarkFlavor[] PlayerHitFlavors =
+		[EBarkFlavor.Scared, EBarkFlavor.Angry, EBarkFlavor.Surprised, EBarkFlavor.Disdain];
 
-	public const double DefaultChance = 0.7;
+	public const double DefaultChance = 0.4;
+	public const double BattleChance = 0.2;
 	public const double DefaultGlobalGapSeconds = 8.0;
 	public const double DefaultPilotCooldownSeconds = 20.0;
 
@@ -245,6 +252,32 @@ public sealed class PilotBarkDirector : IDisposable
 		int minPilots = 1,
 		int maxPilots = 1)
 	{
+		var decisions = Select(pilotIds, flavors, chance, minPilots, maxPilots);
+		var anySpoken = false;
+		foreach (var decision in decisions)
+			anySpoken |= Present(decision);
+		return anySpoken;
+	}
+
+	public IReadOnlyList<Decision> SelectPlayerHit(
+		ImpactFacts impact, ETeam targetTeam, IReadOnlyList<string> livingPilotIds)
+	{
+		if (targetTeam != ETeam.Player || impact.TotalDamage <= 0)
+			return [];
+
+		return Select(livingPilotIds, PlayerHitFlavors, BattleChance,
+			minPilots: 1, maxPilots: 3, useCooldowns: false);
+	}
+
+	/// <summary>Chooses lines without displaying them or starting cooldowns; playback controls when to present them.</summary>
+	public IReadOnlyList<Decision> Select(
+		IReadOnlyList<string> pilotIds,
+		IReadOnlyList<EBarkFlavor> flavors,
+		double chance = DefaultChance,
+		int minPilots = 1,
+		int maxPilots = 1,
+		bool useCooldowns = true)
+	{
 		ArgumentNullException.ThrowIfNull(pilotIds);
 		ArgumentNullException.ThrowIfNull(flavors);
 		if (flavors.Count == 0)
@@ -255,29 +288,30 @@ public sealed class PilotBarkDirector : IDisposable
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(chance, 1.0);
 		ArgumentOutOfRangeException.ThrowIfLessThan(minPilots, 1);
 		ArgumentOutOfRangeException.ThrowIfLessThan(maxPilots, minPilots);
-		if (_now - _lastBarkAt < _globalGapSeconds)
+		if (useCooldowns && _now - _lastBarkAt < _globalGapSeconds)
 		{
 			GameLog.Log("[Barks] Ignore: global cooldown.");
-			return false;
+			return [];
 		}
 		if (pilotIds.Count == 0)
 		{
 			GameLog.Log("[Barks] Ignore: no candidate pilots.");
-			return false;
+			return [];
 		}
 
 		var eligiblePilots = pilotIds.Distinct(StringComparer.Ordinal)
-			.Where(pilotId => _pilotHandles.ContainsKey(pilotId) && !IsCoolingDown(pilotId)).ToArray();
+			.Where(pilotId => _pilotHandles.ContainsKey(pilotId)
+				&& (!useCooldowns || !IsCoolingDown(pilotId))).ToArray();
 		if (eligiblePilots.Length == 0)
 		{
 			GameLog.Log("[Barks] Ignore: no eligible pilots.");
-			return false;
+			return [];
 		}
 		var minCount = System.Math.Min(minPilots, eligiblePilots.Length);
 		var maxCount = System.Math.Min(maxPilots, eligiblePilots.Length);
 		var count = minCount + _rng.Next(maxCount - minCount + 1);
 		var remaining = eligiblePilots.ToList();
-		var anySpoken = false;
+		var decisions = new List<Decision>(count);
 		for (var i = 0; i < count; i++)
 		{
 			var index = _rng.Next(remaining.Count);
@@ -289,13 +323,22 @@ public sealed class PilotBarkDirector : IDisposable
 				continue;
 			}
 			var flavor = flavors[_rng.Next(flavors.Count)];
-			var spoken = Speak(speakerId, PilotBarkCatalog.Roll(flavor, _rng));
-			GameLog.Log(spoken
-				? $"[Barks] Pick flavor={flavor}, pilot={speakerId}."
-				: "[Barks] Ignore: speech handle unavailable or rejected.");
-			anySpoken |= spoken;
+			decisions.Add(new Decision(speakerId, flavor, PilotBarkCatalog.Roll(flavor, _rng), useCooldowns));
+			GameLog.Log($"[Barks] Pick flavor={flavor}, pilot={speakerId}.");
 		}
-		return anySpoken;
+		return decisions;
+	}
+
+	/// <summary>Presents a selected line without rerolling or rechecking group cooldowns.</summary>
+	public bool Present(Decision decision)
+	{
+		ArgumentNullException.ThrowIfNull(decision);
+		ArgumentException.ThrowIfNullOrEmpty(decision.PilotId);
+		ArgumentException.ThrowIfNullOrWhiteSpace(decision.Text);
+		var spoken = Speak(decision.PilotId, decision.Text, decision.StartsCooldown);
+		if (!spoken)
+			GameLog.Log("[Barks] Ignore: speech handle unavailable or rejected.");
+		return spoken;
 	}
 
 	/// <summary>Scripted line: bypasses chance and cooldowns, but still starts them.</summary>
@@ -310,7 +353,7 @@ public sealed class PilotBarkDirector : IDisposable
 		_now - _lastBarkAt < _globalGapSeconds
 		|| (_pilotLastSpokeAt.TryGetValue(pilotId, out var spokeAt) && _now - spokeAt < _pilotCooldownSeconds);
 
-	private bool Speak(string pilotId, string line)
+	private bool Speak(string pilotId, string line, bool startsCooldown = true)
 	{
 		if (!_pilotHandles.TryGetValue(pilotId, out var say))
 		{
@@ -321,8 +364,11 @@ public sealed class PilotBarkDirector : IDisposable
 			return false;
 		}
 
-		_lastBarkAt = _now;
-		_pilotLastSpokeAt[pilotId] = _now;
+		if (startsCooldown)
+		{
+			_lastBarkAt = _now;
+			_pilotLastSpokeAt[pilotId] = _now;
+		}
 		return true;
 	}
 }

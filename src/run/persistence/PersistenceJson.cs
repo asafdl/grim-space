@@ -23,6 +23,7 @@ public static class PersistenceJson
 			o.Converters.Add(new ShipInstanceJsonConverter());
 			o.Converters.Add(new DeliveryProgressJsonConverter());
 			o.Converters.Add(new CanonicalConstructorJsonConverterFactory());
+			o.Converters.Add(new ReadOnlySetJsonConverterFactory());
 			o.Converters.Add(new ContractSpawnMemberJsonConverter());
 			o.Converters.Add(new ResourceBundleJsonConverter());
 			o.Converters.Add(new TransitPathJsonConverter());

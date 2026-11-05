@@ -243,11 +243,11 @@ public sealed class ContractNarrativePickerConfig
 		new(
 			EContractKind.Lead,
 			"Quiet Opportunity",
-			"Hey, if you're interested, I heard there's a black market sale going onat {destination}. Limited time only."),
+			"Hey, if you're interested, I heard there's a black market sale going on at {destination}. Limited time only."),
 		new(
 			EContractKind.Lead,
 			"",
-			"Hey, if you're interested, I heard there's a black market sale going onat {destination}.",
+			"Hey, if you're interested, I heard there's a black market sale going on at {destination}.",
 			Subtype: ContractNarrativeSubtype.LeadContact),
 		new(
 			EContractKind.Wreckage,

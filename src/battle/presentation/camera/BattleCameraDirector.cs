@@ -17,6 +17,16 @@ public sealed class BattleCameraDirector
 
 	private CameraMode _mode = CameraMode.Manual;
 	private float _manualInputGraceRemaining;
+	private bool _barkFocus;
+
+	public void BeginBark(Vector3 position)
+	{
+		_barkFocus = true;
+		_rig.CancelAutomation();
+		_rig.TweenPivotTo(position, CombatInterestTween);
+	}
+
+	public void EndBark() => _barkFocus = false;
 
 	public BattleCameraDirector(ICameraRig rig) => _rig = rig;
 
@@ -71,6 +81,8 @@ public sealed class BattleCameraDirector
 
 	public void Tick(float delta, Vector3 playerRenderedPos)
 	{
+		if (_barkFocus)
+			return;
 		if (_mode == CameraMode.Returning && !_rig.IsAutomationActive)
 			_mode = CameraMode.Manual;
 

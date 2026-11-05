@@ -35,6 +35,8 @@ public partial class TurnReplayPlayer : Node3D
 	private Action<State> _stateChanged = _ => { };
 	private Action<GoopSpawnedFacts> _showGoop = _ => { };
 	private Action<string> _removeGoop = _ => { };
+	private Action<ImpactFacts, ETeam, IReadOnlyList<string>, Action> _playHitReaction =
+		(_, _, _, completed) => completed();
 
 	private HazardBurstView _hazardBursts = null!;
 	private ReplayClipContext _clipContext = null!;
@@ -74,7 +76,8 @@ public partial class TurnReplayPlayer : Node3D
 		Action<IReadOnlyDictionary<string, State>> synchronizeViews,
 		Action<State> stateChanged,
 		Action<GoopSpawnedFacts> showGoop,
-		Action<string> removeGoop)
+		Action<string> removeGoop,
+		Action<ImpactFacts, ETeam, IReadOnlyList<string>, Action>? playHitReaction = null)
 	{
 		_unitViews = unitViews;
 		_colorFor = colorFor;
@@ -84,6 +87,8 @@ public partial class TurnReplayPlayer : Node3D
 		_stateChanged = stateChanged;
 		_showGoop = showGoop;
 		_removeGoop = removeGoop;
+		if (playHitReaction is not null)
+			_playHitReaction = playHitReaction;
 
 		_hazardBursts = new HazardBurstView { Name = "HazardBursts" };
 		AddChild(_hazardBursts);
@@ -473,7 +478,13 @@ public partial class TurnReplayPlayer : Node3D
 			}
 
 			_impactWorkMs += Stopwatch.GetElapsedTime(cleanupStart).TotalMilliseconds;
-			PlayNext();
+			var livingAllies = _participants
+				.Where(pair => pair.Value == ETeam.Player
+					&& _clipContext.ReplayState.Contains(pair.Key)
+					&& _clipContext.ReplayState.StateOf(pair.Key).IsAlive)
+				.Select(pair => pair.Key).ToArray();
+			_playHitReaction(impact, _participants.GetValueOrDefault(impact.TargetId, ETeam.Enemy),
+				livingAllies, PlayNext);
 		};
 		return true;
 	}

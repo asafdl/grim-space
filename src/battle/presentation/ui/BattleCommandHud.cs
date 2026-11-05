@@ -50,6 +50,7 @@ public sealed partial class BattleCommandHud : Control
 	private readonly BattlePortraitHealthBar _healthBar;
 	private readonly BattlePortraitShieldBar _shieldBar;
 	private readonly UiFramedPortrait _pilotPortrait;
+	public Control PilotPortrait => _pilotPortrait;
 	private readonly Label _pilotPortraitPlaceholder;
 	private string? _pilotPortraitId;
 	private readonly BattleCommandConsole _console;

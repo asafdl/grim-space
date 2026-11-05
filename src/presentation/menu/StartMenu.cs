@@ -136,13 +136,16 @@ public partial class StartMenu : Control
 		}
 	}
 
-	private void OnContinue()
+	private async void OnContinue()
 	{
 		_continueButton.Disabled = true;
 		_newGameButton.Disabled = true;
 		_menuColumn.Hide();
 		_loadingOverlay.Show();
-		_loadingLabel.Text = "Restoring run...";
+		SetLoadingMessage();
+		SetProcess(true);
+		// Let the loading overlay paint and spin before the synchronous restore.
+		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
 		var result = Session.Instance.TryLoadGame();
 		if (result == GrimSpace.Run.Persistence.LoadResult.Success)

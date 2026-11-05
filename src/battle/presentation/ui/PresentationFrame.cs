@@ -62,6 +62,8 @@ public readonly record struct EnemyRangeTarget(string EnemyId, float SeparationM
 public sealed record AbilityDamagePreview(
 	int HullDamage,
 	FaceShieldPoints ShieldDamage,
+	int HullBefore,
+	FaceShieldPoints ShieldBefore,
 	bool IsLethal);
 
 public sealed record TargetPickFrame(

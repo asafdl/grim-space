@@ -541,6 +541,7 @@ public sealed class PresentationFrameTests
 				BattleTestFixture.RepurposedMiner(new Coord(8, 8, 8), "far-enemy"),
 			]);
 		BattleTestFixture.FrameBuilder(battle).Interaction.SetRangeEnemy("far-enemy");
+		battle.Engine.World.StateOf("far-enemy").CurrentHullPoints = 0;
 		battle.PlayerAgent.Sim.StateOf<ActorState>("far-enemy").CurrentHullPoints = 0;
 
 		var target = BattleTestCommands.Frame(battle).RangeEnemy;
@@ -548,6 +549,54 @@ public sealed class PresentationFrameTests
 		Assert.True(target.HasValue);
 		Assert.Equal("enemy", target.Value.EnemyId);
 		Assert.Null(BattleTestFixture.FrameBuilder(battle).Interaction.RangeEnemyId);
+	}
+
+	[Fact]
+	public void PredictedDeadRequestedRangeTargetStaysSelectable()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		var simEnemy = battle.PlayerAgent.Sim.StateOf<ActorState>(enemyId);
+		simEnemy.CurrentHullPoints = 1;
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			simEnemy.CurrentShieldPoints[face] = 0;
+
+		BattleTestFixture.FrameBuilder(battle).Interaction.SetRangeEnemy(enemyId);
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
+
+		var frame = BattleTestCommands.Frame(battle);
+
+		Assert.False(frame.PreviewUnits[enemyId].IsAlive);
+		Assert.True(battle.Engine.World.StateOf(enemyId).IsAlive);
+		Assert.Equal(enemyId, frame.RangeEnemy!.Value.EnemyId);
+		Assert.Equal(enemyId, BattleTestFixture.FrameBuilder(battle).Interaction.RangeEnemyId);
+	}
+
+	[Fact]
+	public void QueuedHitOnReticleTargetPersistsUntilUndo()
+	{
+		var origin = new Coord(5, 5, 5);
+		var battle = CreateOrchestrator(origin, TurnOrchestrationTests.EnemyInLightningCannonLine(origin));
+		var enemyId = BattleTestFixture.FirstEnemyId(battle);
+		var simEnemy = battle.PlayerAgent.Sim.StateOf<ActorState>(enemyId);
+		simEnemy.CurrentHullPoints = 1;
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			simEnemy.CurrentShieldPoints[face] = 0;
+
+		BattleTestFixture.FrameBuilder(battle).Interaction.SetRangeEnemy(enemyId);
+		Assert.True(BattleTestCommands.FireLightningCannon(battle));
+
+		var frame = BattleTestCommands.Frame(battle);
+
+		Assert.Equal(EPlayerMode.Move, frame.Mode);
+		var damage = frame.AbilityDamage[enemyId];
+		Assert.True(damage.IsLethal);
+		Assert.Equal(1, damage.HullBefore);
+		Assert.Equal(1, damage.HullDamage);
+
+		Assert.True(battle.PlayerAgent.Undo());
+		Assert.Empty(BattleTestCommands.Frame(battle).AbilityDamage);
 	}
 
 	[Fact]

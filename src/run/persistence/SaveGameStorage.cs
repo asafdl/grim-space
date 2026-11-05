@@ -57,12 +57,14 @@ public sealed class FileSystemSaveGameStorage : ISaveGameStorage
 			document?.Validate();
 			return document is null ? SaveStorageResult.Corrupt : SaveStorageResult.Success;
 		}
-		catch (JsonException)
+		catch (JsonException ex)
 		{
+			GameLog.LogException(ex, $"Corrupt save game '{_path}'.");
 			return SaveStorageResult.Corrupt;
 		}
-		catch (InvalidDataException)
+		catch (InvalidDataException ex)
 		{
+			GameLog.LogException(ex, $"Corrupt save game '{_path}'.");
 			return SaveStorageResult.Corrupt;
 		}
 		catch (IOException ex)
