@@ -416,6 +416,8 @@ public partial class Controller : Camera3D, ICameraRig
 		{
 			case InputEventMouseButton { Pressed: true } orbitStart
 				when orbitStart.IsActionPressed("battle_camera_orbit", false, true):
+				if (IsMouseOverUi())
+					break;
 				_orbiting = true;
 				_lastMousePosition = orbitStart.Position;
 				NotifyManualInput();
@@ -430,6 +432,8 @@ public partial class Controller : Camera3D, ICameraRig
 			case InputEventMouseButton { Pressed: true } panStart
 				when GameSettings.MouseCameraPanEnabled
 					&& panStart.IsActionPressed("battle_camera_pan", false, true):
+				if (IsMouseOverUi())
+					break;
 				_panning = true;
 				_lastMousePosition = panStart.Position;
 				NotifyManualInput();
@@ -443,6 +447,8 @@ public partial class Controller : Camera3D, ICameraRig
 
 			case InputEvent zoomIn
 				when zoomIn.IsPressed() && zoomIn.IsActionPressed("battle_zoom_in", false, true):
+				if (IsMouseOverUi())
+					break;
 				NotifyManualInput();
 				_pose.Zoom(-OrbitControls.ZoomStep, Limits);
 				ApplyTransform();
@@ -451,6 +457,8 @@ public partial class Controller : Camera3D, ICameraRig
 
 			case InputEvent zoomOut
 				when zoomOut.IsPressed() && zoomOut.IsActionPressed("battle_zoom_out", false, true):
+				if (IsMouseOverUi())
+					break;
 				NotifyManualInput();
 				_pose.Zoom(OrbitControls.ZoomStep, Limits);
 				ApplyTransform();

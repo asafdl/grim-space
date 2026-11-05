@@ -985,7 +985,7 @@ public static class SaveDtoMapper
 	private static void RestoreHeat(
 		BattleUnitState state,
 		int heat,
-		int heatCapacity,
+		int? heatCapacity,
 		int heatClearPerTurn,
 		float heatGainMultiplier,
 		bool overdrive,

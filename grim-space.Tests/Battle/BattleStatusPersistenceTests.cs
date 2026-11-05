@@ -5,6 +5,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.StatusModel;
 
@@ -41,6 +42,21 @@ public sealed class BattleStatusPersistenceTests
 		Assert.Single(
 			restored.Statuses,
 			status => status.InstanceId == BattleStatuses.BuffInstanceId("Overdrive", state.Id));
+	}
+
+	[Fact]
+	public void RoundTrip_PreservesNullHeatCapacityForVoidBomb()
+	{
+		var state = ActorState.FromShipInstance(
+			ShipInstance.FromCatalog("bomb", EType.VoidBomb),
+			Coord.Zero);
+
+		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
+
+		Assert.Null(restored.HeatProfile.Capacity);
+		Assert.False(restored.HeatProfile.Participates);
+		Assert.Equal(0, restored.HeatProfile.ClearPerTurn);
+		Assert.Equal(1f, restored.HeatProfile.GainMultiplier);
 	}
 
 	[Fact]

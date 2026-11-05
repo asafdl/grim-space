@@ -32,7 +32,7 @@ public sealed record BattleUnitSaveDto(
 	int ShieldDynamoGrantedPerFace,
 	int ReactiveShieldsStacks,
 	int Heat,
-	int HeatCapacity,
+	int? HeatCapacity,
 	int HeatClearPerTurn,
 	float HeatGainMultiplier,
 	bool Overdrive,
