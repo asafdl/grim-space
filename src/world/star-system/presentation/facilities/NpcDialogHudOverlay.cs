@@ -7,6 +7,8 @@ namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed partial class NpcDialogHudOverlay : CanvasLayer
 {
+	private const float ChoiceRowHeight = 64f;
+
 	private Control _root = null!;
 	private FramedActionBar _bar = null!;
 	private RichTextLabel _body = null!;
@@ -35,6 +37,7 @@ public sealed partial class NpcDialogHudOverlay : CanvasLayer
 		Visible = true;
 		ClearChoices();
 		_bar.ActionVisible = false;
+		GetViewport().GuiGetFocusOwner()?.ReleaseFocus();
 		_pager.ConfigureCharacterCounts(
 			1,
 			_ => _body.GetTotalCharacterCount());
@@ -67,6 +70,14 @@ public sealed partial class NpcDialogHudOverlay : CanvasLayer
 		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
 		{
 			Close();
+			GetViewport().SetInputAsHandled();
+			return true;
+		}
+
+		if (@event is InputEventKey { Pressed: true, Echo: false } key
+			&& key.Keycode is Key.Space or Key.Enter or Key.KpEnter)
+		{
+			_pager.RevealCurrentPage();
 			GetViewport().SetInputAsHandled();
 			return true;
 		}
@@ -107,6 +118,7 @@ public sealed partial class NpcDialogHudOverlay : CanvasLayer
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 		};
+		bodyLayout.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		_body = new RichTextLabel
 		{
 			BbcodeEnabled = true,
@@ -130,8 +142,8 @@ public sealed partial class NpcDialogHudOverlay : CanvasLayer
 		_choices = new HBoxContainer
 		{
 			Alignment = BoxContainer.AlignmentMode.End,
-			Visible = false,
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			CustomMinimumSize = new Vector2(0f, ChoiceRowHeight),
 		};
 		_choices.AddThemeConstantOverride("separation", HudStyles.HalfMargin);
 		bodyLayout.AddChild(_choices);
@@ -164,24 +176,19 @@ public sealed partial class NpcDialogHudOverlay : CanvasLayer
 		{
 			var button = new UiButton(choice.Label, HudActionKind.Primary, HudPalettes.BlueCyan)
 			{
-				FocusMode = Control.FocusModeEnum.All,
+				FocusMode = Control.FocusModeEnum.None,
 			};
 			FramedActionBar.ApplyNarrativeChoiceStyle(button);
 			var choiceId = choice.Id;
 			button.Pressed += () => ChoiceSelected?.Invoke(choiceId);
 			_choices.AddChild(button);
 		}
-
-		_choices.Visible = dialog.Choices.Count > 0;
-		if (dialog.Choices.Count > 0 && _choices.GetChild(0) is BaseButton firstChoice)
-			firstChoice.GrabFocus();
 	}
 
 	private void ClearChoices()
 	{
 		foreach (var child in _choices.GetChildren())
 			child.QueueFree();
-		_choices.Visible = false;
 	}
 
 	private bool IsPointerOverPanel()

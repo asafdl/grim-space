@@ -148,6 +148,9 @@ public partial class Session : Node
 		GameSettings.ApplySavedVideoConfig();
 		GameSettings.ApplySavedAudioConfig();
 		GameSettings.ApplyMouseCameraPan(GameSettings.ReadMouseCameraPan());
+		GameSettings.ApplyCameraMovementInversion(
+			GameSettings.ReadInvertHorizontalCameraMovement(),
+			GameSettings.ReadInvertVerticalCameraMovement());
 		GameSettings.ApplyShowActionLog(GameSettings.ReadShowActionLog());
 		GameInputBindings.Apply(GameSettings.ReadKeyBindings());
 	}

@@ -25,6 +25,7 @@ public sealed partial class ModalShell : Control
 	private bool _dismissOnBackdropClick = true;
 	private bool _escapeHandlingEnabled = true;
 	private IReadOnlyList<HudAction> _footerActions = [];
+	private Control? _footerCenterContent;
 	private Control _headerRow = null!;
 	private VBoxContainer _bodyLayout = null!;
 	private MarginContainer _bodyMargin = null!;
@@ -187,6 +188,16 @@ public sealed partial class ModalShell : Control
 		RebuildFooter();
 	}
 
+	public void SetFooterCenterContent(Control? content)
+	{
+		if (_footerCenterContent == content)
+			return;
+
+		DetachFooterCenterContent();
+		_footerCenterContent = content;
+		RebuildFooter();
+	}
+
 	public void SetFooterButtonVisual(UiButtonVisual visual)
 	{
 		_footerButtonVisual = visual;
@@ -202,11 +213,12 @@ public sealed partial class ModalShell : Control
 
 	private void RebuildFooter()
 	{
+		DetachFooterCenterContent();
 		foreach (var child in _footer.GetChildren())
 			child.QueueFree();
 
-		_footer.Visible = _footerActions.Count > 0;
-		if (_footerActions.Count == 0)
+		_footer.Visible = _footerActions.Count > 0 || _footerCenterContent is not null;
+		if (_footerActions.Count == 0 && _footerCenterContent is null)
 			return;
 
 		var secondary = _footerActions.Where(action =>
@@ -216,11 +228,26 @@ public sealed partial class ModalShell : Control
 		foreach (var action in secondary)
 			_footer.AddChild(CreateFooterButton(action));
 
-		var spacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-		_footer.AddChild(spacer);
+		if (_footerCenterContent is { } center)
+		{
+			center.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			_footer.AddChild(center);
+		}
+		else
+		{
+			_footer.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
+		}
 
 		foreach (var action in primary)
 			_footer.AddChild(CreateFooterButton(action));
+	}
+
+	private void DetachFooterCenterContent()
+	{
+		if (_footerCenterContent is not { } center || center.GetParent() != _footer)
+			return;
+
+		_footer.RemoveChild(center);
 	}
 
 	public bool TryHandleInput(InputEvent @event)

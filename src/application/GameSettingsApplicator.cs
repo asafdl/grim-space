@@ -19,6 +19,8 @@ public static class GameSettingsApplicator
 			GameSettings.ReadAudioConfig(),
 			GameSettings.ReadShowTutorials(),
 			GameSettings.ReadMouseCameraPan(),
+			GameSettings.ReadInvertHorizontalCameraMovement(),
+			GameSettings.ReadInvertVerticalCameraMovement(),
 			GameSettings.ReadShowActionLog(),
 			GameSettings.ReadKeyBindings());
 
@@ -27,6 +29,9 @@ public static class GameSettingsApplicator
 		GameSettings.ApplyVideoConfig(snapshot.Video);
 		GameSettings.ApplyAudioConfig(snapshot.Audio);
 		GameSettings.ApplyMouseCameraPan(snapshot.MouseCameraPan);
+		GameSettings.ApplyCameraMovementInversion(
+			snapshot.InvertHorizontalCameraMovement,
+			snapshot.InvertVerticalCameraMovement);
 		GameSettings.ApplyShowActionLog(snapshot.ShowActionLog);
 		GameInputBindings.Apply(snapshot.KeyBindings);
 	}
@@ -45,6 +50,8 @@ public static class GameSettingsApplicator
 				snapshot.Audio,
 				snapshot.ShowTutorials,
 				snapshot.MouseCameraPan,
+				snapshot.InvertHorizontalCameraMovement,
+				snapshot.InvertVerticalCameraMovement,
 				snapshot.ShowActionLog,
 				snapshot.KeyBindings) != Error.Ok)
 		{
@@ -78,14 +85,24 @@ public static class GameSettingsApplicator
 	public static void CommitGameplayPreferences(
 		bool showTutorials,
 		bool mouseCameraPan,
+		bool invertHorizontalCameraMovement,
+		bool invertVerticalCameraMovement,
 		bool showActionLog,
 		Host host)
 	{
 		var tutorialsChanged = showTutorials != GameSettings.ReadShowTutorials();
-		if (GameSettings.SaveGameplayPreferences(showTutorials, mouseCameraPan, showActionLog) != Error.Ok)
+		if (GameSettings.SaveGameplayPreferences(
+				showTutorials,
+				mouseCameraPan,
+				invertHorizontalCameraMovement,
+				invertVerticalCameraMovement,
+				showActionLog) != Error.Ok)
 			return;
 
 		GameSettings.ApplyMouseCameraPan(mouseCameraPan);
+		GameSettings.ApplyCameraMovementInversion(
+			invertHorizontalCameraMovement,
+			invertVerticalCameraMovement);
 		GameSettings.ApplyShowActionLog(showActionLog);
 		if (tutorialsChanged && host == Host.MainMenu)
 		{

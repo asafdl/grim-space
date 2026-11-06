@@ -7,5 +7,7 @@ public readonly record struct GameSettingsSessionSnapshot(
 	GameSettings.AudioConfig Audio,
 	bool ShowTutorials,
 	bool MouseCameraPan,
+	bool InvertHorizontalCameraMovement,
+	bool InvertVerticalCameraMovement,
 	bool ShowActionLog,
 	IReadOnlyDictionary<StringName, BindingPair> KeyBindings);

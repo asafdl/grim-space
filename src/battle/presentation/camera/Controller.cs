@@ -472,7 +472,13 @@ public partial class Controller : Camera3D, ICameraRig
 				NotifyManualInput();
 
 				if (_orbiting)
-					_pose.Orbit(delta, OrbitControls.OrbitSensitivity, Limits);
+					_pose.Orbit(
+						OrbitControls.ApplyOrbitInversion(
+							delta,
+							GameSettings.InvertHorizontalCameraMovement,
+							GameSettings.InvertVerticalCameraMovement),
+						OrbitControls.OrbitSensitivity,
+						Limits);
 				else
 				{
 					_pose.ScreenPan(

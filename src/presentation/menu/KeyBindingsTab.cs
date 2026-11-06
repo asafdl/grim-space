@@ -69,7 +69,6 @@ public partial class KeyBindingsTab : Control
 	private const int SubsectionTitleFontSize = 16;
 
 	private VBoxContainer _rowList = null!;
-	private Label _statusLabel = null!;
 	private KeyCaptureControl _capture = null!;
 	private StringName _capturingAction = "";
 	private bool _capturingSecondary;
@@ -79,6 +78,7 @@ public partial class KeyBindingsTab : Control
 	public IReadOnlyDictionary<StringName, BindingPair> CurrentDraft => _draft;
 
 	public event Action<IReadOnlyDictionary<StringName, BindingPair>>? DraftBindingsChanged;
+	public event Action<string>? StatusChanged;
 
 	public override void _Ready()
 	{
@@ -93,11 +93,12 @@ public partial class KeyBindingsTab : Control
 	public void LoadDraft(IReadOnlyDictionary<StringName, BindingPair> bindings)
 	{
 		_draft = CopyDraft(bindings);
-		_statusLabel.Text = string.Empty;
+		ShowStatus(string.Empty);
 		RebuildRows();
 	}
 
-	public void ShowStatus(string message) => _statusLabel.Text = message;
+	public void ShowStatus(string message) =>
+		StatusChanged?.Invoke(message ?? string.Empty);
 
 	public void ResetToDefaults()
 	{
@@ -141,13 +142,6 @@ public partial class KeyBindingsTab : Control
 		};
 		_rowList.AddThemeConstantOverride("separation", 10);
 		scrollContentMargin.AddChild(_rowList);
-
-		_statusLabel = new Label
-		{
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			ThemeTypeVariation = "BodyLabel",
-		};
-		root.AddChild(_statusLabel);
 
 		_capture = new KeyCaptureControl
 		{
@@ -341,7 +335,7 @@ public partial class KeyBindingsTab : Control
 		if (!GameInputBindings.TryFindSpec(action, out var spec))
 			return;
 
-		_statusLabel.Text = CaptureHint(spec.CapturePolicy, secondary);
+		ShowStatus(CaptureHint(spec.CapturePolicy, secondary));
 		_capture.BeginCapture(action, secondary, button);
 	}
 
@@ -369,15 +363,14 @@ public partial class KeyBindingsTab : Control
 			return;
 
 		_draft = CopyDraft(GameInputBindings.WithAssignment(_draft, action, secondarySlot, binding));
-		_statusLabel.Text = string.Empty;
+		ShowStatus(string.Empty);
 		RebuildRows();
 		NotifyDraftChanged();
 	}
 
 	private void NotifyDraftChanged() => DraftBindingsChanged?.Invoke(_draft);
 
-	private void OnCaptureCancelled() =>
-		_statusLabel.Text = string.Empty;
+	private void OnCaptureCancelled() => ShowStatus(string.Empty);
 
 	private static Dictionary<StringName, BindingPair> CopyDraft(
 		IReadOnlyDictionary<StringName, BindingPair> source)

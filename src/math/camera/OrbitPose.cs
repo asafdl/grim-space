@@ -17,6 +17,14 @@ public static class OrbitControls
 	public const float KeyboardPanSpeed = 28f;
 	public const float MousePanEdgeMargin = 32f;
 	public const float ZoomStep = 1.5f;
+
+	public static Vector2 ApplyOrbitInversion(
+		Vector2 mouseDelta,
+		bool invertHorizontal,
+		bool invertVertical) =>
+		new(
+			invertHorizontal ? -mouseDelta.X : mouseDelta.X,
+			invertVertical ? -mouseDelta.Y : mouseDelta.Y);
 }
 
 /// <summary>

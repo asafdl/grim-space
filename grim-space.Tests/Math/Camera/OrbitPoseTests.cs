@@ -8,6 +8,16 @@ public sealed class OrbitPoseTests
 	private static readonly OrbitLimits Limits = new(8f, 80f, -1.5f, 1.5f);
 
 	[Fact]
+	public void ApplyOrbitInversion_ReversesEachAxisIndependently()
+	{
+		var delta = new Vector2(4f, -7f);
+
+		Assert.Equal(new Vector2(-4f, -7f), OrbitControls.ApplyOrbitInversion(delta, true, false));
+		Assert.Equal(new Vector2(4f, 7f), OrbitControls.ApplyOrbitInversion(delta, false, true));
+		Assert.Equal(new Vector2(-4f, 7f), OrbitControls.ApplyOrbitInversion(delta, true, true));
+	}
+
+	[Fact]
 	public void ReanchorAlongView_KeepsCameraAndMovesPivotToFocusDepth()
 	{
 		var pose = new OrbitPose { Pivot = new Vector3(5f, 0f, 0f), Distance = 10f, Yaw = 0f, Pitch = 0f };

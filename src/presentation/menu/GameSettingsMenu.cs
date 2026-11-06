@@ -19,11 +19,14 @@ public partial class GameSettingsMenu : Control
 	private UiSlider _sfxVolume = null!;
 	private UiToggle _showTutorials = null!;
 	private UiToggle _mouseCameraPan = null!;
+	private UiToggle _invertHorizontalCameraMovement = null!;
+	private UiToggle _invertVerticalCameraMovement = null!;
 	private UiToggle _showActionLog = null!;
 	private KeyBindingsTab _keyBindingsTab = null!;
 	private ModalShell _shell = null!;
 	private Control _unsavedChangesPopup = null!;
 	private Label _unsavedChangesStatus = null!;
+	private Label _footerStatusLabel = null!;
 	private TabContainer _settingsTabs = null!;
 	private GameSettingsSessionSnapshot _baselineSnapshot;
 	private bool _hasBaselineSnapshot;
@@ -47,9 +50,19 @@ public partial class GameSettingsMenu : Control
 		_shell.SetDismissVisible(true);
 		_shell.SetFooter(
 		[
-			new HudAction("Reset", HudActionKind.Secondary, OnResetActiveTab),
+			new HudAction("Reset section", HudActionKind.Secondary, OnResetActiveTab),
 			new HudAction("Apply", HudActionKind.Primary, OnApply),
 		]);
+		_footerStatusLabel = new Label
+		{
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			ThemeTypeVariation = "BodyLabel",
+		};
+		_shell.SetFooterCenterContent(_footerStatusLabel);
 		AddChild(_shell);
 
 		BuildSettingsContent();
@@ -186,7 +199,11 @@ public partial class GameSettingsMenu : Control
 
 	private void BuildSettingsContent()
 	{
-		var content = new VBoxContainer();
+		var content = new VBoxContainer
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			SizeFlagsVertical = SizeFlags.ExpandFill,
+		};
 		content.AddThemeConstantOverride("separation", 16);
 
 		var tabBar = new HBoxContainer();
@@ -212,7 +229,6 @@ public partial class GameSettingsMenu : Control
 			TabsVisible = false,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
-			CustomMinimumSize = new Vector2(0f, 330f),
 		};
 		_settingsTabs.TabChanged += OnSettingsTabChanged;
 		_settingsTabs.AddChild(BuildVideoTab());
@@ -224,11 +240,16 @@ public partial class GameSettingsMenu : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
+		_keyBindingsTab.StatusChanged += OnKeyBindingsStatusChanged;
 		_settingsTabs.AddChild(_keyBindingsTab);
 		_shell.SetBodyScrollingEnabled(false);
 		content.AddChild(_settingsTabs);
 		_shell.SetBody(content);
+		content.SizeFlagsVertical = SizeFlags.ExpandFill;
 	}
+
+	private void OnKeyBindingsStatusChanged(string message) =>
+		_footerStatusLabel.Text = message;
 
 	private Control BuildVideoTab()
 	{
@@ -266,6 +287,10 @@ public partial class GameSettingsMenu : Control
 		page.AddChild(CreateSettingRow("Show tutorials", _showTutorials));
 		_mouseCameraPan = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Pan camera with mouse", _mouseCameraPan));
+		_invertHorizontalCameraMovement = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Invert horizontal camera movement", _invertHorizontalCameraMovement));
+		_invertVerticalCameraMovement = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Invert vertical camera movement", _invertVerticalCameraMovement));
 		_showActionLog = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Show action log", _showActionLog));
 		return page;
@@ -322,8 +347,12 @@ public partial class GameSettingsMenu : Control
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
 	}
 
-	private void OnSettingsTabChanged(long tab) =>
+	private void OnSettingsTabChanged(long tab)
+	{
 		_shell.SetBodyScrollingEnabled(tab != (int)SettingsTab.KeyBindings);
+		if (tab != (int)SettingsTab.KeyBindings)
+			_keyBindingsTab.ShowStatus(string.Empty);
+	}
 
 	private void OnEscapeRequested()
 	{
@@ -389,6 +418,8 @@ public partial class GameSettingsMenu : Control
 			|| current.Audio != _baselineSnapshot.Audio
 			|| current.ShowTutorials != _baselineSnapshot.ShowTutorials
 			|| current.MouseCameraPan != _baselineSnapshot.MouseCameraPan
+			|| current.InvertHorizontalCameraMovement != _baselineSnapshot.InvertHorizontalCameraMovement
+			|| current.InvertVerticalCameraMovement != _baselineSnapshot.InvertVerticalCameraMovement
 			|| current.ShowActionLog != _baselineSnapshot.ShowActionLog
 			|| current.KeyBindings.Count != _baselineSnapshot.KeyBindings.Count)
 			return true;
@@ -416,6 +447,8 @@ public partial class GameSettingsMenu : Control
 		_sfxVolume.Value = audio.SfxVolume * 100f;
 		_showTutorials.Value = GameSettings.ReadShowTutorials();
 		_mouseCameraPan.Value = GameSettings.ReadMouseCameraPan();
+		_invertHorizontalCameraMovement.Value = GameSettings.ReadInvertHorizontalCameraMovement();
+		_invertVerticalCameraMovement.Value = GameSettings.ReadInvertVerticalCameraMovement();
 		_showActionLog.Value = GameSettings.ReadShowActionLog();
 	}
 
@@ -425,6 +458,8 @@ public partial class GameSettingsMenu : Control
 			SelectedAudioConfig(),
 			_showTutorials.Value,
 			_mouseCameraPan.Value,
+			_invertHorizontalCameraMovement.Value,
+			_invertVerticalCameraMovement.Value,
 			_showActionLog.Value,
 			_keyBindingsTab.CurrentDraft);
 
@@ -503,6 +538,8 @@ public partial class GameSettingsMenu : Control
 			case SettingsTab.Gameplay:
 				_showTutorials.Value = true;
 				_mouseCameraPan.Value = true;
+				_invertHorizontalCameraMovement.Value = false;
+				_invertVerticalCameraMovement.Value = false;
 				_showActionLog.Value = false;
 				break;
 			case SettingsTab.KeyBindings:

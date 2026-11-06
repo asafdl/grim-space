@@ -347,7 +347,13 @@ public partial class MapCamera : Camera3D
 				NotifyManualInput();
 				var delta = motion.Position - _lastMousePosition;
 				_lastMousePosition = motion.Position;
-				_pose.Orbit(delta, OrbitControls.OrbitSensitivity, _activeLimits);
+				_pose.Orbit(
+					OrbitControls.ApplyOrbitInversion(
+						delta,
+						GameSettings.InvertHorizontalCameraMovement,
+						GameSettings.InvertVerticalCameraMovement),
+					OrbitControls.OrbitSensitivity,
+					_activeLimits);
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
 				break;
