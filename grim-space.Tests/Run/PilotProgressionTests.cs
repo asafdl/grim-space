@@ -228,6 +228,52 @@ public sealed class PilotProgressionTests
 	}
 
 	[Fact]
+	public void ExperienceGainBonusPercent_StacksBetterRamAndCyberJunkieAdditively()
+	{
+		Assert.Equal(
+			PilotSkillPercents.BetterRam.ExperienceGainBonusPercent
+			+ PilotSkillPercents.CyberJunkie.ExperienceGainBonusPercent,
+			PilotProgression.ExperienceGainBonusPercent(
+				[EPilotSkillId.BetterRam],
+				EPilotBackgroundId.CyberJunkie));
+		Assert.Equal(
+			13,
+			PilotProgression.ApplyExperienceGainBonus(10, [EPilotSkillId.BetterRam], EPilotBackgroundId.CyberJunkie));
+	}
+
+	[Fact]
+	public void RewardsFor_AppliesCyberJunkieXpBonus()
+	{
+		const string pilotId = "pilot-cyber";
+		const int xpDifficulty = 3;
+		var spawns = new[]
+		{
+			PlayerSpawn("fighter-a", pilotId),
+			EnemySpawn("enemy-1"),
+		};
+		var outcome = WinOutcome(
+			[
+				OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 1),
+				OutcomeTestKit.Handoff("enemy-1", EType.Fighter, 0),
+			],
+			new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 40 });
+		var baseXp = PilotProgression.ExperienceFromPerformance(
+			PilotProgression.BattleXpBase(PilotProgression.SumEnemyXpWeight(spawns), xpDifficulty),
+			40);
+
+		var grants = PilotProgression.RewardsFor(
+			spawns,
+			outcome,
+			xpDifficulty,
+			_ => Array.Empty<EPilotSkillId>(),
+			_ => EPilotBackgroundId.CyberJunkie);
+
+		Assert.Equal(
+			PilotProgression.ApplyExperienceGainBonus(baseXp, [], EPilotBackgroundId.CyberJunkie),
+			grants[pilotId]);
+	}
+
+	[Fact]
 	public void RewardsFor_Lose_ReturnsEmpty()
 	{
 		var spawns = new[] { PlayerSpawn("fighter-a", "pilot-a") };

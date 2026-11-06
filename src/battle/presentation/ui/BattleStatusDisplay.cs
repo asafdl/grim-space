@@ -97,6 +97,9 @@ public sealed record BattleStatusDisplay(
 			"buff:SpawnedAllyDamageBonus" => ("Damage", new HudTooltipContent(
 				"Spawn Damage",
 				$"[icon: Damage, text: +{PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent}%] damage.")),
+			"passive:DamageResistance" => ("Hull", new HudTooltipContent(
+				"Hydraulic Abuser",
+				$"[icon: Hull, text: +{100 - PilotSkillPercents.HydraulicAbuser.DamageTakenPercent}%] damage resistance.")),
 			_ => throw new InvalidDataException($"Unknown battle status display '{status.InstanceId}'."),
 		};
 		int? stacks = key switch

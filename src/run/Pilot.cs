@@ -167,11 +167,12 @@ public sealed class Pilot
 	{
 		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
 		rng ??= Random.Shared;
+		ValidateClassId(classId);
 		return new Pilot(
 			TypedIdGenerator.NextId("pilot"),
 			DisplayNames.Generate(),
 			PortraitPool[rng.Next(PortraitPool.Length)],
-			EPilotBackgroundId.ScrapDrone,
+			PilotBackgroundCatalog.Roll(rng).Id,
 			classId,
 			EPilotQuirkId.Charismatic,
 			EPilotQuirkId.NeuroDrugAddict,

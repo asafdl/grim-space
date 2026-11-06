@@ -9,4 +9,8 @@ public enum EPilotBackgroundId
 	AsteroidSurfer,
 	SynthSinger,
 	RetiredMachineManager,
+	CyberJunkie,
+	HydraulicAbuser,
+	BeanCounter,
+	GearPsycho,
 }

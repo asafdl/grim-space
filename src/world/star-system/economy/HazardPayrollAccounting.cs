@@ -1,3 +1,4 @@
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.World.StarSystem.Resources;
 
@@ -5,7 +6,8 @@ namespace GrimSpace.World.StarSystem.Economy;
 
 public sealed record HazardPayrollPilot(
 	string PilotId,
-	int MissedHazardPeriods);
+	int MissedHazardPeriods,
+	int HazardPayCredits);
 
 public sealed record HazardPayrollResult(
 	IReadOnlyList<string> PaidPilotIds,
@@ -26,10 +28,44 @@ public static class HazardPayrollAccounting
 			if (string.IsNullOrEmpty(pilot.AssignedShipId))
 				continue;
 
-			roster.Add(new HazardPayrollPilot(pilot.Id, pilot.MissedHazardPeriods));
+			roster.Add(new HazardPayrollPilot(
+				pilot.Id,
+				pilot.MissedHazardPeriods,
+				HazardPayCreditsFor(pilot)));
 		}
 
 		return roster;
+	}
+
+	public static int HazardPayCreditsFor(Pilot pilot)
+	{
+		ArgumentNullException.ThrowIfNull(pilot);
+		var due = StrategicEconomyConfig.HazardPayCreditsPerPilot;
+		if (!PilotBackgroundCatalog.TryGet(pilot.BackgroundId, out var background))
+			return due;
+
+		foreach (var capabilityId in background.CapabilityIds)
+		{
+			if (capabilityId != EPilotCapabilityId.HazardPayDiscount)
+				continue;
+
+			due = ApplyHazardPayDiscount(due);
+		}
+
+		return due;
+	}
+
+	public static int ApplyHazardPayDiscount(int hazardPayCredits)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(hazardPayCredits);
+		if (hazardPayCredits <= 0)
+			return hazardPayCredits;
+
+		var takenPercent = PilotSkillPercents.GearPsycho.HazardPayTakenPercent;
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(takenPercent, 100);
+		return (int)System.Math.Round(
+			hazardPayCredits * takenPercent / 100m,
+			System.MidpointRounding.AwayFromZero);
 	}
 
 	public static HazardPayrollResult Resolve(
@@ -48,10 +84,10 @@ public static class HazardPayrollAccounting
 		var misses = new List<HazardPayrollPilot>();
 		var refused = new List<string>();
 		var remaining = availableCredits;
-		var due = StrategicEconomyConfig.HazardPayCreditsPerPilot;
 
 		foreach (var candidate in order)
 		{
+			var due = System.Math.Max(0, candidate.HazardPayCredits);
 			if (due > 0 && remaining >= due)
 			{
 				remaining -= due;
@@ -60,7 +96,7 @@ public static class HazardPayrollAccounting
 			}
 
 			var missed = candidate.MissedHazardPeriods + 1;
-			misses.Add(new HazardPayrollPilot(candidate.PilotId, missed));
+			misses.Add(new HazardPayrollPilot(candidate.PilotId, missed, candidate.HazardPayCredits));
 			var refuseChance = StrategicEconomyConfig.RefuseChancePercent(missed);
 			if (refuseChance > 0 && rng.Next(100) < refuseChance)
 				refused.Add(candidate.PilotId);
@@ -71,6 +107,15 @@ public static class HazardPayrollAccounting
 			misses,
 			refused,
 			availableCredits - remaining);
+	}
+
+	public static int EstimateCredits(IReadOnlyList<HazardPayrollPilot> wouldDeploy)
+	{
+		ArgumentNullException.ThrowIfNull(wouldDeploy);
+		var total = 0;
+		foreach (var candidate in wouldDeploy)
+			total += System.Math.Max(0, candidate.HazardPayCredits);
+		return total;
 	}
 
 	public static int EstimateCredits(int wouldDeployCount) =>

@@ -690,6 +690,7 @@ public sealed class State : IDisposable
 			StarSystem.Subscribe<Record<HazardPayrollResult>>(OnPilotHazardPayroll);
 		StarSystem.ResourceTransactionCommitted += OnResourceTransactionForStatistics;
 		StarSystem.BindSalaryPayrollRoster(SnapshotSalaryPayrollRoster);
+		StarSystem.BindFleetSalaryDiscountStacks(SnapshotFleetSalaryDiscountStacks);
 		StarSystem.Map.PilotRegistry = PilotRegistry;
 		_barks?.BindStarSystem();
 	}
@@ -907,6 +908,10 @@ public sealed class State : IDisposable
 
 		return roster;
 	}
+
+	private int SnapshotFleetSalaryDiscountStacks() =>
+		PilotRegistry.QueryCapabilities(capabilityId =>
+			capabilityId == EPilotCapabilityId.FleetSalaryDiscount).Count;
 
 	private void OnPilotHazardPayroll(Record<HazardPayrollResult> record)
 	{
@@ -1153,7 +1158,10 @@ public sealed class State : IDisposable
 			         xpDifficulty,
 			         id => PilotRegistry.TryGet(id, out var pilot)
 				         ? pilot.LearnedSkills
-				         : Array.Empty<EPilotSkillId>()))
+				         : Array.Empty<EPilotSkillId>(),
+			         id => PilotRegistry.TryGet(id, out var pilot)
+				         ? pilot.BackgroundId
+				         : null))
 		{
 			if (!PilotRegistry.TryGet(pilotId, out var pilot))
 				continue;

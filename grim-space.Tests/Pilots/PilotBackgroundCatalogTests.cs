@@ -17,13 +17,17 @@ public sealed class PilotBackgroundCatalogTests
 	{
 		var backgrounds = PilotBackgroundCatalog.All.ToArray();
 
-		Assert.Equal(6, backgrounds.Length);
+		Assert.Equal(10, backgrounds.Length);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.ScrapDrone);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.OptimalityEnforcer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.CorporateSlave);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.PodRacer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.AsteroidSurfer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.RetiredMachineManager);
+		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.CyberJunkie);
+		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.HydraulicAbuser);
+		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.BeanCounter);
+		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.GearPsycho);
 	}
 
 	[Fact]
@@ -104,6 +108,67 @@ public sealed class PilotBackgroundCatalogTests
 		Assert.Equal([EPilotCapabilityId.SpawnedAllyDamageBonus], definition.CapabilityIds);
 		Assert.Contains(
 			$"+{PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void CyberJunkie_GrantsXpAndHeatClearBonuses()
+	{
+		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.CyberJunkie);
+
+		Assert.Equal("Cyber Junkie", definition.Name);
+		Assert.Equal(
+			[
+				EPilotCapabilityId.ExperienceGainBonus,
+				EPilotCapabilityId.HeatClearBonus,
+			],
+			definition.CapabilityIds);
+		Assert.Contains(
+			$"+{PilotSkillPercents.CyberJunkie.ExperienceGainBonusPercent}% XP",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			$"+{PilotSkillPercents.CyberJunkie.HeatClearBonusPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void HydraulicAbuser_GrantsDamageResistance()
+	{
+		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.HydraulicAbuser);
+
+		Assert.Equal("Hydraulic Abuser", definition.Name);
+		Assert.Equal([EPilotCapabilityId.DamageResistance], definition.CapabilityIds);
+		Assert.Contains(
+			$"+{100 - PilotSkillPercents.HydraulicAbuser.DamageTakenPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void BeanCounter_GrantsFleetSalaryDiscount()
+	{
+		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.BeanCounter);
+
+		Assert.Equal("Bean Counter", definition.Name);
+		Assert.Equal([EPilotCapabilityId.FleetSalaryDiscount], definition.CapabilityIds);
+		Assert.Contains(
+			$"-{PilotSkillPercents.BeanCounter.FleetSalaryDiscountPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void GearPsycho_GrantsHazardPayDiscount()
+	{
+		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.GearPsycho);
+
+		Assert.Equal("Gear Psycho", definition.Name);
+		Assert.Equal([EPilotCapabilityId.HazardPayDiscount], definition.CapabilityIds);
+		Assert.Contains(
+			$"-{100 - PilotSkillPercents.GearPsycho.HazardPayTakenPercent}%",
 			definition.Tooltip.Details,
 			StringComparison.Ordinal);
 	}

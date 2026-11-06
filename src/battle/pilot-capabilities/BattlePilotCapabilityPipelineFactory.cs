@@ -29,9 +29,11 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.OneWithTheVoid
 			or EPilotCapabilityId.InitiativePenalty
 			or EPilotCapabilityId.HeatGainReduction
+			or EPilotCapabilityId.HeatClearBonus
 			or EPilotCapabilityId.OutgoingDamageBonus
 			or EPilotCapabilityId.IncreasedHullDamageTaken
-			or EPilotCapabilityId.SpawnedAllyDamageBonus;
+			or EPilotCapabilityId.SpawnedAllyDamageBonus
+			or EPilotCapabilityId.DamageResistance;
 
 	public static ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Build(
 		IReadOnlySet<EPilotCapabilityId> capabilities)

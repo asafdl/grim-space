@@ -64,6 +64,38 @@ public static class PilotBackgroundCatalog
 					"Retired Machine Manager",
 					"This bot enjoys control over others. Any divergence from protocol will get you punished. Severely.",
 					$"Spawned units do [icon: Damage, text: +{PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent}%] damage.")),
+			[EPilotBackgroundId.CyberJunkie] = new(
+				EPilotBackgroundId.CyberJunkie,
+				[
+					EPilotCapabilityId.ExperienceGainBonus,
+					EPilotCapabilityId.HeatClearBonus,
+				],
+				new HudTooltipContent(
+					"Cyber Junkie",
+					"Cyber junkies always find the latest stupid tech to insert into their body, sometimes it works, sometimes it doesn't.",
+					$"+{PilotSkillPercents.CyberJunkie.ExperienceGainBonusPercent}% XP\n"
+					+ $"[icon: Heat, text: +{PilotSkillPercents.CyberJunkie.HeatClearBonusPercent}%] cleared / turn.")),
+			[EPilotBackgroundId.HydraulicAbuser] = new(
+				EPilotBackgroundId.HydraulicAbuser,
+				[EPilotCapabilityId.DamageResistance],
+				new HudTooltipContent(
+					"Hydraulic Abuser",
+					"Some bots want to look STACKED, no idea why.",
+					$"[icon: Hull, text: +{100 - PilotSkillPercents.HydraulicAbuser.DamageTakenPercent}%] damage resistance.")),
+			[EPilotBackgroundId.BeanCounter] = new(
+				EPilotBackgroundId.BeanCounter,
+				[EPilotCapabilityId.FleetSalaryDiscount],
+				new HudTooltipContent(
+					"Bean Counter",
+					"All bots can do complex math, most of them just choose not to.",
+					$"[icon: Salary, text: -{PilotSkillPercents.BeanCounter.FleetSalaryDiscountPercent}%] fleet salary.")),
+			[EPilotBackgroundId.GearPsycho] = new(
+				EPilotBackgroundId.GearPsycho,
+				[EPilotCapabilityId.HazardPayDiscount],
+				new HudTooltipContent(
+					"Gear Psycho",
+					"It always seems like the aggression circuit is tuned at 1000% with these bots.",
+					$"[icon: HazardPay, text: -{100 - PilotSkillPercents.GearPsycho.HazardPayTakenPercent}%] hazard pay.")),
 		};
 
 	public static PilotBackgroundDefinition Get(EPilotBackgroundId id) =>

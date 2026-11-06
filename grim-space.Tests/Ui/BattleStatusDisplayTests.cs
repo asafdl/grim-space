@@ -117,6 +117,7 @@ public sealed class BattleStatusDisplayTests
 	[InlineData(EPilotCapabilityId.OutgoingDamageBonus, "Asteroid Surfer")]
 	[InlineData(EPilotCapabilityId.IncreasedHullDamageTaken, "Asteroid Surfer")]
 	[InlineData(EPilotCapabilityId.SpawnedAllyDamageBonus, "Retired Machine Manager")]
+	[InlineData(EPilotCapabilityId.DamageResistance, "Hydraulic Abuser")]
 	public void EveryInstalledPassiveHasAnIconAndEffectDescription(EPilotCapabilityId capability, string title)
 	{
 		var state = CreateState();

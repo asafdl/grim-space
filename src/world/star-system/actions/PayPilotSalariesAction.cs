@@ -12,7 +12,8 @@ public sealed record PayPilotSalariesAction(
 	string ActorId,
 	int Tick,
 	IReadOnlyList<SalaryPayrollCandidate> Roster,
-	int RngSeed) : IAction<StarMap, ActorRuntime>
+	int RngSeed,
+	int FleetSalaryDiscountStacks = 0) : IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		PayPilotSalariesDef.Instance;
@@ -43,7 +44,8 @@ public sealed class PayPilotSalariesDef
 		var payroll = SalaryPayrollAccounting.Resolve(
 			pay.Roster,
 			available,
-			new Random(pay.RngSeed));
+			new Random(pay.RngSeed),
+			pay.FleetSalaryDiscountStacks);
 
 		var effects = new List<IEffect<StarMap, ActorRuntime>>(2);
 		var spend = SalaryPayrollAccounting.CreditSpend(payroll.CreditsSpent);

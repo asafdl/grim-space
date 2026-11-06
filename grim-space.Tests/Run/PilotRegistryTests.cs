@@ -66,7 +66,7 @@ public sealed class PilotRegistryTests
 		Assert.Equal(pilot, RunTestKit.StarterRangerPilot(run));
 		Assert.Equal(PilotProgression.LevelFor(0), pilot.ClaimedLevel);
 		Assert.Empty(pilot.LearnedSkills);
-		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilot.BackgroundId);
+		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, pilot.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilot.NegativeQuirkId);
 	}
@@ -423,6 +423,10 @@ public sealed class PilotRegistryTests
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		foreach (var other in run.PilotRegistry.All.Where(p => p.Id != pilot.Id).ToArray())
 			Assert.True(run.TryDismissPilot(other.Id));
+		// Scrap Drone minor scrap + Drones Yearn For Mines must both be present for the 120 scrap assert.
+		run.PilotRegistry.Update(
+			Pilot.FromPersistence(pilot.ToPersistence() with { BackgroundId = EPilotBackgroundId.ScrapDrone }));
+		Assert.True(run.PilotRegistry.TryGet(pilot.Id, out pilot));
 		run.PilotRegistry.Update(PilotProgression.AddExperience(pilot, 100));
 		Assert.True(run.TryLearnPilotSkill(pilot.Id, EPilotSkillId.DronesYearnForMines));
 		var registry = PersistenceRegistry.CreateDefault();

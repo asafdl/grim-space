@@ -59,7 +59,7 @@ public static class EngagementQueries
 			EncounterIntelFormatter.FormatFleet(counterparty),
 			assignedContract,
 			IsAssignedDeliveryInterceptor(world, counterpartyId),
-			HazardPayrollAccounting.EstimateCredits(hazardCandidates.Count),
+			HazardPayrollAccounting.EstimateCredits(hazardCandidates),
 			FleeDef.FuelCost(world),
 			world.PlayerResources.GetBalance(ResourceId.Fuel));
 		return true;

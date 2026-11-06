@@ -11,6 +11,7 @@ public sealed class SalaryPayrollExecutionAgent : ExecutionAgent<StarMap, ActorR
 	private readonly Func<StarMap> _world;
 	private readonly Func<string, ActorRuntime> _runtimeFor;
 	private Func<IReadOnlyList<SalaryPayrollCandidate>>? _roster;
+	private Func<int>? _fleetSalaryDiscountStacks;
 
 	public SalaryPayrollExecutionAgent(
 		Func<StarMap> world,
@@ -24,6 +25,12 @@ public sealed class SalaryPayrollExecutionAgent : ExecutionAgent<StarMap, ActorR
 	{
 		ArgumentNullException.ThrowIfNull(roster);
 		_roster = roster;
+	}
+
+	public void BindFleetSalaryDiscountStacks(Func<int> fleetSalaryDiscountStacks)
+	{
+		ArgumentNullException.ThrowIfNull(fleetSalaryDiscountStacks);
+		_fleetSalaryDiscountStacks = fleetSalaryDiscountStacks;
 	}
 
 	public void PlanAndPublish()
@@ -41,11 +48,13 @@ public sealed class SalaryPayrollExecutionAgent : ExecutionAgent<StarMap, ActorR
 		if (roster.Count == 0)
 			return;
 
+		var discountStacks = _fleetSalaryDiscountStacks?.Invoke() ?? 0;
 		var action = new PayPilotSalariesAction(
 			StarSystemActorIds.SalaryPayroll,
 			tick,
 			roster,
-			HashCode.Combine(map.Seed, tick, roster.Count));
+			HashCode.Combine(map.Seed, tick, roster.Count),
+			discountStacks);
 		if (!PayPilotSalariesDef.Instance.IsLegal(action, map, _runtimeFor(_actorId)))
 			return;
 

@@ -4,6 +4,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Core.Actions;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Tests;
 using GrimSpace.Units;
@@ -149,7 +150,16 @@ public sealed class BattleVictorySummaryTests
 			new Dictionary<string, int>(StringComparer.Ordinal) { ["fighter-a"] = 80 });
 		var battleBase = PilotProgression.BattleXpBase(1, PilotProgression.DefaultXpDifficulty);
 		var xp = PilotProgression.ExperienceFromPerformance(battleBase, 80);
-		var pilot = PilotProgression.AddExperience(Pilot.CreateForShip("fighter-a"), xp);
+		// Avoid CreateForShip: CyberJunkie rolls apply +10% XP and desync grant vs seeded XP.
+		var pilot = PilotProgression.AddExperience(
+			Pilot.FromRecruitProfile(
+				"fighter-a",
+				new PilotRecruitProfile(
+					"Test Pilot",
+					"pilot_01",
+					EPilotBackgroundId.ScrapDrone,
+					classId: EOperatorClassId.SpaceRanger)),
+			xp);
 
 		var summary = BattleVictorySummaryBuilder.Build(
 			outcome,

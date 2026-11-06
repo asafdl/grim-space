@@ -14,13 +14,17 @@ public static class PilotIdentityIconRail
 	private const string SpaceRangerClassIconPath = "res://assets/ui/classes/space-ranger.png";
 	private const string SupportClassIconPath = "res://assets/ui/classes/support.png";
 	private const string TankClassIconPath = "res://assets/ui/classes/tank.png";
-	private const string RoguePlaceholderClassIconPath = "res://assets/ui/battle/hull.png";
+	private const string RogueClassIconPath = "res://assets/ui/classes/rogue.png";
 	private const string OptimalityEnforcerIconPath = "res://assets/ui/pilots/optimality-enforcer.png";
 	private const string CorporateSlaveIconPath = "res://assets/ui/pilots/corporate-slave.png";
 	private const string PodRacerIconPath = "res://assets/ui/pilots/pod-racer.png";
 	private const string AsteroidSurferIconPath = "res://assets/ui/pilots/asteroid-surfer.png";
 	private const string SynthSingerIconPath = "res://assets/ui/pilots/synth-singer.png";
 	private const string RetiredMachineManagerIconPath = "res://assets/ui/pilots/retired-machine-manager.png";
+	private const string CyberJunkieIconPath = "res://assets/ui/pilots/cyber-junkie.png";
+	private const string HydraulicAbuserIconPath = "res://assets/ui/pilots/hydraulic-abuser.png";
+	private const string BeanCounterIconPath = "res://assets/ui/pilots/bean-counter.png";
+	private const string GearPsychoIconPath = "res://assets/ui/pilots/gear-psycho.png";
 	private const string CharismaticIconPath = "res://assets/ui/pilots/charismatic.png";
 	private const string NeuroDrugAddictIconPath = "res://assets/ui/pilots/neuro-drug-addict.png";
 
@@ -92,7 +96,7 @@ public static class PilotIdentityIconRail
 			EOperatorClassId.SpaceRanger => SpaceRangerClassIconPath,
 			EOperatorClassId.Support => SupportClassIconPath,
 			EOperatorClassId.Tank => TankClassIconPath,
-			EOperatorClassId.Rogue => RoguePlaceholderClassIconPath,
+			EOperatorClassId.Rogue => RogueClassIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(classId), classId, null),
 		};
 		return CreateIcon(
@@ -156,6 +160,10 @@ public static class PilotIdentityIconRail
 			EPilotBackgroundId.AsteroidSurfer => AsteroidSurferIconPath,
 			EPilotBackgroundId.SynthSinger => SynthSingerIconPath,
 			EPilotBackgroundId.RetiredMachineManager => RetiredMachineManagerIconPath,
+			EPilotBackgroundId.CyberJunkie => CyberJunkieIconPath,
+			EPilotBackgroundId.HydraulicAbuser => HydraulicAbuserIconPath,
+			EPilotBackgroundId.BeanCounter => BeanCounterIconPath,
+			EPilotBackgroundId.GearPsycho => GearPsychoIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
 		};
 

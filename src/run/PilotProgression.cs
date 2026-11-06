@@ -167,7 +167,8 @@ public static class PilotProgression
 		IReadOnlyList<BattleSpawn> spawns,
 		BattleOutcome outcome,
 		int xpDifficulty,
-		Func<string, IReadOnlyList<EPilotSkillId>>? resolveLearnedSkills = null)
+		Func<string, IReadOnlyList<EPilotSkillId>>? resolveLearnedSkills = null,
+		Func<string, EPilotBackgroundId?>? resolveBackgroundId = null)
 	{
 		ArgumentNullException.ThrowIfNull(spawns);
 		ArgumentNullException.ThrowIfNull(outcome);
@@ -193,7 +194,8 @@ public static class PilotProgression
 				continue;
 
 			var learnedSkills = resolveLearnedSkills?.Invoke(spawn.PilotId) ?? EmptyLearnedSkills;
-			grants[spawn.PilotId] = ApplyExperienceGainBonus(xp, learnedSkills);
+			var backgroundId = resolveBackgroundId?.Invoke(spawn.PilotId);
+			grants[spawn.PilotId] = ApplyExperienceGainBonus(xp, learnedSkills, backgroundId);
 		}
 
 		return grants;
@@ -201,30 +203,64 @@ public static class PilotProgression
 
 	public static int ApplyExperienceGainBonus(
 		int baseXp,
-		IReadOnlyList<EPilotSkillId> learnedSkills)
+		IReadOnlyList<EPilotSkillId> learnedSkills,
+		EPilotBackgroundId? backgroundId = null) =>
+		ApplyExperienceGainBonus(baseXp, ExperienceGainBonusPercent(learnedSkills, backgroundId));
+
+	public static int ApplyExperienceGainBonus(int baseXp, int bonusPercent)
 	{
-		if (baseXp <= 0 || !HasExperienceGainBonus(learnedSkills))
+		if (baseXp <= 0 || bonusPercent <= 0)
 			return baseXp;
 
-		return ScalePercent(
-			baseXp,
-			100 + PilotSkillPercents.BetterRam.ExperienceGainBonusPercent);
+		return ScalePercent(baseXp, 100 + bonusPercent);
 	}
 
-	public static bool HasExperienceGainBonus(IReadOnlyList<EPilotSkillId> learnedSkills)
+	/// <summary>Additive XP growth percents from skill and background <see cref="EPilotCapabilityId.ExperienceGainBonus"/> grants.</summary>
+	public static int ExperienceGainBonusPercent(
+		IReadOnlyList<EPilotSkillId> learnedSkills,
+		EPilotBackgroundId? backgroundId = null)
 	{
 		ArgumentNullException.ThrowIfNull(learnedSkills);
+		var percent = 0;
 		foreach (var skillId in learnedSkills)
 		{
 			foreach (var capabilityId in PilotSkillCatalog.Get(skillId).CapabilityIds)
 			{
-				if (capabilityId == EPilotCapabilityId.ExperienceGainBonus)
-					return true;
+				if (capabilityId != EPilotCapabilityId.ExperienceGainBonus)
+					continue;
+
+				percent += skillId switch
+				{
+					EPilotSkillId.BetterRam => PilotSkillPercents.BetterRam.ExperienceGainBonusPercent,
+					_ => throw new InvalidOperationException(
+						$"No experience gain bonus percent configured for skill '{skillId}'."),
+				};
 			}
 		}
 
-		return false;
+		if (backgroundId is not { } id || !PilotBackgroundCatalog.TryGet(id, out var background))
+			return percent;
+
+		foreach (var capabilityId in background.CapabilityIds)
+		{
+			if (capabilityId != EPilotCapabilityId.ExperienceGainBonus)
+				continue;
+
+			percent += id switch
+			{
+				EPilotBackgroundId.CyberJunkie => PilotSkillPercents.CyberJunkie.ExperienceGainBonusPercent,
+				_ => throw new InvalidOperationException(
+					$"No experience gain bonus percent configured for background '{id}'."),
+			};
+		}
+
+		return percent;
 	}
+
+	public static bool HasExperienceGainBonus(
+		IReadOnlyList<EPilotSkillId> learnedSkills,
+		EPilotBackgroundId? backgroundId = null) =>
+		ExperienceGainBonusPercent(learnedSkills, backgroundId) > 0;
 
 	private static Dictionary<string, UnitStateHandoff> BuildHandoffLookup(
 		IReadOnlyList<UnitStateHandoff> handoffs)

@@ -1,26 +1,29 @@
+using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.Economy;
 
 namespace GrimSpace.Tests.World.StarSystem.Economy;
 
 public sealed class HazardPayrollAccountingTests
 {
+	private static readonly int FullPay = StrategicEconomyConfig.HazardPayCreditsPerPilot;
+
 	[Fact]
 	public void Resolve_PaysAffordablePilots()
 	{
 		var roster = new[]
 		{
-			new HazardPayrollPilot("a", 0),
-			new HazardPayrollPilot("b", 0),
+			new HazardPayrollPilot("a", 0, FullPay),
+			new HazardPayrollPilot("b", 0, FullPay),
 		};
 
 		var result = HazardPayrollAccounting.Resolve(
 			roster,
-			availableCredits: StrategicEconomyConfig.HazardPayCreditsPerPilot + 1,
+			availableCredits: FullPay + 1,
 			new Random(1));
 
 		Assert.Single(result.PaidPilotIds);
 		Assert.Single(result.Misses);
-		Assert.Equal(StrategicEconomyConfig.HazardPayCreditsPerPilot, result.CreditsSpent);
+		Assert.Equal(FullPay, result.CreditsSpent);
 	}
 
 	[Fact]
@@ -28,7 +31,7 @@ public sealed class HazardPayrollAccountingTests
 	{
 		var roster = new[]
 		{
-			new HazardPayrollPilot("a", 3),
+			new HazardPayrollPilot("a", 3, FullPay),
 		};
 
 		var result = HazardPayrollAccounting.Resolve(
@@ -46,7 +49,7 @@ public sealed class HazardPayrollAccountingTests
 	{
 		var roster = new[]
 		{
-			new HazardPayrollPilot("a", 5),
+			new HazardPayrollPilot("a", 5, FullPay),
 		};
 
 		var refused = false;
@@ -65,4 +68,41 @@ public sealed class HazardPayrollAccountingTests
 		Assert.Equal(
 			30,
 			HazardPayrollAccounting.EstimateCredits(3));
+
+	[Fact]
+	public void EstimateCredits_SumsPerPilotHazardPay()
+	{
+		var roster = new[]
+		{
+			new HazardPayrollPilot("a", 0, FullPay),
+			new HazardPayrollPilot("b", 0, FullPay / 2),
+		};
+
+		Assert.Equal(FullPay + FullPay / 2, HazardPayrollAccounting.EstimateCredits(roster));
+	}
+
+	[Fact]
+	public void ApplyHazardPayDiscount_HalvesPay() =>
+		Assert.Equal(
+			FullPay / 2,
+			HazardPayrollAccounting.ApplyHazardPayDiscount(FullPay));
+
+	[Fact]
+	public void Resolve_UsesPerPilotHazardPayCredits()
+	{
+		var discounted = HazardPayrollAccounting.ApplyHazardPayDiscount(FullPay);
+		var roster = new[]
+		{
+			new HazardPayrollPilot("psycho", 0, discounted),
+			new HazardPayrollPilot("normal", 0, FullPay),
+		};
+
+		var result = HazardPayrollAccounting.Resolve(
+			roster,
+			availableCredits: discounted + FullPay,
+			new Random(4));
+
+		Assert.Equal(2, result.PaidPilotIds.Count);
+		Assert.Equal(discounted + FullPay, result.CreditsSpent);
+	}
 }

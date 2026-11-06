@@ -33,7 +33,8 @@ public static class BattleVictorySummaryBuilder
 			spawns,
 			outcome,
 			xpDifficulty,
-			pilotId => resolvePilot(pilotId)?.LearnedSkills ?? Array.Empty<EPilotSkillId>());
+			pilotId => resolvePilot(pilotId)?.LearnedSkills ?? Array.Empty<EPilotSkillId>(),
+			pilotId => resolvePilot(pilotId)?.BackgroundId);
 
 		var pilotRows = new List<BattleVictoryPilotRow>();
 		foreach (var spawn in spawns)

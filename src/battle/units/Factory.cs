@@ -39,25 +39,41 @@ public static class Factory
 				grant.CapabilityId == EPilotCapabilityId.InitiativePenalty))
 			state.Initiative -= PilotInitiativePenalty;
 
-		var heatGainReductionStacks = pilot.CapabilityGrants.Count(grant =>
-			grant.CapabilityId == EPilotCapabilityId.HeatGainReduction);
-		if (heatGainReductionStacks <= 0 || !state.HeatProfile.Participates)
+		if (!state.HeatProfile.Participates)
 			return;
 
-		var reductionPercent = PilotSkillPercents.PodRacer.HeatGainReductionPercent;
-		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(reductionPercent, 100);
-
 		var profile = state.HeatProfile;
-		var retainedFraction = (100 - reductionPercent) / 100f;
 		var gainMultiplier = profile.GainMultiplier;
-		for (var i = 0; i < heatGainReductionStacks; i++)
-			gainMultiplier *= retainedFraction;
+		var clearPerTurn = profile.ClearPerTurn;
 
-		state.HeatProfile = new HeatSpec(
-			profile.Capacity,
-			profile.ClearPerTurn,
-			gainMultiplier);
+		var heatGainReductionStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.HeatGainReduction);
+		if (heatGainReductionStacks > 0)
+		{
+			var reductionPercent = PilotSkillPercents.PodRacer.HeatGainReductionPercent;
+			ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(reductionPercent, 100);
+			var retainedFraction = (100 - reductionPercent) / 100f;
+			for (var i = 0; i < heatGainReductionStacks; i++)
+				gainMultiplier *= retainedFraction;
+		}
+
+		var heatClearBonusStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.HeatClearBonus);
+		if (heatClearBonusStacks > 0)
+		{
+			var clearBonusPercent =
+				heatClearBonusStacks * PilotSkillPercents.CyberJunkie.HeatClearBonusPercent;
+			clearPerTurn = ScaleHeatClear(clearPerTurn, 100 + clearBonusPercent);
+		}
+
+		if (gainMultiplier == profile.GainMultiplier && clearPerTurn == profile.ClearPerTurn)
+			return;
+
+		state.HeatProfile = new HeatSpec(profile.Capacity, clearPerTurn, gainMultiplier);
 	}
+
+	private static int ScaleHeatClear(int clearPerTurn, int percent) =>
+		(int)System.Math.Round(clearPerTurn * percent / 100m, MidpointRounding.AwayFromZero);
 
 	public static Unit Create(
 		ShipInstance ship,

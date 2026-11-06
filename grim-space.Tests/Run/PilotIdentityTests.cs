@@ -53,11 +53,11 @@ public sealed class PilotIdentityTests
 	[InlineData(EOperatorClassId.Support)]
 	[InlineData(EOperatorClassId.Tank)]
 	[InlineData(EOperatorClassId.Rogue)]
-	public void CreateStarterForShip_AssignsScriptedIdentity(EOperatorClassId classId)
+	public void CreateStarterForShip_AssignsRolledBackgroundAndScriptedQuirks(EOperatorClassId classId)
 	{
-		var pilot = Pilot.CreateStarterForShip("starter-a", classId: classId);
+		var pilot = Pilot.CreateStarterForShip("starter-a", new Random(42), classId);
 
-		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilot.BackgroundId);
+		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, pilot.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilot.NegativeQuirkId);
 		Assert.Equal(classId, pilot.ClassId);
@@ -181,7 +181,7 @@ public sealed class PilotIdentityTests
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilotBefore = RunTestKit.StarterRangerPilot(run);
-		Assert.Equal(EPilotBackgroundId.ScrapDrone, pilotBefore.BackgroundId);
+		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilotBefore.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, pilotBefore.PositiveQuirkId);
 		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilotBefore.NegativeQuirkId);
 

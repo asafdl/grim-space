@@ -466,6 +466,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 	public void BindSalaryPayrollRoster(Func<IReadOnlyList<SalaryPayrollCandidate>> roster) =>
 		_salaryPayrollAgent.BindRoster(roster);
 
+	public void BindFleetSalaryDiscountStacks(Func<int> fleetSalaryDiscountStacks) =>
+		_salaryPayrollAgent.BindFleetSalaryDiscountStacks(fleetSalaryDiscountStacks);
+
 	public void AdvanceTicks(int count)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(count);

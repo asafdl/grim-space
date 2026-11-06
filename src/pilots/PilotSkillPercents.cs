@@ -145,6 +145,31 @@ public static class PilotSkillPercents
 		public const int SpawnedAllyDamageBonusPercent = 20;
 	}
 
+	public static class CyberJunkie
+	{
+		public const int ExperienceGainBonusPercent = 10;
+
+		/// <summary>Additive ClearPerTurn growth (110 = clear 10% more heat each turn).</summary>
+		public const int HeatClearBonusPercent = 10;
+	}
+
+	public static class HydraulicAbuser
+	{
+		/// <summary>Fraction of hit damage retained after reduction (95 = take 5% less).</summary>
+		public const int DamageTakenPercent = 95;
+	}
+
+	public static class BeanCounter
+	{
+		public const int FleetSalaryDiscountPercent = 5;
+	}
+
+	public static class GearPsycho
+	{
+		/// <summary>Fraction of hazard pay retained after reduction (50 = pay 50% less).</summary>
+		public const int HazardPayTakenPercent = 50;
+	}
+
 	public static class IKnowABot
 	{
 		public const int ShipUpgradeDiscountPercent = 10;

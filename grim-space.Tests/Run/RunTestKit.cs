@@ -41,9 +41,7 @@ internal static class RunTestKit
 			.Single(id => run.ItemInventory.Get(id).Spec.Chassis == BattleUnitType.RepurposedMiner);
 
 	public static Pilot StarterRangerPilot(State run) =>
-		run.PilotRegistry.All.Single(pilot =>
-			pilot.ClassId == EOperatorClassId.SpaceRanger
-			&& pilot.BackgroundId == EPilotBackgroundId.ScrapDrone);
+		run.PilotRegistry.All.Single(pilot => pilot.ClassId == EOperatorClassId.SpaceRanger);
 
 	public static BattleSpawn StarterFighterBattleSpawn(IEnumerable<BattleSpawn> spawns) =>
 		spawns.Single(spawn =>

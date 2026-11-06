@@ -59,6 +59,10 @@ internal static class PilotHireDisplay
 			EPilotBackgroundId.AsteroidSurfer => "res://assets/ui/pilots/asteroid-surfer.png",
 			EPilotBackgroundId.SynthSinger => "res://assets/ui/pilots/synth-singer.png",
 			EPilotBackgroundId.RetiredMachineManager => "res://assets/ui/pilots/retired-machine-manager.png",
+			EPilotBackgroundId.CyberJunkie => "res://assets/ui/pilots/cyber-junkie.png",
+			EPilotBackgroundId.HydraulicAbuser => "res://assets/ui/pilots/hydraulic-abuser.png",
+			EPilotBackgroundId.BeanCounter => "res://assets/ui/pilots/bean-counter.png",
+			EPilotBackgroundId.GearPsycho => "res://assets/ui/pilots/gear-psycho.png",
 			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
 		};
 }

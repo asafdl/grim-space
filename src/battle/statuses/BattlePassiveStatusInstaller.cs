@@ -31,6 +31,7 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.OutgoingDamageBonus,
 		EPilotCapabilityId.IncreasedHullDamageTaken,
 		EPilotCapabilityId.SpawnedAllyDamageBonus,
+		EPilotCapabilityId.DamageResistance,
 	];
 
 	public static void InstallFromCapabilities(BattleWorld world, string unitId, ActorRuntime runtime)
@@ -223,6 +224,19 @@ public static class BattlePassiveStatusInstaller
 				Priority = 100,
 				ActionTags = [],
 				Polarity = EStatusPolarity.Buff,
+			},
+			EPilotCapabilityId.DamageResistance => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteIncomingHit = (_, _, _, _, _, hit) =>
+					hit.Damage <= 0
+						? hit
+						: Defense.ScaleHitDamageTaken(
+							hit,
+							PilotSkillPercents.HydraulicAbuser.DamageTakenPercent),
 			},
 			EPilotCapabilityId.YouLittleRat => new BattleStatus
 			{

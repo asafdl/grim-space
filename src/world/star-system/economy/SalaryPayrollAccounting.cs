@@ -1,3 +1,4 @@
+using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Economy;
@@ -23,11 +24,13 @@ public static class SalaryPayrollAccounting
 	public static PilotSalaryPayroll Resolve(
 		IReadOnlyList<SalaryPayrollCandidate> roster,
 		int availableCredits,
-		Random rng)
+		Random rng,
+		int fleetSalaryDiscountStacks = 0)
 	{
 		ArgumentNullException.ThrowIfNull(roster);
 		ArgumentOutOfRangeException.ThrowIfNegative(availableCredits);
 		ArgumentNullException.ThrowIfNull(rng);
+		ArgumentOutOfRangeException.ThrowIfNegative(fleetSalaryDiscountStacks);
 
 		var order = roster.ToList();
 		Shuffle(order, rng);
@@ -38,9 +41,11 @@ public static class SalaryPayrollAccounting
 
 		foreach (var candidate in order)
 		{
-			var due = StrategicEconomyConfig.SalaryFor(
-				candidate.BaseSalaryCredits,
-				candidate.ClaimedLevel);
+			var due = ApplyFleetSalaryDiscount(
+				StrategicEconomyConfig.SalaryFor(
+					candidate.BaseSalaryCredits,
+					candidate.ClaimedLevel),
+				fleetSalaryDiscountStacks);
 			if (due > 0 && remaining >= due)
 			{
 				remaining -= due;
@@ -55,6 +60,23 @@ public static class SalaryPayrollAccounting
 		}
 
 		return new PilotSalaryPayroll(paid, misses, availableCredits - remaining);
+	}
+
+	public static int ApplyFleetSalaryDiscount(int salaryCredits, int discountStacks)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(salaryCredits);
+		ArgumentOutOfRangeException.ThrowIfNegative(discountStacks);
+		if (salaryCredits <= 0 || discountStacks <= 0)
+			return salaryCredits;
+
+		var discountPercent = PilotSkillPercents.BeanCounter.FleetSalaryDiscountPercent;
+		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(discountPercent, 100);
+		var retained = (100 - discountPercent) / 100m;
+		var amount = (decimal)salaryCredits;
+		for (var i = 0; i < discountStacks; i++)
+			amount *= retained;
+
+		return (int)System.Math.Round(amount, System.MidpointRounding.AwayFromZero);
 	}
 
 	public static ResourceBundle CreditSpend(int credits) =>

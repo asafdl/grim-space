@@ -1,3 +1,4 @@
+using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.Economy;
 
 namespace GrimSpace.Tests.World.StarSystem.Economy;
@@ -20,6 +21,34 @@ public sealed class SalaryPayrollAccountingTests
 		Assert.Equal(10, payroll.CreditsSpent);
 		Assert.Equal(1, payroll.Misses[0].MissedSalaryPeriods);
 		Assert.False(payroll.Misses[0].Departed);
+	}
+
+	[Fact]
+	public void ApplyFleetSalaryDiscount_ReducesMultiplicativelyPerStack()
+	{
+		Assert.Equal(95, SalaryPayrollAccounting.ApplyFleetSalaryDiscount(100, 1));
+		Assert.Equal(90, SalaryPayrollAccounting.ApplyFleetSalaryDiscount(100, 2));
+		Assert.Equal(
+			100 - PilotSkillPercents.BeanCounter.FleetSalaryDiscountPercent,
+			SalaryPayrollAccounting.ApplyFleetSalaryDiscount(100, 1));
+	}
+
+	[Fact]
+	public void Resolve_AppliesFleetSalaryDiscountToDueAmounts()
+	{
+		var roster = new[]
+		{
+			new SalaryPayrollCandidate("a", BaseSalaryCredits: 100, ClaimedLevel: 1, MissedSalaryPeriods: 0),
+		};
+
+		var payroll = SalaryPayrollAccounting.Resolve(
+			roster,
+			availableCredits: 100,
+			new Random(1),
+			fleetSalaryDiscountStacks: 1);
+
+		Assert.Equal(["a"], payroll.PaidPilotIds);
+		Assert.Equal(95, payroll.CreditsSpent);
 	}
 
 	[Fact]
