@@ -30,6 +30,9 @@ public static class BattleStatusRehydrator
 			case ("buff", nameof(EAbilityKind.ProtectionDrone)):
 				rebuilt = BattleStatuses.CreateProtectionDrone(rest);
 				break;
+			case ("buff", nameof(EPilotCapabilityId.SpawnedAllyDamageBonus)):
+				rebuilt = BattleStatuses.CreateSpawnedAllyDamageBuff(rest);
+				break;
 			case ("buff", "ShieldBrace") when persisted.Payload is ShieldBracePayload:
 			case ("buff", "TemporaryShield") when persisted.Payload is TemporaryShieldPayload:
 				return persisted;

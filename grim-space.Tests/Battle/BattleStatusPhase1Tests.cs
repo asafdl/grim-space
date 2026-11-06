@@ -232,8 +232,11 @@ public sealed class BattleStatusPhase1Tests
 
 		Assert.NotEmpty(records);
 		Assert.Equal(
-			CatalogExpectations.ScrapDroneSwarmDamage()
-				+ PilotSkillPercents.ScrapDrone.SwarmAdditionalDamage,
+			(int)Math.Round(
+				CatalogExpectations.ScrapDroneSwarmDamage()
+					* (100 + PilotSkillPercents.ScrapDrone.SwarmDamageBonusPercent)
+					/ 100m,
+				MidpointRounding.AwayFromZero),
 			CombatLost(hullBefore, shieldsBefore, enemyState));
 	}
 

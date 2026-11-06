@@ -138,6 +138,40 @@ public static class BattleStatuses
 				BattlePassiveStatusInstaller.Create(EPilotCapabilityId.OneWithTheVoid, destination.Id));
 	}
 
+	public static bool HasSpawnedAllyDamageBonus(State state)
+	{
+		ArgumentNullException.ThrowIfNull(state);
+		var instanceId = PassiveInstanceId(nameof(EPilotCapabilityId.SpawnedAllyDamageBonus), state.Id);
+		return state.Statuses.Exists(status => status.InstanceId == instanceId);
+	}
+
+	public static BattleStatus CreateSpawnedAllyDamageBuff(string actorId) =>
+		new()
+		{
+			InstanceId = BuffInstanceId(nameof(EPilotCapabilityId.SpawnedAllyDamageBonus), actorId),
+			Priority = 100,
+			ActionTags = [],
+			Polarity = EStatusPolarity.Buff,
+			RewriteOutgoing = (_, _, effect) => effect switch
+			{
+				ApplyAreaDamageEffect area => area.WithAddedDamageBonusPercent(
+					PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent),
+				ApplyChainLightningDamageEffect chain => chain.WithAddedDamageBonusPercent(
+					PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent),
+				_ => effect,
+			},
+		};
+
+	public static void GrantSpawnedAllyDamageBuff(State parent, State spawned)
+	{
+		ArgumentNullException.ThrowIfNull(parent);
+		ArgumentNullException.ThrowIfNull(spawned);
+		var buffId = BuffInstanceId(nameof(EPilotCapabilityId.SpawnedAllyDamageBonus), spawned.Id);
+		RemoveInstance(spawned.Statuses, buffId);
+		if (HasSpawnedAllyDamageBonus(parent))
+			spawned.Statuses.Add(CreateSpawnedAllyDamageBuff(spawned.Id));
+	}
+
 	public static BattleStatus CreateOverdrive(string actorId) =>
 		new()
 		{

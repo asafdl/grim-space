@@ -28,6 +28,9 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.NothingButMetal,
 		EPilotCapabilityId.SpawnedUnitDamageBonus,
 		EPilotCapabilityId.OneWithTheVoid,
+		EPilotCapabilityId.OutgoingDamageBonus,
+		EPilotCapabilityId.IncreasedHullDamageTaken,
+		EPilotCapabilityId.SpawnedAllyDamageBonus,
 	];
 
 	public static void InstallFromCapabilities(BattleWorld world, string unitId, ActorRuntime runtime)
@@ -81,7 +84,8 @@ public static class BattlePassiveStatusInstaller
 				Polarity = EStatusPolarity.Buff,
 				RewriteOutgoing = (_, _, effect) =>
 					effect is ApplyAreaDamageEffect area
-						? area.WithAdditionalDamage(PilotSkillPercents.ScrapDrone.SwarmAdditionalDamage)
+						? area.WithAddedDamageBonusPercent(
+							PilotSkillPercents.ScrapDrone.SwarmDamageBonusPercent)
 						: effect,
 			},
 			EPilotCapabilityId.NothingButMetal => new BattleStatus
@@ -186,6 +190,39 @@ public static class BattlePassiveStatusInstaller
 					Defense.ScalePercent(
 						hullDamage,
 						PilotSkillPercents.ReinforcedHull.HullDamageTakenPercent),
+			},
+			EPilotCapabilityId.OutgoingDamageBonus => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteOutgoing = (_, _, effect) => effect switch
+				{
+					ApplyAreaDamageEffect area => area.WithAddedDamageBonusPercent(
+						PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent),
+					ApplyChainLightningDamageEffect chain => chain.WithAddedDamageBonusPercent(
+						PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent),
+					_ => effect,
+				},
+			},
+			EPilotCapabilityId.IncreasedHullDamageTaken => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Debuff,
+				RewriteHullDamage = hullDamage =>
+					Defense.ScalePercent(
+						hullDamage,
+						PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent),
+			},
+			EPilotCapabilityId.SpawnedAllyDamageBonus => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
 			},
 			EPilotCapabilityId.YouLittleRat => new BattleStatus
 			{

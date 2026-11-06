@@ -1,3 +1,5 @@
+using GrimSpace.Components;
+
 namespace GrimSpace.Pilots;
 
 public static class PilotQuirkCatalog
@@ -13,14 +15,16 @@ public static class PilotQuirkCatalog
 				EPilotQuirkId.Charismatic,
 				EPilotQuirkPolarity.Positive,
 				[],
-				"Charismatic",
-				"Pilot hires cost 5% less. Effect is not implemented yet."),
+				new HudTooltipContent(
+					"Charismatic",
+					"Pilot hires cost 5% less. Effect is not implemented yet.")),
 			[EPilotQuirkId.NeuroDrugAddict] = new(
 				EPilotQuirkId.NeuroDrugAddict,
 				EPilotQuirkPolarity.Negative,
 				[],
-				"Neuro-drug Addict",
-				"Prone to accidents and may steal credits. Effects are not implemented yet."),
+				new HudTooltipContent(
+					"Neuro-drug Addict",
+					"Prone to accidents and may steal credits. Effects are not implemented yet.")),
 		};
 
 	public static PilotQuirkDefinition Get(EPilotQuirkId id) =>

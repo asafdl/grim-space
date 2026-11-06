@@ -1,4 +1,5 @@
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.World;
@@ -26,6 +27,7 @@ public sealed class SpawnRepurposedMinerEffect(AbilityMount mount, string unitId
 			fore,
 			dorsal,
 			parentId: actorId);
+		BattleStatuses.GrantSpawnedAllyDamageBuff(parent.State, repurposedMiner.State);
 		units.Add(repurposedMiner);
 		_spawned = repurposedMiner;
 

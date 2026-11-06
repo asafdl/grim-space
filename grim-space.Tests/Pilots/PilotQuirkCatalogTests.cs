@@ -81,8 +81,9 @@ public sealed class PilotQuirkCatalogTests
 				EPilotCapabilityId.AdjacentDamageBonus,
 				EPilotCapabilityId.ScrapRewardBonus,
 			],
-			"Order Test",
-			"Ensures capability order is stored as declared.");
+			new GrimSpace.Components.HudTooltipContent(
+				"Order Test",
+				"Ensures capability order is stored as declared."));
 
 		Assert.Equal(
 			[

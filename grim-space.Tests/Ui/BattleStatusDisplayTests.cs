@@ -114,6 +114,9 @@ public sealed class BattleStatusDisplayTests
 	[InlineData(EPilotCapabilityId.NothingButMetal, "Nothing But Metal")]
 	[InlineData(EPilotCapabilityId.SpawnedUnitDamageBonus, "Not Fully Formed")]
 	[InlineData(EPilotCapabilityId.OneWithTheVoid, "One With The Void")]
+	[InlineData(EPilotCapabilityId.OutgoingDamageBonus, "Asteroid Surfer")]
+	[InlineData(EPilotCapabilityId.IncreasedHullDamageTaken, "Asteroid Surfer")]
+	[InlineData(EPilotCapabilityId.SpawnedAllyDamageBonus, "Retired Machine Manager")]
 	public void EveryInstalledPassiveHasAnIconAndEffectDescription(EPilotCapabilityId capability, string title)
 	{
 		var state = CreateState();

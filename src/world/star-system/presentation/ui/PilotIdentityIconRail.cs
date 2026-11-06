@@ -20,6 +20,7 @@ public static class PilotIdentityIconRail
 	private const string PodRacerIconPath = "res://assets/ui/pilots/pod-racer.png";
 	private const string AsteroidSurferIconPath = "res://assets/ui/pilots/asteroid-surfer.png";
 	private const string SynthSingerIconPath = "res://assets/ui/pilots/synth-singer.png";
+	private const string RetiredMachineManagerIconPath = "res://assets/ui/pilots/retired-machine-manager.png";
 	private const string CharismaticIconPath = "res://assets/ui/pilots/charismatic.png";
 	private const string NeuroDrugAddictIconPath = "res://assets/ui/pilots/neuro-drug-addict.png";
 
@@ -61,7 +62,7 @@ public static class PilotIdentityIconRail
 		row.AddChild(CreateIcon(
 			BackgroundIconPathFor(backgroundId),
 			IdentityIconColor,
-			$"Background: {background.Name}\n{background.Description}"));
+			background.Tooltip));
 		row.AddChild(CreateClassIcon(classId));
 		if (positiveQuirkId is { } positiveId)
 		{
@@ -69,7 +70,7 @@ public static class PilotIdentityIconRail
 			row.AddChild(CreateIcon(
 				QuirkIconPathFor(positiveId),
 				PositiveQuirkColor,
-				$"Positive Quirk: {positiveQuirk.Name}\n{positiveQuirk.Description}"));
+				positiveQuirk.Tooltip));
 		}
 
 		if (negativeQuirkId is { } negativeId)
@@ -78,7 +79,7 @@ public static class PilotIdentityIconRail
 			row.AddChild(CreateIcon(
 				QuirkIconPathFor(negativeId),
 				NegativeQuirkColor,
-				$"Negative Quirk: {negativeQuirk.Name}\n{negativeQuirk.Description}"));
+				negativeQuirk.Tooltip));
 		}
 
 		return row;
@@ -97,10 +98,10 @@ public static class PilotIdentityIconRail
 		return CreateIcon(
 			iconPath,
 			IdentityIconColor,
-			$"Class: {classId.DisplayName()}");
+			HudTooltipContent.Plain($"Class: {classId.DisplayName()}"));
 	}
 
-	private static HudTooltipHost CreateIcon(string iconPath, Color iconColor, string tooltip)
+	private static HudTooltipHost CreateIcon(string iconPath, Color iconColor, HudTooltipContent tooltip)
 	{
 		var host = new HudTooltipHost
 		{
@@ -154,6 +155,7 @@ public static class PilotIdentityIconRail
 			EPilotBackgroundId.PodRacer => PodRacerIconPath,
 			EPilotBackgroundId.AsteroidSurfer => AsteroidSurferIconPath,
 			EPilotBackgroundId.SynthSinger => SynthSingerIconPath,
+			EPilotBackgroundId.RetiredMachineManager => RetiredMachineManagerIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
 		};
 

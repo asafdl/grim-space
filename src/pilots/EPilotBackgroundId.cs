@@ -8,4 +8,5 @@ public enum EPilotBackgroundId
 	PodRacer,
 	AsteroidSurfer,
 	SynthSinger,
+	RetiredMachineManager,
 }

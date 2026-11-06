@@ -17,13 +17,14 @@ public sealed class PilotBackgroundCatalogTests
 	{
 		var backgrounds = PilotBackgroundCatalog.All.ToArray();
 
-		Assert.Equal(6, backgrounds.Length);
+		Assert.Equal(7, backgrounds.Length);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.ScrapDrone);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.OptimalityEnforcer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.CorporateSlave);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.PodRacer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.AsteroidSurfer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.SynthSinger);
+		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.RetiredMachineManager);
 	}
 
 	[Fact]
@@ -61,25 +62,38 @@ public sealed class PilotBackgroundCatalogTests
 	}
 
 	[Fact]
-	public void PodRacer_HasDeferredSmallShipManeuverabilityEffect()
+	public void PodRacer_GrantsHeatGainReduction()
 	{
 		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.PodRacer);
 
 		Assert.Equal("Pod Racer", definition.Name);
-		Assert.Empty(definition.CapabilityIds);
-		Assert.Contains("(TBD)", definition.Description, StringComparison.Ordinal);
+		Assert.Equal([EPilotCapabilityId.HeatGainReduction], definition.CapabilityIds);
+		Assert.Contains(
+			$"-{PilotSkillPercents.PodRacer.HeatGainReductionPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
 	}
 
 	[Fact]
-	public void AsteroidSurfer_HasDeferredDamageTradeoff()
+	public void AsteroidSurfer_GrantsDamageTradeoffCapabilities()
 	{
 		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.AsteroidSurfer);
 
 		Assert.Equal("Asteroid Surfer", definition.Name);
-		Assert.Empty(definition.CapabilityIds);
-		Assert.Contains("15% more damage", definition.Description, StringComparison.Ordinal);
-		Assert.Contains("10% more damage", definition.Description, StringComparison.Ordinal);
-		Assert.Contains("(TBD)", definition.Description, StringComparison.Ordinal);
+		Assert.Equal(
+			[
+				EPilotCapabilityId.OutgoingDamageBonus,
+				EPilotCapabilityId.IncreasedHullDamageTaken,
+			],
+			definition.CapabilityIds);
+		Assert.Contains(
+			$"+{PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			$"+{PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent - 100}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -89,8 +103,21 @@ public sealed class PilotBackgroundCatalogTests
 
 		Assert.Equal("Synth Singer", definition.Name);
 		Assert.Empty(definition.CapabilityIds);
-		Assert.Contains("addiction quirks", definition.Description, StringComparison.Ordinal);
-		Assert.Contains("(TBD)", definition.Description, StringComparison.Ordinal);
+		Assert.Contains("addiction quirks", definition.Tooltip.Details, StringComparison.Ordinal);
+		Assert.Contains("(TBD)", definition.Tooltip.Details, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void RetiredMachineManager_GrantsSpawnedAllyDamageBonus()
+	{
+		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.RetiredMachineManager);
+
+		Assert.Equal("Retired Machine Manager", definition.Name);
+		Assert.Equal([EPilotCapabilityId.SpawnedAllyDamageBonus], definition.CapabilityIds);
+		Assert.Contains(
+			$"+{PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
 	}
 
 	[Fact]

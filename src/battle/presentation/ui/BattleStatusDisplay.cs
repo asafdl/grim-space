@@ -65,7 +65,7 @@ public sealed record BattleStatusDisplay(
 			"buff:TemporaryShield" => ("Shield", TemporaryShieldTooltip(statuses)),
 			"passive:ScrapDroneSwarmDamageBonus" => ("ScrapDroneSwarm", new HudTooltipContent(
 				"Scrap Drone",
-				$"Scrap Drone Swarm deals {PilotSkillPercents.ScrapDrone.SwarmAdditionalDamage} additional damage.")),
+				$"Scrap Drone Swarm deals {PilotSkillPercents.ScrapDrone.SwarmDamageBonusPercent}% additional damage.")),
 			"passive:HealingSkillRangeBonus" => ("Heal", PilotSkillCatalog.Get(EPilotSkillId.HelpABotterOut).Tooltip),
 			"passive:LightningShieldDamageBonus" => ("LightningCannon", PilotSkillCatalog.Get(EPilotSkillId.IonizedPayload).Tooltip),
 			"passive:AdjacentDamageBonus" => ("Damage", PilotSkillCatalog.Get(EPilotSkillId.DodgeThis).Tooltip),
@@ -85,6 +85,18 @@ public sealed record BattleStatusDisplay(
 			"passive:NothingButMetal" => ("Damage", PilotSkillCatalog.Get(EPilotSkillId.NothingButMetal).Tooltip),
 			"passive:SpawnedUnitDamageBonus" => ("Damage", PilotSkillCatalog.Get(EPilotSkillId.NotFullyFormed).Tooltip),
 			"passive:OneWithTheVoid" => ("VoidBombLauncher", PilotSkillCatalog.Get(EPilotSkillId.OneWithTheVoid).Tooltip),
+			"passive:OutgoingDamageBonus" => ("Damage", new HudTooltipContent(
+				"Asteroid Surfer",
+				$"[icon: Damage, text: +{PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent}%] damage dealt.")),
+			"passive:IncreasedHullDamageTaken" => ("Hull", new HudTooltipContent(
+				"Asteroid Surfer",
+				$"[icon: Hull, text: +{PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent - 100}%] hull damage taken.")),
+			"passive:SpawnedAllyDamageBonus" => ("Damage", new HudTooltipContent(
+				"Retired Machine Manager",
+				$"Spawned units get [icon: Damage, text: +{PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent}%] damage.")),
+			"buff:SpawnedAllyDamageBonus" => ("Damage", new HudTooltipContent(
+				"Spawn Damage",
+				$"[icon: Damage, text: +{PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent}%] damage.")),
 			_ => throw new InvalidDataException($"Unknown battle status display '{status.InstanceId}'."),
 		};
 		int? stacks = key switch

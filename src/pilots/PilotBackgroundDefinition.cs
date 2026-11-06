@@ -1,25 +1,29 @@
+using GrimSpace.Components;
+
 namespace GrimSpace.Pilots;
 
 public sealed class PilotBackgroundDefinition
 {
 	public EPilotBackgroundId Id { get; }
 	public IReadOnlyList<EPilotCapabilityId> CapabilityIds { get; }
-	public string Name { get; }
-	public string Description { get; }
+	public HudTooltipContent Tooltip { get; }
+	public string Name => Tooltip.Title!;
+	public string Description => Tooltip.Body;
 
 	public PilotBackgroundDefinition(
 		EPilotBackgroundId id,
 		IReadOnlyList<EPilotCapabilityId> capabilityIds,
-		string name,
-		string description)
+		HudTooltipContent tooltip)
 	{
 		ArgumentNullException.ThrowIfNull(capabilityIds);
-		ArgumentException.ThrowIfNullOrEmpty(name);
-		ArgumentException.ThrowIfNullOrEmpty(description);
+		ArgumentNullException.ThrowIfNull(tooltip);
+		if (string.IsNullOrWhiteSpace(tooltip.Title))
+			throw new ArgumentException("A pilot background tooltip must have a title.", nameof(tooltip));
+		if (string.IsNullOrWhiteSpace(tooltip.Body))
+			throw new ArgumentException("A pilot background tooltip must have a body.", nameof(tooltip));
 
 		Id = id;
 		CapabilityIds = capabilityIds;
-		Name = name;
-		Description = description;
+		Tooltip = tooltip;
 	}
 }

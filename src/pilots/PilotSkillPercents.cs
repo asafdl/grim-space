@@ -124,7 +124,25 @@ public static class PilotSkillPercents
 
 	public static class ScrapDrone
 	{
-		public const int SwarmAdditionalDamage = 100;
+		public const int SwarmDamageBonusPercent = 15;
+	}
+
+	public static class PodRacer
+	{
+		public const int HeatGainReductionPercent = 20;
+	}
+
+	public static class AsteroidSurfer
+	{
+		public const int OutgoingDamageBonusPercent = 10;
+
+		/// <summary>Additive hull damage taken bonus (115 = take 15% more hull damage).</summary>
+		public const int HullDamageTakenPercent = 100 + 15;
+	}
+
+	public static class RetiredMachineManager
+	{
+		public const int SpawnedAllyDamageBonusPercent = 20;
 	}
 
 	public static class IKnowABot

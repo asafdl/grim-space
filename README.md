@@ -7,6 +7,7 @@
 Early-stage 3D roguelike space game with strategic star-system navigation and tactical turn-based combat on a discrete 3D grid.
 Gameplay systems in code come first — placeholder visuals, APIs that change, and design details still being proven out.
 Reusable HUD visuals, variants, palettes, and adoption rules are documented in the [UI kit guide](docs/ui-kit.md).
+The proposed pilot identity and development roadmap is documented in [Pilot personality and quirks](docs/pilot-personality-and-quirks.md).
 
 ## Game architecture and boundaries
 

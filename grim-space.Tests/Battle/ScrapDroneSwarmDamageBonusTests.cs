@@ -18,7 +18,7 @@ namespace GrimSpace.Tests.StatusModel;
 public sealed class ScrapDroneSwarmDamageBonusTests
 {
 	[Fact]
-	public void StatusPass_AddsOneDamageToTaggedScrapDroneAttack()
+	public void StatusPass_AddsDamageBonusPercentToTaggedScrapDroneAttack()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
 		var world = BattleWorldFor(player);
@@ -41,7 +41,8 @@ public sealed class ScrapDroneSwarmDamageBonusTests
 		var modified = Assert.IsType<ApplyAreaDamageEffect>(
 			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
 
-		Assert.Equal(4 * 100, modified.Damage);
+		Assert.Equal(3 * 100, modified.Damage);
+		Assert.Equal(PilotSkillPercents.ScrapDrone.SwarmDamageBonusPercent, modified.DamageBonusPercent);
 		Assert.Contains(BattleActionTags.Attack, action.Tags);
 		Assert.Contains(BattleActionTags.ScrapDrone, action.Tags);
 	}
@@ -76,7 +77,9 @@ public sealed class ScrapDroneSwarmDamageBonusTests
 
 		var modified = BattleStatuses.RewriteOutgoing(action, world, effects);
 
-		Assert.Equal(4 * 100, Assert.IsType<ApplyAreaDamageEffect>(modified[0]).Damage);
+		var damage = Assert.IsType<ApplyAreaDamageEffect>(modified[0]);
+		Assert.Equal(3 * 100, damage.Damage);
+		Assert.Equal(PilotSkillPercents.ScrapDrone.SwarmDamageBonusPercent, damage.DamageBonusPercent);
 		Assert.Equal(3 * 100, Assert.IsType<ApplyAreaAllyHealEffect>(modified[1]).HealAmount);
 	}
 

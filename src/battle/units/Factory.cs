@@ -8,6 +8,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Units;
@@ -25,10 +26,37 @@ public static class Factory
 			spawn.ExecutionAgent,
 			spawn.Fore,
 			spawn.Dorsal);
-		if (spawn.Pilot?.CapabilityGrants.Any(grant =>
-				grant.CapabilityId == EPilotCapabilityId.InitiativePenalty) == true)
-			unit.State.Initiative -= PilotInitiativePenalty;
+		ApplyPilotSpawnModifiers(unit.State, spawn.Pilot);
 		return unit;
+	}
+
+	private static void ApplyPilotSpawnModifiers(State state, PilotBattleSnapshot? pilot)
+	{
+		if (pilot is null)
+			return;
+
+		if (pilot.CapabilityGrants.Any(grant =>
+				grant.CapabilityId == EPilotCapabilityId.InitiativePenalty))
+			state.Initiative -= PilotInitiativePenalty;
+
+		var heatGainReductionStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.HeatGainReduction);
+		if (heatGainReductionStacks <= 0 || !state.HeatProfile.Participates)
+			return;
+
+		var reductionPercent = PilotSkillPercents.PodRacer.HeatGainReductionPercent;
+		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(reductionPercent, 100);
+
+		var profile = state.HeatProfile;
+		var retainedFraction = (100 - reductionPercent) / 100f;
+		var gainMultiplier = profile.GainMultiplier;
+		for (var i = 0; i < heatGainReductionStacks; i++)
+			gainMultiplier *= retainedFraction;
+
+		state.HeatProfile = new HeatSpec(
+			profile.Capacity,
+			profile.ClearPerTurn,
+			gainMultiplier);
 	}
 
 	public static Unit Create(

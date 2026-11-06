@@ -1,0 +1,14 @@
+---
+description: Additive stacking for growth percents; multiplicative for reductions
+globs: src/pilots/**/*.cs,src/battle/**/*.cs,src/units/**/*.cs,src/world/star-system/pilot-capabilities/**/*.cs
+alwaysApply: false
+---
+
+# Percent stacking
+
+Provisional house rule (also in `AGENTS.md`):
+
+- **Growth / bonuses** (more damage, scrap, credits, XP, …): **additive** — sum percents, apply once vs base (`100 + a + b`).
+- **Reductions / less-of** (less heat gain, less damage taken, …): **multiplicative** — chain retain factors so stacks diminish and cannot reach 0 (`×0.8 ×0.8…`). One source must be < 100% reduction.
+
+Do not invent one-off stacking for a new modifier without a strong reason.

@@ -58,6 +58,7 @@ internal static class PilotHireDisplay
 			EPilotBackgroundId.PodRacer => "res://assets/ui/pilots/pod-racer.png",
 			EPilotBackgroundId.AsteroidSurfer => "res://assets/ui/pilots/asteroid-surfer.png",
 			EPilotBackgroundId.SynthSinger => "res://assets/ui/pilots/synth-singer.png",
+			EPilotBackgroundId.RetiredMachineManager => "res://assets/ui/pilots/retired-machine-manager.png",
 			_ => throw new ArgumentOutOfRangeException(nameof(backgroundId), backgroundId, null),
 		};
 }

@@ -21,6 +21,7 @@ public static class PilotRecruitment
 		EPilotBackgroundId.PodRacer,
 		EPilotBackgroundId.AsteroidSurfer,
 		EPilotBackgroundId.SynthSinger,
+		EPilotBackgroundId.RetiredMachineManager,
 	];
 
 	private static readonly EOperatorClassId[] RecruitableOperatorClasses =

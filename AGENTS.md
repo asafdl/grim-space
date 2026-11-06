@@ -76,6 +76,15 @@ TODO comments identify known rework or boundary debt. When touching a file or fl
 - Prefer **composition** (scene tree of small nodes) over deep inheritance.
 - Rebuild after adding `[Export]` fields or new signals so the editor sees them.
 
+### Percent stacking (provisional)
+
+When stacking percent modifiers on the same stat:
+
+- **Growth / bonuses** (more damage, scrap, credits, XP, etc.): **additive** — sum the percents, then apply once against the base (`100 + a + b`).
+- **Reductions / less-of** (less heat gain, less damage taken, etc.): **multiplicative** — apply each retain factor in turn so values diminish but do not bottom out at zero from stacking (`×0.8 ×0.8…`). A single source must stay strictly under 100% reduction.
+
+Reactive Shields already follows the reduction rule; Pod Racer heat gain does too. Prefer this over inventing one-off stacking math.
+
 ### Placeholder assets
 
 assets are mostly for debugging purposes waiting for real artist if game turns out to be any good

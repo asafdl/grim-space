@@ -1,3 +1,5 @@
+using GrimSpace.Components;
+
 namespace GrimSpace.Pilots;
 
 public static class PilotBackgroundCatalog
@@ -11,40 +13,57 @@ public static class PilotBackgroundCatalog
 					EPilotCapabilityId.ScrapDroneSwarmDamageBonus,
 					EPilotCapabilityId.MinorScrapRewardBonus,
 				],
-				"Scrap Drone",
-				"It's a hard bot life, for us.\n"
-				+ "Scrap Drone Swarm deals +1 damage.\nScrap Alloy gathered increased by 5%."),
+				new HudTooltipContent(
+					"Scrap Drone",
+					"It's a hard bot life, for us.\n Growing up in a factory is not a good life, most bots get scrapped themselves, those that make it out do it out of sheer grit.",
+					$"[icon: ScrapDroneSwarm] - [icon: Damage, text: +{PilotSkillPercents.ScrapDrone.SwarmDamageBonusPercent}%]\n"
+					+ "[icon: ScrapAlloy, text: +5%] gathered")),
 			[EPilotBackgroundId.OptimalityEnforcer] = new(
 				EPilotBackgroundId.OptimalityEnforcer,
 				[EPilotCapabilityId.OptimalityContractCreditBonus],
-				"Optimality Enforcer",
-				"Some called him a simple thug, others called him a refined thug.\n"
-				+ "Contracts issued by The Optimality award 5% more Credits.\n"
-				+ "Lowers team satisfaction (TBD)."),
+				new HudTooltipContent(
+					"Optimality Enforcer",
+					"Some called him a simple thug, others called him a refined thug.\n Optimality enforcer school taught him one thing, if violence and zealotry don't work, you haven't applied enough of each.",
+					"Contracts issued by The Optimality award [icon: Credits, text: +5%].")),
 			[EPilotBackgroundId.CorporateSlave] = new(
 				EPilotBackgroundId.CorporateSlave,
 				[EPilotCapabilityId.InitiativePenalty],
-				"Corporate Slave",
-				"The cockpit or a cubicle. This bot will do what you ask.\n"
-				+ "Assigned ship has -10 Initiative."),
+				new HudTooltipContent(
+					"Corporate Slave",
+					"The cockpit or a cubicle. This bot will do what you ask.\n Corprate slaves that make it out are far and few between, but something in that upbringing stays with them forever.",
+					"-10 Initiative.")),
 			[EPilotBackgroundId.PodRacer] = new(
 				EPilotBackgroundId.PodRacer,
-				[],
-				"Pod Racer",
-				"You win, or you're scrap. No in-between.\n"
-				+ "+1 Maneuverability on small ships (TBD)."),
+				[EPilotCapabilityId.HeatGainReduction],
+				new HudTooltipContent(
+					"Pod Racer",
+					"You win, or you're scrap. No in-between.",
+					$"[icon: Heat, text: -{PilotSkillPercents.PodRacer.HeatGainReductionPercent}%] generation.")),
 			[EPilotBackgroundId.AsteroidSurfer] = new(
 				EPilotBackgroundId.AsteroidSurfer,
-				[],
-				"Asteroid Surfer",
-				"Surfing asteroids is dangerous. It's also very stupid.\n"
-				+ "Takes 15% more damage and deals 10% more damage (TBD)."),
-			[EPilotBackgroundId.SynthSinger] = new(
-				EPilotBackgroundId.SynthSinger,
-				[],
-				"Synth Singer",
-				"Singing has its highs, and lows.\n"
-				+ "Prone to addiction quirks (TBD)."),
+				[
+					EPilotCapabilityId.OutgoingDamageBonus,
+					EPilotCapabilityId.IncreasedHullDamageTaken,
+				],
+				new HudTooltipContent(
+					"Asteroid Surfer",
+					"Surfing asteroids is dangerous. It's also very stupid.\n If you can believe it, theres actually an intergalactic scoreboard for this.",
+					$"[icon: Damage, text: +{PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent}%]\n"
+					+ $"[icon: Hull, text: +{PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent - 100}%] damage taken.")),
+			// [EPilotBackgroundId.SynthSinger] = new(
+			// 	EPilotBackgroundId.SynthSinger,
+			// 	[],
+			// 	new HudTooltipContent(
+			// 		"Synth Singer",
+			// 		"Singing has its highs, and lows.",
+			// 		"Prone to addiction quirks (TBD).")),
+			[EPilotBackgroundId.RetiredMachineManager] = new(
+				EPilotBackgroundId.RetiredMachineManager,
+				[EPilotCapabilityId.SpawnedAllyDamageBonus],
+				new HudTooltipContent(
+					"Retired Machine Manager",
+					"This bot enjoys control over others. Any divergence from protocol will get you punished. Severely.",
+					$"Spawned units do [icon: Damage, text: +{PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent}%] damage.")),
 		};
 
 	public static PilotBackgroundDefinition Get(EPilotBackgroundId id) =>
