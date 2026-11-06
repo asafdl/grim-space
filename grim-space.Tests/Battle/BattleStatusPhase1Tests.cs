@@ -232,7 +232,7 @@ public sealed class BattleStatusPhase1Tests
 
 		Assert.NotEmpty(records);
 		Assert.Equal(
-			(int)Math.Round(
+			(int)System.Math.Round(
 				CatalogExpectations.ScrapDroneSwarmDamage()
 					* (100 + PilotSkillPercents.ScrapDrone.SwarmDamageBonusPercent)
 					/ 100m,

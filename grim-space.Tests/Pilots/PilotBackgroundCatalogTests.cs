@@ -17,13 +17,12 @@ public sealed class PilotBackgroundCatalogTests
 	{
 		var backgrounds = PilotBackgroundCatalog.All.ToArray();
 
-		Assert.Equal(7, backgrounds.Length);
+		Assert.Equal(6, backgrounds.Length);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.ScrapDrone);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.OptimalityEnforcer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.CorporateSlave);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.PodRacer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.AsteroidSurfer);
-		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.SynthSinger);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.RetiredMachineManager);
 	}
 
@@ -94,17 +93,6 @@ public sealed class PilotBackgroundCatalogTests
 			$"+{PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent - 100}%",
 			definition.Tooltip.Details,
 			StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void SynthSinger_HasDeferredAddictionQuirkWeighting()
-	{
-		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.SynthSinger);
-
-		Assert.Equal("Synth Singer", definition.Name);
-		Assert.Empty(definition.CapabilityIds);
-		Assert.Contains("addiction quirks", definition.Tooltip.Details, StringComparison.Ordinal);
-		Assert.Contains("(TBD)", definition.Tooltip.Details, StringComparison.Ordinal);
 	}
 
 	[Fact]
