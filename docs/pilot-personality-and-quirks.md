@@ -175,6 +175,13 @@ enemy hits and player deaths do not trigger this pool. Like hit reactions, kill
 barks ignore strategic cooldowns and do not start them, and reuse the existing
 camera/speech playback sequence. Lines still come from shared flavor pools.
 
+Ally-destroyed barks use the same post-death replay timing. A lethal impact against
+a player ship offers Anxious, Bloodthirsty, Entitled, and Supportive to one through
+three surviving squad pilots at 20% chance each, with personality filtering and
+no strategic cooldowns. Replay replaces the ordinary player-hit reaction with
+this reaction for lethal impacts, rather than playing both. The destroyed pilot
+is excluded by replay's living-ship projection; with no survivors, nobody speaks.
+
 Initially preserve speaker selection, bark chance, cooldowns, group sizes,
 scripted lines, and the selection/playback split. Change reaction selection, not
 all dialogue behavior at once. Personality-weighted speaker selection can wait

@@ -977,7 +977,9 @@ public partial class BattleController : Node3D
 		var barks = Session.Instance.Run.Barks;
 		var decisions = targetTeam == ETeam.Enemy
 			? barks.SelectEnemyKilled(impact, targetTeam, pilotIds)
-			: barks.SelectPlayerHit(impact, targetTeam, pilotIds);
+			: impact.IsLethal
+				? barks.SelectAllyDestroyed(impact, targetTeam, pilotIds)
+				: barks.SelectPlayerHit(impact, targetTeam, pilotIds);
 		var index = 0;
 		void Next()
 		{

@@ -215,6 +215,83 @@ public sealed class PilotBarkDirectorTests
 		Assert.Empty(rng.Calls);
 	}
 
+	[Theory]
+	[InlineData(ETeam.Enemy, 10, 10)]
+	[InlineData(ETeam.Player, 9, 10)]
+	[InlineData(ETeam.Player, 0, 10)]
+	[InlineData(ETeam.Player, 10, 0)]
+	public void SelectAllyDestroyed_IgnoresNonPlayerOrNonLethalImpacts(
+		ETeam team, int hullDamage, int hullBefore)
+	{
+		var rng = new RecordingRandom(0);
+		using var director = Create(rng: rng);
+		var impact = new ImpactFacts("source", "target", EImpactCause.HighSpeedRod,
+			default, 0, hullDamage, 0, hullBefore);
+
+		Assert.Empty(director.SelectAllyDestroyed(impact, team, ["a", "b"]));
+		Assert.Empty(rng.Calls);
+	}
+
+	[Theory]
+	[InlineData(0.199, true)]
+	[InlineData(0.2, false)]
+	public void SelectAllyDestroyed_UsesBattleChanceAndOnlySurvivingCandidates(
+		double roll, bool speaks)
+	{
+		using var director = Create(rng: new RecordingRandom(roll));
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+			default, 0, 12, 0, 10);
+
+		var decisions = director.SelectAllyDestroyed(impact, ETeam.Player, ["b"]);
+
+		Assert.Equal(speaks ? 1 : 0, decisions.Count);
+		Assert.All(decisions, decision =>
+		{
+			Assert.Equal("b", decision.PilotId);
+			Assert.Equal(EBarkFlavor.Supportive, decision.Flavor);
+			Assert.False(decision.StartsCooldown);
+		});
+		Assert.Empty(_said);
+	}
+
+	[Theory]
+	[InlineData(-5, 5, 0, EBarkFlavor.Anxious)]
+	[InlineData(5, 5, 0, EBarkFlavor.Bloodthirsty)]
+	[InlineData(0, 5, -5, EBarkFlavor.Entitled)]
+	[InlineData(0, 5, 5, EBarkFlavor.Supportive)]
+	public void SelectAllyDestroyed_UsesPersonalityCompatibleDeathFlavors(
+		int threatResponse, int deliberation, int allegiance, EBarkFlavor expected)
+	{
+		Random rng = allegiance == 0 ? new FirstPickRandom() : new RecordingRandom(0);
+		using var director = Create(rng: rng,
+			personalityReader: _ => new(threatResponse, deliberation, allegiance));
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+			default, 0, 10, 0, 10);
+		var decision = Assert.Single(director.SelectAllyDestroyed(impact, ETeam.Player, ["b"]));
+
+		Assert.Equal(expected, decision.Flavor);
+	}
+
+	[Fact]
+	public void SelectAllyDestroyed_IgnoresCooldownsAndPreservesSelectedPlayback()
+	{
+		var personality = new PilotPersonality(-5, 0, 5);
+		using var director = Create(rng: new RecordingRandom(0),
+			personalityReader: _ => personality);
+		Assert.True(director.Script("b", "Already spoke."));
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+			default, 0, 10, 0, 10);
+		var decision = Assert.Single(director.SelectAllyDestroyed(impact, ETeam.Player, ["b"]));
+
+		Assert.Equal(EBarkFlavor.Supportive, decision.Flavor);
+		personality = new(5, 0, -5);
+		Assert.True(director.Present(decision));
+		Assert.Equal(decision.Text, _said[^1].Line);
+		director.Tick(10);
+		Assert.True(director.Offer("b", EBarkFlavor.Entitled, 1));
+		Assert.Empty(director.SelectAllyDestroyed(impact, ETeam.Player, []));
+	}
+
 	[Fact]
 	public void SelectPlayerHit_OnlyUsesProvidedLivingCandidates()
 	{
