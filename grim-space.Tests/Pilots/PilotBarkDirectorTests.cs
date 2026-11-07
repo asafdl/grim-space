@@ -129,6 +129,79 @@ public sealed class PilotBarkDirectorTests
 	}
 
 	[Theory]
+	[InlineData(ETeam.Player, 10, 10)]
+	[InlineData(ETeam.Enemy, 9, 10)]
+	[InlineData(ETeam.Enemy, 0, 10)]
+	[InlineData(ETeam.Enemy, 10, 0)]
+	public void SelectEnemyKilled_IgnoresNonEnemyOrNonLethalImpacts(
+		ETeam team, int hullDamage, int hullBefore)
+	{
+		var rng = new RecordingRandom(0);
+		using var director = Create(rng: rng);
+		var impact = new ImpactFacts("source", "target", EImpactCause.HighSpeedRod,
+			default, 0, hullDamage, 0, hullBefore);
+
+		Assert.Empty(director.SelectEnemyKilled(impact, team, ["a", "b"]));
+		Assert.Empty(rng.Calls);
+	}
+
+	[Theory]
+	[InlineData(0.199, true)]
+	[InlineData(0.2, false)]
+	public void SelectEnemyKilled_UsesBattleChanceAndOnlyLivingCandidates(double roll, bool speaks)
+	{
+		using var director = Create(rng: new RecordingRandom(roll));
+		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighSpeedRod,
+			default, 0, 12, 0, 10);
+
+		var decisions = director.SelectEnemyKilled(impact, ETeam.Enemy, ["b"]);
+
+		Assert.Equal(speaks ? 1 : 0, decisions.Count);
+		Assert.All(decisions, decision =>
+		{
+			Assert.Equal("b", decision.PilotId);
+			Assert.Equal(EBarkFlavor.Supportive, decision.Flavor);
+			Assert.False(decision.StartsCooldown);
+		});
+		Assert.Empty(_said);
+	}
+
+	[Theory]
+	[InlineData(5, -5, 0, EBarkFlavor.Bloodthirsty)]
+	[InlineData(-5, 5, 0, EBarkFlavor.Analytical)]
+	[InlineData(-5, -5, -5, EBarkFlavor.Entitled)]
+	[InlineData(-5, -5, 5, EBarkFlavor.Supportive)]
+	public void SelectEnemyKilled_FiltersAndWeightsKillFlavorPool(
+		int threatResponse, int deliberation, int allegiance, EBarkFlavor expected)
+	{
+		using var director = Create(rng: new FirstPickRandom(),
+			personalityReader: _ => new(threatResponse, deliberation, allegiance));
+		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighSpeedRod,
+			default, 0, 10, 0, 10);
+
+		Assert.Equal(expected,
+			Assert.Single(director.SelectEnemyKilled(impact, ETeam.Enemy, ["a"])).Flavor);
+	}
+
+	[Fact]
+	public void SelectEnemyKilled_AnyLivingPilotCanReactWithoutStrategicCooldowns()
+	{
+		var personality = new PilotPersonality(5, -5, 5);
+		using var director = Create(rng: new RecordingRandom(0),
+			personalityReader: _ => personality);
+		Assert.True(director.Script("a", "Already spoke."));
+		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighSpeedRod,
+			default, 0, 10, 0, 10);
+		var decisions = director.SelectEnemyKilled(impact, ETeam.Enemy, ["a", "b"]);
+
+		Assert.Equal(2, decisions.Count);
+		personality = new(-5, 5, -5);
+		Assert.All(decisions, decision => Assert.True(director.Present(decision)));
+		director.Tick(10);
+		Assert.True(director.Offer("a", EBarkFlavor.Analytical, 1));
+	}
+
+	[Theory]
 	[InlineData(ETeam.Enemy, 1)]
 	[InlineData(ETeam.Player, 0)]
 	public void SelectPlayerHit_IgnoresEnemiesAndZeroDamage(ETeam team, int damage)
@@ -484,6 +557,12 @@ public sealed class PilotBarkDirectorTests
 		Assert.Equal("a", Assert.Single(_said).PilotId);
 		Assert.Equal(2, rng.Calls.Count(call => call == "chance"));
 		Assert.True(director.Offer("b", EBarkFlavor.Supportive, 1));
+	}
+
+	private sealed class FirstPickRandom : Random
+	{
+		public override double NextDouble() => 0;
+		public override int Next(int maxValue) => 0;
 	}
 
 	private sealed class RecordingRandom(double chance, double? subsequentChance = null) : Random

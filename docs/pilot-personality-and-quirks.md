@@ -163,8 +163,17 @@ response; the owning event must decide what that means, rather than assume silen
 affinities. Run-bound bark selection reads current effective personality from the
 authoritative roster; standalone previews intentionally use neutral personality
 unless supplied a reader. Missing run pilots are errors, not neutral fallbacks.
-The same selection path serves strategic and battle-hit barks. Selected decisions
+The same selection path serves strategic, battle-hit, and enemy-kill barks. Selected decisions
 are played without rerolling, even if personality changes before presentation.
+
+Enemy-kill barks run during turn replay, after impact/death animation cleanup and
+before replay advances. A lethal `ImpactFacts` against an enemy offers
+Bloodthirsty, Analytical, Entitled, and Supportive to one through three living
+squad pilots (not just the killer). Each selected pilot has the existing 20%
+battle speaking chance; personality filtering/weighting applies. Nonlethal
+enemy hits and player deaths do not trigger this pool. Like hit reactions, kill
+barks ignore strategic cooldowns and do not start them, and reuse the existing
+camera/speech playback sequence. Lines still come from shared flavor pools.
 
 Initially preserve speaker selection, bark chance, cooldowns, group sizes,
 scripted lines, and the selection/playback split. Change reaction selection, not

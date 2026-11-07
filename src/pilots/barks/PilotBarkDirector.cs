@@ -31,6 +31,8 @@ public sealed class PilotBarkDirector : IDisposable
 	private static readonly EBarkFlavor[] WreckSalvageFlavors = [EBarkFlavor.Supportive, EBarkFlavor.Impatient];
 	private static readonly EBarkFlavor[] PlayerHitFlavors =
 		[EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty, EBarkFlavor.Analytical, EBarkFlavor.Entitled];
+	private static readonly EBarkFlavor[] EnemyKilledFlavors =
+		[EBarkFlavor.Bloodthirsty, EBarkFlavor.Analytical, EBarkFlavor.Entitled, EBarkFlavor.Supportive];
 
 	public const double DefaultChance = 0.4;
 	public const double BattleChance = 0.2;
@@ -273,6 +275,16 @@ public sealed class PilotBarkDirector : IDisposable
 			return [];
 
 		return Select(livingPilotIds, PlayerHitFlavors, BattleChance,
+			minPilots: 1, maxPilots: 3, useCooldowns: false);
+	}
+
+	public IReadOnlyList<Decision> SelectEnemyKilled(
+		ImpactFacts impact, ETeam targetTeam, IReadOnlyList<string> livingPilotIds)
+	{
+		if (targetTeam != ETeam.Enemy || !impact.IsLethal)
+			return [];
+
+		return Select(livingPilotIds, EnemyKilledFlavors, BattleChance,
 			minPilots: 1, maxPilots: 3, useCooldowns: false);
 	}
 

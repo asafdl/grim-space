@@ -262,7 +262,7 @@ public partial class BattleController : Node3D
 			ApplyReplayState,
 			_goopHazardView.Show,
 			_goopHazardView.Remove,
-			PlayHitReaction);
+			PlayImpactReaction);
 		_replayPlayer.TurnFlowIndexChanged += OnTurnFlowIndexChanged;
 		AddChild(_replayPlayer);
 
@@ -964,7 +964,7 @@ public partial class BattleController : Node3D
 
 	private void OnTutorialFlowCompleted(TutorialFlow _) => RefreshPresentation();
 
-	private void PlayHitReaction(
+	private void PlayImpactReaction(
 		ImpactFacts impact, ETeam targetTeam, IReadOnlyList<string> livingShipIds, Action completed)
 	{
 		if (_exiting)
@@ -975,7 +975,9 @@ public partial class BattleController : Node3D
 			.Where(pair => living.Contains(pair.Value))
 			.Select(pair => pair.Key).ToArray();
 		var barks = Session.Instance.Run.Barks;
-		var decisions = barks.SelectPlayerHit(impact, targetTeam, pilotIds);
+		var decisions = targetTeam == ETeam.Enemy
+			? barks.SelectEnemyKilled(impact, targetTeam, pilotIds)
+			: barks.SelectPlayerHit(impact, targetTeam, pilotIds);
 		var index = 0;
 		void Next()
 		{
