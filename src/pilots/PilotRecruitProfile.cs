@@ -11,6 +11,7 @@ public sealed class PilotRecruitProfile
 	public string PortraitId { get; }
 	public EPilotBackgroundId BackgroundId { get; }
 	public EOperatorClassId ClassId { get; }
+	public PilotPersonality Personality { get; }
 	public EPilotQuirkId? PositiveQuirkId { get; }
 	public EPilotQuirkId? NegativeQuirkId { get; }
 	public int ExperiencePoints { get; }
@@ -28,7 +29,8 @@ public sealed class PilotRecruitProfile
 		int claimedLevel = 1,
 		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
 		int baseSalaryCredits = 10,
-		EOperatorClassId classId = EOperatorClassId.SpaceRanger)
+		EOperatorClassId classId = EOperatorClassId.SpaceRanger,
+		PilotPersonality personality = default)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(name);
 		ArgumentException.ThrowIfNullOrEmpty(portraitId);
@@ -48,6 +50,7 @@ public sealed class PilotRecruitProfile
 		PortraitId = portraitId;
 		BackgroundId = backgroundId;
 		ClassId = classId;
+		Personality = personality;
 		PositiveQuirkId = positiveQuirkId;
 		NegativeQuirkId = negativeQuirkId;
 		ExperiencePoints = experiencePoints;

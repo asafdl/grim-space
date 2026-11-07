@@ -37,6 +37,15 @@ public sealed class Pilot
 	public string PortraitId { get; }
 	public EPilotBackgroundId BackgroundId { get; }
 	public EOperatorClassId ClassId { get; }
+	/// <summary>Persisted baseline; use EffectivePersonality for disposition queries.</summary>
+	public PilotPersonality Personality { get; }
+	public PilotPersonality EffectivePersonality =>
+		Personality.ApplyModifiers(
+			PilotBackgroundCatalog.Get(BackgroundId).PersonalityModifier,
+			PositiveQuirkId is { } positive
+				? PilotQuirkCatalog.Get(positive).PersonalityModifier : default,
+			NegativeQuirkId is { } negative
+				? PilotQuirkCatalog.Get(negative).PersonalityModifier : default);
 	public EPilotQuirkId? PositiveQuirkId { get; }
 	public EPilotQuirkId? NegativeQuirkId { get; }
 	public string? AssignedShipId { get; }
@@ -63,7 +72,8 @@ public sealed class Pilot
 		IReadOnlyList<EPilotSkillId> learnedSkills,
 		int baseSalaryCredits,
 		int missedSalaryPeriods,
-		int missedHazardPeriods)
+		int missedHazardPeriods,
+		PilotPersonality personality = default)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(id);
 		ArgumentException.ThrowIfNullOrEmpty(name);
@@ -82,6 +92,7 @@ public sealed class Pilot
 		PortraitId = portraitId;
 		BackgroundId = backgroundId;
 		ClassId = classId;
+		Personality = personality;
 		PositiveQuirkId = positiveQuirkId;
 		NegativeQuirkId = negativeQuirkId;
 		AssignedShipId = assignedShipId;
@@ -157,7 +168,8 @@ public sealed class Pilot
 			profile.LearnedSkills,
 			profile.BaseSalaryCredits,
 			0,
-			0);
+			0,
+			profile.Personality);
 	}
 
 	public static Pilot CreateStarterForShip(
@@ -205,7 +217,11 @@ public sealed class Pilot
 			LearnedSkills,
 			BaseSalaryCredits,
 			MissedSalaryPeriods,
-			MissedHazardPeriods);
+			MissedHazardPeriods,
+			Personality);
+
+	internal Pilot WithPersonality(PilotPersonality personality) =>
+		Copy(personality: personality);
 
 	internal Pilot WithActive(bool isActive) =>
 		Copy(isActive: isActive);
@@ -253,7 +269,8 @@ public sealed class Pilot
 			dto.LearnedSkills,
 			dto.BaseSalaryCredits,
 			dto.MissedSalaryPeriods,
-			dto.MissedHazardPeriods);
+			dto.MissedHazardPeriods,
+			dto.Personality);
 	}
 
 	internal PilotPersistenceDto ToPersistence(int activeOrder = -1) =>
@@ -273,7 +290,8 @@ public sealed class Pilot
 			BaseSalaryCredits,
 			MissedSalaryPeriods,
 			MissedHazardPeriods,
-			ClassId);
+			ClassId,
+			Personality);
 
 	private Pilot Copy(
 		bool? isActive = null,
@@ -281,7 +299,8 @@ public sealed class Pilot
 		int? claimedLevel = null,
 		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
 		int? missedSalaryPeriods = null,
-		int? missedHazardPeriods = null) =>
+		int? missedHazardPeriods = null,
+		PilotPersonality? personality = null) =>
 		new(
 			Id,
 			Name,
@@ -297,7 +316,8 @@ public sealed class Pilot
 			learnedSkills ?? LearnedSkills,
 			BaseSalaryCredits,
 			missedSalaryPeriods ?? MissedSalaryPeriods,
-			missedHazardPeriods ?? MissedHazardPeriods);
+			missedHazardPeriods ?? MissedHazardPeriods,
+			personality ?? Personality);
 
 	private static void ValidateIdentity(
 		EPilotBackgroundId backgroundId,

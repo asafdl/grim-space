@@ -132,6 +132,15 @@ public static class PilotSkillPercents
 		public const int HeatGainReductionPercent = 20;
 	}
 
+	public static class SynthSinger
+	{
+		/// <summary>Additive heat gain growth (120 = generate 20% more heat).</summary>
+		public const int HeatGainBonusPercent = 20;
+
+		/// <summary>Additive max heat capacity growth (120 = 20% more capacity).</summary>
+		public const int HeatCapacityBonusPercent = 20;
+	}
+
 	public static class AsteroidSurfer
 	{
 		public const int OutgoingDamageBonusPercent = 10;

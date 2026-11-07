@@ -24,6 +24,8 @@ public enum EPilotCapabilityId
 	OptimalityContractCreditBonus,
 	InitiativePenalty,
 	HeatGainReduction,
+	HeatGainBonus,
+	HeatCapacityBonus,
 	HeatClearBonus,
 	OutgoingDamageBonus,
 	IncreasedHullDamageTaken,

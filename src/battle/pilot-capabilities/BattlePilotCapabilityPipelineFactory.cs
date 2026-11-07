@@ -29,6 +29,8 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.OneWithTheVoid
 			or EPilotCapabilityId.InitiativePenalty
 			or EPilotCapabilityId.HeatGainReduction
+			or EPilotCapabilityId.HeatGainBonus
+			or EPilotCapabilityId.HeatCapacityBonus
 			or EPilotCapabilityId.HeatClearBonus
 			or EPilotCapabilityId.OutgoingDamageBonus
 			or EPilotCapabilityId.IncreasedHullDamageTaken

@@ -162,7 +162,8 @@ public sealed class PilotIdentityTests
 			BaseSalaryCredits: 1,
 			MissedSalaryPeriods: 0,
 			MissedHazardPeriods: 0,
-			ClassId: EOperatorClassId.SpaceRanger);
+			ClassId: EOperatorClassId.SpaceRanger,
+			Personality: default);
 
 		Assert.Throws<ArgumentException>(() => Pilot.FromPersistence(dto));
 	}

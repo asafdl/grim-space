@@ -17,12 +17,13 @@ public sealed class PilotBackgroundCatalogTests
 	{
 		var backgrounds = PilotBackgroundCatalog.All.ToArray();
 
-		Assert.Equal(10, backgrounds.Length);
+		Assert.Equal(11, backgrounds.Length);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.ScrapDrone);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.OptimalityEnforcer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.CorporateSlave);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.PodRacer);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.AsteroidSurfer);
+		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.SynthSinger);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.RetiredMachineManager);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.CyberJunkie);
 		Assert.Contains(backgrounds, background => background.Id == EPilotBackgroundId.HydraulicAbuser);
@@ -95,6 +96,28 @@ public sealed class PilotBackgroundCatalogTests
 			StringComparison.Ordinal);
 		Assert.Contains(
 			$"+{PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent - 100}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void SynthSinger_GrantsHeatGainAndCapacityBonuses()
+	{
+		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.SynthSinger);
+
+		Assert.Equal("Synth Singer", definition.Name);
+		Assert.Equal(
+			[
+				EPilotCapabilityId.HeatGainBonus,
+				EPilotCapabilityId.HeatCapacityBonus,
+			],
+			definition.CapabilityIds);
+		Assert.Contains(
+			$"+{PilotSkillPercents.SynthSinger.HeatGainBonusPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			$"+{PilotSkillPercents.SynthSinger.HeatCapacityBonusPercent}%",
 			definition.Tooltip.Details,
 			StringComparison.Ordinal);
 	}

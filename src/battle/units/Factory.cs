@@ -45,6 +45,7 @@ public static class Factory
 			return;
 
 		var profile = state.HeatProfile;
+		var capacity = profile.Capacity;
 		var gainMultiplier = profile.GainMultiplier;
 		var clearPerTurn = profile.ClearPerTurn;
 
@@ -59,6 +60,15 @@ public static class Factory
 				gainMultiplier *= retainedFraction;
 		}
 
+		var heatGainBonusStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.HeatGainBonus);
+		if (heatGainBonusStacks > 0)
+		{
+			var gainBonusPercent =
+				heatGainBonusStacks * PilotSkillPercents.SynthSinger.HeatGainBonusPercent;
+			gainMultiplier *= (100 + gainBonusPercent) / 100f;
+		}
+
 		var heatClearBonusStacks = pilot.CapabilityGrants.Count(grant =>
 			grant.CapabilityId == EPilotCapabilityId.HeatClearBonus);
 		if (heatClearBonusStacks > 0)
@@ -68,10 +78,21 @@ public static class Factory
 			clearPerTurn = ScalePercent(clearPerTurn, 100 + clearBonusPercent);
 		}
 
-		if (gainMultiplier == profile.GainMultiplier && clearPerTurn == profile.ClearPerTurn)
+		var heatCapacityBonusStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.HeatCapacityBonus);
+		if (heatCapacityBonusStacks > 0 && capacity is > 0)
+		{
+			var capacityBonusPercent =
+				heatCapacityBonusStacks * PilotSkillPercents.SynthSinger.HeatCapacityBonusPercent;
+			capacity = ScalePercent(capacity.Value, 100 + capacityBonusPercent);
+		}
+
+		if (gainMultiplier == profile.GainMultiplier
+			&& clearPerTurn == profile.ClearPerTurn
+			&& capacity == profile.Capacity)
 			return;
 
-		state.HeatProfile = new HeatSpec(profile.Capacity, clearPerTurn, gainMultiplier);
+		state.HeatProfile = new HeatSpec(capacity, clearPerTurn, gainMultiplier);
 	}
 
 	private static void ApplyBaseHullPenalty(State state, PilotBattleSnapshot pilot)

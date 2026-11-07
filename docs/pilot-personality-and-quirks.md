@@ -45,9 +45,13 @@ framework before that connection is useful.
 ```text
 Quirks ---------------------> passive capability grants
    |
-   +----> personality contributions ----+
-                                       |
-Background --> optional contributions -+--> derived personality
+   +----> optional personality modifier -+
+                                        |
+Background --> optional modifier -------+--> effective personality
+                                        |
+Pilot-owned baseline -------------------+
+   ^
+   +---- future committed world-event changes
                                                 |
                          +----------------------+----------------------+
                          |                      |                      |
@@ -60,41 +64,52 @@ personality contribution.
 
 ### Starting dispositions
 
-Use a small game-specific vocabulary rather than the Big Five. The initial
-candidate dimensions are:
+Use three independent, game-specific axes rather than the Big Five. Each is an
+integer from **-5 to +5**, with **0 neutral**:
 
-| Disposition | What it describes |
-|-------------|-------------------|
-| Fearfulness | Sensitivity to danger and perceived risk |
-| Aggression | Inclination toward violence and confrontation |
-| Compulsiveness | Susceptibility to cravings, obsessions, and temptation |
-| Loyalty | Inclination to prioritize the crew over personal interests |
+| Axis | -5 | +5 |
+|------|----|----|
+| Threat response | Fearful | Aggressive |
+| Deliberation | Impulsive | Calculated |
+| Allegiance | Self-interested | Team-loyal |
 
-These are working dimensions, not finalized content or good/bad alignments.
-Low fearfulness is not automatically aggression; compulsiveness is not itself an
-addiction. Specific addictions belong in quirks.
+Threat response describes avoidance versus confrontation, not a claim that fear
+and aggression cannot coexist. These axes are tendencies, not good/bad alignments
+or guaranteed behavior. Specific addictions belong in quirks, not in deliberation.
+
+[PilotPersonality](../src/pilots/PilotPersonality.cs) implements this immutable,
+Godot-free value model. Out-of-range inputs are rejected rather than clamped;
+the default value is neutral on all axes. Baseline personality is stored on
+[Pilot](../src/run/Pilot.cs), carried through recruit profiles and pilot copies,
+and saved with the run. `EffectivePersonality` combines that baseline with the
+current background and quirk modifiers. Dialogue/gameplay consumers are not
+connected yet.
 
 The absurdity comes from situations and expression, not from making the model
 psychologically elaborate.
 
-### Derivation and queries
+### State and queries
 
-Proposed first implementation:
+Current foundation and future direction:
 
-- Derive a read-only personality value from the pilot's current quirks and,
-  if adopted, background contributions.
-- Use one shared composition rule for all consumers.
-- Do not separately persist mutable personality scores or roll hidden baseline
-  personality unless a concrete design need emerges.
-- Keep calculation deterministic and independent of Godot, bark randomness,
+- Every pilot starts with a neutral stored baseline.
+- Backgrounds and quirks have an optional `PersonalityModifier`, defaulting to
+  zero, independently of their passive capability grants.
+- Effective personality is baseline plus the current background and quirks.
+  Sum all contributions before clamping each axis to -5 through +5. Repeated reads
+  never mutate the baseline; removing a quirk removes its contribution.
+- Future committed world events can change the baseline through the run boundary.
+- Use the existing roster update boundary to replace immutable pilot values.
+- Keep personality changes deterministic and independent of Godot, bark randomness,
   scene lifetime, and presentation timing.
 - Keep disposition values separate from a consumer's response policy. Dialogue
   decides how disposition influences a reaction; an event decides how it affects
   that event's outcome.
 
-Choose the numeric range, neutral baseline, and combination/clamping rule before
-implementation. The first version only needs simple, testable contributions, not
-a general-purpose personality rule engine.
+Initial background modifiers are Gear Psycho (+3 threat response) and Bean
+Counter (+3 deliberation). All other backgrounds and existing quirks currently
+contribute zero. No separate pilot-status registry or battle-status reuse is
+needed: source definitions own the modifiers, and the pilot resolves them.
 
 Future event definitions should query personality for disposition-based outcomes,
 not reproduce the mapping from quirk IDs to personality. An event explicitly
@@ -130,7 +145,7 @@ The intended loop is:
 Recruit a promising pilot
     -> campaign with them
     -> acquire positive/negative quirks
-    -> change passive effects and derived personality
+    -> change passive effects and pilot personality
     -> spend resources to alter unwanted or desirable combinations
     -> keep developing that individual
 ```
@@ -151,11 +166,11 @@ existing APIs.
 
 | System | Current code and behavior | Planned extension |
 |--------|---------------------------|-------------------|
-| Quirk definitions | [PilotQuirkDefinition](../src/pilots/PilotQuirkDefinition.cs), [PilotQuirkCatalog](../src/pilots/PilotQuirkCatalog.cs), [EPilotQuirkId](../src/pilots/EPilotQuirkId.cs): two placeholder quirks, empty capability lists, empty recruitment pools | Add personality contributions, expand content, and enable recruitment only for ready quirks |
+| Quirk definitions | [PilotQuirkDefinition](../src/pilots/PilotQuirkDefinition.cs), [PilotQuirkCatalog](../src/pilots/PilotQuirkCatalog.cs), [EPilotQuirkId](../src/pilots/EPilotQuirkId.cs): optional personality modifiers; two placeholder quirks with zero modifiers, empty capability lists and recruitment pools | Choose quirk contributions, expand content, and enable recruitment only for ready quirks |
 | Pilot identity | [Pilot](../src/run/Pilot.cs), [PilotRecruitProfile](../src/pilots/PilotRecruitProfile.cs): one nullable positive and one nullable negative quirk | Replace singular slots with validated, defensively owned collections; enforce four per polarity and no duplicate IDs |
 | Roster authority | [RunPilotRegistry](../src/run/RunPilotRegistry.cs): owns pilot instances, validates roster updates, aggregates capability grants | Preserve this boundary for pilot replacement and enumerate all quirks for capability queries |
-| Personality | No shared model currently exists | Add a small Godot-free value model and composition logic under `src/pilots/`; suggested name: `PilotPersonality`. Keep related calculation together rather than introducing a separate manager/service |
-| Backgrounds | [PilotBackgroundDefinition](../src/pilots/PilotBackgroundDefinition.cs), [PilotBackgroundCatalog](../src/pilots/PilotBackgroundCatalog.cs): identity and capabilities | Optionally add contributions using the same personality vocabulary |
+| Personality | [PilotPersonality](../src/pilots/PilotPersonality.cs): immutable three-axis model and modifier composition; [Pilot](../src/run/Pilot.cs) owns the baseline and exposes effective personality | Future events change the baseline through the roster boundary; no separate personality registry |
+| Backgrounds | [PilotBackgroundDefinition](../src/pilots/PilotBackgroundDefinition.cs), [PilotBackgroundCatalog](../src/pilots/PilotBackgroundCatalog.cs): identity, capabilities, optional personality modifiers | Expand contributions as content is decided |
 | Recruitment and starters | [PilotRecruitment](../src/world/star-system/merchants/PilotRecruitment.cs), factory methods on [Pilot](../src/run/Pilot.cs) | Generate bounded starting collections; retain seeded recruitment streams and intentional starter identities |
 | Passive effects | [PilotCapability](../src/pilots/PilotCapability.cs), roster capability queries | Reuse quirk-sourced capability grants; personality does not replace this path |
 | Battle passives | [BattlePassiveStatusInstaller](../src/battle/statuses/BattlePassiveStatusInstaller.cs), [BattlePilotCapabilityPipelineFactory](../src/battle/pilot-capabilities/BattlePilotCapabilityPipelineFactory.cs) | Implement relevant battle passives through existing statuses, not a new quirk modifier pipeline |
@@ -163,14 +178,15 @@ existing APIs.
 | Dialogue | [PilotBarkDirector](../src/pilots/barks/PilotBarkDirector.cs), [PilotBarkCatalog](../src/pilots/barks/PilotBarkCatalog.cs), [EBarkFlavor](../src/pilots/barks/EBarkFlavor.cs) | Resolve each pilot's personality from authoritative inputs and weight eligible flavors |
 | Run coordination | [State](../src/run/State.cs): roster, committed-outcome listeners, capability refresh, battle snapshot construction, bark director lifetime | Coordinate committed quirk changes and dependent projections without becoming the personality rule owner |
 | Identity UI | [PilotIdentityIconRail](../src/world/star-system/presentation/ui/PilotIdentityIconRail.cs), [PilotCharacterSheetOverlay](../src/world/star-system/presentation/ui/PilotCharacterSheetOverlay.cs), hiring UI | Display multiple quirks with usable layout and descriptions; no personality sliders or score display |
-| Persistence | [PilotPersistenceDto](../src/run/persistence/dtos/PilotPersistenceDto.cs), [SaveGameDocument](../src/run/persistence/SaveGameDocument.cs) | Persist quirk collections and any later per-quirk state; explicitly version the schema change |
+| Persistence | [PilotPersistenceDto](../src/run/persistence/dtos/PilotPersistenceDto.cs), [SaveGameDocument](../src/run/persistence/SaveGameDocument.cs): personality persisted in format 11; older formats rejected by existing load policy | Persist quirk collections and any later per-quirk state; explicitly version future schema changes |
 | Encounter boundary | [PilotBattleSnapshot](../src/battle/encounter/PilotBattleSnapshot.cs), [PilotBattleSnapshotDto](../src/run/persistence/dtos/PilotBattleSnapshotDto.cs), [SaveDtoMapper](../src/run/persistence/SaveDtoMapper.cs) | Extend only when battle rules actually require personality; carry derived encounter inputs instead of reading the live run roster from battle rules |
 | Future world events | No general system | Define event state/actions/outcomes in the owning domain when concrete events are selected; consume the shared personality model |
 
 ### State and dependency boundaries
 
 - The run roster remains authoritative for pilot identity and acquired quirks.
-- Personality is derived domain data, not a second pilot registry.
+- Baseline personality belongs to the pilot in the authoritative run roster.
+  Effective personality is a disposable derivation, not separately saved state.
 - Presentation can read personality but cannot apply gameplay consequences.
 - Paid alterations must validate resource expenditure and identity changes through
   an explicit owning-domain operation. Do not debit in UI and update the pilot
@@ -221,15 +237,18 @@ campaign acquisition yet.
 updates, copying, save/load, and UI projection; invalid input fails explicitly.
 All quirk grants reach the existing capability consumers.
 
-### 2. Shared hidden personality
+### 2. Shared hidden personality (foundation implemented first)
 
-Finalize the initial dimensions and simple composition rule. Add contribution
-metadata to quirks and optionally backgrounds; derive personality from current
-pilot identity. Start with a small content set, not a large quirk catalog.
+The neutral, three-axis personality foundation is implemented independently of
+multi-quirk storage. Personality is preserved through recruitment, copying, and
+run persistence. Background and quirk definitions support optional modifiers,
+and pilots resolve effective personality from all current sources. Two background
+modifiers are enabled; quirk values and world-event changes remain future content.
 
-**Exit:** composition is deterministic, neutral inputs work, quirk changes alter
-the result, and all consumers can use the same Godot-free model. No independently
-persisted personality state or player configuration UI exists.
+**Foundation exit:** neutral creation, non-neutral copies, and save/load preserve
+all three axes. Consumers can use the same Godot-free model; no player
+configuration UI exists. Contributions sum before clamping and do not accumulate
+across reads or save/load.
 
 ### 3. Personality-aware atmosphere
 
@@ -286,7 +305,7 @@ Do not begin with a universal event framework or automatic combat refusal.
 ## Validation strategy
 
 - Extend [pilot tests](../grim-space.Tests/Pilots/) for identity validation,
-  recruitment, capability grants, catalog data, personality derivation, and barks.
+  recruitment, capability grants, catalog data, personality state, and barks.
 - Extend [run persistence tests](../grim-space.Tests/Run/) for the new quirk
   collections and the explicit save-version policy.
 - Test personality-weighted selection with controlled random inputs and
@@ -306,7 +325,7 @@ Do not begin with a universal event framework or automatic combat refusal.
 
 ## Decisions deliberately left open
 
-- Final dispositions, numeric scale, contribution strength, and bark weights.
+- Contribution strength, composition rules, and bark weights.
 - Whether backgrounds influence personality in the first version.
 - Initial quirk content and starting quirk counts/distribution.
 - Acquisition triggers, rates, incompatibilities, and full-slot behavior.

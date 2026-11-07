@@ -19,4 +19,5 @@ public sealed record PilotPersistenceDto(
 	int BaseSalaryCredits,
 	int MissedSalaryPeriods,
 	int MissedHazardPeriods,
-	EOperatorClassId ClassId);
+	EOperatorClassId ClassId,
+	PilotPersonality Personality);
