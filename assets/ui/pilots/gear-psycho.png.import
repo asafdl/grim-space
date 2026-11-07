@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://g5gearpsycho1"
-path="res://.godot/imported/gear-psycho.png-ffe1819580b78ff6180e8899e531461f.ctex"
+uid="uid://da1iopske4lxa"
+path="res://.godot/imported/gear-psycho.png-6b9e53381e4e1e0035601616fa6809a5.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/pilots/gear-psycho.png"
-dest_files=["res://.godot/imported/gear-psycho.png-ffe1819580b78ff6180e8899e531461f.ctex"]
+dest_files=["res://.godot/imported/gear-psycho.png-6b9e53381e4e1e0035601616fa6809a5.ctex"]
 
 [params]
 

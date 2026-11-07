@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1rogueclass01"
-path="res://.godot/imported/rogue.png-682e50535d597031fb03e4df80de1442.ctex"
+uid="uid://b0vko1ajpxsto"
+path="res://.godot/imported/rogue.png-7c8cb729ecf476ed652b14c75cf822d2.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/classes/rogue.png"
-dest_files=["res://.godot/imported/rogue.png-682e50535d597031fb03e4df80de1442.ctex"]
+dest_files=["res://.godot/imported/rogue.png-7c8cb729ecf476ed652b14c75cf822d2.ctex"]
 
 [params]
 

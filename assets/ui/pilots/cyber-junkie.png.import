@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7cyberjunkie01"
-path="res://.godot/imported/cyber-junkie.png-ffe1819580b78ff6180e8899e531461f.ctex"
+uid="uid://bgaq1qtbf0vqq"
+path="res://.godot/imported/cyber-junkie.png-2df96f8b9176549c9fb6e5a9e8054577.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/pilots/cyber-junkie.png"
-dest_files=["res://.godot/imported/cyber-junkie.png-ffe1819580b78ff6180e8899e531461f.ctex"]
+dest_files=["res://.godot/imported/cyber-junkie.png-2df96f8b9176549c9fb6e5a9e8054577.ctex"]
 
 [params]
 

@@ -275,7 +275,9 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (_hud.IsPauseMenuOpen)
 		{
-			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
+			if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }
+				&& !_hud.PauseMenu.IsSettingsOpen
+				&& !_hud.PauseMenu.IsReportDialogOpen)
 			{
 				_hud.ClosePauseMenu();
 				GetViewport().SetInputAsHandled();

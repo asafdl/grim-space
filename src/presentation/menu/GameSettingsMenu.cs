@@ -230,6 +230,8 @@ public partial class GameSettingsMenu : Control
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
+		_settingsTabs.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+		_settingsTabs.AddThemeStyleboxOverride("tabbar_background", new StyleBoxEmpty());
 		_settingsTabs.TabChanged += OnSettingsTabChanged;
 		_settingsTabs.AddChild(BuildVideoTab());
 		_settingsTabs.AddChild(BuildAudioTab());

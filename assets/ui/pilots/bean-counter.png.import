@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://f4beancount01"
-path="res://.godot/imported/bean-counter.png-ffe1819580b78ff6180e8899e531461f.ctex"
+uid="uid://b8violfgbgyaa"
+path="res://.godot/imported/bean-counter.png-bbb5af6d3475f1a4307868b9ac48d43b.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/pilots/bean-counter.png"
-dest_files=["res://.godot/imported/bean-counter.png-ffe1819580b78ff6180e8899e531461f.ctex"]
+dest_files=["res://.godot/imported/bean-counter.png-bbb5af6d3475f1a4307868b9ac48d43b.ctex"]
 
 [params]
 

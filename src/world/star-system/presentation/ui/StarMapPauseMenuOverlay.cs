@@ -99,6 +99,10 @@ public sealed partial class StarMapPauseMenuOverlay : Control
 		{
 			if (_shell.IsOpen)
 				_shell.Close();
+			if (_settings.IsOpen)
+				_settings.Close();
+			if (_reportDialog.IsOpen)
+				_reportDialog.Close();
 			return;
 		}
 

@@ -28,6 +28,8 @@ public sealed class PauseMenuSettingsHost
 
 	public void Open() => _menu.Open();
 
+	public void Close() => _menu.Hide();
+
 	public bool TryCloseOnEscape(InputEvent @event)
 	{
 		return _menu.TryHandleEscape(@event);

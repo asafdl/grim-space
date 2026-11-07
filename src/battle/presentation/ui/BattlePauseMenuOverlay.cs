@@ -111,6 +111,10 @@ public sealed partial class BattlePauseMenuOverlay : CanvasLayer
 		{
 			if (_shell.IsOpen)
 				_shell.Close();
+			if (_settings.IsOpen)
+				_settings.Close();
+			if (_reportDialog.IsOpen)
+				_reportDialog.Close();
 			return;
 		}
 

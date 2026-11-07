@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2rmmicon001"
-path="res://.godot/imported/retired-machine-manager.png-ffe1819580b78ff6180e8899e531461f.ctex"
+path="res://.godot/imported/retired-machine-manager.png-0abfdd1a0a6112cc10850e05593c4352.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/ui/pilots/retired-machine-manager.png"
-dest_files=["res://.godot/imported/retired-machine-manager.png-ffe1819580b78ff6180e8899e531461f.ctex"]
+dest_files=["res://.godot/imported/retired-machine-manager.png-0abfdd1a0a6112cc10850e05593c4352.ctex"]
 
 [params]
 
