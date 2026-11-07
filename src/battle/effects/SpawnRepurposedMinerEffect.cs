@@ -22,6 +22,7 @@ public sealed class SpawnRepurposedMinerEffect(AbilityMount mount, string unitId
 		var repurposedMiner = Factory.Create(
 			child,
 			parent.Team,
+			parent.Faction,
 			position,
 			EBattleAgentKind.Ai,
 			fore,

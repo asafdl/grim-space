@@ -34,4 +34,5 @@ public sealed record BattleUnitStateDto(
 	bool Overdrive,
 	bool Overheat,
 	int ThirstForScrapStacks,
-	int? HullHandoffBasePoints = null);
+	int? HullHandoffBasePoints = null,
+	FaceShieldDto? ShieldHandoffBasePoints = null);

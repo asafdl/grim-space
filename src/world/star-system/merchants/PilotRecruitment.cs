@@ -70,10 +70,16 @@ public static class PilotRecruitment
 					SlotRng(map.Seed, contractId, slot, "class").Next(RecruitableOperatorClasses.Length)];
 			var baseSalary = StrategicEconomyConfig.RollBaseSalaryCredits(
 				SlotRng(map.Seed, contractId, slot, "salary"));
+			var quirks = PilotQuirkCatalog.RollQuirks(
+				SlotRng(map.Seed, contractId, slot, "quirks"));
 			var profile = new PilotRecruitProfile(
 				name,
 				portraitId,
 				backgroundId,
+				positiveQuirkIds: quirks.Where(id =>
+					PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Positive).ToArray(),
+				negativeQuirkIds: quirks.Where(id =>
+					PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Negative).ToArray(),
 				experiencePoints: 0,
 				claimedLevel: PilotProgression.LevelFor(0),
 				baseSalaryCredits: baseSalary,
@@ -111,7 +117,7 @@ public static class PilotRecruitment
 		}
 	}
 
-	/// <summary>Display/hire-time price. Charismatic discount deferred.</summary>
+	/// <summary>Display/hire-time price until pilot-specific pricing exists.</summary>
 	public static ResourceBundle Price(StarMap map, PilotHireCandidate candidate)
 	{
 		ArgumentNullException.ThrowIfNull(map);

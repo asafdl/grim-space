@@ -171,7 +171,7 @@ public sealed class BattleOrchestrator : IDisposable
 			var agentKind = BattleAgentFactory.KindOf(savedUnit.ExecutionAgent);
 			world.UnitRegistry.Remove(savedUnit.State.Id);
 			world.UnitRegistry.Add(
-				Factory.Create(savedUnit.State.Clone(), savedUnit.Team, agentKind));
+				Factory.Create(savedUnit.State.Clone(), savedUnit.Team, savedUnit.Faction, agentKind));
 		}
 
 		var pilotsByActorId = encounter?.Spawns.ToDictionary(

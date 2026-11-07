@@ -41,13 +41,11 @@ public sealed class Pilot
 	public PilotPersonality Personality { get; }
 	public PilotPersonality EffectivePersonality =>
 		Personality.ApplyModifiers(
-			PilotBackgroundCatalog.Get(BackgroundId).PersonalityModifier,
-			PositiveQuirkId is { } positive
-				? PilotQuirkCatalog.Get(positive).PersonalityModifier : default,
-			NegativeQuirkId is { } negative
-				? PilotQuirkCatalog.Get(negative).PersonalityModifier : default);
-	public EPilotQuirkId? PositiveQuirkId { get; }
-	public EPilotQuirkId? NegativeQuirkId { get; }
+			PositiveQuirkIds.Concat(NegativeQuirkIds)
+				.Select(id => PilotQuirkCatalog.Get(id).PersonalityModifier)
+				.Prepend(PilotBackgroundCatalog.Get(BackgroundId).PersonalityModifier).ToArray());
+	public IReadOnlyList<EPilotQuirkId> PositiveQuirkIds { get; }
+	public IReadOnlyList<EPilotQuirkId> NegativeQuirkIds { get; }
 	public string? AssignedShipId { get; }
 	public bool IsActive { get; }
 	public int ExperiencePoints { get; }
@@ -63,8 +61,8 @@ public sealed class Pilot
 		string portraitId,
 		EPilotBackgroundId backgroundId,
 		EOperatorClassId classId,
-		EPilotQuirkId? positiveQuirkId,
-		EPilotQuirkId? negativeQuirkId,
+		IReadOnlyList<EPilotQuirkId> positiveQuirkIds,
+		IReadOnlyList<EPilotQuirkId> negativeQuirkIds,
 		string? assignedShipId,
 		bool isActive,
 		int experiencePoints,
@@ -84,7 +82,7 @@ public sealed class Pilot
 		ArgumentOutOfRangeException.ThrowIfNegative(baseSalaryCredits);
 		ArgumentOutOfRangeException.ThrowIfNegative(missedSalaryPeriods);
 		ArgumentOutOfRangeException.ThrowIfNegative(missedHazardPeriods);
-		ValidateIdentity(backgroundId, positiveQuirkId, negativeQuirkId);
+		PilotBackgroundCatalog.Get(backgroundId);
 		ValidateClassId(classId);
 
 		Id = id;
@@ -93,8 +91,8 @@ public sealed class Pilot
 		BackgroundId = backgroundId;
 		ClassId = classId;
 		Personality = personality;
-		PositiveQuirkId = positiveQuirkId;
-		NegativeQuirkId = negativeQuirkId;
+		PositiveQuirkIds = PilotQuirkCatalog.ValidateQuirks(positiveQuirkIds, EPilotQuirkPolarity.Positive);
+		NegativeQuirkIds = PilotQuirkCatalog.ValidateQuirks(negativeQuirkIds, EPilotQuirkPolarity.Negative);
 		AssignedShipId = assignedShipId;
 		IsActive = isActive;
 		ExperiencePoints = experiencePoints;
@@ -135,8 +133,8 @@ public sealed class Pilot
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			PilotBackgroundCatalog.Roll(rng).Id,
 			classId,
-			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng),
-			PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng),
+			[PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng)],
+			[PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng)],
 			assignedShipId,
 			false,
 			0,
@@ -159,8 +157,8 @@ public sealed class Pilot
 			profile.PortraitId,
 			profile.BackgroundId,
 			profile.ClassId,
-			profile.PositiveQuirkId,
-			profile.NegativeQuirkId,
+			profile.PositiveQuirkIds,
+			profile.NegativeQuirkIds,
 			assignedShipId,
 			false,
 			profile.ExperiencePoints,
@@ -186,8 +184,8 @@ public sealed class Pilot
 			PortraitPool[rng.Next(PortraitPool.Length)],
 			PilotBackgroundCatalog.Roll(rng).Id,
 			classId,
-			EPilotQuirkId.Charismatic,
-			EPilotQuirkId.NeuroDrugAddict,
+			[EPilotQuirkId.Charismatic],
+			[EPilotQuirkId.NeuroDrugAddict],
 			assignedShipId,
 			false,
 			0,
@@ -208,8 +206,8 @@ public sealed class Pilot
 			PortraitId,
 			BackgroundId,
 			ClassId,
-			PositiveQuirkId,
-			NegativeQuirkId,
+			PositiveQuirkIds,
+			NegativeQuirkIds,
 			assignedShipId,
 			isActive,
 			ExperiencePoints,
@@ -260,8 +258,8 @@ public sealed class Pilot
 			dto.PortraitId,
 			dto.BackgroundId,
 			dto.ClassId,
-			dto.PositiveQuirkId,
-			dto.NegativeQuirkId,
+			dto.PositiveQuirkIds,
+			dto.NegativeQuirkIds,
 			dto.AssignedShipId,
 			dto.IsActive,
 			dto.ExperiencePoints,
@@ -279,8 +277,8 @@ public sealed class Pilot
 			Name,
 			PortraitId,
 			BackgroundId,
-			PositiveQuirkId,
-			NegativeQuirkId,
+			PositiveQuirkIds,
+			NegativeQuirkIds,
 			AssignedShipId,
 			ExperiencePoints,
 			ClaimedLevel,
@@ -307,8 +305,8 @@ public sealed class Pilot
 			PortraitId,
 			BackgroundId,
 			ClassId,
-			PositiveQuirkId,
-			NegativeQuirkId,
+			PositiveQuirkIds,
+			NegativeQuirkIds,
 			AssignedShipId,
 			isActive ?? IsActive,
 			experiencePoints ?? ExperiencePoints,
@@ -318,32 +316,6 @@ public sealed class Pilot
 			missedSalaryPeriods ?? MissedSalaryPeriods,
 			missedHazardPeriods ?? MissedHazardPeriods,
 			personality ?? Personality);
-
-	private static void ValidateIdentity(
-		EPilotBackgroundId backgroundId,
-		EPilotQuirkId? positiveQuirkId,
-		EPilotQuirkId? negativeQuirkId)
-	{
-		PilotBackgroundCatalog.Get(backgroundId);
-
-		if (positiveQuirkId is { } positive)
-		{
-			var positiveQuirk = PilotQuirkCatalog.Get(positive);
-			if (positiveQuirk.Polarity != EPilotQuirkPolarity.Positive)
-				throw new ArgumentException(
-					$"Pilot positive quirk '{positive}' has polarity '{positiveQuirk.Polarity}'.",
-					nameof(positiveQuirkId));
-		}
-
-		if (negativeQuirkId is { } negative)
-		{
-			var negativeQuirk = PilotQuirkCatalog.Get(negative);
-			if (negativeQuirk.Polarity != EPilotQuirkPolarity.Negative)
-				throw new ArgumentException(
-					$"Pilot negative quirk '{negative}' has polarity '{negativeQuirk.Polarity}'.",
-					nameof(negativeQuirkId));
-		}
-	}
 
 	private static void ValidateClassId(EOperatorClassId classId)
 	{

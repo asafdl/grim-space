@@ -96,7 +96,7 @@ public static class CommitBattleOutcomeRules
 				unit.State.Id,
 				unit.State.Type,
 				unit.State.HullPointsForHandoff(),
-				unit.State.CurrentShieldPoints.Clone(),
+				unit.State.ShieldPointsForHandoff(),
 				ShipLoadoutGearTier.FromLoadout(unit.State.Loadout, unit.State.Type)))
 			.ToArray();
 		if (result != EBattleResult.Win)

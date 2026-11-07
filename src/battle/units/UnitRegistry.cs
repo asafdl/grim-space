@@ -96,5 +96,5 @@ public sealed class UnitRegistry
 	}
 
 	private static Unit CloneUnit(Unit unit) =>
-		new(unit.State.Clone(), unit.ExecutionAgent, unit.Team);
+		new(unit.State.Clone(), unit.ExecutionAgent, unit.Team, unit.Faction);
 }

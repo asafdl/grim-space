@@ -67,8 +67,8 @@ public sealed class PilotRegistryTests
 		Assert.Equal(PilotProgression.LevelFor(0), pilot.ClaimedLevel);
 		Assert.Empty(pilot.LearnedSkills);
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
-		Assert.Equal(EPilotQuirkId.Charismatic, pilot.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilot.NegativeQuirkId);
+		Assert.Equal(EPilotQuirkId.Charismatic, Assert.Single(pilot.PositiveQuirkIds));
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, Assert.Single(pilot.NegativeQuirkIds));
 	}
 
 	[Fact]
@@ -469,8 +469,8 @@ public sealed class PilotRegistryTests
 		Assert.True(restoredRegistry.TryGet(pilot.Id, out var restored));
 		Assert.Equal(175, restored.ExperiencePoints);
 		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
-		Assert.Equal(pilot.PositiveQuirkId, restored.PositiveQuirkId);
-		Assert.Equal(pilot.NegativeQuirkId, restored.NegativeQuirkId);
+		Assert.Equal(pilot.PositiveQuirkIds, restored.PositiveQuirkIds);
+		Assert.Equal(pilot.NegativeQuirkIds, restored.NegativeQuirkIds);
 	}
 
 	[Fact]

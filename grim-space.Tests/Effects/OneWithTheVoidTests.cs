@@ -15,6 +15,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.Effects;
 
@@ -141,6 +142,7 @@ public sealed class OneWithTheVoidTests
 				Ship = playerSpawn.Ship,
 				Pilot = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.OneWithTheVoid]),
 				Team = playerSpawn.Team,
+				Faction = playerSpawn.Faction,
 				Position = playerSpawn.Position,
 				ExecutionAgent = playerSpawn.ExecutionAgent,
 			};

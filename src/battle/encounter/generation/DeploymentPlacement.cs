@@ -177,6 +177,7 @@ public static class DeploymentPlacement
 			{
 				Ship = playerShip,
 				Team = ETeam.Player,
+				Faction = EFaction.Player,
 				Position = playerPosition,
 				Fore = playerFore,
 				Dorsal = dorsal,
@@ -186,6 +187,7 @@ public static class DeploymentPlacement
 			{
 				Ship = enemyShip,
 				Team = ETeam.Enemy,
+				Faction = EFaction.TheOptimality,
 				Position = enemyPosition,
 				Fore = enemyFore,
 				Dorsal = dorsal,
@@ -230,6 +232,7 @@ public static class DeploymentPlacement
 				Ship = registry.Get(member.Id).Clone(),
 				Pilot = pilot,
 				Team = team,
+				Faction = fleet.State.Faction,
 				Position = position,
 				Fore = fore,
 				Dorsal = dorsal,

@@ -10,6 +10,24 @@ namespace GrimSpace.Tests.Run;
 public sealed class PilotIdentityTests
 {
 	[Fact]
+	public void FromPersistence_RejectsInvalidQuirkCollections()
+	{
+		var dto = Pilot.CreateForShip("ship-1").ToPersistence();
+		Assert.Throws<ArgumentNullException>(() =>
+			Pilot.FromPersistence(dto with { PositiveQuirkIds = null! }));
+		Assert.Throws<ArgumentException>(() =>
+			Pilot.FromPersistence(dto with
+			{
+				NegativeQuirkIds = [EPilotQuirkId.NeuroDrugAddict, EPilotQuirkId.NeuroDrugAddict],
+			}));
+		Assert.Throws<ArgumentException>(() =>
+			Pilot.FromPersistence(dto with
+			{
+				PositiveQuirkIds = Enumerable.Repeat(EPilotQuirkId.Charismatic, 5).ToArray(),
+			}));
+	}
+
+	[Fact]
 	public void CreateForShip_RollsBackgroundAndQuirksFromCatalog()
 	{
 		var pilot = Pilot.CreateForShip("fighter-a", rng: new Random(42));
@@ -17,10 +35,10 @@ public sealed class PilotIdentityTests
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
 		Assert.Equal(
 			EPilotQuirkPolarity.Positive,
-			PilotQuirkCatalog.Get(pilot.PositiveQuirkId ?? throw new InvalidOperationException()).Polarity);
+			PilotQuirkCatalog.Get(Assert.Single(pilot.PositiveQuirkIds)).Polarity);
 		Assert.Equal(
 			EPilotQuirkPolarity.Negative,
-			PilotQuirkCatalog.Get(pilot.NegativeQuirkId ?? throw new InvalidOperationException()).Polarity);
+			PilotQuirkCatalog.Get(Assert.Single(pilot.NegativeQuirkIds)).Polarity);
 	}
 
 	[Fact]
@@ -30,8 +48,8 @@ public sealed class PilotIdentityTests
 			"Frozen Hire",
 			"pilot_05",
 			EPilotBackgroundId.AsteroidSurfer,
-			EPilotQuirkId.Charismatic,
-			EPilotQuirkId.NeuroDrugAddict,
+			[EPilotQuirkId.Charismatic],
+			[EPilotQuirkId.NeuroDrugAddict],
 			experiencePoints: 0,
 			claimedLevel: 1);
 		var pilot = Pilot.FromRecruitProfile("gunship-1", profile);
@@ -42,8 +60,8 @@ public sealed class PilotIdentityTests
 		Assert.Equal(profile.PortraitId, pilot.PortraitId);
 		Assert.Equal(profile.BackgroundId, pilot.BackgroundId);
 		Assert.Equal(profile.ClassId, pilot.ClassId);
-		Assert.Equal(profile.PositiveQuirkId, pilot.PositiveQuirkId);
-		Assert.Equal(profile.NegativeQuirkId, pilot.NegativeQuirkId);
+		Assert.Equal(profile.PositiveQuirkIds, pilot.PositiveQuirkIds);
+		Assert.Equal(profile.NegativeQuirkIds, pilot.NegativeQuirkIds);
 		Assert.Equal(profile.ExperiencePoints, pilot.ExperiencePoints);
 		Assert.Equal(profile.ClaimedLevel, pilot.ClaimedLevel);
 	}
@@ -58,8 +76,8 @@ public sealed class PilotIdentityTests
 		var pilot = Pilot.CreateStarterForShip("starter-a", new Random(42), classId);
 
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
-		Assert.Equal(EPilotQuirkId.Charismatic, pilot.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilot.NegativeQuirkId);
+		Assert.Equal(EPilotQuirkId.Charismatic, Assert.Single(pilot.PositiveQuirkIds));
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, Assert.Single(pilot.NegativeQuirkIds));
 		Assert.Equal(classId, pilot.ClassId);
 	}
 
@@ -69,8 +87,8 @@ public sealed class PilotIdentityTests
 		var original = Pilot.CreateForShip("fighter-a");
 		var pilot = PilotProgression.AddExperience(original, 250);
 
-		Assert.Equal(original.PositiveQuirkId, pilot.PositiveQuirkId);
-		Assert.Equal(original.NegativeQuirkId, pilot.NegativeQuirkId);
+		Assert.Equal(original.PositiveQuirkIds, pilot.PositiveQuirkIds);
+		Assert.Equal(original.NegativeQuirkIds, pilot.NegativeQuirkIds);
 		Assert.Equal(original.ClassId, pilot.ClassId);
 	}
 
@@ -80,8 +98,8 @@ public sealed class PilotIdentityTests
 		var original = Pilot.CreateForShip("fighter-a");
 		var pilot = original.WithAssignment("fighter-b", true);
 
-		Assert.Equal(original.PositiveQuirkId, pilot.PositiveQuirkId);
-		Assert.Equal(original.NegativeQuirkId, pilot.NegativeQuirkId);
+		Assert.Equal(original.PositiveQuirkIds, pilot.PositiveQuirkIds);
+		Assert.Equal(original.NegativeQuirkIds, pilot.NegativeQuirkIds);
 		Assert.Equal(original.ClassId, pilot.ClassId);
 	}
 
@@ -93,8 +111,8 @@ public sealed class PilotIdentityTests
 			.AddExperience(original, PilotProgression.ExperienceForLevel(3))
 			.LearnPilotSkill(EPilotSkillId.ShieldsUp);
 
-		Assert.Equal(original.PositiveQuirkId, pilot.PositiveQuirkId);
-		Assert.Equal(original.NegativeQuirkId, pilot.NegativeQuirkId);
+		Assert.Equal(original.PositiveQuirkIds, pilot.PositiveQuirkIds);
+		Assert.Equal(original.NegativeQuirkIds, pilot.NegativeQuirkIds);
 		Assert.Equal(original.ClassId, pilot.ClassId);
 	}
 
@@ -105,8 +123,8 @@ public sealed class PilotIdentityTests
 		var clone = pilot.Clone();
 
 		Assert.Equal(pilot.BackgroundId, clone.BackgroundId);
-		Assert.Equal(pilot.PositiveQuirkId, clone.PositiveQuirkId);
-		Assert.Equal(pilot.NegativeQuirkId, clone.NegativeQuirkId);
+		Assert.Equal(pilot.PositiveQuirkIds, clone.PositiveQuirkIds);
+		Assert.Equal(pilot.NegativeQuirkIds, clone.NegativeQuirkIds);
 		Assert.Equal(pilot.ClassId, clone.ClassId);
 	}
 
@@ -120,8 +138,8 @@ public sealed class PilotIdentityTests
 		var restored = Pilot.FromPersistence(restoredDto);
 
 		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
-		Assert.Equal(pilot.PositiveQuirkId, restored.PositiveQuirkId);
-		Assert.Equal(pilot.NegativeQuirkId, restored.NegativeQuirkId);
+		Assert.Equal(pilot.PositiveQuirkIds, restored.PositiveQuirkIds);
+		Assert.Equal(pilot.NegativeQuirkIds, restored.NegativeQuirkIds);
 		Assert.Equal(pilot.ClassId, restored.ClassId);
 	}
 
@@ -138,8 +156,8 @@ public sealed class PilotIdentityTests
 
 		Assert.True(restoredRegistry.TryGet(pilot.Id, out var restored));
 		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
-		Assert.Equal(pilot.PositiveQuirkId, restored.PositiveQuirkId);
-		Assert.Equal(pilot.NegativeQuirkId, restored.NegativeQuirkId);
+		Assert.Equal(pilot.PositiveQuirkIds, restored.PositiveQuirkIds);
+		Assert.Equal(pilot.NegativeQuirkIds, restored.NegativeQuirkIds);
 		Assert.Equal(pilot.ClassId, restored.ClassId);
 	}
 
@@ -151,8 +169,8 @@ public sealed class PilotIdentityTests
 			"Test",
 			"pilot_01",
 			EPilotBackgroundId.ScrapDrone,
-			EPilotQuirkId.NeuroDrugAddict,
-			EPilotQuirkId.NeuroDrugAddict,
+			[EPilotQuirkId.NeuroDrugAddict],
+			[EPilotQuirkId.NeuroDrugAddict],
 			"ship-1",
 			ExperiencePoints: 0,
 			ClaimedLevel: 1,
@@ -183,14 +201,14 @@ public sealed class PilotIdentityTests
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilotBefore = RunTestKit.StarterRangerPilot(run);
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilotBefore.BackgroundId);
-		Assert.Equal(EPilotQuirkId.Charismatic, pilotBefore.PositiveQuirkId);
-		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, pilotBefore.NegativeQuirkId);
+		Assert.Equal(EPilotQuirkId.Charismatic, Assert.Single(pilotBefore.PositiveQuirkIds));
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, Assert.Single(pilotBefore.NegativeQuirkIds));
 
 		run.RegenerateMap(77);
 
 		Assert.True(run.PilotRegistry.TryGet(pilotBefore.Id, out var pilotAfter));
 		Assert.Equal(pilotBefore.BackgroundId, pilotAfter.BackgroundId);
-		Assert.Equal(pilotBefore.PositiveQuirkId, pilotAfter.PositiveQuirkId);
-		Assert.Equal(pilotBefore.NegativeQuirkId, pilotAfter.NegativeQuirkId);
+		Assert.Equal(pilotBefore.PositiveQuirkIds, pilotAfter.PositiveQuirkIds);
+		Assert.Equal(pilotBefore.NegativeQuirkIds, pilotAfter.NegativeQuirkIds);
 	}
 }

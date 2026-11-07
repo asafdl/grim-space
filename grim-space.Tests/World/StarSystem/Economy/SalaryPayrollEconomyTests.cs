@@ -1,3 +1,4 @@
+using GrimSpace.Pilots;
 using GrimSpace.Tests.Run;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Resources;
@@ -18,8 +19,12 @@ public sealed class SalaryPayrollEconomyTests
 			run.StarSystem.Map.PlayerResources.TryApply(
 				ResourceBundle.Of(ResourceId.Credits, 100)));
 
+		var discountStacks = run.PilotRegistry.QueryCapabilities(capabilityId =>
+			capabilityId == EPilotCapabilityId.FleetSalaryDiscount).Count;
 		var due = run.PilotRegistry.Active.Sum(active =>
-			StrategicEconomyConfig.SalaryFor(active.BaseSalaryCredits, active.ClaimedLevel));
+			SalaryPayrollAccounting.ApplyFleetSalaryDiscount(
+				StrategicEconomyConfig.SalaryFor(active.BaseSalaryCredits, active.ClaimedLevel),
+				discountStacks));
 		var creditsBefore = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
 
 		AdvanceToSalaryCadence(run);

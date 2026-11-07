@@ -7,6 +7,7 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests;
 
@@ -36,6 +37,7 @@ internal static class BattleSpawnTestKit
 			Ship = ship,
 			Pilot = null,
 			Team = team,
+			Faction = GrimSpace.Battle.Units.Factory.DefaultFactionFor(team),
 			Position = position,
 			ExecutionAgent = executionAgent,
 		};

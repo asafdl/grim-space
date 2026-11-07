@@ -24,8 +24,8 @@ public sealed class PilotHireDisplayTests
 			"Rin",
 			"pilot_01",
 			EPilotBackgroundId.PodRacer,
-			EPilotQuirkId.Charismatic,
-			EPilotQuirkId.NeuroDrugAddict,
+			[EPilotQuirkId.Charismatic],
+			[EPilotQuirkId.NeuroDrugAddict],
 			experiencePoints: 0,
 			claimedLevel: 1);
 
@@ -68,16 +68,19 @@ public sealed class PilotHireDisplayTests
 	}
 
 	[Fact]
-	public void ShouldShowRecruitedQuirkIcon_IsFalseForNullOrWhilePoolsAreEmpty()
+	public void ShouldShowRecruitedQuirkIcon_ShowsRegisteredQuirks()
 	{
 		Assert.False(PilotHireDisplay.ShouldShowRecruitedQuirkIcon(
 			null,
 			EPilotQuirkPolarity.Positive));
-		Assert.False(PilotHireDisplay.ShouldShowRecruitedQuirkIcon(
+		Assert.True(PilotHireDisplay.ShouldShowRecruitedQuirkIcon(
 			EPilotQuirkId.Charismatic,
 			EPilotQuirkPolarity.Positive));
-		Assert.False(PilotHireDisplay.ShouldShowRecruitedQuirkIcon(
+		Assert.True(PilotHireDisplay.ShouldShowRecruitedQuirkIcon(
 			EPilotQuirkId.NeuroDrugAddict,
+			EPilotQuirkPolarity.Negative));
+		Assert.False(PilotHireDisplay.ShouldShowRecruitedQuirkIcon(
+			EPilotQuirkId.Charismatic,
 			EPilotQuirkPolarity.Negative));
 	}
 }

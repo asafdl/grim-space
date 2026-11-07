@@ -107,6 +107,7 @@ public sealed class BattleEncounter
 				Ship = ship,
 				Pilot = DevFullySkilledPilot(ship.Id, ship.Spec.ClassId),
 				Team = playerSide ? ETeam.Player : ETeam.Enemy,
+				Faction = playerSide ? EFaction.Player : EFaction.TheOptimality,
 				Position = anchor.Position + offsets[index],
 				Fore = anchor.Fore,
 				Dorsal = anchor.Dorsal,

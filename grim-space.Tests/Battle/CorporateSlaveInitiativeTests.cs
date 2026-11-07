@@ -7,6 +7,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.PilotCapabilities;
 
@@ -26,6 +27,7 @@ public sealed class CorporateSlaveInitiativeTests
 					EPilotBackgroundId.CorporateSlave,
 					BattlePilotCapabilityPipelineFactory.Supports)),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new UserExecutionAgent(),
 		};

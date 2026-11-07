@@ -3,6 +3,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Core.Engine;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Battle.Units;
 
@@ -11,15 +12,18 @@ public sealed class Unit
 	public State State { get; }
 	public ExecutionAgent<BattleWorld, ActorRuntime> ExecutionAgent { get; }
 	public ETeam Team { get; }
+	public EFaction Faction { get; }
 
 	public Unit(
 		State state,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
-		ETeam team)
+		ETeam team,
+		EFaction faction)
 	{
 		State = state;
 		ExecutionAgent = executionAgent;
 		Team = team;
+		Faction = faction;
 	}
 
 	public EUnitRelation RelationTo(Unit other) {

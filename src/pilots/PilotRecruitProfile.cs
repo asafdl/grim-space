@@ -12,8 +12,8 @@ public sealed class PilotRecruitProfile
 	public EPilotBackgroundId BackgroundId { get; }
 	public EOperatorClassId ClassId { get; }
 	public PilotPersonality Personality { get; }
-	public EPilotQuirkId? PositiveQuirkId { get; }
-	public EPilotQuirkId? NegativeQuirkId { get; }
+	public IReadOnlyList<EPilotQuirkId> PositiveQuirkIds { get; }
+	public IReadOnlyList<EPilotQuirkId> NegativeQuirkIds { get; }
 	public int ExperiencePoints { get; }
 	public int ClaimedLevel { get; }
 	public IReadOnlyList<EPilotSkillId> LearnedSkills { get; }
@@ -23,8 +23,8 @@ public sealed class PilotRecruitProfile
 		string name,
 		string portraitId,
 		EPilotBackgroundId backgroundId,
-		EPilotQuirkId? positiveQuirkId = null,
-		EPilotQuirkId? negativeQuirkId = null,
+		IReadOnlyList<EPilotQuirkId>? positiveQuirkIds = null,
+		IReadOnlyList<EPilotQuirkId>? negativeQuirkIds = null,
 		int experiencePoints = 0,
 		int claimedLevel = 1,
 		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
@@ -44,44 +44,19 @@ public sealed class PilotRecruitProfile
 				"A pilot must have a playable operator class.");
 		learnedSkills ??= EmptySkills;
 
-		ValidateIdentity(backgroundId, positiveQuirkId, negativeQuirkId);
+		PilotBackgroundCatalog.Get(backgroundId);
 
 		Name = name;
 		PortraitId = portraitId;
 		BackgroundId = backgroundId;
 		ClassId = classId;
 		Personality = personality;
-		PositiveQuirkId = positiveQuirkId;
-		NegativeQuirkId = negativeQuirkId;
+		PositiveQuirkIds = PilotQuirkCatalog.ValidateQuirks(positiveQuirkIds ?? [], EPilotQuirkPolarity.Positive);
+		NegativeQuirkIds = PilotQuirkCatalog.ValidateQuirks(negativeQuirkIds ?? [], EPilotQuirkPolarity.Negative);
 		ExperiencePoints = experiencePoints;
 		ClaimedLevel = claimedLevel;
 		LearnedSkills = learnedSkills.Count == 0 ? EmptySkills : learnedSkills.ToArray();
 		BaseSalaryCredits = baseSalaryCredits;
 	}
 
-	private static void ValidateIdentity(
-		EPilotBackgroundId backgroundId,
-		EPilotQuirkId? positiveQuirkId,
-		EPilotQuirkId? negativeQuirkId)
-	{
-		PilotBackgroundCatalog.Get(backgroundId);
-
-		if (positiveQuirkId is { } positive)
-		{
-			var positiveQuirk = PilotQuirkCatalog.Get(positive);
-			if (positiveQuirk.Polarity != EPilotQuirkPolarity.Positive)
-				throw new ArgumentException(
-					$"Pilot positive quirk '{positive}' has polarity '{positiveQuirk.Polarity}'.",
-					nameof(positiveQuirkId));
-		}
-
-		if (negativeQuirkId is { } negative)
-		{
-			var negativeQuirk = PilotQuirkCatalog.Get(negative);
-			if (negativeQuirk.Polarity != EPilotQuirkPolarity.Negative)
-				throw new ArgumentException(
-					$"Pilot negative quirk '{negative}' has polarity '{negativeQuirk.Polarity}'.",
-					nameof(negativeQuirkId));
-		}
-	}
 }

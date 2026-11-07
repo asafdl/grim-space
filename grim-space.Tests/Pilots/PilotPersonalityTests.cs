@@ -181,8 +181,8 @@ public sealed class PilotPersonalityTests
 	public void ApplyModifiers_ClampsOnlyAfterSummingRegardlessOfOrder()
 	{
 		var baseline = new PilotPersonality(4, -4, 4);
-		var first = new PilotPersonality(5, -5, -5);
-		var second = new PilotPersonality(-5, 5, 5);
+		var first = new PilotPersonalityModifier(5, -5, -5);
+		var second = new PilotPersonalityModifier(-5, 5, 5);
 
 		Assert.Equal(baseline, baseline.ApplyModifiers(first, second));
 		Assert.Equal(baseline, baseline.ApplyModifiers(second, first));
@@ -194,7 +194,7 @@ public sealed class PilotPersonalityTests
 	public void DefinitionModifiers_AreOptionalAndShareComposition()
 	{
 		var tooltip = new HudTooltipContent("Test", "Personality modifier test.");
-		var modifier = new PilotPersonality(-2, 3, 1);
+		var modifier = new PilotPersonalityModifier(-8, 10, 1);
 		var background = new PilotBackgroundDefinition(
 			EPilotBackgroundId.ScrapDrone, [], tooltip, modifier);
 		var quirk = new PilotQuirkDefinition(
@@ -202,7 +202,7 @@ public sealed class PilotPersonalityTests
 
 		Assert.Equal(modifier, background.PersonalityModifier);
 		Assert.Equal(modifier, quirk.PersonalityModifier);
-		Assert.Equal(new PilotPersonality(-4, 5, 2),
+		Assert.Equal(new PilotPersonality(-5, 5, 2),
 			default(PilotPersonality).ApplyModifiers(
 				background.PersonalityModifier, quirk.PersonalityModifier));
 		Assert.Equal(default,
@@ -221,7 +221,8 @@ public sealed class PilotPersonalityTests
 	{
 		var pilot = Pilot.FromRecruitProfile(null,
 			new PilotRecruitProfile("Test", "pilot_01", backgroundId));
-		var expected = PilotBackgroundCatalog.Get(backgroundId).PersonalityModifier;
+		var expected = default(PilotPersonality).ApplyModifiers(
+			PilotBackgroundCatalog.Get(backgroundId).PersonalityModifier);
 
 		Assert.Equal(expected, pilot.EffectivePersonality);
 		Assert.Equal(expected, pilot.EffectivePersonality);
@@ -231,18 +232,52 @@ public sealed class PilotPersonalityTests
 	}
 
 	[Fact]
+	public void ApplyModifiers_PreservesLargeContributionsUntilFinalClamp()
+	{
+		var baseline = default(PilotPersonality);
+		var background = new PilotPersonalityModifier(-5, 5, -5);
+		var quirk = new PilotPersonalityModifier(-8, 8, -8);
+		var later = new PilotPersonalityModifier(10, -10, 10);
+
+		Assert.Equal(new PilotPersonality(-5, 5, -5), baseline.ApplyModifiers(background, quirk));
+		Assert.Equal(new PilotPersonality(-3, 3, -3), baseline.ApplyModifiers(background, quirk, later));
+		Assert.Equal(new PilotPersonality(-3, 3, -3), baseline.ApplyModifiers(later, quirk, background));
+		Assert.Equal(new PilotPersonality(5, -5, 5), baseline.ApplyModifiers(background, later));
+		Assert.Equal(default, baseline);
+	}
+
+	[Fact]
+	public void ApplyModifiers_SumsFullIntegerRangeWithoutOverflow()
+	{
+		var positive = new PilotPersonalityModifier(int.MaxValue, int.MinValue, int.MaxValue);
+		var negative = new PilotPersonalityModifier(int.MinValue, int.MaxValue, int.MinValue);
+
+		Assert.Equal(new PilotPersonality(5, -5, 5),
+			default(PilotPersonality).ApplyModifiers(positive, positive));
+		Assert.Equal(new PilotPersonality(-5, 5, -5),
+			default(PilotPersonality).ApplyModifiers(negative, negative));
+		Assert.Equal(new PilotPersonality(-1, -1, -1),
+			default(PilotPersonality).ApplyModifiers(positive, negative));
+	}
+
+	[Fact]
 	public void EffectivePersonality_UsesCurrentQuirkSlotsWithoutChangingBaseline()
 	{
 		var baseline = new PilotPersonality(4, -2, 1);
 		var withQuirks = Pilot.FromRecruitProfile(null,
 			new PilotRecruitProfile("Test", "pilot_01", EPilotBackgroundId.GearPsycho,
-				EPilotQuirkId.Charismatic, EPilotQuirkId.NeuroDrugAddict, personality: baseline));
+				[EPilotQuirkId.Charismatic], [EPilotQuirkId.NeuroDrugAddict], personality: baseline));
 		var withoutQuirks = Pilot.FromRecruitProfile(null,
 			new PilotRecruitProfile("Test", "pilot_01", EPilotBackgroundId.GearPsycho,
 				personality: baseline));
+		var expected = baseline.ApplyModifiers(
+			PilotBackgroundCatalog.Get(EPilotBackgroundId.GearPsycho).PersonalityModifier,
+			PilotQuirkCatalog.Get(EPilotQuirkId.Charismatic).PersonalityModifier,
+			PilotQuirkCatalog.Get(EPilotQuirkId.NeuroDrugAddict).PersonalityModifier);
 
-		Assert.Equal(new PilotPersonality(5, -2, 1), withQuirks.EffectivePersonality);
-		Assert.Equal(withoutQuirks.EffectivePersonality, withQuirks.EffectivePersonality);
+		Assert.Equal(expected, withQuirks.EffectivePersonality);
+		Assert.Equal(new PilotPersonality(5, -5, -2), withQuirks.EffectivePersonality);
+		Assert.NotEqual(withoutQuirks.EffectivePersonality, withQuirks.EffectivePersonality);
 		Assert.Equal(baseline, withQuirks.Personality);
 	}
 

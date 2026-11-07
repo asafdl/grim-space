@@ -242,7 +242,7 @@ public sealed class BattleWorld
 	}
 
 	private static Unit CloneForSnapshot(Unit unit) =>
-		new(unit.State.Clone(), unit.ExecutionAgent, unit.Team);
+		new(unit.State.Clone(), unit.ExecutionAgent, unit.Team, unit.Faction);
 
 	public BattleWorld Fork() => Fork(Timeline.Clone());
 

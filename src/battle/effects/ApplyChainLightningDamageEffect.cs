@@ -7,6 +7,7 @@ using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Battle.Effects;
 
@@ -22,7 +23,8 @@ public sealed class ApplyChainLightningDamageEffect(
 	int damageBonusPercent = 0,
 	bool overdriveBonusIncluded = false,
 	int unshieldedDamageBonusPercent = 0,
-	int spawnedUnitDamageBonusPercent = 0) : IEffect<BattleWorld, ActorRuntime>
+	int spawnedUnitDamageBonusPercent = 0,
+	int pirateDamageBonusPercent = 0) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> BeamCells => beamCells;
@@ -36,6 +38,7 @@ public sealed class ApplyChainLightningDamageEffect(
 	public bool OverdriveBonusIncluded => overdriveBonusIncluded;
 	public int UnshieldedDamageBonusPercent => unshieldedDamageBonusPercent;
 	public int SpawnedUnitDamageBonusPercent => spawnedUnitDamageBonusPercent;
+	public int PirateDamageBonusPercent => pirateDamageBonusPercent;
 
 	public ApplyChainLightningDamageEffect WithAdditionalShieldDamage(int amount) =>
 		new(
@@ -50,7 +53,8 @@ public sealed class ApplyChainLightningDamageEffect(
 			damageBonusPercent,
 			overdriveBonusIncluded,
 			unshieldedDamageBonusPercent,
-			spawnedUnitDamageBonusPercent);
+			spawnedUnitDamageBonusPercent,
+			pirateDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithShieldDamageBonusPercent(int percent) =>
 		new(
@@ -65,7 +69,8 @@ public sealed class ApplyChainLightningDamageEffect(
 			damageBonusPercent,
 			overdriveBonusIncluded,
 			unshieldedDamageBonusPercent,
-			spawnedUnitDamageBonusPercent);
+			spawnedUnitDamageBonusPercent,
+			pirateDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithDamageBonusPercent(int percent) =>
 		new(
@@ -80,7 +85,8 @@ public sealed class ApplyChainLightningDamageEffect(
 			percent,
 			overdriveBonusIncluded,
 			unshieldedDamageBonusPercent,
-			spawnedUnitDamageBonusPercent);
+			spawnedUnitDamageBonusPercent,
+			pirateDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithAddedDamageBonusPercent(int percent, bool includesOverdrive = false) =>
 		new(
@@ -95,19 +101,27 @@ public sealed class ApplyChainLightningDamageEffect(
 			damageBonusPercent + percent,
 			overdriveBonusIncluded || includesOverdrive,
 			unshieldedDamageBonusPercent,
-			spawnedUnitDamageBonusPercent);
+			spawnedUnitDamageBonusPercent,
+			pirateDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithUnshieldedDamageBonusPercent(int percent) =>
 		new(
 			cause, beamCells, hops, baseDamage, chainFalloffPercentPerHop, origin,
 			shieldDamageBonus, shieldDamageBonusPercent, damageBonusPercent, overdriveBonusIncluded,
-			percent, spawnedUnitDamageBonusPercent);
+			percent, spawnedUnitDamageBonusPercent,
+			pirateDamageBonusPercent);
 
 	public ApplyChainLightningDamageEffect WithSpawnedUnitDamageBonusPercent(int percent) =>
 		new(
 			cause, beamCells, hops, baseDamage, chainFalloffPercentPerHop, origin,
 			shieldDamageBonus, shieldDamageBonusPercent, damageBonusPercent, overdriveBonusIncluded,
-			unshieldedDamageBonusPercent, percent);
+			unshieldedDamageBonusPercent, percent, pirateDamageBonusPercent);
+
+	public ApplyChainLightningDamageEffect WithPirateDamageBonusPercent(int percent) =>
+		new(
+			cause, beamCells, hops, baseDamage, chainFalloffPercentPerHop, origin,
+			shieldDamageBonus, shieldDamageBonusPercent, damageBonusPercent, overdriveBonusIncluded,
+			unshieldedDamageBonusPercent, spawnedUnitDamageBonusPercent, percent);
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -165,6 +179,8 @@ public sealed class ApplyChainLightningDamageEffect(
 			bonus += unshieldedDamageBonusPercent;
 		if (unit.ParentId != BattleActorIds.Rules)
 			bonus += spawnedUnitDamageBonusPercent;
+		if (targetUnit.Faction == EFaction.Pirates)
+			bonus += pirateDamageBonusPercent;
 		if (!overdriveBonusIncluded)
 			bonus += ApplyAreaDamageEffect.CrossingOverdriveBonusPercent(world.StateOf(actorId));
 		var appliedDamage = bonus == 0

@@ -186,4 +186,51 @@ public static class PilotSkillPercents
 	{
 		public const int ShipUpgradeDiscountPercent = 10;
 	}
+
+	public static class PirateHater
+	{
+		public const int DamageBonusPercent = 10;
+	}
+
+	public static class BadTechnician
+	{
+		public const int BaseShieldPenaltyPerFace = 6;
+	}
+
+	public static class ShieldMaster
+	{
+		public const int BaseShieldBonusPerFace = 8;
+	}
+
+	public static class MetalMaster
+	{
+		public const int BaseHullBonus = 15;
+	}
+
+	public static class WeakWelding
+	{
+		public const int BaseHullPenalty = 10;
+	}
+
+	public static class ICanFixThat
+	{
+		public const int HealBonusPercent = 20;
+	}
+
+	public static class RoughPatchJob
+	{
+		/// <summary>Fraction of healing retained after reduction (80 = -20% healing).</summary>
+		public const int HealTakenPercent = 80;
+	}
+
+	public static class RadiatorFanatic
+	{
+		public const int HeatClearBonusPercent = 15;
+	}
+
+	public static class CloggedVents
+	{
+		/// <summary>Fraction of heat clear retained after reduction (80 = -20% clear / turn).</summary>
+		public const int HeatClearTakenPercent = 80;
+	}
 }

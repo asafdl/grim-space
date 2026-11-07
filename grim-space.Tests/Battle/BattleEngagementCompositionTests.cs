@@ -3,6 +3,7 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests;
 
@@ -17,6 +18,7 @@ public sealed class BattleEngagementCompositionTests
 			{
 				Ship = ShipInstance.FromCatalog("solo-player", EType.Fighter),
 				Team = ETeam.Player,
+			Faction = EFaction.Player,
 				Position = Coord.Zero,
 				Fore = Coord.Forward,
 				Dorsal = Coord.Up,

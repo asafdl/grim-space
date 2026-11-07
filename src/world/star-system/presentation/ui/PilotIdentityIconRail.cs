@@ -26,7 +26,21 @@ public static class PilotIdentityIconRail
 	private const string BeanCounterIconPath = "res://assets/ui/pilots/bean-counter.png";
 	private const string GearPsychoIconPath = "res://assets/ui/pilots/gear-psycho.png";
 	private const string CharismaticIconPath = "res://assets/ui/pilots/charismatic.png";
+	private const string PirateHaterIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
+	private const string ShieldMasterIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
+	private const string MetalMasterIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
+	private const string ICanFixThatIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
+	private const string TeamPlayerIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
+	private const string IceGearsIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
+	private const string RadiatorFanaticIconPath = "res://assets/ui/pilots/positive-quirk-placeholder.svg";
 	private const string NeuroDrugAddictIconPath = "res://assets/ui/pilots/neuro-drug-addict.png";
+	private const string BadTechnicianIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
+	private const string WeakWeldingIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
+	private const string RoughPatchJobIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
+	private const string TriggerHappyIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
+	private const string CowardIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
+	private const string FurnaceCoreIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
+	private const string CloggedVentsIconPath = "res://assets/ui/pilots/negative-quirk-placeholder.svg";
 
 	private const int IconSlotSize = 42;
 	private const int IconSize = 24;
@@ -40,21 +54,21 @@ public static class PilotIdentityIconRail
 		Build(
 			pilot.BackgroundId,
 			pilot.ClassId,
-			pilot.PositiveQuirkId,
-			pilot.NegativeQuirkId);
+			pilot.PositiveQuirkIds,
+			pilot.NegativeQuirkIds);
 
 	public static Control BuildFor(PilotRecruitProfile profile) =>
 		Build(
 			profile.BackgroundId,
 			profile.ClassId,
-			profile.PositiveQuirkId,
-			profile.NegativeQuirkId);
+			profile.PositiveQuirkIds,
+			profile.NegativeQuirkIds);
 
 	private static Control Build(
 		EPilotBackgroundId backgroundId,
 		EOperatorClassId classId,
-		EPilotQuirkId? positiveQuirkId,
-		EPilotQuirkId? negativeQuirkId)
+		IReadOnlyList<EPilotQuirkId> positiveQuirkIds,
+		IReadOnlyList<EPilotQuirkId> negativeQuirkIds)
 	{
 		var background = PilotBackgroundCatalog.Get(backgroundId);
 		var row = new HBoxContainer
@@ -68,7 +82,7 @@ public static class PilotIdentityIconRail
 			IdentityIconColor,
 			background.Tooltip));
 		row.AddChild(CreateClassIcon(classId));
-		if (positiveQuirkId is { } positiveId)
+		foreach (var positiveId in positiveQuirkIds)
 		{
 			var positiveQuirk = PilotQuirkCatalog.Get(positiveId);
 			row.AddChild(CreateIcon(
@@ -77,7 +91,7 @@ public static class PilotIdentityIconRail
 				positiveQuirk.Tooltip));
 		}
 
-		if (negativeQuirkId is { } negativeId)
+		foreach (var negativeId in negativeQuirkIds)
 		{
 			var negativeQuirk = PilotQuirkCatalog.Get(negativeId);
 			row.AddChild(CreateIcon(
@@ -171,7 +185,21 @@ public static class PilotIdentityIconRail
 		quirkId switch
 		{
 			EPilotQuirkId.Charismatic => CharismaticIconPath,
+			EPilotQuirkId.PirateHater => PirateHaterIconPath,
+			EPilotQuirkId.ShieldMaster => ShieldMasterIconPath,
+			EPilotQuirkId.MetalMaster => MetalMasterIconPath,
+			EPilotQuirkId.ICanFixThat => ICanFixThatIconPath,
+			EPilotQuirkId.TeamPlayer => TeamPlayerIconPath,
+			EPilotQuirkId.IceGears => IceGearsIconPath,
+			EPilotQuirkId.RadiatorFanatic => RadiatorFanaticIconPath,
 			EPilotQuirkId.NeuroDrugAddict => NeuroDrugAddictIconPath,
+			EPilotQuirkId.BadTechnician => BadTechnicianIconPath,
+			EPilotQuirkId.WeakWelding => WeakWeldingIconPath,
+			EPilotQuirkId.RoughPatchJob => RoughPatchJobIconPath,
+			EPilotQuirkId.TriggerHappy => TriggerHappyIconPath,
+			EPilotQuirkId.Coward => CowardIconPath,
+			EPilotQuirkId.FurnaceCore => FurnaceCoreIconPath,
+			EPilotQuirkId.CloggedVents => CloggedVentsIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(quirkId), quirkId, null),
 		};
 }

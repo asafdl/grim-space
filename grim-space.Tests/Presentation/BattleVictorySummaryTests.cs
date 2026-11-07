@@ -9,6 +9,7 @@ using GrimSpace.Run;
 using GrimSpace.Tests;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.Presentation;
 
@@ -255,6 +256,7 @@ public sealed class BattleVictorySummaryTests
 			Ship = ShipInstance.FromCatalog(shipId, EType.Fighter),
 			Pilot = new PilotBattleSnapshot(pilotId, []),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 		};
 
 	private static BattleSpawn EnemySpawn(string shipId) =>
@@ -262,5 +264,6 @@ public sealed class BattleVictorySummaryTests
 		{
 			Ship = ShipInstance.FromCatalog(shipId, EType.Fighter),
 			Team = ETeam.Enemy,
+			Faction = EFaction.TheOptimality,
 		};
 }

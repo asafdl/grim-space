@@ -5,6 +5,7 @@ using GrimSpace.Run;
 using GrimSpace.Tests;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.Run;
 
@@ -420,6 +421,7 @@ public sealed class PilotProgressionTests
 			Ship = ShipInstance.FromCatalog(shipId, EType.Fighter),
 			Pilot = pilotId is null ? null : new PilotBattleSnapshot(pilotId, []),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 		};
 
 	private static int ExperienceAgainst(
@@ -448,5 +450,6 @@ public sealed class PilotProgressionTests
 				ShipCatalog.SpecFor(chassis),
 				ShipCatalog.LoadoutForTier(chassis, gearTier)),
 			Team = ETeam.Enemy,
+			Faction = EFaction.TheOptimality,
 		};
 }

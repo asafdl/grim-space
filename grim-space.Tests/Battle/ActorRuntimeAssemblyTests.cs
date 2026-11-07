@@ -13,6 +13,7 @@ using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.BattleRuntime;
 
@@ -82,6 +83,7 @@ public sealed class ActorRuntimeAssemblyTests
 					Ship = ShipInstance.FromCatalog("player", EType.Fighter),
 					Pilot = snapshot,
 					Team = ETeam.Player,
+			Faction = EFaction.Player,
 					Position = new Coord(5, 5, 5),
 					ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
 				},
@@ -89,6 +91,7 @@ public sealed class ActorRuntimeAssemblyTests
 				{
 					Ship = ShipInstance.FromCatalog("enemy", EType.Fighter),
 					Team = ETeam.Enemy,
+			Faction = EFaction.TheOptimality,
 					Position = new Coord(0, 0, 0),
 					ExecutionAgent = BattleAgentFactory.Create(EBattleAgentKind.Ai),
 				},
@@ -289,6 +292,7 @@ public sealed class ActorRuntimeAssemblyTests
 				Pilot = PilotBattleSnapshot.FromSkills(
 					"player-pilot", [EPilotSkillId.DefensiveManeuvers, EPilotSkillId.ShieldDynamo]),
 				Team = ETeam.Player,
+			Faction = EFaction.Player,
 				Position = new Coord(5, 5, 5),
 				ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
 			},
@@ -298,6 +302,7 @@ public sealed class ActorRuntimeAssemblyTests
 				Pilot = PilotBattleSnapshot.FromSkills(
 					"enemy-pilot", [EPilotSkillId.DefensiveManeuvers, EPilotSkillId.ShieldDynamo]),
 				Team = ETeam.Enemy,
+			Faction = EFaction.TheOptimality,
 				Position = Coord.Zero,
 				ExecutionAgent = BattleAgentFactory.Create(EBattleAgentKind.Ai),
 			},

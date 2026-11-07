@@ -10,18 +10,35 @@ public sealed class ApplyAreaAllyHealEffect(
 	EImpactCause cause,
 	IReadOnlySet<Coord> cells,
 	int healAmount,
-	int healBonusPercent = 0) : IEffect<BattleWorld, ActorRuntime>
+	int healBonusPercent = 0,
+	int healRetainPercent = 100) : IEffect<BattleWorld, ActorRuntime>
 {
 	public EImpactCause Cause => cause;
 	public IReadOnlySet<Coord> Cells => cells;
 	public int HealAmount => healAmount;
 	public int HealBonusPercent => healBonusPercent;
+	public int HealRetainPercent => healRetainPercent;
 
 	public ApplyAreaAllyHealEffect WithAdditionalHeal(int amount) =>
-		new(cause, cells, healAmount + amount, healBonusPercent);
+		new(cause, cells, healAmount + amount, healBonusPercent, healRetainPercent);
 
 	public ApplyAreaAllyHealEffect WithHealBonusPercent(int percent) =>
-		new(cause, cells, healAmount, percent);
+		new(cause, cells, healAmount, percent, healRetainPercent);
+
+	public ApplyAreaAllyHealEffect WithAddedHealBonusPercent(int percent) =>
+		new(cause, cells, healAmount, healBonusPercent + percent, healRetainPercent);
+
+	public ApplyAreaAllyHealEffect WithMultipliedHealRetainPercent(int retainPercent)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(retainPercent, 0);
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(retainPercent, 100);
+		return new(
+			cause,
+			cells,
+			healAmount,
+			healBonusPercent,
+			ScalePercent(healRetainPercent, retainPercent));
+	}
 
 	private Dictionary<string, UnitCombatSnapshot> _snapshots = [];
 
@@ -57,6 +74,8 @@ public sealed class ApplyAreaAllyHealEffect(
 		var appliedHeal = healAmount;
 		if (healBonusPercent != 0)
 			appliedHeal = ScalePercent(appliedHeal, 100 + healBonusPercent);
+		if (healRetainPercent != 100)
+			appliedHeal = ScalePercent(appliedHeal, healRetainPercent);
 
 		if (appliedHeal <= 0)
 			return null;

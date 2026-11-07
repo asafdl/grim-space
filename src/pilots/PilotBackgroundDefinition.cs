@@ -6,7 +6,7 @@ public sealed class PilotBackgroundDefinition
 {
 	public EPilotBackgroundId Id { get; }
 	public IReadOnlyList<EPilotCapabilityId> CapabilityIds { get; }
-	public PilotPersonality PersonalityModifier { get; }
+	public PilotPersonalityModifier PersonalityModifier { get; }
 	public HudTooltipContent Tooltip { get; }
 	public string Name => Tooltip.Title!;
 	public string Description => Tooltip.Body;
@@ -15,7 +15,7 @@ public sealed class PilotBackgroundDefinition
 		EPilotBackgroundId id,
 		IReadOnlyList<EPilotCapabilityId> capabilityIds,
 		HudTooltipContent tooltip,
-		PilotPersonality personalityModifier = default)
+		PilotPersonalityModifier personalityModifier = default)
 	{
 		ArgumentNullException.ThrowIfNull(capabilityIds);
 		ArgumentNullException.ThrowIfNull(tooltip);

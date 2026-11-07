@@ -31,7 +31,7 @@ public readonly record struct PilotPersonality
 		Allegiance = allegiance;
 	}
 
-	public PilotPersonality ApplyModifiers(params PilotPersonality[] modifiers)
+	public PilotPersonality ApplyModifiers(params PilotPersonalityModifier[] modifiers)
 	{
 		ArgumentNullException.ThrowIfNull(modifiers);
 		long threatResponse = ThreatResponse;

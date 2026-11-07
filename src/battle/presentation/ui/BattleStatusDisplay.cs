@@ -88,6 +88,9 @@ public sealed record BattleStatusDisplay(
 			"passive:OutgoingDamageBonus" => ("Damage", new HudTooltipContent(
 				"Asteroid Surfer",
 				$"[icon: Damage, text: +{PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent}%] damage dealt.")),
+			"passive:PirateDamageBonus" => ("Damage", PilotQuirkCatalog.Get(EPilotQuirkId.PirateHater).Tooltip),
+			"passive:HealBonus" => ("Heal", PilotQuirkCatalog.Get(EPilotQuirkId.ICanFixThat).Tooltip),
+			"passive:HealPenalty" => ("Heal", PilotQuirkCatalog.Get(EPilotQuirkId.RoughPatchJob).Tooltip),
 			"passive:IncreasedHullDamageTaken" => ("Hull", new HudTooltipContent(
 				"Asteroid Surfer",
 				$"[icon: Hull, text: +{PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent - 100}%] hull damage taken.")),

@@ -7,6 +7,34 @@ namespace GrimSpace.Tests.Pilots;
 public sealed class PilotRecruitProfileTests
 {
 	[Fact]
+	public void Constructor_DefensivelyOwnsQuirkCollections()
+	{
+		var positive = new[] { EPilotQuirkId.Charismatic };
+		var negative = new[] { EPilotQuirkId.NeuroDrugAddict };
+		var profile = new PilotRecruitProfile(
+			"Test", "pilot_01", EPilotBackgroundId.ScrapDrone, positive, negative);
+		positive[0] = EPilotQuirkId.NeuroDrugAddict;
+		negative[0] = EPilotQuirkId.Charismatic;
+
+		Assert.Equal(EPilotQuirkId.Charismatic, Assert.Single(profile.PositiveQuirkIds));
+		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, Assert.Single(profile.NegativeQuirkIds));
+		Assert.Throws<NotSupportedException>(() =>
+			((IList<EPilotQuirkId>)profile.PositiveQuirkIds)[0] = EPilotQuirkId.NeuroDrugAddict);
+	}
+
+	[Fact]
+	public void Constructor_RejectsDuplicateUnknownAndOverCapacityQuirks()
+	{
+		Assert.Throws<ArgumentException>(() => new PilotRecruitProfile(
+			"Test", "pilot_01", EPilotBackgroundId.ScrapDrone,
+			[EPilotQuirkId.Charismatic, EPilotQuirkId.Charismatic]));
+		Assert.Throws<KeyNotFoundException>(() => new PilotRecruitProfile(
+			"Test", "pilot_01", EPilotBackgroundId.ScrapDrone, [(EPilotQuirkId)999]));
+		Assert.Throws<ArgumentException>(() => new PilotRecruitProfile(
+			"Test", "pilot_01", EPilotBackgroundId.ScrapDrone,
+			Enumerable.Repeat(EPilotQuirkId.Charismatic, 5).ToArray()));
+	}
+	[Fact]
 	public void Constructor_AllowsMissingQuirks()
 	{
 		var profile = new PilotRecruitProfile(
@@ -14,8 +42,8 @@ public sealed class PilotRecruitProfileTests
 			"pilot_02",
 			EPilotBackgroundId.ScrapDrone);
 
-		Assert.Null(profile.PositiveQuirkId);
-		Assert.Null(profile.NegativeQuirkId);
+		Assert.Empty(profile.PositiveQuirkIds);
+		Assert.Empty(profile.NegativeQuirkIds);
 		Assert.Equal(EOperatorClassId.SpaceRanger, profile.ClassId);
 	}
 
@@ -37,8 +65,8 @@ public sealed class PilotRecruitProfileTests
 			"Vera Kite",
 			"pilot_03",
 			EPilotBackgroundId.PodRacer,
-			EPilotQuirkId.Charismatic,
-			EPilotQuirkId.NeuroDrugAddict);
+			[EPilotQuirkId.Charismatic],
+			[EPilotQuirkId.NeuroDrugAddict]);
 
 		Assert.Equal("Vera Kite", profile.Name);
 		Assert.Equal(EPilotBackgroundId.PodRacer, profile.BackgroundId);
@@ -55,8 +83,8 @@ public sealed class PilotRecruitProfileTests
 				"Bad Hire",
 				"pilot_01",
 				(EPilotBackgroundId)999,
-				EPilotQuirkId.Charismatic,
-				EPilotQuirkId.NeuroDrugAddict));
+				[EPilotQuirkId.Charismatic],
+				[EPilotQuirkId.NeuroDrugAddict]));
 	}
 
 	[Fact]
@@ -67,7 +95,7 @@ public sealed class PilotRecruitProfileTests
 				"Bad Hire",
 				"pilot_01",
 				EPilotBackgroundId.ScrapDrone,
-				EPilotQuirkId.NeuroDrugAddict,
-				EPilotQuirkId.Charismatic));
+				[EPilotQuirkId.NeuroDrugAddict],
+				[EPilotQuirkId.Charismatic]));
 	}
 }

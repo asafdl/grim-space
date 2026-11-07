@@ -10,6 +10,7 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Heat;
 using GrimSpace.Units.Loadouts.Abilities;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Battle.Units;
 
@@ -17,11 +18,15 @@ public static class Factory
 {
 	private const int PilotInitiativePenalty = 10;
 
+	public static EFaction DefaultFactionFor(ETeam team) =>
+		team == ETeam.Player ? EFaction.Player : EFaction.TheOptimality;
+
 	public static Unit Create(BattleSpawn spawn)
 	{
 		var unit = Create(
 			spawn.Ship,
 			spawn.Team,
+			spawn.Faction,
 			spawn.Position,
 			spawn.ExecutionAgent,
 			spawn.Fore,
@@ -40,6 +45,8 @@ public static class Factory
 			state.Initiative -= PilotInitiativePenalty;
 
 		ApplyBaseHullPenalty(state, pilot);
+		ApplyBaseHullFlatModifiers(state, pilot);
+		ApplyBaseShieldFlatModifiers(state, pilot);
 
 		if (!state.HeatProfile.Participates)
 			return;
@@ -69,13 +76,28 @@ public static class Factory
 			gainMultiplier *= (100 + gainBonusPercent) / 100f;
 		}
 
-		var heatClearBonusStacks = pilot.CapabilityGrants.Count(grant =>
-			grant.CapabilityId == EPilotCapabilityId.HeatClearBonus);
-		if (heatClearBonusStacks > 0)
+		var clearBonusPercent = 0;
+		foreach (var grant in pilot.CapabilityGrants)
 		{
-			var clearBonusPercent =
-				heatClearBonusStacks * PilotSkillPercents.CyberJunkie.HeatClearBonusPercent;
+			if (grant.CapabilityId != EPilotCapabilityId.HeatClearBonus)
+				continue;
+			clearBonusPercent += grant.Source.Kind == EPilotCapabilitySourceKind.Quirk
+				&& grant.Source.Id == nameof(EPilotQuirkId.RadiatorFanatic)
+				? PilotSkillPercents.RadiatorFanatic.HeatClearBonusPercent
+				: PilotSkillPercents.CyberJunkie.HeatClearBonusPercent;
+		}
+		if (clearBonusPercent > 0)
 			clearPerTurn = ScalePercent(clearPerTurn, 100 + clearBonusPercent);
+
+		var heatClearPenaltyStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.HeatClearPenalty);
+		if (heatClearPenaltyStacks > 0)
+		{
+			var retainPercent = PilotSkillPercents.CloggedVents.HeatClearTakenPercent;
+			ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(retainPercent, 0);
+			ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(retainPercent, 100);
+			for (var i = 0; i < heatClearPenaltyStacks; i++)
+				clearPerTurn = ScalePercent(clearPerTurn, retainPercent);
 		}
 
 		var heatCapacityBonusStacks = pilot.CapabilityGrants.Count(grant =>
@@ -113,9 +135,61 @@ public static class Factory
 			newBase = ScalePercent(newBase, retainPercent);
 
 		var missing = System.Math.Max(0, oldBase - oldCurrent);
-		state.HullHandoffBasePoints = oldBase;
+		state.HullHandoffBasePoints ??= oldBase;
 		state.Loadout = state.Loadout with { BaseHullPoints = newBase };
 		state.CurrentHullPoints = System.Math.Max(0, newBase - missing);
+	}
+
+	private static void ApplyBaseHullFlatModifiers(State state, PilotBattleSnapshot pilot)
+	{
+		var bonusStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.BaseHullBonus);
+		var penaltyStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.BaseHullFlatPenalty);
+		var delta =
+			bonusStacks * PilotSkillPercents.MetalMaster.BaseHullBonus
+			- penaltyStacks * PilotSkillPercents.WeakWelding.BaseHullPenalty;
+		if (delta == 0)
+			return;
+
+		var oldBase = state.Loadout.BaseHullPoints;
+		var oldCurrent = state.CurrentHullPoints;
+		var newBase = System.Math.Max(0, oldBase + delta);
+		var missing = System.Math.Max(0, oldBase - oldCurrent);
+		state.HullHandoffBasePoints ??= oldBase;
+		state.Loadout = state.Loadout with { BaseHullPoints = newBase };
+		state.CurrentHullPoints = System.Math.Max(0, newBase - missing);
+	}
+
+	private static void ApplyBaseShieldFlatModifiers(State state, PilotBattleSnapshot pilot)
+	{
+		var bonusStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.BaseShieldBonus);
+		var penaltyStacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.BaseShieldPenalty);
+		var deltaPerFace =
+			bonusStacks * PilotSkillPercents.ShieldMaster.BaseShieldBonusPerFace
+			- penaltyStacks * PilotSkillPercents.BadTechnician.BaseShieldPenaltyPerFace;
+		if (deltaPerFace == 0)
+			return;
+
+		var oldBase = state.Loadout.BaseShieldPoints;
+		var oldCurrent = state.CurrentShieldPoints;
+		var newBase = oldBase.Clone();
+		var newCurrent = oldCurrent.Clone();
+		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
+		{
+			var faceBase = oldBase[face];
+			var faceCurrent = oldCurrent[face];
+			var adjusted = System.Math.Max(0, faceBase + deltaPerFace);
+			var missing = System.Math.Max(0, faceBase - faceCurrent);
+			newBase[face] = adjusted;
+			newCurrent[face] = System.Math.Max(0, adjusted - missing);
+		}
+
+		state.ShieldHandoffBasePoints = oldBase.Clone();
+		state.Loadout = state.Loadout with { BaseShieldPoints = newBase };
+		state.CurrentShieldPoints = newCurrent;
 	}
 
 	private static int ScalePercent(int amount, int percent) =>
@@ -126,7 +200,7 @@ public static class Factory
 		ETeam team,
 		Coord position,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent) =>
-		Create(ship, team, position, executionAgent, Coord.Forward, Coord.Up);
+		Create(ship, team, DefaultFactionFor(team), position, executionAgent, Coord.Forward, Coord.Up);
 
 	public static Unit Create(
 		ShipInstance ship,
@@ -136,6 +210,7 @@ public static class Factory
 		Create(
 			ship,
 			team,
+			DefaultFactionFor(team),
 			position,
 			BattleAgentFactory.Create(agentKind),
 			Coord.Forward,
@@ -152,6 +227,26 @@ public static class Factory
 		Create(
 			ship,
 			team,
+			DefaultFactionFor(team),
+			position,
+			BattleAgentFactory.Create(agentKind),
+			fore,
+			dorsal,
+			parentId);
+
+	public static Unit Create(
+		ShipInstance ship,
+		ETeam team,
+		EFaction faction,
+		Coord position,
+		EBattleAgentKind agentKind,
+		Coord fore,
+		Coord dorsal,
+		string parentId = BattleActorIds.Rules) =>
+		Create(
+			ship,
+			team,
+			faction,
 			position,
 			BattleAgentFactory.Create(agentKind),
 			fore,
@@ -159,11 +254,25 @@ public static class Factory
 			parentId);
 
 	public static Unit Create(State state, ETeam team, EBattleAgentKind agentKind) =>
-		new(state, BattleAgentFactory.Create(agentKind), team);
+		Create(state, team, DefaultFactionFor(team), agentKind);
+
+	public static Unit Create(State state, ETeam team, EFaction faction, EBattleAgentKind agentKind) =>
+		new(state, BattleAgentFactory.Create(agentKind), team, faction);
 
 	public static Unit Create(
 		ShipInstance ship,
 		ETeam team,
+		Coord position,
+		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
+		Coord fore,
+		Coord dorsal,
+		string parentId = BattleActorIds.Rules) =>
+		Create(ship, team, DefaultFactionFor(team), position, executionAgent, fore, dorsal, parentId);
+
+	public static Unit Create(
+		ShipInstance ship,
+		ETeam team,
+		EFaction faction,
 		Coord position,
 		ExecutionAgent<BattleWorld, ActorRuntime> executionAgent,
 		Coord fore,
@@ -177,7 +286,7 @@ public static class Factory
 			fore,
 			dorsal,
 			parentId);
-		return new Unit(state, executionAgent, team);
+		return new Unit(state, executionAgent, team, faction);
 	}
 
 	public static ShipInstance ChildFromSpawnableMount(State parent, AbilityMount mount, string childId)

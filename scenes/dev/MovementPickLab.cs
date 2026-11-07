@@ -13,6 +13,7 @@ using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Scenes.Dev;
 
@@ -228,6 +229,7 @@ public partial class MovementPickLab : Node3D
 				{
 					Ship = ShipInstance.FromCatalog("lab-player", EType.Fighter),
 					Team = ETeam.Player,
+			Faction = EFaction.Player,
 					Position = playerPosition,
 					Fore = fore,
 					Dorsal = dorsal,
@@ -237,6 +239,7 @@ public partial class MovementPickLab : Node3D
 				{
 					Ship = ShipInstance.FromCatalog("lab-enemy", EType.IndustrialGooper),
 					Team = ETeam.Enemy,
+			Faction = EFaction.TheOptimality,
 					Position = enemyPosition,
 					Fore = -Coord.Forward,
 					ExecutionAgent = new AiController(),

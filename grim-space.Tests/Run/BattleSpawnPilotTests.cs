@@ -109,6 +109,7 @@ public sealed class BattleSpawnPilotTests
 			Ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			Pilot = PilotBattleSnapshot.FromSkills("pilot-1", skills),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
 		};
@@ -124,6 +125,7 @@ public sealed class BattleSpawnPilotTests
 				{
 					Ship = ShipInstance.FromCatalog("enemy", EType.Fighter),
 					Team = ETeam.Enemy,
+			Faction = EFaction.TheOptimality,
 					Position = new Coord(0, 0, 0),
 					ExecutionAgent = BattleAgentFactory.Create(EBattleAgentKind.Ai),
 				},

@@ -32,11 +32,8 @@ internal static class PilotHireDisplay
 	{
 		if (quirkId is not { } resolved)
 			return false;
-
-		var pool = polarity == EPilotQuirkPolarity.Positive
-			? PilotQuirkCatalog.RecruitablePositive
-			: PilotQuirkCatalog.RecruitableNegative;
-		return pool.Contains(resolved);
+		return PilotQuirkCatalog.TryGet(resolved, out var definition)
+			&& definition.Polarity == polarity;
 	}
 
 	public static string ShipChassisLabel(EType chassis) =>

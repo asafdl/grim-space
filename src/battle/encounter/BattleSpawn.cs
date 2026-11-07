@@ -4,6 +4,7 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Battle.Encounter;
 
@@ -13,6 +14,7 @@ public sealed class BattleSpawn
 	public PilotBattleSnapshot? Pilot { get; init; }
 	public string? PilotId => Pilot?.PilotId;
 	public required ETeam Team { get; init; }
+	public required EFaction Faction { get; init; }
 	public Coord Position { get; init; }
 	public Coord Fore { get; init; } = Coord.Forward;
 	public Coord Dorsal { get; init; } = Coord.Up;

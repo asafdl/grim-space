@@ -32,6 +32,9 @@ public static class BattlePassiveStatusInstaller
 		EPilotCapabilityId.IncreasedHullDamageTaken,
 		EPilotCapabilityId.SpawnedAllyDamageBonus,
 		EPilotCapabilityId.DamageResistance,
+		EPilotCapabilityId.PirateDamageBonus,
+		EPilotCapabilityId.HealBonus,
+		EPilotCapabilityId.HealPenalty,
 	];
 
 	public static void InstallFromCapabilities(BattleWorld world, string unitId, ActorRuntime runtime)
@@ -206,6 +209,45 @@ public static class BattlePassiveStatusInstaller
 						PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent),
 					_ => effect,
 				},
+			},
+			EPilotCapabilityId.PirateDamageBonus => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteOutgoing = (_, _, effect) => effect switch
+				{
+					ApplyAreaDamageEffect area => area.WithPirateDamageBonusPercent(
+						PilotSkillPercents.PirateHater.DamageBonusPercent),
+					ApplyChainLightningDamageEffect chain => chain.WithPirateDamageBonusPercent(
+						PilotSkillPercents.PirateHater.DamageBonusPercent),
+					_ => effect,
+				},
+			},
+			EPilotCapabilityId.HealBonus => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Buff,
+				RewriteOutgoing = (_, _, effect) =>
+					effect is ApplyAreaAllyHealEffect heal
+						? heal.WithAddedHealBonusPercent(
+							PilotSkillPercents.ICanFixThat.HealBonusPercent)
+						: effect,
+			},
+			EPilotCapabilityId.HealPenalty => new BattleStatus
+			{
+				InstanceId = instanceId,
+				Priority = 100,
+				ActionTags = [],
+				Polarity = EStatusPolarity.Debuff,
+				RewriteOutgoing = (_, _, effect) =>
+					effect is ApplyAreaAllyHealEffect heal
+						? heal.WithMultipliedHealRetainPercent(
+							PilotSkillPercents.RoughPatchJob.HealTakenPercent)
+						: effect,
 			},
 			EPilotCapabilityId.IncreasedHullDamageTaken => new BattleStatus
 			{

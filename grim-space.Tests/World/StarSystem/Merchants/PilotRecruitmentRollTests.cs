@@ -28,8 +28,8 @@ public sealed class PilotRecruitmentRollTests
 			Assert.Equal(first[index].Profile.PortraitId, second[index].Profile.PortraitId);
 			Assert.Equal(first[index].Profile.BackgroundId, second[index].Profile.BackgroundId);
 			Assert.Equal(first[index].Profile.ClassId, second[index].Profile.ClassId);
-			Assert.Equal(first[index].Profile.PositiveQuirkId, second[index].Profile.PositiveQuirkId);
-			Assert.Equal(first[index].Profile.NegativeQuirkId, second[index].Profile.NegativeQuirkId);
+			Assert.Equal(first[index].Profile.PositiveQuirkIds, second[index].Profile.PositiveQuirkIds);
+			Assert.Equal(first[index].Profile.NegativeQuirkIds, second[index].Profile.NegativeQuirkIds);
 		}
 	}
 
@@ -44,16 +44,31 @@ public sealed class PilotRecruitmentRollTests
 	}
 
 	[Fact]
-	public void RollCandidates_OmitsQuirksWhilePoolsAreEmpty()
+	public void RollCandidates_AssignsQuirksFromCatalogWithoutDuplicates()
 	{
 		var map = StarMap.Create(11);
 		var candidates = PilotRecruitment.RollCandidates(map, "lead-contract-3");
+		var sawQuirks = false;
 
 		foreach (var candidate in candidates)
 		{
-			Assert.Null(candidate.Profile.PositiveQuirkId);
-			Assert.Null(candidate.Profile.NegativeQuirkId);
+			var quirks = candidate.Profile.PositiveQuirkIds
+				.Concat(candidate.Profile.NegativeQuirkIds)
+				.ToArray();
+			Assert.InRange(quirks.Length, 0, 2);
+			Assert.Equal(quirks.Length, quirks.Distinct().Count());
+			Assert.All(quirks, id => Assert.Contains(id, PilotQuirkCatalog.Ids));
+			Assert.All(
+				candidate.Profile.PositiveQuirkIds,
+				id => Assert.Equal(EPilotQuirkPolarity.Positive, PilotQuirkCatalog.Get(id).Polarity));
+			Assert.All(
+				candidate.Profile.NegativeQuirkIds,
+				id => Assert.Equal(EPilotQuirkPolarity.Negative, PilotQuirkCatalog.Get(id).Polarity));
+			if (quirks.Length > 0)
+				sawQuirks = true;
 		}
+
+		Assert.True(sawQuirks);
 	}
 
 	[Fact]

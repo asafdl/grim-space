@@ -115,6 +115,7 @@ public static class SaveDtoMapper
 							CapabilityGrants: spawn.Pilot.CapabilityGrants,
 							PortraitId: spawn.Pilot.PortraitId),
 					spawn.Team,
+					spawn.Faction,
 					spawn.Position,
 					spawn.Fore,
 					spawn.Dorsal,
@@ -163,6 +164,7 @@ public static class SaveDtoMapper
 			Ship = RestoreShip(spawn.Ship),
 			Pilot = pilot,
 			Team = spawn.Team,
+			Faction = spawn.Faction,
 			Position = spawn.Position,
 			Fore = spawn.Fore,
 			Dorsal = spawn.Dorsal,
@@ -254,6 +256,9 @@ public static class SaveDtoMapper
 			state.Overdrive,
 			state.Overheat,
 			state.HullHandoffBasePoints,
+			ShieldHandoffBasePoints = state.ShieldHandoffBasePoints is null
+				? null
+				: CaptureFaces(state.ShieldHandoffBasePoints),
 			BaseAp = state.Maneuverability.BaseActionPoints,
 			BaseMp = state.Maneuverability.BaseManeuverPoints,
 			HeatCapacity = state.HeatProfile.Capacity,
@@ -298,6 +303,9 @@ public static class SaveDtoMapper
 		state.ReactiveShieldsStacks = dto.ReactiveShieldsStacks;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.HullHandoffBasePoints = dto.HullHandoffBasePoints;
+		state.ShieldHandoffBasePoints = dto.ShieldHandoffBasePoints is null
+			? null
+			: RestoreFaces(dto.ShieldHandoffBasePoints);
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
 			dto.BaseAp,
@@ -356,6 +364,7 @@ public static class SaveDtoMapper
 			{
 				Ship = CaptureShip(ship),
 				unit.Team,
+				unit.Faction,
 				AgentKind = BattleAgentFactory.KindOf(unit.ExecutionAgent),
 				state.Initiative,
 				state.Position,
@@ -380,6 +389,9 @@ public static class SaveDtoMapper
 				state.Overdrive,
 				state.Overheat,
 				state.HullHandoffBasePoints,
+				ShieldHandoffBasePoints = state.ShieldHandoffBasePoints is null
+					? null
+					: CaptureFaces(state.ShieldHandoffBasePoints),
 				BaseAp = state.Maneuverability.BaseActionPoints,
 				BaseMp = state.Maneuverability.BaseManeuverPoints,
 				HeatCapacity = state.HeatProfile.Capacity,
@@ -900,6 +912,9 @@ public static class SaveDtoMapper
 				unitDto.Overdrive,
 				unitDto.Overheat);
 			state.HullHandoffBasePoints = unitDto.HullHandoffBasePoints;
+			state.ShieldHandoffBasePoints = unitDto.ShieldHandoffBasePoints is null
+				? null
+				: RestoreFaces(unitDto.ShieldHandoffBasePoints);
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
 				unitDto.BaseAp,
@@ -911,7 +926,7 @@ public static class SaveDtoMapper
 						UsesRemaining = runtime.UsesRemaining,
 						CooldownRemaining = runtime.CooldownRemaining,
 					};
-			return BattleFactory.Create(state, unitDto.Team, unitDto.AgentKind);
+			return BattleFactory.Create(state, unitDto.Team, unitDto.Faction, unitDto.AgentKind);
 		}).ToArray();
 		var nonUnits = dto.Hazards.ToDictionary(
 			hazard => hazard.Id,

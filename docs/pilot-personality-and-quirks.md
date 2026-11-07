@@ -21,6 +21,9 @@ personality build.
 
 - Positive and negative quirks, with a maximum of **four of each per pilot**.
 - Pilots can start with quirks and acquire them while campaigning.
+- Hiring rolls 0, 1, or 2 total quirks with equal count probabilities, then selects
+  uniformly without duplicates from the quirk catalog. Any polarity mix is allowed;
+  the count is capped by catalog size.
 - Altering quirks costs resources.
 - Quirks can provide passive gameplay effects, personality effects, or both.
 - Desirable combinations include strengths worth investing in and weaknesses the
@@ -95,9 +98,15 @@ Current foundation and future direction:
 - Every pilot starts with a neutral stored baseline.
 - Backgrounds and quirks have an optional `PersonalityModifier`, defaulting to
   zero, independently of their passive capability grants.
+- Contributions use [PilotPersonalityModifier](../src/pilots/PilotPersonalityModifier.cs),
+  which accepts the full integer range on each axis. The stored baseline and
+  effective personality remain bounded -5 through +5.
 - Effective personality is baseline plus the current background and quirks.
   Sum all contributions before clamping each axis to -5 through +5. Repeated reads
   never mutate the baseline; removing a quirk removes its contribution.
+- Large contributions are not individually clamped: -5 and -8 produce an
+  effective -5, but adding +10 to those same sources produces -3. Summation uses
+  wider integer accumulators so large positive/negative modifiers cancel safely.
 - Future committed world events can change the baseline through the run boundary.
 - Use the existing roster update boundary to replace immutable pilot values.
 - Keep personality changes deterministic and independent of Godot, bark randomness,
@@ -216,8 +225,8 @@ existing APIs.
 
 | System | Current code and behavior | Planned extension |
 |--------|---------------------------|-------------------|
-| Quirk definitions | [PilotQuirkDefinition](../src/pilots/PilotQuirkDefinition.cs), [PilotQuirkCatalog](../src/pilots/PilotQuirkCatalog.cs), [EPilotQuirkId](../src/pilots/EPilotQuirkId.cs): optional personality modifiers; two placeholder quirks with zero modifiers, empty capability lists and recruitment pools | Choose quirk contributions, expand content, and enable recruitment only for ready quirks |
-| Pilot identity | [Pilot](../src/run/Pilot.cs), [PilotRecruitProfile](../src/pilots/PilotRecruitProfile.cs): one nullable positive and one nullable negative quirk | Replace singular slots with validated, defensively owned collections; enforce four per polarity and no duplicate IDs |
+| Quirk definitions | [PilotQuirkDefinition](../src/pilots/PilotQuirkDefinition.cs), [PilotQuirkCatalog](../src/pilots/PilotQuirkCatalog.cs), [EPilotQuirkId](../src/pilots/EPilotQuirkId.cs): optional personality modifiers and capability grants; hiring rolls from the full catalog | Expand quirk content and contributions |
+| Pilot identity | [Pilot](../src/run/Pilot.cs), [PilotRecruitProfile](../src/pilots/PilotRecruitProfile.cs): read-only positive and negative collections, validated for polarity, uniqueness, and four per side | Later add acquisition and paid alteration through the authoritative boundary |
 | Roster authority | [RunPilotRegistry](../src/run/RunPilotRegistry.cs): owns pilot instances, validates roster updates, aggregates capability grants | Preserve this boundary for pilot replacement and enumerate all quirks for capability queries |
 | Personality | [PilotPersonality](../src/pilots/PilotPersonality.cs): immutable three-axis model and modifier composition; [Pilot](../src/run/Pilot.cs) owns the baseline and exposes effective personality | Future events change the baseline through the roster boundary; no separate personality registry |
 | Backgrounds | [PilotBackgroundDefinition](../src/pilots/PilotBackgroundDefinition.cs), [PilotBackgroundCatalog](../src/pilots/PilotBackgroundCatalog.cs): identity, capabilities, optional personality modifiers | Expand contributions as content is decided |
@@ -228,7 +237,7 @@ existing APIs.
 | Dialogue | [PilotBarkDirector](../src/pilots/barks/PilotBarkDirector.cs), [PilotBarkCatalog](../src/pilots/barks/PilotBarkCatalog.cs), [EBarkFlavor](../src/pilots/barks/EBarkFlavor.cs) | Resolve each pilot's personality from authoritative inputs and weight eligible flavors |
 | Run coordination | [State](../src/run/State.cs): roster, committed-outcome listeners, capability refresh, battle snapshot construction, bark director lifetime | Coordinate committed quirk changes and dependent projections without becoming the personality rule owner |
 | Identity UI | [PilotIdentityIconRail](../src/world/star-system/presentation/ui/PilotIdentityIconRail.cs), [PilotCharacterSheetOverlay](../src/world/star-system/presentation/ui/PilotCharacterSheetOverlay.cs), hiring UI | Display multiple quirks with usable layout and descriptions; no personality sliders or score display |
-| Persistence | [PilotPersistenceDto](../src/run/persistence/dtos/PilotPersistenceDto.cs), [SaveGameDocument](../src/run/persistence/SaveGameDocument.cs): personality persisted in format 11; older formats rejected by existing load policy | Persist quirk collections and any later per-quirk state; explicitly version future schema changes |
+| Persistence | [PilotPersistenceDto](../src/run/persistence/dtos/PilotPersistenceDto.cs), [SaveGameDocument](../src/run/persistence/SaveGameDocument.cs): personality and quirk collections persisted; battle unit faction persisted in format 13; older formats rejected by existing load policy | Persist any later per-quirk state; explicitly version future schema changes |
 | Encounter boundary | [PilotBattleSnapshot](../src/battle/encounter/PilotBattleSnapshot.cs), [PilotBattleSnapshotDto](../src/run/persistence/dtos/PilotBattleSnapshotDto.cs), [SaveDtoMapper](../src/run/persistence/SaveDtoMapper.cs) | Extend only when battle rules actually require personality; carry derived encounter inputs instead of reading the live run roster from battle rules |
 | Future world events | No general system | Define event state/actions/outcomes in the owning domain when concrete events are selected; consume the shared personality model |
 
@@ -250,11 +259,11 @@ existing APIs.
 
 ### Existing limitations and deferred debt
 
-- Hiring currently creates candidates without quirks, whereas general pilot and
-  starter factories assign the two placeholders. Update all creation paths
-  deliberately rather than only enabling catalog pools.
-- Both existing quirks explicitly advertise unimplemented effects. A personality
-  contribution alone does not fulfill their promised passive behavior.
+- Hiring uses a dedicated seeded `quirks` stream per sale slot and rolls from
+  [PilotQuirkCatalog](../src/pilots/PilotQuirkCatalog.cs).
+- Charismatic grants fleet salary discount and a personality contribution.
+  Neuro-drug Addict is personality-only for now; do not advertise unimplemented
+  passive gameplay effects on it.
 - Background descriptions include deferred behavior, including Synth Singer's
   addiction susceptibility. A personality contribution is not automatically an
   acquisition-probability rule; do not silently claim that promise is implemented.
@@ -266,22 +275,28 @@ existing APIs.
 - The roster currently has a temporary four-pilot cap. This plan does not add
   reserves or a forced-replacement mechanic. Refusing combat was an illustrative
   personality outcome, not an approved feature.
-- Current save loading requires an exact format-version match. Decide explicitly
-  whether to migrate old singular quirks or reject the previous format; do not
-  silently deserialize old pilots as having no quirks.
+- Current save loading requires an exact format-version match. Format 13 rejects
+  earlier saves explicitly (battle unit faction is now persisted).
 
 ## Execution order
 
 Each phase is a separate implementation increment, with review before continuing.
 Tests accompany each phase rather than being deferred to the end.
 
-### 1. Multi-quirk foundation
+### 1. Multi-quirk foundation (implemented)
 
-Replace singular slots across pilot identity, recruit profiles, roster capability
-aggregation, persistence, creation paths, fixtures, and identity presentation.
-Enforce polarity, uniqueness, and four-per-polarity limits at the domain boundary.
-Keep existing starter quirks and hiring behavior intentional; do not introduce
-campaign acquisition yet.
+Collections now cover pilot identity, recruit profiles, roster capability
+aggregation, personality contributions, persistence, creation paths, fixtures, and
+identity presentation. Polarity, uniqueness, and four-per-polarity limits are
+enforced at the domain boundary. Hiring rolls 0-2 total quirks from the catalog
+without duplicates using an independent seeded stream. Campaign acquisition and
+paid alterations are not implemented.
+
+To author content, add IDs to [EPilotQuirkId](../src/pilots/EPilotQuirkId.cs) and
+define them in [PilotQuirkCatalog](../src/pilots/PilotQuirkCatalog.cs). Definitions
+accept optional `personalityModifier` just like backgrounds; every assigned quirk
+automatically contributes to effective personality. New quirk icons must also be
+mapped in the existing identity rail.
 
 **Exit:** zero through four quirks of each polarity survive creation, roster
 updates, copying, save/load, and UI projection; invalid input fails explicitly.
@@ -377,7 +392,7 @@ Do not begin with a universal event framework or automatic combat refusal.
 
 - Contribution strength, composition rules, and bark weights.
 - Whether backgrounds influence personality in the first version.
-- Initial quirk content and starting quirk counts/distribution.
+- Initial quirk content (hiring count/distribution is defined above).
 - Acquisition triggers, rates, incompatibilities, and full-slot behavior.
 - Allowed paid alterations, resource prices, and any locking/reinforcement.
 - Concrete gameplay behaviors and world events.

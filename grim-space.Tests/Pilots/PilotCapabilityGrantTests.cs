@@ -40,24 +40,29 @@ public sealed class PilotCapabilityGrantTests
 	}
 
 	[Fact]
-	public void FromQuirks_WithDeferredQuirk_ReturnsNoCapabilityGrants()
+	public void FromQuirks_Charismatic_GrantsFleetSalaryDiscount()
 	{
 		var grants = PilotCapabilityGrant.FromQuirks(
 			"pilot-a",
 			[EPilotQuirkId.Charismatic],
-			BattlePilotCapabilityPipelineFactory.Supports);
+			_ => true);
 
-		Assert.Empty(grants);
+		var grant = Assert.Single(grants);
+		Assert.Equal(EPilotCapabilityId.FleetSalaryDiscount, grant.CapabilityId);
+		Assert.Equal(EPilotCapabilitySourceKind.Quirk, grant.Source.Kind);
+		Assert.Equal(EPilotQuirkId.Charismatic.ToString(), grant.Source.Id);
 	}
 
 	[Fact]
 	public void FromQuirks_FiltersByCapabilityPredicate()
 	{
-		var grants = PilotCapabilityGrant.FromQuirks(
+		Assert.Empty(PilotCapabilityGrant.FromQuirks(
+			"pilot-a",
+			[EPilotQuirkId.Charismatic],
+			BattlePilotCapabilityPipelineFactory.Supports));
+		Assert.Empty(PilotCapabilityGrant.FromQuirks(
 			"pilot-a",
 			[EPilotQuirkId.NeuroDrugAddict],
-			BattlePilotCapabilityPipelineFactory.Supports);
-
-		Assert.Empty(grants);
+			BattlePilotCapabilityPipelineFactory.Supports));
 	}
 }

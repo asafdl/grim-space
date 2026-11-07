@@ -18,6 +18,8 @@ public sealed class State
 	public required ShipLoadout Loadout { get; set; }
 	/// <summary>Pre-modifier base hull for outcome handoff when battle max hull was scaled.</summary>
 	public int? HullHandoffBasePoints { get; set; }
+	/// <summary>Pre-modifier base shields for outcome handoff when battle max shields were reduced.</summary>
+	public FaceShieldPoints? ShieldHandoffBasePoints { get; set; }
 	public Coord Position { get; set; }
 	public Coord Fore { get; set; }
 	public Coord Dorsal { get; set; }
@@ -102,6 +104,21 @@ public sealed class State
 		return System.Math.Max(0, handoffBase - missing);
 	}
 
+	/// <summary>Maps battle shields back to persistent ship shields, preserving missing points against the pre-mod base.</summary>
+	public FaceShieldPoints ShieldPointsForHandoff()
+	{
+		if (ShieldHandoffBasePoints is null)
+			return CurrentShieldPoints.Clone();
+
+		var handoff = new FaceShieldPoints();
+		foreach (ESpatialOrientation face in Enum.GetValues<ESpatialOrientation>())
+		{
+			var missing = System.Math.Max(0, Loadout.BaseShieldPoints[face] - CurrentShieldPoints[face]);
+			handoff[face] = System.Math.Max(0, ShieldHandoffBasePoints[face] - missing);
+		}
+		return handoff;
+	}
+
 	public State Clone()
 	{
 		var copy = new State
@@ -118,6 +135,7 @@ public sealed class State
 			CurrentManeuverPoints = CurrentManeuverPoints,
 			CurrentHullPoints = CurrentHullPoints,
 			HullHandoffBasePoints = HullHandoffBasePoints,
+			ShieldHandoffBasePoints = ShieldHandoffBasePoints?.Clone(),
 			CurrentShieldPoints = CurrentShieldPoints.Clone(),
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,

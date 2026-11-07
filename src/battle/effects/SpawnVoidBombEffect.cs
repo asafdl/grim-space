@@ -30,6 +30,7 @@ public sealed class SpawnVoidBombEffect(AbilityMount mount, string unitId)
 		var torpedo = Factory.Create(
 			child,
 			firer.Team,
+			firer.Faction,
 			position,
 			EBattleAgentKind.VoidBomb,
 			fore,

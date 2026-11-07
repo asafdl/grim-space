@@ -7,6 +7,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.PilotCapabilities;
 
@@ -26,6 +27,7 @@ public sealed class SynthSingerHeatTests
 					EPilotBackgroundId.SynthSinger,
 					BattlePilotCapabilityPipelineFactory.Supports)),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new UserExecutionAgent(),
 		};
@@ -63,6 +65,7 @@ public sealed class SynthSingerHeatTests
 			Ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			Pilot = new PilotBattleSnapshot(pilotId, [..grants, ..grants]),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new UserExecutionAgent(),
 		};

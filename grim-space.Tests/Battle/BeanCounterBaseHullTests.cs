@@ -7,6 +7,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.PilotCapabilities;
 
@@ -61,6 +62,7 @@ public sealed class BeanCounterBaseHullTests
 			Ship = ship,
 			Pilot = new PilotBattleSnapshot("pilot-a", [grant, grant]),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new UserExecutionAgent(),
 		};
@@ -86,6 +88,7 @@ public sealed class BeanCounterBaseHullTests
 					EPilotBackgroundId.BeanCounter,
 					BattlePilotCapabilityPipelineFactory.Supports)),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new UserExecutionAgent(),
 		};

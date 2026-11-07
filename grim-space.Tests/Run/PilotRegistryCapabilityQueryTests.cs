@@ -12,13 +12,15 @@ namespace GrimSpace.Tests.Run;
 public sealed class PilotRegistryCapabilityQueryTests
 {
 	[Fact]
-	public void QueryCapabilities_QuirksWithoutCapabilityIdsAddNoGrantsBeyondSkills()
+	public void QueryCapabilities_WithoutQuirkOrBackgroundGrants_ReturnsSkillsOnly()
 	{
 		var registry = new RunPilotRegistry();
 		var basePilot = Pilot.FromPersistence(
 			Pilot.CreateForShip("fighter-a").ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
+				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
 			});
 		var pilot = PilotProgression
 			.AddExperience(basePilot, PilotProgression.ExperienceForLevel(3))
@@ -30,6 +32,26 @@ public sealed class PilotRegistryCapabilityQueryTests
 		var grant = Assert.Single(grants);
 		Assert.Equal(EPilotCapabilitySourceKind.Skill, grant.Source.Kind);
 		Assert.Equal(EPilotSkillId.ShieldsUp.ToString(), grant.Source.Id);
+	}
+
+	[Fact]
+	public void QueryCapabilities_IncludesCharismaticFleetSalaryDiscount()
+	{
+		var registry = new RunPilotRegistry();
+		registry.Register(Pilot.FromPersistence(
+			Pilot.CreateForShip("fighter-a").ToPersistence() with
+			{
+				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
+				PositiveQuirkIds = [EPilotQuirkId.Charismatic],
+				NegativeQuirkIds = [],
+			}));
+
+		var grants = registry.QueryCapabilities(
+			capabilityId => capabilityId == EPilotCapabilityId.FleetSalaryDiscount);
+
+		var grant = Assert.Single(grants);
+		Assert.Equal(EPilotCapabilitySourceKind.Quirk, grant.Source.Kind);
+		Assert.Equal(EPilotQuirkId.Charismatic.ToString(), grant.Source.Id);
 	}
 
 	[Fact]
@@ -46,8 +68,8 @@ public sealed class PilotRegistryCapabilityQueryTests
 				.ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.ScrapDrone,
-				PositiveQuirkId = null,
-				NegativeQuirkId = null,
+				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
 			});
 		registry.Register(pilot);
 
@@ -76,7 +98,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 				.ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
-				PositiveQuirkId = null,
+				PositiveQuirkIds = [],
 			});
 		registry.Register(pilot);
 
@@ -100,16 +122,16 @@ public sealed class PilotRegistryCapabilityQueryTests
 				.ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
-				PositiveQuirkId = null,
-				NegativeQuirkId = null,
+				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
 				IsActive = false,
 			});
 		var inactivePilot = Pilot.FromPersistence(
 			Pilot.CreateForShip("fighter-inactive").ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.ScrapDrone,
-				PositiveQuirkId = null,
-				NegativeQuirkId = null,
+				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
 				IsActive = false,
 			});
 		registry.Register(activePilot);
@@ -139,8 +161,8 @@ public sealed class PilotRegistryCapabilityQueryTests
 				.ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
-				PositiveQuirkId = null,
-				NegativeQuirkId = null,
+				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
 			});
 		var pilotB = Pilot.FromPersistence(
 			PilotProgression
@@ -151,8 +173,8 @@ public sealed class PilotRegistryCapabilityQueryTests
 				.ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
-				PositiveQuirkId = null,
-				NegativeQuirkId = null,
+				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
 			});
 		registry.Register(pilotA);
 		registry.Register(pilotB);

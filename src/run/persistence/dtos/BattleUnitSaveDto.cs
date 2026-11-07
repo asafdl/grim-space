@@ -2,12 +2,14 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Run.Persistence;
 
 public sealed record BattleUnitSaveDto(
 	ShipPersistenceDto Ship,
 	ETeam Team,
+	EFaction Faction,
 	EBattleAgentKind AgentKind,
 	Coord Position,
 	Coord Fore,
@@ -38,4 +40,5 @@ public sealed record BattleUnitSaveDto(
 	bool Overdrive,
 	bool Overheat,
 	int ThirstForScrapStacks,
-	int? HullHandoffBasePoints = null);
+	int? HullHandoffBasePoints = null,
+	FaceShieldDto? ShieldHandoffBasePoints = null);

@@ -7,6 +7,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.World.Factions;
 
 namespace GrimSpace.Tests.PilotCapabilities;
 
@@ -26,6 +27,7 @@ public sealed class CyberJunkieHeatClearTests
 					EPilotBackgroundId.CyberJunkie,
 					BattlePilotCapabilityPipelineFactory.Supports)),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new UserExecutionAgent(),
 		};
@@ -55,6 +57,7 @@ public sealed class CyberJunkieHeatClearTests
 			Ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter),
 			Pilot = new PilotBattleSnapshot(pilotId, [grant, grant]),
 			Team = ETeam.Player,
+			Faction = EFaction.Player,
 			Position = Coord.Zero,
 			ExecutionAgent = new UserExecutionAgent(),
 		};
