@@ -48,11 +48,6 @@ public partial class GameSettingsMenu : Control
 			HudPalettes.PurpleRed);
 		_shell.SetHeader(HudHeaderMode.TitleOnly);
 		_shell.SetDismissVisible(true);
-		_shell.SetFooter(
-		[
-			new HudAction("Reset section", HudActionKind.Secondary, OnResetActiveTab),
-			new HudAction("Apply", HudActionKind.Primary, OnApply),
-		]);
 		_footerStatusLabel = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
@@ -66,9 +61,11 @@ public partial class GameSettingsMenu : Control
 		AddChild(_shell);
 
 		BuildSettingsContent();
+		WireDirtyTracking();
 		BuildUnsavedChangesDialog();
 		PopulateResolutions();
 		PopulateUiScales();
+		RefreshFooterActions();
 		GetViewport().SizeChanged += OnViewportSizeChanged;
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
 	}
@@ -81,6 +78,7 @@ public partial class GameSettingsMenu : Control
 		_unsavedChangesPopup.Hide();
 		_baselineSnapshot = CaptureUiSnapshot();
 		_hasBaselineSnapshot = true;
+		RefreshFooterActions();
 		_shell.SetEscapeHandlingEnabled(true);
 		_shell.SetBackHandler(OnEscapeRequested);
 		_shell.SetCloseRequestHandler(OnCloseRequested);
@@ -259,7 +257,11 @@ public partial class GameSettingsMenu : Control
 		_displayMode = CreateSelect();
 		_displayMode.AddItem("Borderless Fullscreen");
 		_displayMode.AddItem("Windowed");
-		_displayMode.ItemSelected += _ => UpdateResolutionAvailability();
+		_displayMode.ItemSelected += _ =>
+		{
+			UpdateResolutionAvailability();
+			RefreshFooterActions();
+		};
 		page.AddChild(CreateSettingRow("Display mode", _displayMode));
 
 		_resolution = CreateSelect();
@@ -346,7 +348,33 @@ public partial class GameSettingsMenu : Control
 		_keyBindingsTab.ShowStatus(string.Empty);
 		_baselineSnapshot = snapshot;
 		_hasBaselineSnapshot = true;
+		RefreshFooterActions();
 		CallDeferred(MethodName.FitSettingsPanelToViewport);
+	}
+
+	private void WireDirtyTracking()
+	{
+		_resolution.ItemSelected += _ => RefreshFooterActions();
+		_uiScale.ItemSelected += _ => RefreshFooterActions();
+		_masterVolume.ValueChanged += _ => RefreshFooterActions();
+		_musicVolume.ValueChanged += _ => RefreshFooterActions();
+		_sfxVolume.ValueChanged += _ => RefreshFooterActions();
+		_showTutorials.Toggled += _ => RefreshFooterActions();
+		_mouseCameraPan.Toggled += _ => RefreshFooterActions();
+		_invertHorizontalCameraMovement.Toggled += _ => RefreshFooterActions();
+		_invertVerticalCameraMovement.Toggled += _ => RefreshFooterActions();
+		_showActionLog.Toggled += _ => RefreshFooterActions();
+		_keyBindingsTab.DraftBindingsChanged += _ => RefreshFooterActions();
+	}
+
+	private void RefreshFooterActions()
+	{
+		var dirty = IsDirty();
+		_shell.SetFooter(
+		[
+			new HudAction("Reset section", HudActionKind.Secondary, OnResetActiveTab, enabled: dirty),
+			new HudAction("Apply", HudActionKind.Primary, OnApply, enabled: dirty),
+		]);
 	}
 
 	private void OnSettingsTabChanged(long tab)
@@ -548,6 +576,8 @@ public partial class GameSettingsMenu : Control
 				_keyBindingsTab.ResetToDefaults();
 				break;
 		}
+
+		RefreshFooterActions();
 	}
 
 	private void ResetVideoUiToDefaults()
