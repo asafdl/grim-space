@@ -39,6 +39,8 @@ public static class Factory
 				grant.CapabilityId == EPilotCapabilityId.InitiativePenalty))
 			state.Initiative -= PilotInitiativePenalty;
 
+		ApplyBaseHullPenalty(state, pilot);
+
 		if (!state.HeatProfile.Participates)
 			return;
 
@@ -63,7 +65,7 @@ public static class Factory
 		{
 			var clearBonusPercent =
 				heatClearBonusStacks * PilotSkillPercents.CyberJunkie.HeatClearBonusPercent;
-			clearPerTurn = ScaleHeatClear(clearPerTurn, 100 + clearBonusPercent);
+			clearPerTurn = ScalePercent(clearPerTurn, 100 + clearBonusPercent);
 		}
 
 		if (gainMultiplier == profile.GainMultiplier && clearPerTurn == profile.ClearPerTurn)
@@ -72,8 +74,31 @@ public static class Factory
 		state.HeatProfile = new HeatSpec(profile.Capacity, clearPerTurn, gainMultiplier);
 	}
 
-	private static int ScaleHeatClear(int clearPerTurn, int percent) =>
-		(int)System.Math.Round(clearPerTurn * percent / 100m, MidpointRounding.AwayFromZero);
+	private static void ApplyBaseHullPenalty(State state, PilotBattleSnapshot pilot)
+	{
+		var stacks = pilot.CapabilityGrants.Count(grant =>
+			grant.CapabilityId == EPilotCapabilityId.BaseHullPenalty);
+		if (stacks <= 0)
+			return;
+
+		var retainPercent = PilotSkillPercents.BeanCounter.BaseHullPercent;
+		ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(retainPercent, 0);
+		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(retainPercent, 100);
+
+		var oldBase = state.Loadout.BaseHullPoints;
+		var oldCurrent = state.CurrentHullPoints;
+		var newBase = oldBase;
+		for (var i = 0; i < stacks; i++)
+			newBase = ScalePercent(newBase, retainPercent);
+
+		var missing = System.Math.Max(0, oldBase - oldCurrent);
+		state.HullHandoffBasePoints = oldBase;
+		state.Loadout = state.Loadout with { BaseHullPoints = newBase };
+		state.CurrentHullPoints = System.Math.Max(0, newBase - missing);
+	}
+
+	private static int ScalePercent(int amount, int percent) =>
+		(int)System.Math.Round(amount * percent / 100m, MidpointRounding.AwayFromZero);
 
 	public static Unit Create(
 		ShipInstance ship,

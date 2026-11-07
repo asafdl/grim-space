@@ -253,6 +253,7 @@ public static class SaveDtoMapper
 			state.Heat,
 			state.Overdrive,
 			state.Overheat,
+			state.HullHandoffBasePoints,
 			BaseAp = state.Maneuverability.BaseActionPoints,
 			BaseMp = state.Maneuverability.BaseManeuverPoints,
 			HeatCapacity = state.HeatProfile.Capacity,
@@ -296,6 +297,7 @@ public static class SaveDtoMapper
 		state.ThirstForScrapStacks = dto.ThirstForScrapStacks;
 		state.ReactiveShieldsStacks = dto.ReactiveShieldsStacks;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
+		state.HullHandoffBasePoints = dto.HullHandoffBasePoints;
 		state.Projectile = dto.Projectile;
 		state.Maneuverability = maneuverability.WithBudgets(
 			dto.BaseAp,
@@ -377,6 +379,7 @@ public static class SaveDtoMapper
 				state.Heat,
 				state.Overdrive,
 				state.Overheat,
+				state.HullHandoffBasePoints,
 				BaseAp = state.Maneuverability.BaseActionPoints,
 				BaseMp = state.Maneuverability.BaseManeuverPoints,
 				HeatCapacity = state.HeatProfile.Capacity,
@@ -896,6 +899,7 @@ public static class SaveDtoMapper
 				unitDto.HeatGainMultiplier,
 				unitDto.Overdrive,
 				unitDto.Overheat);
+			state.HullHandoffBasePoints = unitDto.HullHandoffBasePoints;
 			state.Projectile = unitDto.Projectile;
 			state.Maneuverability = maneuverability.WithBudgets(
 				unitDto.BaseAp,

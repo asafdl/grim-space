@@ -148,14 +148,23 @@ public sealed class PilotBackgroundCatalogTests
 	}
 
 	[Fact]
-	public void BeanCounter_GrantsFleetSalaryDiscount()
+	public void BeanCounter_GrantsFleetSalaryDiscountAndBaseHullPenalty()
 	{
 		var definition = PilotBackgroundCatalog.Get(EPilotBackgroundId.BeanCounter);
 
 		Assert.Equal("Bean Counter", definition.Name);
-		Assert.Equal([EPilotCapabilityId.FleetSalaryDiscount], definition.CapabilityIds);
+		Assert.Equal(
+			[
+				EPilotCapabilityId.FleetSalaryDiscount,
+				EPilotCapabilityId.BaseHullPenalty,
+			],
+			definition.CapabilityIds);
 		Assert.Contains(
 			$"-{PilotSkillPercents.BeanCounter.FleetSalaryDiscountPercent}%",
+			definition.Tooltip.Details,
+			StringComparison.Ordinal);
+		Assert.Contains(
+			$"-{100 - PilotSkillPercents.BeanCounter.BaseHullPercent}%",
 			definition.Tooltip.Details,
 			StringComparison.Ordinal);
 	}

@@ -33,4 +33,5 @@ public sealed record BattleUnitStateDto(
 	float HeatGainMultiplier,
 	bool Overdrive,
 	bool Overheat,
-	int ThirstForScrapStacks);
+	int ThirstForScrapStacks,
+	int? HullHandoffBasePoints = null);

@@ -33,7 +33,8 @@ public static class BattlePilotCapabilityPipelineFactory
 			or EPilotCapabilityId.OutgoingDamageBonus
 			or EPilotCapabilityId.IncreasedHullDamageTaken
 			or EPilotCapabilityId.SpawnedAllyDamageBonus
-			or EPilotCapabilityId.DamageResistance;
+			or EPilotCapabilityId.DamageResistance
+			or EPilotCapabilityId.BaseHullPenalty;
 
 	public static ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Build(
 		IReadOnlySet<EPilotCapabilityId> capabilities)

@@ -15,7 +15,9 @@ public sealed class State
 	public required string Id { get; init; }
 	public required EType Type { get; init; }
 	public required int Initiative { get; set; }
-	public required ShipLoadout Loadout { get; init; }
+	public required ShipLoadout Loadout { get; set; }
+	/// <summary>Pre-modifier base hull for outcome handoff when battle max hull was scaled.</summary>
+	public int? HullHandoffBasePoints { get; set; }
 	public Coord Position { get; set; }
 	public Coord Fore { get; set; }
 	public Coord Dorsal { get; set; }
@@ -90,6 +92,16 @@ public sealed class State
 	public int MountCount(EAbilityKind kind) =>
 		Loadout.InstalledAbilities.Count(installed => installed.Spec.Kind == kind);
 
+	/// <summary>Maps battle hull back to persistent ship hull, preserving missing points against the pre-mod base.</summary>
+	public int HullPointsForHandoff()
+	{
+		if (HullHandoffBasePoints is not { } handoffBase)
+			return CurrentHullPoints;
+
+		var missing = System.Math.Max(0, Loadout.BaseHullPoints - CurrentHullPoints);
+		return System.Math.Max(0, handoffBase - missing);
+	}
+
 	public State Clone()
 	{
 		var copy = new State
@@ -105,6 +117,7 @@ public sealed class State
 			CurrentActionPoints = CurrentActionPoints,
 			CurrentManeuverPoints = CurrentManeuverPoints,
 			CurrentHullPoints = CurrentHullPoints,
+			HullHandoffBasePoints = HullHandoffBasePoints,
 			CurrentShieldPoints = CurrentShieldPoints.Clone(),
 			FuelRemaining = FuelRemaining,
 			Projectile = Projectile,

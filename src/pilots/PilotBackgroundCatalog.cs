@@ -84,11 +84,15 @@ public static class PilotBackgroundCatalog
 					$"[icon: Hull, text: +{100 - PilotSkillPercents.HydraulicAbuser.DamageTakenPercent}%] damage resistance.")),
 			[EPilotBackgroundId.BeanCounter] = new(
 				EPilotBackgroundId.BeanCounter,
-				[EPilotCapabilityId.FleetSalaryDiscount],
+				[
+					EPilotCapabilityId.FleetSalaryDiscount,
+					EPilotCapabilityId.BaseHullPenalty,
+				],
 				new HudTooltipContent(
 					"Bean Counter",
 					"All bots can do complex math, most of them just choose not to.",
-					$"[icon: Salary, text: -{PilotSkillPercents.BeanCounter.FleetSalaryDiscountPercent}%] fleet salary.")),
+					$"[icon: Salary, text: -{PilotSkillPercents.BeanCounter.FleetSalaryDiscountPercent}%] fleet salary.\n"
+					+ $"[icon: Hull, text: -{100 - PilotSkillPercents.BeanCounter.BaseHullPercent}%] base hull.")),
 			[EPilotBackgroundId.GearPsycho] = new(
 				EPilotBackgroundId.GearPsycho,
 				[EPilotCapabilityId.HazardPayDiscount],

@@ -30,6 +30,7 @@ public enum EPilotCapabilityId
 	SpawnedAllyDamageBonus,
 	DamageResistance,
 	FleetSalaryDiscount,
+	BaseHullPenalty,
 	HazardPayDiscount,
 	ThirstForScrap,
 	YouLittleRat,

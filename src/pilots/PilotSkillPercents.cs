@@ -162,6 +162,9 @@ public static class PilotSkillPercents
 	public static class BeanCounter
 	{
 		public const int FleetSalaryDiscountPercent = 5;
+
+		/// <summary>Fraction of base hull retained after reduction (90 = -10% base hull).</summary>
+		public const int BaseHullPercent = 90;
 	}
 
 	public static class GearPsycho
