@@ -1,6 +1,9 @@
 using GrimSpace.Pilots.Barks;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Units.Enums;
+using GrimSpace.Pilots;
+using GrimSpace.Run;
+using GrimSpace.Tests.Run;
 
 namespace GrimSpace.Tests.Pilots;
 
@@ -10,9 +13,12 @@ public sealed class PilotBarkDirectorTests
 	private readonly List<(string PilotId, string Line)> _said = [];
 	private bool _canShow = true;
 
-	private PilotBarkDirector Create(double globalGap = 5, double pilotCooldown = 10, Random? rng = null)
+	private PilotBarkDirector Create(
+		double globalGap = 5, double pilotCooldown = 10, Random? rng = null,
+		Func<string, PilotPersonality>? personalityReader = null)
 	{
-		var director = new PilotBarkDirector(rng ?? new Random(1), globalGap, pilotCooldown);
+		var director = new PilotBarkDirector(
+			rng ?? new Random(1), globalGap, pilotCooldown, personalityReader);
 		foreach (var pilotId in new[] { "a", "b" })
 		{
 			director.RegisterPilot(pilotId, line =>
@@ -27,6 +33,87 @@ public sealed class PilotBarkDirectorTests
 		return director;
 	}
 
+	[Theory]
+	[InlineData(-5, EBarkFlavor.Anxious)]
+	[InlineData(5, EBarkFlavor.Bloodthirsty)]
+	public void Select_ExcludesOpposingFlavor(int threatResponse, EBarkFlavor expected)
+	{
+		using var director = Create(personalityReader: _ => new(threatResponse, 0, 0));
+
+		var decision = Assert.Single(director.Select(
+			["a"], [EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty], 1));
+
+		Assert.Equal(expected, decision.Flavor);
+	}
+
+	[Fact]
+	public void Select_WithOnlyOpposingFlavors_DoesNotRollLineOrStartCooldown()
+	{
+		var rng = new RecordingRandom(0);
+		using var director = Create(rng: rng, personalityReader: _ => new(5, 0, 0));
+
+		Assert.Empty(director.Select(["a"], [EBarkFlavor.Anxious], 1));
+		Assert.Equal(new[] { "pick:1", "pick:1", "chance" }, rng.Calls);
+		Assert.True(director.Offer("a", EBarkFlavor.Bloodthirsty, 1));
+		Assert.True(director.Script("a", "Scripted dialogue remains unrestricted."));
+	}
+
+	[Fact]
+	public void Select_UsesEachPilotsCurrentPersonality()
+	{
+		var personalities = new Dictionary<string, PilotPersonality>
+		{
+			["a"] = new(-5, 0, 0),
+			["b"] = new(5, 0, 0),
+		};
+		using var director = Create(personalityReader: id => personalities[id]);
+		var flavors = new[] { EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty };
+
+		var decisions = director.Select(["a", "b"], flavors, 1, 2, 2);
+
+		Assert.Equal(EBarkFlavor.Anxious, decisions.Single(d => d.PilotId == "a").Flavor);
+		Assert.Equal(EBarkFlavor.Bloodthirsty, decisions.Single(d => d.PilotId == "b").Flavor);
+		personalities["a"] = new(5, 0, 0);
+		Assert.Equal(EBarkFlavor.Bloodthirsty,
+			Assert.Single(director.Select(["a"], flavors, 1)).Flavor);
+	}
+
+	[Fact]
+	public void SelectPlayerHit_UsesPersonalityAndPresentDoesNotReroll()
+	{
+		var personality = new PilotPersonality(5, -5, 5);
+		using var director = Create(rng: new RecordingRandom(0), personalityReader: _ => personality);
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+			default, 0, 10, 0, 10);
+		var decision = Assert.Single(director.SelectPlayerHit(
+			impact, ETeam.Player, ["a"]));
+
+		Assert.Equal(EBarkFlavor.Bloodthirsty, decision.Flavor);
+		personality = new(-5, 5, -5);
+		Assert.True(director.Present(decision));
+		Assert.Equal(decision.Text, Assert.Single(_said).Line);
+	}
+
+	[Fact]
+	public void RunBoundDirector_UsesEffectivePersonalityAndRejectsMissingPilots()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pilot = Pilot.FromRecruitProfile(null,
+			new PilotRecruitProfile("Psycho", "pilot_01", EPilotBackgroundId.GearPsycho));
+		run.PilotRegistry.Register(pilot);
+		using var director = new PilotBarkDirector(run, new RecordingRandom(0));
+		director.RegisterPilot(pilot.Id, _ => true);
+		var flavors = new[] { EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty };
+
+		Assert.Equal(EBarkFlavor.Bloodthirsty,
+			Assert.Single(director.Select([pilot.Id], flavors, 1)).Flavor);
+		run.PilotRegistry.Update(pilot.WithPersonality(new(-5, 0, 0)));
+		Assert.Equal(EBarkFlavor.Anxious,
+			Assert.Single(director.Select([pilot.Id], flavors, 1)).Flavor);
+		director.RegisterPilot("missing", _ => true);
+		Assert.Throws<KeyNotFoundException>(() => director.Select(["missing"], flavors, 1));
+	}
+
 	[Fact]
 	public void SelectPlayerHit_SelectsLivingCandidatesWithoutSpeaking()
 	{
@@ -37,7 +124,7 @@ public sealed class PilotBarkDirectorTests
 		var decisions = director.SelectPlayerHit(impact, ETeam.Player, ["a", "b"]);
 
 		Assert.Equal(2, decisions.Count);
-		Assert.All(decisions, decision => Assert.Equal(EBarkFlavor.Disdain, decision.Flavor));
+		Assert.All(decisions, decision => Assert.Equal(EBarkFlavor.Entitled, decision.Flavor));
 		Assert.Empty(_said);
 	}
 
@@ -129,7 +216,7 @@ public sealed class PilotBarkDirectorTests
 
 		Assert.True(director.Present(decision));
 
-		Assert.True(director.Offer("a", EBarkFlavor.Bored, 1));
+		Assert.True(director.Offer("a", EBarkFlavor.Impatient, 1));
 	}
 
 	[Fact]
@@ -143,10 +230,10 @@ public sealed class PilotBarkDirectorTests
 		var decision = Assert.Single(director.SelectPlayerHit(impact, ETeam.Player, ["a"]));
 
 		Assert.True(director.Present(decision));
-		Assert.False(director.Offer("a", EBarkFlavor.Bored, 1));
+		Assert.False(director.Offer("a", EBarkFlavor.Impatient, 1));
 		director.Tick(1);
 
-		Assert.True(director.Offer("a", EBarkFlavor.Bored, 1));
+		Assert.True(director.Offer("a", EBarkFlavor.Impatient, 1));
 	}
 
 	[Fact]
@@ -154,16 +241,16 @@ public sealed class PilotBarkDirectorTests
 	{
 		var director = Create();
 
-		var decision = Assert.Single(director.Select(["a"], [EBarkFlavor.Angry], 1));
+		var decision = Assert.Single(director.Select(["a"], [EBarkFlavor.Bloodthirsty], 1));
 
 		Assert.Empty(_said);
 		Assert.Equal("a", decision.PilotId);
-		Assert.Equal(EBarkFlavor.Angry, decision.Flavor);
-		Assert.Contains(decision.Text, PilotBarkCatalog.LinesFor(EBarkFlavor.Angry));
-		Assert.Single(director.Select(["a"], [EBarkFlavor.Angry], 1));
+		Assert.Equal(EBarkFlavor.Bloodthirsty, decision.Flavor);
+		Assert.Contains(decision.Text, PilotBarkCatalog.LinesFor(EBarkFlavor.Bloodthirsty));
+		Assert.Single(director.Select(["a"], [EBarkFlavor.Bloodthirsty], 1));
 		Assert.True(director.Present(decision));
 		Assert.Equal(decision.Text, Assert.Single(_said).Line);
-		Assert.Empty(director.Select(["b"], [EBarkFlavor.Angry], 1));
+		Assert.Empty(director.Select(["b"], [EBarkFlavor.Bloodthirsty], 1));
 	}
 
 	[Fact]
@@ -171,7 +258,7 @@ public sealed class PilotBarkDirectorTests
 	{
 		var rng = new RecordingRandom(0);
 		var director = Create(rng: rng);
-		var decisions = director.Select(["a", "b"], [EBarkFlavor.Scared], 1, 2, 2);
+		var decisions = director.Select(["a", "b"], [EBarkFlavor.Anxious], 1, 2, 2);
 		var rollCount = rng.Calls.Count;
 
 		foreach (var decision in decisions)
@@ -185,12 +272,12 @@ public sealed class PilotBarkDirectorTests
 	public void Present_WhenHandleRemoved_DoesNotStartCooldowns()
 	{
 		var director = Create();
-		var decision = Assert.Single(director.Select(["a"], [EBarkFlavor.Angry], 1));
+		var decision = Assert.Single(director.Select(["a"], [EBarkFlavor.Bloodthirsty], 1));
 		director.UnregisterPilot("a");
 
 		Assert.False(director.Present(decision));
 		Assert.Empty(_said);
-		Assert.True(director.Offer("b", EBarkFlavor.Angry, 1));
+		Assert.True(director.Offer("b", EBarkFlavor.Bloodthirsty, 1));
 	}
 
 	[Fact]
@@ -198,11 +285,11 @@ public sealed class PilotBarkDirectorTests
 	{
 		var director = Create();
 
-		Assert.True(director.Offer("a", EBarkFlavor.Angry, 1));
+		Assert.True(director.Offer("a", EBarkFlavor.Bloodthirsty, 1));
 
 		var (pilotId, line) = Assert.Single(_said);
 		Assert.Equal("a", pilotId);
-		Assert.Contains(line, PilotBarkCatalog.LinesFor(EBarkFlavor.Angry));
+		Assert.Contains(line, PilotBarkCatalog.LinesFor(EBarkFlavor.Bloodthirsty));
 	}
 
 	[Fact]
@@ -211,7 +298,7 @@ public sealed class PilotBarkDirectorTests
 		var director = Create(globalGap: 0, pilotCooldown: 0);
 
 		for (var i = 0; i < 50; i++)
-			Assert.False(director.Offer("a", EBarkFlavor.Bored, 0));
+			Assert.False(director.Offer("a", EBarkFlavor.Impatient, 0));
 
 		Assert.Empty(_said);
 	}
@@ -221,7 +308,7 @@ public sealed class PilotBarkDirectorTests
 	{
 		var director = Create(globalGap: 0, pilotCooldown: 0);
 
-		var spoke = Enumerable.Range(0, 200).Count(_ => director.Offer("a", EBarkFlavor.Bored, 0.5));
+		var spoke = Enumerable.Range(0, 200).Count(_ => director.Offer("a", EBarkFlavor.Impatient, 0.5));
 
 		Assert.InRange(spoke, 60, 140);
 	}
@@ -234,7 +321,7 @@ public sealed class PilotBarkDirectorTests
 		var roll = shouldSpeak ? PilotBarkDirector.DefaultChance / 2 : PilotBarkDirector.DefaultChance;
 		var director = Create(rng: new RecordingRandom(roll));
 
-		Assert.Equal(shouldSpeak, director.Offer("a", EBarkFlavor.Bored));
+		Assert.Equal(shouldSpeak, director.Offer("a", EBarkFlavor.Impatient));
 		Assert.Equal(shouldSpeak ? 1 : 0, _said.Count);
 	}
 
@@ -242,27 +329,27 @@ public sealed class PilotBarkDirectorTests
 	public void Offer_BlockedByGlobalGap_ForAnyPilot()
 	{
 		var director = Create(globalGap: 5, pilotCooldown: 0);
-		director.Offer("a", EBarkFlavor.Smug, 1);
+		director.Offer("a", EBarkFlavor.Entitled, 1);
 
 		director.Tick(4.9);
-		Assert.False(director.Offer("b", EBarkFlavor.Smug, 1));
+		Assert.False(director.Offer("b", EBarkFlavor.Entitled, 1));
 
 		director.Tick(0.2);
-		Assert.True(director.Offer("b", EBarkFlavor.Smug, 1));
+		Assert.True(director.Offer("b", EBarkFlavor.Entitled, 1));
 	}
 
 	[Fact]
 	public void Offer_BlockedByPilotCooldown_OnlyForThatPilot()
 	{
 		var director = Create(globalGap: 0, pilotCooldown: 10);
-		director.Offer("a", EBarkFlavor.Smug, 1);
+		director.Offer("a", EBarkFlavor.Entitled, 1);
 
 		director.Tick(5);
-		Assert.False(director.Offer("a", EBarkFlavor.Smug, 1));
-		Assert.True(director.Offer("b", EBarkFlavor.Smug, 1));
+		Assert.False(director.Offer("a", EBarkFlavor.Entitled, 1));
+		Assert.True(director.Offer("b", EBarkFlavor.Entitled, 1));
 
 		director.Tick(5);
-		Assert.True(director.Offer("a", EBarkFlavor.Smug, 1));
+		Assert.True(director.Offer("a", EBarkFlavor.Entitled, 1));
 	}
 
 	[Fact]
@@ -270,10 +357,10 @@ public sealed class PilotBarkDirectorTests
 	{
 		var director = Create();
 		_canShow = false;
-		Assert.False(director.Offer("a", EBarkFlavor.Scared, 1));
+		Assert.False(director.Offer("a", EBarkFlavor.Anxious, 1));
 
 		_canShow = true;
-		Assert.True(director.Offer("a", EBarkFlavor.Scared, 1));
+		Assert.True(director.Offer("a", EBarkFlavor.Anxious, 1));
 	}
 
 	[Fact]
@@ -282,12 +369,12 @@ public sealed class PilotBarkDirectorTests
 		var rng = new RecordingRandom(0.69);
 		var director = Create(rng: rng);
 
-		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Disdain, EBarkFlavor.Relieved], 0.7));
+		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Entitled, EBarkFlavor.Supportive], 0.7));
 
 		Assert.Equal("b", Assert.Single(_said).PilotId);
-		Assert.Contains(_said[0].Line, PilotBarkCatalog.LinesFor(EBarkFlavor.Relieved));
+		Assert.Contains(_said[0].Line, PilotBarkCatalog.LinesFor(EBarkFlavor.Supportive));
 		Assert.Equal(new[] { "pick:1", "pick:2", "chance", "pick:2",
-			$"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Relieved).Count}" }, rng.Calls);
+			$"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Supportive).Count}" }, rng.Calls);
 	}
 
 	[Fact]
@@ -296,16 +383,16 @@ public sealed class PilotBarkDirectorTests
 		var rng = new RecordingRandom(0);
 		var director = Create(rng: rng);
 
-		Assert.True(director.Offer(["a", "a", "b"], [EBarkFlavor.Angry, EBarkFlavor.Bored],
+		Assert.True(director.Offer(["a", "a", "b"], [EBarkFlavor.Bloodthirsty, EBarkFlavor.Impatient],
 			minPilots: 1, maxPilots: 3));
 
 		Assert.Equal(2, _said.Count);
 		Assert.Equal(2, _said.Select(line => line.PilotId).Distinct().Count());
 		Assert.Equal(2, rng.Calls.Count(call => call == "chance"));
 		Assert.Equal(new[] { "pick:2", "pick:2", "chance", "pick:2",
-			$"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Bored).Count}",
-			"pick:1", "chance", "pick:2", $"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Bored).Count}" }, rng.Calls);
-		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Angry], 1, 1, 3));
+			$"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Impatient).Count}",
+			"pick:1", "chance", "pick:2", $"pick:{PilotBarkCatalog.LinesFor(EBarkFlavor.Impatient).Count}" }, rng.Calls);
+		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Bloodthirsty], 1, 1, 3));
 	}
 
 	[Fact]
@@ -314,7 +401,7 @@ public sealed class PilotBarkDirectorTests
 		var director = Create(rng: new RecordingRandom(0));
 		director.UnregisterPilot("b");
 
-		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Scared], 1, 1, 3));
+		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Anxious], 1, 1, 3));
 
 		Assert.Equal("a", Assert.Single(_said).PilotId);
 	}
@@ -327,7 +414,7 @@ public sealed class PilotBarkDirectorTests
 		var director = Create();
 
 		Assert.Throws<ArgumentOutOfRangeException>(() =>
-			director.Offer(["a"], [EBarkFlavor.Scared], minPilots: min, maxPilots: max));
+			director.Offer(["a"], [EBarkFlavor.Anxious], minPilots: min, maxPilots: max));
 	}
 
 	[Fact]
@@ -336,7 +423,7 @@ public sealed class PilotBarkDirectorTests
 		var rng = new RecordingRandom(0.7);
 		var director = Create(rng: rng);
 
-		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Disdain, EBarkFlavor.Relieved], 0.7));
+		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Entitled, EBarkFlavor.Supportive], 0.7));
 
 		Assert.Equal(new[] { "pick:1", "pick:2", "chance" }, rng.Calls);
 		Assert.Empty(_said);
@@ -348,10 +435,10 @@ public sealed class PilotBarkDirectorTests
 		var director = Create(globalGap: 0, pilotCooldown: 10);
 		director.Script("a", "Already spoke.");
 
-		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Relieved], 1));
+		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Supportive], 1));
 
 		Assert.Equal("b", _said[^1].PilotId);
-		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Relieved], 1));
+		Assert.False(director.Offer(["a", "b"], [EBarkFlavor.Supportive], 1));
 	}
 
 	[Fact]
@@ -360,7 +447,7 @@ public sealed class PilotBarkDirectorTests
 		var rng = new RecordingRandom(0);
 		var director = Create(rng: rng);
 
-		Assert.False(director.Offer([], [EBarkFlavor.Relieved]));
+		Assert.False(director.Offer([], [EBarkFlavor.Supportive]));
 
 		Assert.Empty(rng.Calls);
 	}
@@ -377,13 +464,13 @@ public sealed class PilotBarkDirectorTests
 	public void Script_BypassesCooldownsAndStartsThem()
 	{
 		var director = Create();
-		director.Offer("a", EBarkFlavor.Smug, 1);
+		director.Offer("a", EBarkFlavor.Entitled, 1);
 
 		Assert.True(director.Script("a", "Scripted."));
 		Assert.Equal("Scripted.", _said[^1].Line);
 
 		director.Tick(4);
-		Assert.False(director.Offer("b", EBarkFlavor.Smug, 1));
+		Assert.False(director.Offer("b", EBarkFlavor.Entitled, 1));
 	}
 
 	[Fact]
@@ -392,11 +479,11 @@ public sealed class PilotBarkDirectorTests
 		var rng = new RecordingRandom(0.7, 0.69);
 		var director = Create(globalGap: 0, rng: rng);
 
-		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Relieved], 0.7, minPilots: 2, maxPilots: 2));
+		Assert.True(director.Offer(["a", "b"], [EBarkFlavor.Supportive], 0.7, minPilots: 2, maxPilots: 2));
 
 		Assert.Equal("a", Assert.Single(_said).PilotId);
 		Assert.Equal(2, rng.Calls.Count(call => call == "chance"));
-		Assert.True(director.Offer("b", EBarkFlavor.Relieved, 1));
+		Assert.True(director.Offer("b", EBarkFlavor.Supportive, 1));
 	}
 
 	private sealed class RecordingRandom(double chance, double? subsequentChance = null) : Random

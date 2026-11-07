@@ -1,4 +1,5 @@
 using GrimSpace.Pilots.Barks;
+using GrimSpace.Pilots;
 using GrimSpace.Core.Log;
 using GrimSpace.Run;
 using GrimSpace.Tests.World.StarSystem.Contracts;
@@ -27,14 +28,15 @@ namespace GrimSpace.Tests.Pilots;
 public sealed class PilotBarkEventTests
 {
 	[Theory]
-	[InlineData(true, 0, EBarkFlavor.Scared)]
-	[InlineData(true, 1, EBarkFlavor.Angry)]
-	[InlineData(true, 2, EBarkFlavor.Surprised)]
-	[InlineData(false, 0, EBarkFlavor.Relieved)]
-	[InlineData(false, 1, EBarkFlavor.Bored)]
+	[InlineData(true, 0, EBarkFlavor.Anxious)]
+	[InlineData(true, 1, EBarkFlavor.Bloodthirsty)]
+	[InlineData(true, 2, EBarkFlavor.Analytical)]
+	[InlineData(false, 0, EBarkFlavor.Supportive)]
+	[InlineData(false, 1, EBarkFlavor.Impatient)]
 	public void WreckReached_UsesVisibleOutcomeFlavorPool(bool ambush, int pick, EBarkFlavor expected)
 	{
 		using var run = RunState.CreateNewRun(42);
+		NeutralizeActivePersonalities(run);
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new WreckRandom(pick));
 		var lines = new List<string>();
@@ -96,7 +98,7 @@ public sealed class PilotBarkEventTests
 		director.Tick(0);
 		director.Tick(100);
 
-		Assert.Contains(Assert.Single(lines), PilotBarkCatalog.LinesFor(EBarkFlavor.Bored));
+		Assert.Contains(Assert.Single(lines), PilotBarkCatalog.LinesFor(EBarkFlavor.Impatient));
 	}
 
 	[Theory]
@@ -187,6 +189,7 @@ public sealed class PilotBarkEventTests
 	public void ContactReached_PlayerDecision_OffersEngagementFlavor(bool playerInitiates)
 	{
 		using var run = RunState.CreateNewRun(42);
+		NeutralizeActivePersonalities(run);
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
 		var lines = new List<string>();
@@ -208,26 +211,37 @@ public sealed class PilotBarkEventTests
 
 		Assert.True(EngagementQueries.TryGetPendingPlayerEngagement(
 			map, RunState.PlayerFleetUnitId, out _));
-		Assert.Contains(Assert.Single(lines), PilotBarkCatalog.LinesFor(EBarkFlavor.Scared));
+		Assert.Contains(Assert.Single(lines), PilotBarkCatalog.LinesFor(EBarkFlavor.Anxious));
 	}
 
 	[Fact]
 	public void RunDirector_KeepsCooldownsWhenSceneHandlesChange()
 	{
 		using var run = State.CreateNewRun(42);
+		NeutralizeActivePersonalities(run);
 		run.TryConsumeOpening();
 		var director = run.Barks;
 		var pilotId = run.PilotRegistry.Active[0].Id;
 		director.RegisterPilot(pilotId, _ => true);
-		Assert.True(director.Offer(pilotId, EBarkFlavor.Relieved, 1));
+		Assert.True(director.Offer(pilotId, EBarkFlavor.Supportive, 1));
 		director.UnregisterPilot(pilotId);
 		director.Tick(1);
 		director.RegisterPilot(pilotId, _ => true);
 
 		Assert.Same(director, run.Barks);
-		Assert.False(director.Offer(pilotId, EBarkFlavor.Relieved, 1));
+		Assert.False(director.Offer(pilotId, EBarkFlavor.Supportive, 1));
 		director.Tick(PilotBarkDirector.DefaultPilotCooldownSeconds);
-		Assert.True(director.Offer(pilotId, EBarkFlavor.Relieved, 1));
+		Assert.True(director.Offer(pilotId, EBarkFlavor.Supportive, 1));
+	}
+
+	private static void NeutralizeActivePersonalities(State run)
+	{
+		foreach (var pilot in run.PilotRegistry.Active)
+		{
+			var modifier = PilotBackgroundCatalog.Get(pilot.BackgroundId).PersonalityModifier;
+			run.PilotRegistry.Update(pilot.WithPersonality(new(
+				-modifier.ThreatResponse, -modifier.Deliberation, -modifier.Allegiance)));
+		}
 	}
 
 	[Fact]
@@ -278,7 +292,7 @@ public sealed class PilotBarkEventTests
 		CompleteDelivery(run);
 
 		Assert.Contains(Assert.Single(lines),
-			PilotBarkCatalog.LinesFor(EBarkFlavor.Disdain));
+			PilotBarkCatalog.LinesFor(EBarkFlavor.Entitled));
 	}
 
 	[Theory]

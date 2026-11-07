@@ -106,9 +106,9 @@ Current foundation and future direction:
   decides how disposition influences a reaction; an event decides how it affects
   that event's outcome.
 
-Initial background modifiers are Gear Psycho (+3 threat response) and Bean
-Counter (+3 deliberation). All other backgrounds and existing quirks currently
-contribute zero. No separate pilot-status registry or battle-status reuse is
+Background modifiers are authored in the catalog, including Gear Psycho
+(+3 threat response) and Bean Counter (-2 threat response, +3 deliberation).
+Existing quirks currently contribute zero. No separate pilot-status registry or battle-status reuse is
 needed: source definitions own the modifiers, and the pilot resolves them.
 
 Future event definitions should query personality for disposition-based outcomes,
@@ -120,7 +120,8 @@ about a named quirk may still check that quirk.
 Keep the existing separation between situation and reaction:
 
 1. A situation supplies eligible bark flavors.
-2. The chosen pilot's personality influences the relative selection weights.
+2. The chosen pilot's effective personality constrains eligible responses and
+   determines their relative selection weights.
 3. Randomness selects a flavor and a line.
 4. Existing presentation plays the selected decision.
 
@@ -128,9 +129,42 @@ An anxious pilot should favor frightened reactions to danger, but not speak the
 same line every time. Personality does not make every reaction valid in every
 situation.
 
-`Scared`, `Angry`, `Smug`, and the other existing flavors remain dialogue
-categories; they are not personality dimensions. Some dispositions may require
-new or revised dialogue before their influence is perceptible.
+The catalog has exactly six personality-expression flavors:
+
+| Axis | Negative-side flavor | Positive-side flavor |
+|------|----------------------|----------------------|
+| Threat response | Anxious | Bloodthirsty |
+| Deliberation | Impatient | Analytical |
+| Allegiance | Entitled | Supportive |
+
+These replace the old situational/emotional flavors. Their lines express the
+corresponding attitude; they are not additional personality stats.
+
+For each situation's offered flavor, inspect its corresponding axis:
+
+- Opposing side: weight 0 (ineligible).
+- Neutral axis: weight 1 for either side.
+- Aligned side: weight equals the squared axis strength.
+
+Roll proportionally among positive weights. If all offered responses have zero
+weight, the selected pilot stays silent; no replacement speaker is rolled.
+At +5 threat response and 0 deliberation, Bloodthirsty and Analytical have weights
+25 and 1 (approximately 96% and 4%). Fully neutral pilots retain uniform selection.
+
+The rule and generic response-index selection live on
+[PilotPersonality](../src/pilots/PilotPersonality.cs), with
+[EPilotPersonalityAxis](../src/pilots/EPilotPersonalityAxis.cs) identifying axes.
+Consumers supply their options' axis and side; the selector has no bark, event,
+world, or Godot dependencies. Future events can reuse it with their own options
+and explicitly controlled random source. A null selection means no compatible
+response; the owning event must decide what that means, rather than assume silence.
+
+[PilotBarkCatalog](../src/pilots/barks/PilotBarkCatalog.cs) maps flavors to these
+affinities. Run-bound bark selection reads current effective personality from the
+authoritative roster; standalone previews intentionally use neutral personality
+unless supplied a reader. Missing run pilots are errors, not neutral fallbacks.
+The same selection path serves strategic and battle-hit barks. Selected decisions
+are played without rerolling, even if personality changes before presentation.
 
 Initially preserve speaker selection, bark chance, cooldowns, group sizes,
 scripted lines, and the selection/playback split. Change reaction selection, not
@@ -242,7 +276,7 @@ All quirk grants reach the existing capability consumers.
 The neutral, three-axis personality foundation is implemented independently of
 multi-quirk storage. Personality is preserved through recruitment, copying, and
 run persistence. Background and quirk definitions support optional modifiers,
-and pilots resolve effective personality from all current sources. Two background
+and pilots resolve effective personality from all current sources. Background
 modifiers are enabled; quirk values and world-event changes remain future content.
 
 **Foundation exit:** neutral creation, non-neutral copies, and save/load preserve

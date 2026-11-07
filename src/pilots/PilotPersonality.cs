@@ -49,4 +49,51 @@ public readonly record struct PilotPersonality
 			(int)System.Math.Clamp(deliberation, MinValue, MaxValue),
 			(int)System.Math.Clamp(allegiance, MinValue, MaxValue));
 	}
+
+	public int ResponseWeight(EPilotPersonalityAxis axis, bool positiveSide)
+	{
+		var value = axis switch
+		{
+			EPilotPersonalityAxis.ThreatResponse => ThreatResponse,
+			EPilotPersonalityAxis.Deliberation => Deliberation,
+			EPilotPersonalityAxis.Allegiance => Allegiance,
+			_ => throw new ArgumentOutOfRangeException(nameof(axis), axis, "Unknown personality axis."),
+		};
+		if (value == 0)
+			return 1;
+		return (value > 0) == positiveSide ? value * value : 0;
+	}
+
+	/// <summary>Returns null when every option opposes the personality; options remain consumer-owned.</summary>
+	public int? SelectResponseIndex<T>(
+		IReadOnlyList<T> options,
+		Func<T, (EPilotPersonalityAxis Axis, bool PositiveSide)> affinity,
+		Random rng)
+	{
+		ArgumentNullException.ThrowIfNull(options);
+		ArgumentNullException.ThrowIfNull(affinity);
+		ArgumentNullException.ThrowIfNull(rng);
+		if (options.Count == 0)
+			throw new ArgumentException("At least one response option is required.", nameof(options));
+
+		var weights = new int[options.Count];
+		var totalWeight = 0;
+		for (var index = 0; index < options.Count; index++)
+		{
+			var (axis, positiveSide) = affinity(options[index]);
+			weights[index] = ResponseWeight(axis, positiveSide);
+			totalWeight = checked(totalWeight + weights[index]);
+		}
+		if (totalWeight == 0)
+			return null;
+
+		var roll = rng.Next(totalWeight);
+		for (var index = 0; index < weights.Length; index++)
+		{
+			if (roll < weights[index])
+				return index;
+			roll -= weights[index];
+		}
+		throw new InvalidOperationException("Personality response roll exceeded its total weight.");
+	}
 }

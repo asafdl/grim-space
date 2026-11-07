@@ -22,15 +22,15 @@ public sealed class PilotBarkDirector : IDisposable
 	public sealed record Decision(string PilotId, EBarkFlavor Flavor, string Text, bool StartsCooldown = true);
 
 	private static readonly EBarkFlavor[] DeliveryCompletionFlavors =
-		[EBarkFlavor.Disdain, EBarkFlavor.Relieved];
+		[EBarkFlavor.Entitled, EBarkFlavor.Supportive];
 	private static readonly EBarkFlavor[] EngagementDecisionFlavors =
-		[EBarkFlavor.Scared, EBarkFlavor.Angry, EBarkFlavor.Surprised, EBarkFlavor.Bored];
-	private static readonly EBarkFlavor[] TravelFlavors = [EBarkFlavor.Bored, EBarkFlavor.Disdain];
+		[EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty, EBarkFlavor.Analytical, EBarkFlavor.Impatient];
+	private static readonly EBarkFlavor[] TravelFlavors = [EBarkFlavor.Impatient, EBarkFlavor.Entitled];
 	private static readonly EBarkFlavor[] WreckAmbushFlavors =
-		[EBarkFlavor.Scared, EBarkFlavor.Angry, EBarkFlavor.Surprised];
-	private static readonly EBarkFlavor[] WreckSalvageFlavors = [EBarkFlavor.Relieved, EBarkFlavor.Bored];
+		[EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty, EBarkFlavor.Analytical];
+	private static readonly EBarkFlavor[] WreckSalvageFlavors = [EBarkFlavor.Supportive, EBarkFlavor.Impatient];
 	private static readonly EBarkFlavor[] PlayerHitFlavors =
-		[EBarkFlavor.Scared, EBarkFlavor.Angry, EBarkFlavor.Surprised, EBarkFlavor.Disdain];
+		[EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty, EBarkFlavor.Analytical, EBarkFlavor.Entitled];
 
 	public const double DefaultChance = 0.4;
 	public const double BattleChance = 0.2;
@@ -39,6 +39,7 @@ public sealed class PilotBarkDirector : IDisposable
 
 	private readonly Dictionary<string, Func<string, bool>> _pilotHandles = new(StringComparer.Ordinal);
 	private readonly State? _run;
+	private readonly Func<string, PilotPersonality> _personalityReader;
 	private IDisposable? _deliverySubscription;
 	private IDisposable? _engagementSubscription;
 	private IDisposable? _moveSubscription;
@@ -55,12 +56,15 @@ public sealed class PilotBarkDirector : IDisposable
 	public PilotBarkDirector(
 		Random rng,
 		double globalGapSeconds = DefaultGlobalGapSeconds,
-		double pilotCooldownSeconds = DefaultPilotCooldownSeconds)
+		double pilotCooldownSeconds = DefaultPilotCooldownSeconds,
+		Func<string, PilotPersonality>? personalityReader = null)
 	{
 		ArgumentNullException.ThrowIfNull(rng);
 		ArgumentOutOfRangeException.ThrowIfNegative(globalGapSeconds);
 		ArgumentOutOfRangeException.ThrowIfNegative(pilotCooldownSeconds);
 		_rng = rng;
+		// Standalone dialogue previews have no roster and intentionally use neutral personalities.
+		_personalityReader = personalityReader ?? (_ => default);
 		_globalGapSeconds = globalGapSeconds;
 		_pilotCooldownSeconds = pilotCooldownSeconds;
 	}
@@ -69,6 +73,9 @@ public sealed class PilotBarkDirector : IDisposable
 	{
 		ArgumentNullException.ThrowIfNull(run);
 		_run = run;
+		_personalityReader = pilotId => run.PilotRegistry.TryGet(pilotId, out var pilot)
+			? pilot.EffectivePersonality
+			: throw new KeyNotFoundException($"Bark pilot '{pilotId}' is not registered in the run.");
 		BindStarSystem();
 	}
 
@@ -322,7 +329,14 @@ public sealed class PilotBarkDirector : IDisposable
 				GameLog.Log($"[Barks] Ignore: chance roll, pilot={speakerId}.");
 				continue;
 			}
-			var flavor = flavors[_rng.Next(flavors.Count)];
+			var flavorIndex = _personalityReader(speakerId)
+				.SelectResponseIndex(flavors, PilotBarkCatalog.PersonalityAffinity, _rng);
+			if (flavorIndex is null)
+			{
+				GameLog.Log($"[Barks] Ignore: no personality-compatible flavor, pilot={speakerId}.");
+				continue;
+			}
+			var flavor = flavors[flavorIndex.Value];
 			decisions.Add(new Decision(speakerId, flavor, PilotBarkCatalog.Roll(flavor, _rng), useCooldowns));
 			GameLog.Log($"[Barks] Pick flavor={flavor}, pilot={speakerId}.");
 		}

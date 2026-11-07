@@ -20,6 +20,7 @@ public static class PilotRecruitment
 		EPilotBackgroundId.CorporateSlave,
 		EPilotBackgroundId.PodRacer,
 		EPilotBackgroundId.AsteroidSurfer,
+		EPilotBackgroundId.SynthSinger,
 		EPilotBackgroundId.RetiredMachineManager,
 		EPilotBackgroundId.CyberJunkie,
 		EPilotBackgroundId.HydraulicAbuser,

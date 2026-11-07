@@ -2,11 +2,10 @@ namespace GrimSpace.Pilots.Barks;
 
 public enum EBarkFlavor
 {
-	Scared,
-	Angry,
-	Surprised,
-	Relieved,
-	Smug,
-	Bored,
-	Disdain,
+	Anxious,
+	Bloodthirsty,
+	Impatient,
+	Analytical,
+	Entitled,
+	Supportive,
 }

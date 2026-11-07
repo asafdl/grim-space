@@ -10,6 +10,110 @@ namespace GrimSpace.Tests.Pilots;
 public sealed class PilotPersonalityTests
 {
 	[Fact]
+	public void ResponseWeight_HandlesEveryAxisStrengthAndSide()
+	{
+		foreach (var axis in Enum.GetValues<EPilotPersonalityAxis>())
+		for (var strength = -5; strength <= 5; strength++)
+		{
+			var personality = axis switch
+			{
+				EPilotPersonalityAxis.ThreatResponse => new PilotPersonality(strength, 0, 0),
+				EPilotPersonalityAxis.Deliberation => new PilotPersonality(0, strength, 0),
+				_ => new PilotPersonality(0, 0, strength),
+			};
+			Assert.Equal(strength == 0 ? 1 : strength > 0 ? strength * strength : 0,
+				personality.ResponseWeight(axis, true));
+			Assert.Equal(strength == 0 ? 1 : strength < 0 ? strength * strength : 0,
+				personality.ResponseWeight(axis, false));
+		}
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+			default(PilotPersonality).ResponseWeight((EPilotPersonalityAxis)999, true));
+	}
+
+	[Fact]
+	public void SelectResponseIndex_UsesExactWeightedIntervalsForNonDialogueOptions()
+	{
+		var personality = new PilotPersonality(5, 0, 0);
+		var options = new[] { "Confront", "Inspect" };
+		static (EPilotPersonalityAxis, bool) Affinity(string option) =>
+			(option == "Confront" ? EPilotPersonalityAxis.ThreatResponse : EPilotPersonalityAxis.Deliberation, true);
+
+		for (var roll = 0; roll < 26; roll++)
+		{
+			var rng = new FixedRollRandom(roll);
+			Assert.Equal(roll < 25 ? 0 : 1,
+				personality.SelectResponseIndex(options, Affinity, rng));
+			Assert.Equal(26, rng.TotalWeight);
+		}
+	}
+
+	[Fact]
+	public void SelectResponseIndex_NeutralIsUniformAndExcludedOptionsHaveNoInterval()
+	{
+		var options = new[]
+		{
+			(EPilotPersonalityAxis.ThreatResponse, false),
+			(EPilotPersonalityAxis.ThreatResponse, true),
+			(EPilotPersonalityAxis.Deliberation, true),
+		};
+		for (var roll = 0; roll < 3; roll++)
+			Assert.Equal(roll, default(PilotPersonality)
+				.SelectResponseIndex(options, option => option, new FixedRollRandom(roll)));
+		for (var roll = 0; roll < 26; roll++)
+			Assert.Equal(roll < 25 ? 1 : 2, new PilotPersonality(5, 0, 0)
+				.SelectResponseIndex(options, option => option, new FixedRollRandom(roll)));
+
+		var noRoll = new FixedRollRandom(0);
+		Assert.Null(new PilotPersonality(5, 0, 0).SelectResponseIndex(
+			[options[0]], option => option, noRoll));
+		Assert.Null(noRoll.TotalWeight);
+	}
+
+	[Fact]
+	public void SelectResponseIndex_SeededDistributionMatchesTwentyFiveToOne()
+	{
+		var personality = new PilotPersonality(5, 0, 0);
+		var options = new[]
+		{
+			(EPilotPersonalityAxis.ThreatResponse, true),
+			(EPilotPersonalityAxis.Deliberation, true),
+		};
+		var rng = new Random(42);
+		var alignedCount = 0;
+		for (var index = 0; index < 26000; index++)
+			if (personality.SelectResponseIndex(options, option => option, rng) == 0)
+				alignedCount++;
+
+		Assert.InRange(alignedCount / 26000.0, 25.0 / 26 - 0.01, 25.0 / 26 + 0.01);
+	}
+
+	[Fact]
+	public void SelectResponseIndex_RejectsInvalidArguments()
+	{
+		var personality = default(PilotPersonality);
+		var rng = new Random(42);
+		Assert.Throws<ArgumentException>(() => personality.SelectResponseIndex(
+			Array.Empty<int>(), _ => (EPilotPersonalityAxis.Allegiance, true), rng));
+		Assert.Throws<ArgumentNullException>(() => personality.SelectResponseIndex<int>(
+			null!, _ => (EPilotPersonalityAxis.Allegiance, true), rng));
+		Assert.Throws<ArgumentNullException>(() => personality.SelectResponseIndex([1], null!, rng));
+		Assert.Throws<ArgumentNullException>(() => personality.SelectResponseIndex(
+			[1], _ => (EPilotPersonalityAxis.Allegiance, true), null!));
+	}
+
+	private sealed class FixedRollRandom(int roll) : Random
+	{
+		public int? TotalWeight { get; private set; }
+
+		public override int Next(int maxValue)
+		{
+			Assert.InRange(roll, 0, maxValue - 1);
+			TotalWeight = maxValue;
+			return roll;
+		}
+	}
+
+	[Fact]
 	public void Default_IsNeutral()
 	{
 		var personality = default(PilotPersonality);
@@ -109,15 +213,15 @@ public sealed class PilotPersonalityTests
 	}
 
 	[Theory]
-	[InlineData(EPilotBackgroundId.GearPsycho, 3, 0)]
-	[InlineData(EPilotBackgroundId.BeanCounter, 0, 3)]
-	[InlineData(EPilotBackgroundId.ScrapDrone, 0, 0)]
+	[InlineData(EPilotBackgroundId.GearPsycho)]
+	[InlineData(EPilotBackgroundId.BeanCounter)]
+	[InlineData(EPilotBackgroundId.ScrapDrone)]
 	public void EffectivePersonality_AppliesBackgroundWithoutAccumulation(
-		EPilotBackgroundId backgroundId, int threatResponse, int deliberation)
+		EPilotBackgroundId backgroundId)
 	{
 		var pilot = Pilot.FromRecruitProfile(null,
 			new PilotRecruitProfile("Test", "pilot_01", backgroundId));
-		var expected = new PilotPersonality(threatResponse, deliberation, 0);
+		var expected = PilotBackgroundCatalog.Get(backgroundId).PersonalityModifier;
 
 		Assert.Equal(expected, pilot.EffectivePersonality);
 		Assert.Equal(expected, pilot.EffectivePersonality);
