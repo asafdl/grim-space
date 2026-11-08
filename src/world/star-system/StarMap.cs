@@ -4,6 +4,7 @@ using GrimSpace.Run.Items;
 using RunPilotRegistry = GrimSpace.Run.RunPilotRegistry;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contracts;
+using GrimSpace.World.StarSystem.Events;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Poi;
 using GrimSpace.World.StarSystem.Pathfinding;
@@ -43,6 +44,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			yield return StarSystemActorIds.FleetSpawner;
 			yield return StarSystemActorIds.TravelEconomy;
 			yield return StarSystemActorIds.SalaryPayroll;
+			yield return StarSystemActorIds.WorldEvents;
 			foreach (var id in FleetRegistry.Ids)
 				yield return id;
 		}
@@ -56,6 +58,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public bool WaitingForPlayerInput { get; internal set; }
+
+	public PendingWorldEvent? PendingWorldEvent { get; internal set; }
 
 	internal int DebugAdditionalCompletedContracts { get; private set; }
 
@@ -88,7 +92,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		StarMarket market,
 		PathfindingTerrain pathfindingTerrain,
 		Inventory? itemInventory = null,
-		bool waitingForPlayerInput = false)
+		bool waitingForPlayerInput = false,
+		PendingWorldEvent? pendingWorldEvent = null)
 	{
 		Blueprint = blueprint;
 		PointsOfInterest = pointsOfInterest;
@@ -108,6 +113,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		PathfindingTerrain = pathfindingTerrain;
 		ItemInventory = itemInventory;
 		WaitingForPlayerInput = waitingForPlayerInput;
+		PendingWorldEvent = pendingWorldEvent;
 	}
 
 	public bool IsInBounds(Coord point) =>
@@ -150,7 +156,8 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 			Market.CloneForFork(),
 			PathfindingTerrain,
 			ItemInventory,
-			WaitingForPlayerInput)
+			WaitingForPlayerInput,
+			PendingWorldEvent)
 		{
 			DebugAdditionalCompletedContracts = DebugAdditionalCompletedContracts,
 			PilotRegistry = PilotRegistry,

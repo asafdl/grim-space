@@ -8,4 +8,5 @@ public static class StarSystemActorIds
 	public const string FleetSpawner = "__fleet_spawner__";
 	public const string TravelEconomy = "__travel_economy__";
 	public const string SalaryPayroll = "__salary_payroll__";
+	public const string WorldEvents = "__world_events__";
 }

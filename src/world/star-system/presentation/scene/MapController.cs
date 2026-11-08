@@ -48,6 +48,7 @@ public partial class MapController : Node3D
 	private MapSceneBinding _mapBinding = null!;
 	private MerchantPresenter _leadSaleMerchant = null!;
 	private WreckController _wreck = null!;
+	private WorldEventController _worldEvent = null!;
 	private IDisposable _deliveryMeetingSubscription = null!;
 	private IDisposable _pursuitChangedSubscription = null!;
 	private TutorialPresentationBinding? _mapTutorialBinding;
@@ -154,6 +155,14 @@ public partial class MapController : Node3D
 			() => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new LeaveWreckageAction(State.PlayerFleetUnitId)]),
 			sync => _orchestrator.Subscribe<ReachWreckageAction>(_ => sync()),
+			_strategicHud.PresentSystemError);
+		var worldEventHud = new WorldEventHudOverlay();
+		_uiLayer.AddChild(worldEventHud);
+		_worldEvent = new WorldEventController(
+			worldEventHud,
+			() => _orchestrator.Map.PendingWorldEvent,
+			action => _orchestrator.PlayerAgent!.TryEnqueue([action]),
+			sync => _orchestrator.Subscribe<AsteroidImpactAction>(_ => sync()),
 			_strategicHud.PresentSystemError);
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,
@@ -445,6 +454,7 @@ public partial class MapController : Node3D
 		_deliveryMeetingSubscription.Dispose();
 		_pursuitChangedSubscription.Dispose();
 		_wreck.Dispose();
+		_worldEvent.Dispose();
 		if (Session.Instance.Run.Tutorials is { } tutorials)
 			tutorials.FlowCompleted -= OnTutorialFlowCompleted;
 		_mapTutorialBinding?.Dispose();
@@ -470,7 +480,8 @@ public partial class MapController : Node3D
 			|| _deliveryMeetingDialog.TryHandleInput(@event)
 			|| _leadSaleMerchant.TryHandleInput(@event)
 			|| _engagement.TryHandleInput(@event)
-			|| _wreck.TryHandleInput(@event))
+			|| _wreck.TryHandleInput(@event)
+			|| _worldEvent.TryHandleInput(@event))
 		{
 			GetViewport().SetInputAsHandled();
 			return;
@@ -592,6 +603,7 @@ public partial class MapController : Node3D
 		|| (_leadSaleMerchant?.IsOpen ?? false)
 		|| (_engagement?.IsOpen ?? false)
 		|| (_wreck?.IsOpen ?? false)
+		|| (_worldEvent?.IsOpen ?? false)
 		|| (_runOverHud?.IsOpen ?? false);
 
 	private void TogglePauseMenu()

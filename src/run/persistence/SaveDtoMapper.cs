@@ -471,6 +471,7 @@ public static class SaveDtoMapper
 			map.WaitingForPlayerInput,
 			Timeline = CaptureTimeline(map.Timeline.ToSnapshot(), registry),
 			Market = CaptureMarket(map.Market),
+			map.PendingWorldEvent,
 		}, registry.Options);
 	}
 
@@ -555,7 +556,8 @@ public static class SaveDtoMapper
 			RestoreMarket(dto.Market),
 			terrain,
 			itemInventory,
-			waitingForPlayerInput: dto.WaitingForPlayerInput);
+			waitingForPlayerInput: dto.WaitingForPlayerInput,
+			pendingWorldEvent: dto.PendingWorldEvent);
 	}
 
 	private static StarMarketDto CaptureMarket(StarMarket market) =>

@@ -1,7 +1,5 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Math.Grid;
-using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Pathfinding;
 using GrimSpace.World.StarSystem.Resources;
@@ -130,7 +128,7 @@ public static class TravelFuelEffects
 		if (allowStarvation
 			&& charge.Starving
 			&& TryBuildStarvationDamage(world, playerFleetId, out var damage))
-			effects.Add(new RecordTravelStarvationDamageEffect(damage));
+			effects.Add(new RecordFieldedShipDamageEffect(damage));
 
 		return effects;
 	}
@@ -158,60 +156,31 @@ public static class TravelFuelEffects
 	private static bool TryBuildStarvationDamage(
 		StarMap world,
 		string playerFleetId,
-		out TravelStarvationDamage damage)
+		out FieldedShipDamage damage)
 	{
 		damage = null!;
 		if (world.ItemInventory is null
 			|| !world.FleetRegistry.TryGet(playerFleetId, out var fleet))
 			return false;
 
-		var ships = new List<TravelStarvationShipDamage>();
+		var ships = new List<FieldedShipChange>();
 		foreach (var member in fleet.Members)
 		{
 			if (!world.ItemInventory.TryGet(member.Id, out var before))
 				continue;
 
-			var after = ApplyStarvationDamage(before, StrategicEconomyConfig.StarvationDamagePerTick);
+			var after = FieldedShipDamage.Apply(before, StrategicEconomyConfig.StarvationDamagePerTick);
 			if (after.CurrentHullPoints == before.CurrentHullPoints
 				&& after.CurrentShieldPoints.Matches(before.CurrentShieldPoints))
 				continue;
 
-			ships.Add(
-				new TravelStarvationShipDamage(
-					before.Id,
-					before.Clone(),
-					after));
+			ships.Add(new FieldedShipChange(before.Id, before.Clone(), after));
 		}
 
 		if (ships.Count == 0)
 			return false;
 
-		damage = new TravelStarvationDamage(ships);
+		damage = new FieldedShipDamage("travel starvation", ships);
 		return true;
-	}
-
-	internal static ShipInstance ApplyStarvationDamage(ShipInstance before, int amount)
-	{
-		ArgumentNullException.ThrowIfNull(before);
-		ArgumentOutOfRangeException.ThrowIfNegative(amount);
-
-		var shields = before.CurrentShieldPoints.Clone();
-		var remaining = amount;
-		foreach (var face in Enum.GetValues<ESpatialOrientation>())
-		{
-			if (remaining <= 0)
-				break;
-
-			var absorb = System.Math.Min(shields[face], remaining);
-			shields[face] -= absorb;
-			remaining -= absorb;
-		}
-
-		return new ShipInstance(
-			before.Id,
-			before.Spec,
-			before.Loadout,
-			System.Math.Max(0, before.CurrentHullPoints - remaining),
-			shields);
 	}
 }

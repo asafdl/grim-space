@@ -239,8 +239,14 @@ public sealed class PilotBarkEventTests
 		foreach (var pilot in run.PilotRegistry.Active)
 		{
 			var modifier = PilotBackgroundCatalog.Get(pilot.BackgroundId).PersonalityModifier;
-			run.PilotRegistry.Update(pilot.WithPersonality(new(
-				-modifier.ThreatResponse, -modifier.Deliberation, -modifier.Allegiance)));
+			// Quirk swings can exceed the personality clamp, so drop them. Baseline then cancels background.
+			run.PilotRegistry.Update(Pilot.FromPersistence(pilot.ToPersistence() with
+			{
+				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
+				Personality = new(
+					-modifier.ThreatResponse, -modifier.Deliberation, -modifier.Allegiance),
+			}));
 		}
 	}
 

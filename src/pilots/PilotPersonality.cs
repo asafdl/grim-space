@@ -50,18 +50,31 @@ public readonly record struct PilotPersonality
 			(int)System.Math.Clamp(allegiance, MinValue, MaxValue));
 	}
 
-	public int ResponseWeight(EPilotPersonalityAxis axis, bool positiveSide)
-	{
-		var value = axis switch
+	public int ValueOf(EPilotPersonalityAxis axis) =>
+		axis switch
 		{
 			EPilotPersonalityAxis.ThreatResponse => ThreatResponse,
 			EPilotPersonalityAxis.Deliberation => Deliberation,
 			EPilotPersonalityAxis.Allegiance => Allegiance,
 			_ => throw new ArgumentOutOfRangeException(nameof(axis), axis, "Unknown personality axis."),
 		};
+
+	public int ResponseWeight(EPilotPersonalityAxis axis, bool positiveSide)
+	{
+		var value = ValueOf(axis);
 		if (value == 0)
 			return 1;
 		return (value > 0) == positiveSide ? value * value : 0;
+	}
+
+	/// <summary>Shifts a [0,1] chance by up to <paramref name="maxSwing"/> along <paramref name="axis"/>.</summary>
+	public double ShiftedChance(double baseChance, double maxSwing, EPilotPersonalityAxis axis, bool positiveSide)
+	{
+		var lean = ValueOf(axis) / (double)MaxValue;
+		if (!positiveSide)
+			lean = -lean;
+
+		return System.Math.Clamp(baseChance + maxSwing * lean, 0, 1);
 	}
 
 	/// <summary>Returns null when every option opposes the personality; options remain consumer-owned.</summary>

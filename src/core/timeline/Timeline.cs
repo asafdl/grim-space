@@ -91,6 +91,14 @@ public sealed class Timeline
 		}
 	}
 
+	public int CountPending(Func<IAction, bool> predicate)
+	{
+		ArgumentNullException.ThrowIfNull(predicate);
+
+		lock (_sync)
+			return _pending.Values.Sum(list => list.Count(predicate));
+	}
+
 	public bool ContainsPending(Func<IAction, bool> predicate)
 	{
 		ArgumentNullException.ThrowIfNull(predicate);

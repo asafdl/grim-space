@@ -142,7 +142,7 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void ApplyStarvationDamage_DrainsShieldsThenHull()
+	public void Apply_DrainsShieldsThenHull()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var ship = run.ItemInventory.Get(RunTestKit.StarterFighterShipId(run)).Clone();
@@ -151,10 +151,28 @@ public sealed class TravelFuelEconomyTests(StarMapFixture maps)
 		ship.CurrentShieldPoints[ESpatialOrientation.Forward] = 3;
 		ship.CurrentHullPoints = 20;
 
-		var after = TravelFuelEffects.ApplyStarvationDamage(ship, 5);
+		var after = FieldedShipDamage.Apply(ship, 5);
 
 		Assert.Equal(0, after.TotalCurrentShieldPoints);
 		Assert.Equal(18, after.CurrentHullPoints);
+	}
+
+	[Fact]
+	public void Apply_SpreadsDamageAcrossFaces()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var ship = run.ItemInventory.Get(RunTestKit.StarterFighterShipId(run)).Clone();
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			ship.CurrentShieldPoints[face] = 0;
+		ship.CurrentShieldPoints[ESpatialOrientation.Forward] = 3;
+		ship.CurrentShieldPoints[ESpatialOrientation.Retro] = 3;
+		ship.CurrentHullPoints = 20;
+
+		var after = FieldedShipDamage.Apply(ship, 4);
+
+		Assert.Equal(1, after.CurrentShieldPoints[ESpatialOrientation.Forward]);
+		Assert.Equal(1, after.CurrentShieldPoints[ESpatialOrientation.Retro]);
+		Assert.Equal(20, after.CurrentHullPoints);
 	}
 
 	private StarSystemOrchestrator CreatePlayerOrchestrator() =>

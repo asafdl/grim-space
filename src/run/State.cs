@@ -195,7 +195,7 @@ public sealed class State : IDisposable
 	private IDisposable? _engagementSubscription;
 	private IDisposable? _fleetSpawnSubscription;
 	private IDisposable? _merchantShipPurchaseSubscription;
-	private IDisposable? _travelStarvationSubscription;
+	private IDisposable? _fieldedShipDamageSubscription;
 	private IDisposable? _playerShipEnlistedSubscription;
 	private IDisposable? _ownedShipPurchasedSubscription;
 	private IDisposable? _pilotHireCommittedSubscription;
@@ -676,8 +676,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = StarSystem.Subscribe<Record<FleetSpawned>>(OnCommittedFleetSpawned);
 		_merchantShipPurchaseSubscription =
 			StarSystem.Subscribe<Record<MerchantShipPurchase>>(OnMerchantShipPurchase);
-		_travelStarvationSubscription =
-			StarSystem.Subscribe<Record<TravelStarvationDamage>>(OnTravelStarvationDamage);
+		_fieldedShipDamageSubscription =
+			StarSystem.Subscribe<Record<FieldedShipDamage>>(OnFieldedShipDamage);
 		_playerShipEnlistedSubscription =
 			StarSystem.Subscribe<Record<PlayerShipEnlisted>>(OnPlayerShipEnlisted);
 		_ownedShipPurchasedSubscription =
@@ -710,8 +710,8 @@ public sealed class State : IDisposable
 		_fleetSpawnSubscription = null;
 		_merchantShipPurchaseSubscription?.Dispose();
 		_merchantShipPurchaseSubscription = null;
-		_travelStarvationSubscription?.Dispose();
-		_travelStarvationSubscription = null;
+		_fieldedShipDamageSubscription?.Dispose();
+		_fieldedShipDamageSubscription = null;
 		_playerShipEnlistedSubscription?.Dispose();
 		_playerShipEnlistedSubscription = null;
 		_ownedShipPurchasedSubscription?.Dispose();
@@ -1001,31 +1001,13 @@ public sealed class State : IDisposable
 			GetFieldedShipIds());
 	}
 
-	private void OnTravelStarvationDamage(Record<TravelStarvationDamage> record)
+	private void OnFieldedShipDamage(Record<FieldedShipDamage> record)
 	{
 		var rosterChanged = false;
 		foreach (var shipDamage in record.Value.Ships)
 		{
-			if (!GetFieldedShipIds().Contains(shipDamage.ShipId, StringComparer.Ordinal))
-			{
-				GameLog.Log(
-					$"Ignoring travel starvation for '{shipDamage.ShipId}'; ship is not fielded.");
+			if (!CanApplyFieldedShipChange(shipDamage.ShipId, shipDamage.Before, record.Value.Cause))
 				continue;
-			}
-
-			if (!ItemInventory.TryGet(shipDamage.ShipId, out _))
-			{
-				GameLog.Log(
-					$"Ignoring travel starvation for '{shipDamage.ShipId}'; ship is missing from the registry.");
-				continue;
-			}
-
-			if (!ItemInventory.Matches(shipDamage.ShipId, shipDamage.Before))
-			{
-				GameLog.Log(
-					$"Ignoring travel starvation for '{shipDamage.ShipId}'; registry no longer matches snapshot.");
-				continue;
-			}
 
 			if (shipDamage.After.CurrentHullPoints <= 0)
 			{
@@ -1048,6 +1030,29 @@ public sealed class State : IDisposable
 			StarSystem.RuntimeFor(PlayerFleetUnitId),
 			PlayerFleetUnitId,
 			GetFieldedShipIds());
+	}
+
+	private bool CanApplyFieldedShipChange(string shipId, ShipInstance before, string source)
+	{
+		if (!GetFieldedShipIds().Contains(shipId, StringComparer.Ordinal))
+		{
+			GameLog.Log($"Ignoring {source} for '{shipId}'; ship is not fielded.");
+			return false;
+		}
+
+		if (!ItemInventory.TryGet(shipId, out _))
+		{
+			GameLog.Log($"Ignoring {source} for '{shipId}'; ship is missing from the registry.");
+			return false;
+		}
+
+		if (!ItemInventory.Matches(shipId, before))
+		{
+			GameLog.Log($"Ignoring {source} for '{shipId}'; registry no longer matches snapshot.");
+			return false;
+		}
+
+		return true;
 	}
 
 	private void OnCommittedEngagement(Record<EngagementCommitted> record)

@@ -9,6 +9,15 @@ public struct StableRandom
 	public double NextDouble() =>
 		(NextUInt64() >> 11) * (1.0 / (1UL << 53));
 
+	public void Shuffle<T>(IList<T> items)
+	{
+		for (var i = items.Count - 1; i > 0; i--)
+		{
+			var j = (int)(NextDouble() * (i + 1));
+			(items[i], items[j]) = (items[j], items[i]);
+		}
+	}
+
 	public int TriangularWeightedNumber(int minInclusive, int maxInclusive)
 	{
 		if (minInclusive > maxInclusive)

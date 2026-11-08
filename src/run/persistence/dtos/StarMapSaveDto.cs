@@ -1,4 +1,5 @@
 using GrimSpace.World.StarSystem.Areas;
+using GrimSpace.World.StarSystem.Events;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Traffic;
 using GrimSpace.World.StarSystem.Objectives;
@@ -19,4 +20,5 @@ public sealed record StarMapSaveDto(
 	IReadOnlyList<ResourceBalanceDto> Resources,
 	bool WaitingForPlayerInput,
 	TimelineSnapshotDto Timeline,
-	StarMarketDto Market);
+	StarMarketDto Market,
+	PendingWorldEvent? PendingWorldEvent = null);

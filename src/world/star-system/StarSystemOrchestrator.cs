@@ -15,6 +15,7 @@ using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
+using GrimSpace.World.StarSystem.Events;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Objectives;
@@ -39,6 +40,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 	private readonly FleetSpawnerExecutionAgent _fleetSpawnerAgent;
 	private readonly TravelEconomyExecutionAgent _travelEconomyAgent;
 	private readonly SalaryPayrollExecutionAgent _salaryPayrollAgent;
+	private readonly WorldEventScheduleExecutionAgent _worldEventScheduleAgent;
 	private readonly Queue<IAction> _reactionQueue = [];
 	private bool _contractGenerationEnabled = true;
 	private readonly IDisposable _storyObjectiveSubscription;
@@ -60,6 +62,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		FleetSpawnerExecutionAgent fleetSpawnerAgent,
 		TravelEconomyExecutionAgent travelEconomyAgent,
 		SalaryPayrollExecutionAgent salaryPayrollAgent,
+		WorldEventScheduleExecutionAgent worldEventScheduleAgent,
 		IPathfinder pathfinder)
 	{
 		_engine = engine;
@@ -72,6 +75,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_fleetSpawnerAgent = fleetSpawnerAgent;
 		_travelEconomyAgent = travelEconomyAgent;
 		_salaryPayrollAgent = salaryPayrollAgent;
+		_worldEventScheduleAgent = worldEventScheduleAgent;
 		_immediateActionSink.BatchPublished += OnImmediateBatchPublished;
 		_storyObjectiveSubscription = _engine.Subscribe<AcceptContractAction>(OnContractAccepted);
 		_engagementResolvedSubscription = _engine.Subscribe<ResolveEngagementAction>(OnEngagementResolved);
@@ -202,6 +206,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		actorRuntimes.For(StarSystemActorIds.FleetSpawner);
 		actorRuntimes.For(StarSystemActorIds.TravelEconomy);
 		actorRuntimes.For(StarSystemActorIds.SalaryPayroll);
+		actorRuntimes.For(StarSystemActorIds.WorldEvents);
 
 		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
 		var contactMonitor = new ContactMonitor(engine, pathfinder);
@@ -245,6 +250,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		var salaryPayrollAgent = new SalaryPayrollExecutionAgent(
 			() => engine.World,
 			id => engine.ActorRuntimes.For(id));
+		var worldEventScheduleAgent = new WorldEventScheduleExecutionAgent(
+			() => engine.World,
+			id => engine.ActorRuntimes.For(id));
 		orchestrator = new StarSystemOrchestrator(
 			engine,
 			contactMonitor,
@@ -255,6 +263,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 			fleetSpawnerAgent,
 			travelEconomyAgent,
 			salaryPayrollAgent,
+			worldEventScheduleAgent,
 			pathfinder);
 
 		contractBoardAgent.Init(
@@ -269,6 +278,9 @@ public sealed class StarSystemOrchestrator : IDisposable
 		salaryPayrollAgent.Init(
 			StarSystemActorIds.SalaryPayroll,
 			orchestrator._actionSink.WriterFor(StarSystemActorIds.SalaryPayroll));
+		worldEventScheduleAgent.Init(
+			StarSystemActorIds.WorldEvents,
+			orchestrator._actionSink.WriterFor(StarSystemActorIds.WorldEvents));
 
 		if (playerAgent is not null)
 		{
@@ -336,6 +348,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		CommitReactions();
 		CommitTravelEconomyActions();
 		CommitSalaryPayrollActions();
+		CommitWorldEventScheduleActions();
 		CommitFleetSpawnerActions();
 		CommitContractBoardActions();
 		NotifyWorldUpdated();
@@ -454,6 +467,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 		CommitTravelEconomyActions();
 		CommitSalaryPayrollActions();
+		CommitWorldEventScheduleActions();
 		CommitFleetSpawnerActions();
 		CommitDockedTargetPursuitStops();
 		CommitContactActions();
@@ -497,6 +511,7 @@ public sealed class StarSystemOrchestrator : IDisposable
 		_fleetSpawnerAgent.SetCanWork(trafficCanWork);
 		_travelEconomyAgent.SetCanWork(trafficCanWork && PlayerId is not null);
 		_salaryPayrollAgent.SetCanWork(trafficCanWork && PlayerId is not null);
+		_worldEventScheduleAgent.SetCanWork(trafficCanWork && PlayerId is not null);
 		_playerAgent?.SetCanWork(PlayerId is not null);
 	}
 
@@ -693,6 +708,16 @@ public sealed class StarSystemOrchestrator : IDisposable
 	{
 		_salaryPayrollAgent.PlanAndPublish();
 		if (!_actionSink.TryTakeBatch(StarSystemActorIds.SalaryPayroll, out var batch)
+			|| batch.Actions.Count == 0)
+			return;
+
+		_engine.Commit([..batch.Actions]);
+	}
+
+	private void CommitWorldEventScheduleActions()
+	{
+		_worldEventScheduleAgent.PlanAndPublish();
+		if (!_actionSink.TryTakeBatch(StarSystemActorIds.WorldEvents, out var batch)
 			|| batch.Actions.Count == 0)
 			return;
 

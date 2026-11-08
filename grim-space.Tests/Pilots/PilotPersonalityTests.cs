@@ -31,6 +31,21 @@ public sealed class PilotPersonalityTests
 	}
 
 	[Fact]
+	public void ShiftedChance_SwingsWithAxisAndClampsToUnitInterval()
+	{
+		var impulsive = new PilotPersonality(0, -5, 0);
+		var calculated = new PilotPersonality(0, 5, 0);
+
+		Assert.Equal(0.12, impulsive.ShiftedChance(0.08, 0.04, EPilotPersonalityAxis.Deliberation, false));
+		Assert.Equal(0.04, calculated.ShiftedChance(0.08, 0.04, EPilotPersonalityAxis.Deliberation, false));
+		Assert.Equal(0.08, default(PilotPersonality).ShiftedChance(0.08, 0.04, EPilotPersonalityAxis.Deliberation, true));
+		Assert.Equal(0, impulsive.ShiftedChance(0.01, 0.5, EPilotPersonalityAxis.Deliberation, true));
+		Assert.Equal(1, calculated.ShiftedChance(0.9, 0.5, EPilotPersonalityAxis.Deliberation, true));
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+			default(PilotPersonality).ShiftedChance(0.5, 0.1, (EPilotPersonalityAxis)999, true));
+	}
+
+	[Fact]
 	public void SelectResponseIndex_UsesExactWeightedIntervalsForNonDialogueOptions()
 	{
 		var personality = new PilotPersonality(5, 0, 0);
