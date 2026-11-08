@@ -165,6 +165,7 @@ Production callers use overrides for deliberate frame sizes, portrait slots, ali
 `ModalShell` caps its default or requested panel size to the available viewport with a 20 px inset per edge; oversized bodies scroll instead of pushing the panel off-screen.
 
 - Image-list rows start at 110 px high and fit their parent's width. Portrait size and text insets stay fixed as text wraps and increases row height; rendered dimensions never feed back into minimum-size margins.
+- Ship offers give the name the full text-column width and place gear tier and resource cost together underneath, rather than reserving a trailing price column. This keeps the black market's side-by-side lists readable without resizing the modal or portraits.
 - `UiButton` fills available horizontal space by default (`SizeFlagsHorizontal = ExpandFill`). Set `ShrinkCenter` (or another non-fill flag) when a screen needs intrinsic-width buttons, such as modal footers or component-gallery rows.
 - `ModalShell` renders `HudAction` cost amounts and icons inside the button, after its label, using `UiButton.SetTrailingContent`. Cost tooltips remain hoverable when the action is disabled; their hosts pass clicks through to the button.
 - Cards, list items, and nested/framed content containers derive their minimum size from content and padding. Set `SizeOverride` when a screen needs a different floor; wrapped text contributes its laid-out height instead of relying on estimated line counts.

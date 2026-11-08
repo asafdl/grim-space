@@ -19,9 +19,10 @@ public partial class Controller : Camera3D, ICameraRig
 	private const float PivotEpsilon = 0.01f;
 	private const float MaxCorrectionShift = 28f;
 
-	// Temporary trailer controls: F11 toggles a shot; Shift+F11 repeats it.
-	private const double TrailerSweepSeconds = 20d;
-	private const float TrailerSweepRadians = Mathf.Pi / 6f;
+	// Temporary trailer controls: O toggles a shot; P repeats it.
+	private const double TrailerOrbitSeconds = 40d;
+	private const float TrailerPitchWaveRadians = Mathf.Pi / 9f;
+	private const double TrailerPitchWavesPerOrbit = 1.5d;
 	private OrbitPose? _trailerStartPose;
 	private double _trailerElapsed;
 	private bool _trailerActive;
@@ -420,10 +421,13 @@ public partial class Controller : Camera3D, ICameraRig
 		{
 			if (_trailerActive && _trailerStartPose is { } startPose)
 			{
-				_trailerElapsed = (_trailerElapsed + delta) % TrailerSweepSeconds;
-				var phase = _trailerElapsed / TrailerSweepSeconds * System.Math.Tau;
+				_trailerElapsed = (_trailerElapsed + delta) % (TrailerOrbitSeconds * 2d);
+				var phase = _trailerElapsed / TrailerOrbitSeconds * System.Math.Tau;
 				_pose = startPose;
-				_pose.Yaw += TrailerSweepRadians * (float)((1d - System.Math.Cos(phase)) / 2d);
+				_pose.Yaw += (float)phase;
+				_pose.Pitch += TrailerPitchWaveRadians
+					* (float)System.Math.Sin(phase * TrailerPitchWavesPerOrbit);
+				_pose.Clamp(Limits);
 				ApplyTransform();
 			}
 
@@ -451,13 +455,14 @@ public partial class Controller : Camera3D, ICameraRig
 		if (GestureInputBlocked)
 			return;
 
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F11 } shotKey
-			&& !shotKey.CtrlPressed && !shotKey.AltPressed && !shotKey.MetaPressed)
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.O or Key.P } shotKey
+			&& !shotKey.ShiftPressed && !shotKey.CtrlPressed
+			&& !shotKey.AltPressed && !shotKey.MetaPressed)
 		{
-			if (_trailerActive && !shotKey.ShiftPressed)
+			if (_trailerActive && shotKey.Keycode == Key.O)
 				NotifyManualInput();
 			else
-				StartTrailerShot(shotKey.ShiftPressed);
+				StartTrailerShot(shotKey.Keycode == Key.P);
 
 			GetViewport().SetInputAsHandled();
 			return;

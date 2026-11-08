@@ -40,21 +40,22 @@ internal static class ShipOfferCardList
 		Action<RecruitmentOffer> onPurchase)
 	{
 		var title = PilotHireDisplay.ShipChassisLabel(offer.Chassis);
-		var metadata = offer.GearTier.ToString();
 		void Request() => onPurchase(offer);
 
 		var portrait = UnitPortraitCatalog.For(offer.Chassis)
 			?? throw new InvalidOperationException($"No portrait for ship chassis {offer.Chassis}.");
 		var item = new UiImageListItem(
 			title,
-			metadata,
+			"",
 			"",
 			portrait,
 			frameEdgeColor: TierFrameColor(offer.GearTier))
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		item.SetTrailingContent(ResourceCostDisplay.CreateBundleInline(offer.Cost));
+		item.SetDetailContent(ResourceCostDisplay.CreateOfferDetails(
+			offer.GearTier.ToString(),
+			offer.Cost));
 		item.SetAffordable(canAfford);
 		item.SetEnabled(canAfford);
 		if (canAfford)

@@ -1195,7 +1195,10 @@ public partial class UnitView : Node3D
 			var temporary = TemporaryShields.TotalOnFace(state, face);
 			var points = System.Math.Max(0, state.CurrentShieldPoints[face] + temporary);
 			var previous = _shieldPoints[index];
-			var material = (StandardMaterial3D)instance.MaterialOverride;
+			var material = instance.MaterialOverride as StandardMaterial3D
+				?? _teleport?.ReplacedOverride(instance) as StandardMaterial3D;
+			if (material is null)
+				continue;
 			var tint = ShieldFaceMaterials.TintFor(state.CurrentShieldPoints[face], maxOnFace, temporary);
 			if (previous == points && _shieldTints[index] == tint && animate)
 				continue;

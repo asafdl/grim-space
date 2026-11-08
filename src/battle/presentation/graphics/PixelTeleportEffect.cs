@@ -71,6 +71,17 @@ public partial class PixelTeleportEffect : Node
 		_surfaces.Clear();
 	}
 
+	public Material? ReplacedOverride(MeshInstance3D mesh)
+	{
+		foreach (var over in _overrides)
+		{
+			if (over.Mesh == mesh)
+				return over.Original;
+		}
+
+		return null;
+	}
+
 	public void SetPaused(bool paused)
 	{
 		if (paused)

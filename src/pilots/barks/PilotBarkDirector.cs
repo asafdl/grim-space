@@ -42,6 +42,7 @@ public sealed class PilotBarkDirector : IDisposable
 	public const double DefaultPilotCooldownSeconds = 20.0;
 
 	private readonly Dictionary<string, Func<string, bool>> _pilotHandles = new(StringComparer.Ordinal);
+	private readonly Dictionary<string, PilotPersonality> _pinnedPersonalities = new(StringComparer.Ordinal);
 	private readonly State? _run;
 	private readonly Func<string, PilotPersonality> _personalityReader;
 	private IDisposable? _deliverySubscription;
@@ -77,9 +78,14 @@ public sealed class PilotBarkDirector : IDisposable
 	{
 		ArgumentNullException.ThrowIfNull(run);
 		_run = run;
-		_personalityReader = pilotId => run.PilotRegistry.TryGet(pilotId, out var pilot)
-			? pilot.EffectivePersonality
-			: throw new KeyNotFoundException($"Bark pilot '{pilotId}' is not registered in the run.");
+		_personalityReader = pilotId =>
+		{
+			if (_pinnedPersonalities.TryGetValue(pilotId, out var pinned))
+				return pinned;
+			return run.PilotRegistry.TryGet(pilotId, out var pilot)
+				? pilot.EffectivePersonality
+				: throw new KeyNotFoundException($"Bark pilot '{pilotId}' is not registered in the run.");
+		};
 		BindStarSystem();
 	}
 
@@ -99,14 +105,20 @@ public sealed class PilotBarkDirector : IDisposable
 		_wreckSubscription = _run.StarSystem.Subscribe<ReachWreckageAction>(OnWreckReached);
 	}
 
-	public void RegisterPilot(string pilotId, Func<string, bool> say)
+	public void RegisterPilot(string pilotId, Func<string, bool> say, PilotPersonality? personality = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);
 		ArgumentNullException.ThrowIfNull(say);
 		_pilotHandles.Add(pilotId, say);
+		if (personality is { } pinned)
+			_pinnedPersonalities[pilotId] = pinned;
 	}
 
-	public void UnregisterPilot(string pilotId) => _pilotHandles.Remove(pilotId);
+	public void UnregisterPilot(string pilotId)
+	{
+		_pilotHandles.Remove(pilotId);
+		_pinnedPersonalities.Remove(pilotId);
+	}
 
 	public void Dispose()
 	{
@@ -116,6 +128,7 @@ public sealed class PilotBarkDirector : IDisposable
 		_wreckSubscription?.Dispose();
 		_travelBark = null;
 		_pilotHandles.Clear();
+		_pinnedPersonalities.Clear();
 	}
 
 	public void Tick(double deltaSeconds)

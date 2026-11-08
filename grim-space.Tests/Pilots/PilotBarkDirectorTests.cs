@@ -115,6 +115,21 @@ public sealed class PilotBarkDirectorTests
 	}
 
 	[Fact]
+	public void RunBoundDirector_UsesPinnedPersonalityWhenPilotIsNotInTheRun()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		using var director = new PilotBarkDirector(run, new RecordingRandom(0));
+		director.RegisterPilot("pilot-dev", _ => true, new PilotPersonality(5, 0, 0));
+
+		Assert.Equal(
+			EBarkFlavor.Bloodthirsty,
+			Assert.Single(director.Select(
+				["pilot-dev"],
+				[EBarkFlavor.Anxious, EBarkFlavor.Bloodthirsty],
+				1)).Flavor);
+	}
+
+	[Fact]
 	public void SelectPlayerHit_SelectsLivingCandidatesWithoutSpeaking()
 	{
 		var director = Create(rng: new RecordingRandom(0));

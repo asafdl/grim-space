@@ -22,6 +22,7 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Components;
 using GrimSpace.Education;
+using GrimSpace.Pilots;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Tutorials;
 using GrimSpace.Ui.Components;
@@ -237,7 +238,12 @@ public partial class BattleController : Node3D
 				continue;
 
 			_pilotShipIds.Add(pilotId, spawn.Ship.Id);
-			Session.Instance.Run.Barks.RegisterPilot(pilotId, line => _pilotSpeech.Say(pilotId, line));
+			PilotPersonality? personality = _encounterPilots.TryGetValue(pilotId, out var pilot)
+				&& !Session.Instance.Run.PilotRegistry.TryGet(pilotId, out _)
+				? pilot.EffectivePersonality
+				: null;
+			Session.Instance.Run.Barks.RegisterPilot(
+				pilotId, line => _pilotSpeech.Say(pilotId, line), personality);
 		}
 
 		_translator = new UserIntentTranslator(
