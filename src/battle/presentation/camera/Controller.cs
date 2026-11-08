@@ -19,6 +19,13 @@ public partial class Controller : Camera3D, ICameraRig
 	private const float PivotEpsilon = 0.01f;
 	private const float MaxCorrectionShift = 28f;
 
+	// Temporary trailer controls: F11 toggles a shot; Shift+F11 repeats it.
+	private const double TrailerSweepSeconds = 20d;
+	private const float TrailerSweepRadians = Mathf.Pi / 6f;
+	private OrbitPose? _trailerStartPose;
+	private double _trailerElapsed;
+	private bool _trailerActive;
+
 	private OrbitPose _pose;
 	private Vector2 _lastMousePosition;
 	private bool _orbiting;
@@ -35,15 +42,19 @@ public partial class Controller : Camera3D, ICameraRig
 	public float Distance => _pose.Distance;
 	public float Yaw => _pose.Yaw;
 	public float Pitch => _pose.Pitch;
-	public bool IsAutomationActive => _pivotTween is not null;
+	public bool IsAutomationActive => _trailerActive || _pivotTween is not null;
 	public bool IsManualGestureActive => _orbiting || _panning;
-	public Vector3? AutomationTarget => _automationTarget;
+	public Vector3? AutomationTarget =>
+		_trailerActive ? _trailerStartPose?.Pivot : _automationTarget;
 
 	/// <summary>World point used to re-anchor orbit depth after the pivot was panned off its target.</summary>
 	public void SetOrbitFocus(Vector3 focus) => _orbitFocus = focus;
 
 	public void SetPivot(Vector3 pivot)
 	{
+		if (_trailerActive)
+			return;
+
 		CancelAutomation();
 		_pose.Pivot = pivot;
 		_pivotDetached = false;
@@ -52,6 +63,9 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public void SetFocus(Vector3 pivot, float distance, float yaw, float pitch)
 	{
+		if (_trailerActive)
+			return;
+
 		CancelAutomation();
 		_pose.SetFocus(pivot, distance, yaw, pitch, Limits);
 		_automationTarget = null;
@@ -99,6 +113,9 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public void TweenPivotTo(Vector3 target, float duration)
 	{
+		if (_trailerActive)
+			return;
+
 		CancelAutomation();
 
 		if ((_pose.Pivot - target).LengthSquared() <= PivotEpsilon * PivotEpsilon)
@@ -152,6 +169,9 @@ public partial class Controller : Camera3D, ICameraRig
 		float targetPitch,
 		float duration)
 	{
+		if (_trailerActive)
+			return;
+
 		CancelAutomation();
 
 		var startPivot = _pose.Pivot;
@@ -188,6 +208,9 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public void MovePivotToward(Vector3 target, float delta, float responseTime)
 	{
+		if (_trailerActive)
+			return;
+
 		if (responseTime <= 0f)
 		{
 			_pose.Pivot = target;
@@ -204,6 +227,10 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public void CancelAutomation()
 	{
+		// Director focus changes must not interrupt a repeatable trailer shot.
+		if (_trailerActive)
+			return;
+
 		if (_pivotTween is not null)
 		{
 			_pivotTween.Kill();
@@ -234,7 +261,7 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public void PlayImpactShake(ImpactShakeScale scale)
 	{
-		if (scale.TotalDamage <= 0)
+		if (_trailerActive || scale.TotalDamage <= 0)
 			return;
 
 		var effectiveDamage = scale.TotalDamage + (scale.TargetDied ? LethalShakeDamageBonus : 0);
@@ -378,6 +405,7 @@ public partial class Controller : Camera3D, ICameraRig
 			flatPan.X += 1f;
 
 		if (flatPan == Vector2.Zero
+			&& !_trailerActive
 			&& GameSettings.MouseCameraPanEnabled
 			&& !IsMouseOverUi())
 			flatPan = MouseEdgePan();
@@ -389,7 +417,18 @@ public partial class Controller : Camera3D, ICameraRig
 			verticalPan -= 1f;
 
 		if (flatPan == Vector2.Zero && verticalPan == 0f)
+		{
+			if (_trailerActive && _trailerStartPose is { } startPose)
+			{
+				_trailerElapsed = (_trailerElapsed + delta) % TrailerSweepSeconds;
+				var phase = _trailerElapsed / TrailerSweepSeconds * System.Math.Tau;
+				_pose = startPose;
+				_pose.Yaw += TrailerSweepRadians * (float)((1d - System.Math.Cos(phase)) / 2d);
+				ApplyTransform();
+			}
+
 			return;
+		}
 
 		NotifyManualInput();
 		var deltaF = (float)delta;
@@ -411,6 +450,18 @@ public partial class Controller : Camera3D, ICameraRig
 	{
 		if (GestureInputBlocked)
 			return;
+
+		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F11 } shotKey
+			&& !shotKey.CtrlPressed && !shotKey.AltPressed && !shotKey.MetaPressed)
+		{
+			if (_trailerActive && !shotKey.ShiftPressed)
+				NotifyManualInput();
+			else
+				StartTrailerShot(shotKey.ShiftPressed);
+
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 
 		switch (@event)
 		{
@@ -507,7 +558,25 @@ public partial class Controller : Camera3D, ICameraRig
 
 		_orbiting = false;
 		_panning = false;
+		_trailerActive = false;
 		CancelAutomation();
+	}
+
+	private void StartTrailerShot(bool repeat)
+	{
+		NotifyManualInput();
+		if (!repeat || _trailerStartPose is null)
+			_trailerStartPose = _pose;
+
+		_pose = _trailerStartPose.Value;
+		_trailerElapsed = 0d;
+		_orbiting = false;
+		_panning = false;
+		_impactShakeTween?.Kill();
+		_impactShakeTween = null;
+		_impactShakeLocalOffset = Vector3.Zero;
+		_trailerActive = true;
+		ApplyTransform();
 	}
 
 	private void ReanchorDetachedPivot()
@@ -533,6 +602,7 @@ public partial class Controller : Camera3D, ICameraRig
 
 	private void NotifyManualInput()
 	{
+		_trailerActive = false;
 		CancelAutomation();
 		ManualInputStarted?.Invoke();
 	}

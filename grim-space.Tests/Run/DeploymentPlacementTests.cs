@@ -4,6 +4,7 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Run;
 using GrimSpace.Tutorials;
 using GrimSpace.Tests.World.StarSystem.Traffic;
@@ -316,10 +317,32 @@ public sealed class DeploymentPlacementTests
 			}
 
 			var expectedPilot = PilotBattleSnapshot.FromSkills(
-				$"pilot-{spawn.Ship.Id}",
+				spawn.Pilot!.PilotId,
 				PilotSkillCatalog.IdsForOperatorClass(spawn.Ship.Spec.ClassId));
-			Assert.Equal(expectedPilot.PilotId, spawn.Pilot!.PilotId);
-			Assert.Equal(expectedPilot.CapabilityGrants, spawn.Pilot.CapabilityGrants);
+			Assert.Equal(expectedPilot.CapabilityGrants, spawn.Pilot.CapabilityGrants
+				.Where(grant => grant.Source.Kind == EPilotCapabilitySourceKind.Skill));
+			if (spawn.Team == ETeam.Player)
+			{
+				var pilot = Assert.Single(encounter.DevPilots, pilot => pilot.Id == spawn.PilotId);
+				Assert.Equal(spawn.Ship.Id, pilot.AssignedShipId);
+				Assert.Equal(spawn.Ship.Spec.ClassId, pilot.ClassId);
+				Assert.False(string.IsNullOrWhiteSpace(pilot.Name));
+				Assert.Equal(pilot.PortraitId, spawn.Pilot.PortraitId);
+				Assert.Empty(pilot.PositiveQuirkIds);
+				Assert.Empty(pilot.NegativeQuirkIds);
+				Assert.Equal(
+					PilotCapabilityGrant.FromBackground(
+						pilot.Id,
+						pilot.BackgroundId,
+						BattlePilotCapabilityPipelineFactory.Supports),
+					spawn.Pilot.CapabilityGrants
+						.Where(grant => grant.Source.Kind == EPilotCapabilitySourceKind.Background));
+			}
+			else
+			{
+				Assert.Equal($"pilot-{spawn.Ship.Id}", spawn.PilotId);
+				Assert.Equal(expectedPilot.CapabilityGrants, spawn.Pilot.CapabilityGrants);
+			}
 		}
 	}
 

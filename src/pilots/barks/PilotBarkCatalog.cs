@@ -18,29 +18,40 @@ public static class PilotBarkCatalog
 				"Retreat is a viable option, you know?",
 				"I could've had a good life as a miner drone.",
 				"I don't like how many ways this can go wrong.",
+				"I calculate the odds of success as 0.000324488%, in case you were wondering.",
+				"Well this was a choice. Not a great choice, but a choice.",
+				"Is this a bad time to get a salary boost?"
 				],
 			[EBarkFlavor.Bloodthirsty] = [
-				"I hope somebody tries something.",
+				"I hope somebody tries something on me.",
 				"Seg fault this.",
 				"Somebody is going to pay.",
 				"I'm going to defragging kill this bot.",
-				"KILL. THEM. ALL.",
+				"SCRAP. THEM. ALL.",
 				"Bolts, screws, and plates... Easy to dismantle...",
-				"They say the logic bits scream as they fry..."
+				"They say the logic bits scream as they fry...",
+				"Lets make them spare parts.",
+				"I could use some new bolts and screws, YOURS WILL DO."
 				],
 			[EBarkFlavor.Impatient] = [
 				"Wake me when something explodes.",
 				"I'm not sure I can take much more of this.",
 				"Can we get on with it? My warranty is expiring.",
 				"Less planning. More doing.",
-				"Whatever the plan is, skip to the interesting bit."
+				"Whatever the plan is, skip to the interesting bit.",
+				"I'm setting my listening to 5x speed.",
+				"My CPU is in sleep mode for now.",
+				"Can we ask someone who actually knows something???",
 				],
 			[EBarkFlavor.Analytical] = [
 				"The risk was calculated, but badly.",
 				"Let's review the numbers before making this worse.",
 				"Updating my estimates. Your judgment remains a rounding error.",
 				"What logic circuit broke when you decided to do that?",
-				"I thought pilots were smarter than this. Analysis parameters updated."
+				"I thought pilots were smarter than this. Analysis parameters updated.",
+				"I'm going to run a simulation of this. Please don't move.",
+				"Ah, that's what you chose. That's... Unexpected.",
+				"I have calculated our odds of success. I have accounted for your decision making skills."
 				],
 			[EBarkFlavor.Entitled] = [
 				"Told you I'm worth the credits.",

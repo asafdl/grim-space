@@ -115,6 +115,9 @@ public partial class BattleController : Node3D
 		{
 			var seed = Random.Shared.Next();
 			var devEncounter = BattleEncounter.DevDefault(seed);
+			foreach (var pilot in devEncounter.DevPilots)
+				_encounterPilots[pilot.Id] = pilot;
+
 			_encounterSpawns = devEncounter.Spawns;
 			_xpDifficulty = devEncounter.XpDifficulty;
 			_battle = BattleOrchestrator.FromEncounter(devEncounter);

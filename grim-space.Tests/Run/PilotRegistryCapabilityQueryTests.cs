@@ -99,6 +99,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 			{
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
 				PositiveQuirkIds = [],
+				NegativeQuirkIds = [],
 			});
 		registry.Register(pilot);
 

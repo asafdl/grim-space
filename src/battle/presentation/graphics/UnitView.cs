@@ -949,7 +949,10 @@ public partial class UnitView : Node3D
 			AddChild(_teleport);
 		}
 		var arrival = destination.Clone();
-		_teleport.Play(_hull, () => ApplyPose(arrival));
+		_teleport.Play(
+			_hull,
+			() => ApplyPose(arrival),
+			_shieldFaces.OfType<MeshInstance3D>().Where(face => face.Visible));
 	}
 
 	public void AnimateRam(State destination)

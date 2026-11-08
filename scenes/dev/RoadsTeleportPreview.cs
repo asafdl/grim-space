@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Dev;
@@ -47,6 +48,19 @@ public partial class RoadsTeleportPreview : Node3D
 		_ship = new Node3D { Name = "TeleportingRogue", Scale = Vector3.One * 2 };
 		AddChild(_ship);
 		_ship.AddChild(ShipMesh.CreateHull(EType.Rogue));
+		var bounds = BoundsUnder(_ship);
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+		{
+			if (face == ESpatialOrientation.Retro)
+				continue;
+			_ship.AddChild(new MeshInstance3D
+			{
+				Name = $"Shield{face}",
+				Mesh = ShieldBubbleMesh.CreateFace(bounds, face),
+				MaterialOverride = ShieldFaceMaterials.Create(),
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			});
+		}
 		_effect = new PixelTeleportEffect();
 		AddChild(_effect);
 		var layer = new CanvasLayer();
@@ -108,6 +122,27 @@ public partial class RoadsTeleportPreview : Node3D
 	private void SetPhase(string phase) =>
 		_status.Text = "Roads: pixel teleport prototype (presentation only)\n"
 			+ "Space: restart | P: pause/resume\n" + phase;
+
+	private static Aabb BoundsUnder(Node3D root)
+	{
+		var found = false;
+		var bounds = default(Aabb);
+		foreach (var child in root.FindChildren("*", "MeshInstance3D", true, false))
+		{
+			if (child is not MeshInstance3D { Mesh: { } mesh } instance)
+				continue;
+			var transform = Transform3D.Identity;
+			for (Node3D? node = instance; node is not null && node != root; node = node.GetParent() as Node3D)
+				transform = node.Transform * transform;
+			var meshBounds = transform * mesh.GetAabb();
+			bounds = found ? bounds.Merge(meshBounds) : meshBounds;
+			found = true;
+		}
+
+		return found
+			? bounds
+			: throw new InvalidOperationException("Teleport preview hull has no mesh.");
+	}
 
 	private void AddLandingCell(Vector3 position)
 	{

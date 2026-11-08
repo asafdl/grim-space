@@ -4,9 +4,11 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
+using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Core.Ids;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
+using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.Factions;
@@ -23,6 +25,7 @@ public sealed class BattleEncounter
 	public const int DefaultXpDifficulty = 3;
 	public int XpDifficulty { get; init; } = DefaultXpDifficulty;
 	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
+	public IReadOnlyList<Pilot> DevPilots { get; init; } = [];
 
 	private static readonly EType[] DevPlayerChassis =
 	[
@@ -47,7 +50,8 @@ public sealed class BattleEncounter
 			seed,
 			gridSize);
 
-		var playerSpawns = DevClassFormation(seed, playerSide: true, playerAnchor, DevPlayerChassis);
+		var pilots = new RunPilotRegistry();
+		var playerSpawns = DevClassFormation(seed, playerSide: true, playerAnchor, DevPlayerChassis, pilots);
 		var enemySpawns = DevClassFormation(seed, playerSide: false, enemyAnchor, DevEnemyChassis);
 		var spawns = playerSpawns.Concat(enemySpawns).ToArray();
 		var fieldMargin = 2;
@@ -58,6 +62,7 @@ public sealed class BattleEncounter
 			Id = TypedIdGenerator.NextId("engagement-dev"),
 			Seed = seed,
 			Spawns = spawns,
+			DevPilots = pilots.All.ToArray(),
 			Objective = EObjective.EliminateOpponents,
 			WorldHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
 			{
@@ -76,8 +81,10 @@ public sealed class BattleEncounter
 		int seed,
 		bool playerSide,
 		BattleSpawn anchor,
-		EType[] chassisList)
+		EType[] chassisList,
+		RunPilotRegistry? pilots = null)
 	{
+		var rng = new Random(seed);
 		var lateral = Coord.Cross(anchor.Dorsal, anchor.Fore);
 		if (lateral == Coord.Zero)
 			lateral = new Coord(0, 1, 0);
@@ -102,10 +109,29 @@ public sealed class BattleEncounter
 				? anchor.Ship
 				: ShipInstance.FromCatalog(id, chassis);
 
+			var pilotSnapshot = DevFullySkilledPilot(ship.Id, ship.Spec.ClassId);
+			if (pilots is not null && ship.Spec.ClassId != EOperatorClassId.Unclassified)
+			{
+				var profile = new PilotRecruitProfile(
+					Pilot.RollRecruitDisplayName(rng),
+					Pilot.RollRecruitPortraitId(rng),
+					PilotBackgroundCatalog.Roll(rng).Id,
+					learnedSkills: PilotSkillCatalog.IdsForOperatorClass(ship.Spec.ClassId),
+					classId: ship.Spec.ClassId);
+				var pilot = Pilot.FromRecruitProfile(ship.Id, profile);
+				pilots.Register(pilot);
+				pilotSnapshot = new PilotBattleSnapshot(
+					pilot.Id,
+					pilots.QueryCapabilitiesForShip(
+						ship.Id,
+						BattlePilotCapabilityPipelineFactory.Supports),
+					pilot.PortraitId);
+			}
+
 			spawns[index] = new BattleSpawn
 			{
 				Ship = ship,
-				Pilot = DevFullySkilledPilot(ship.Id, ship.Spec.ClassId),
+				Pilot = pilotSnapshot,
 				Team = playerSide ? ETeam.Player : ETeam.Enemy,
 				Faction = playerSide ? EFaction.Player : EFaction.TheOptimality,
 				Position = anchor.Position + offsets[index],

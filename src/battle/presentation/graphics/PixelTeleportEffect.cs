@@ -8,35 +8,41 @@ public partial class PixelTeleportEffect : Node
 	public const double HiddenSeconds = 0.06;
 	public const double DurationSeconds = FadeSeconds * 2 + HiddenSeconds;
 	private readonly List<(MeshInstance3D Mesh, int Surface, Material? Original, ShaderMaterial Effect)> _surfaces = [];
+	private readonly List<(MeshInstance3D Mesh, Material Original, ShaderMaterial Effect)> _overrides = [];
 	private Tween? _tween;
 
-	public void Play(Node3D hull, Action relocate)
+	public void Play(Node3D hull, Action relocate, IEnumerable<MeshInstance3D>? extraMeshes = null)
 	{
 		Stop();
 		var shader = GD.Load<Shader>("res://assets/shaders/pixel_teleport.gdshader")
 			?? throw new InvalidOperationException("Pixel teleport shader could not be loaded.");
 		var surfaces = hull.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
-			.Prepend(hull as MeshInstance3D).OfType<MeshInstance3D>();
+			.Prepend(hull as MeshInstance3D).OfType<MeshInstance3D>()
+			.Concat(extraMeshes ?? []);
 		foreach (var mesh in surfaces)
 		{
 			if (mesh.Mesh is null)
 				continue;
+			if (mesh.MaterialOverride is not null)
+			{
+				_overrides.Add((mesh, mesh.MaterialOverride, CreateEffectMaterial(shader, mesh, mesh.MaterialOverride)));
+				continue;
+			}
 			for (var surface = 0; surface < mesh.Mesh.GetSurfaceCount(); surface++)
 			{
-				if (mesh.GetActiveMaterial(surface) is not StandardMaterial3D original)
-					throw new InvalidOperationException($"Pixel teleport requires a standard material on {mesh.Name}.");
-				var effect = new ShaderMaterial { Shader = shader };
-				effect.SetShaderParameter("albedo_color", original.AlbedoColor);
-				effect.SetShaderParameter("use_albedo_texture", original.AlbedoTexture is not null);
-				if (original.AlbedoTexture is not null)
-					effect.SetShaderParameter("albedo_texture", original.AlbedoTexture);
-				effect.SetShaderParameter("metallic_amount", original.Metallic);
-				effect.SetShaderParameter("roughness_amount", original.Roughness);
-				_surfaces.Add((mesh, surface, mesh.GetSurfaceOverrideMaterial(surface), effect));
+				var active = mesh.GetActiveMaterial(surface)
+					?? throw new InvalidOperationException($"Pixel teleport requires a material on {mesh.Name}.");
+				_surfaces.Add((
+					mesh,
+					surface,
+					mesh.GetSurfaceOverrideMaterial(surface),
+					CreateEffectMaterial(shader, mesh, active)));
 			}
 		}
-		if (_surfaces.Count == 0)
+		if (_surfaces.Count == 0 && _overrides.Count == 0)
 			throw new InvalidOperationException("Pixel teleport has no mesh surfaces.");
+		foreach (var over in _overrides)
+			over.Mesh.MaterialOverride = over.Effect;
 		foreach (var surface in _surfaces)
 			surface.Mesh.SetSurfaceOverrideMaterial(surface.Surface, surface.Effect);
 		_tween = CreateTween();
@@ -51,6 +57,12 @@ public partial class PixelTeleportEffect : Node
 	{
 		_tween?.Kill();
 		_tween = null;
+		foreach (var over in _overrides)
+		{
+			if (IsInstanceValid(over.Mesh))
+				over.Mesh.MaterialOverride = over.Original;
+		}
+		_overrides.Clear();
 		foreach (var surface in _surfaces)
 		{
 			if (IsInstanceValid(surface.Mesh))
@@ -71,7 +83,29 @@ public partial class PixelTeleportEffect : Node
 
 	private void SetDissolve(float amount)
 	{
+		foreach (var over in _overrides)
+			over.Effect.SetShaderParameter("dissolve", amount);
 		foreach (var surface in _surfaces)
 			surface.Effect.SetShaderParameter("dissolve", amount);
+	}
+
+	private static ShaderMaterial CreateEffectMaterial(Shader shader, MeshInstance3D mesh, Material active)
+	{
+		if (active is not StandardMaterial3D original)
+			throw new InvalidOperationException($"Pixel teleport requires a standard material on {mesh.Name}.");
+		var effect = new ShaderMaterial { Shader = shader };
+		var albedo = original.Transparency == BaseMaterial3D.TransparencyEnum.Disabled
+			? new Color(original.AlbedoColor, 1f)
+			: original.AlbedoColor;
+		effect.SetShaderParameter("albedo_color", albedo);
+		effect.SetShaderParameter("use_albedo_texture", original.AlbedoTexture is not null);
+		if (original.AlbedoTexture is not null)
+			effect.SetShaderParameter("albedo_texture", original.AlbedoTexture);
+		effect.SetShaderParameter("metallic_amount", original.Metallic);
+		effect.SetShaderParameter("roughness_amount", original.Roughness);
+		effect.SetShaderParameter(
+			"unshaded",
+			original.ShadingMode == BaseMaterial3D.ShadingModeEnum.Unshaded);
+		return effect;
 	}
 }
