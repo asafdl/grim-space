@@ -4,6 +4,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Pilots;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
@@ -45,11 +46,12 @@ public sealed class BattleOrchestrator : IDisposable
 	internal Engine<BattleWorld, ActorRuntime> Engine => _engine;
 
 	public BattleLayout Layout { get; }
+	public MovePreviewCache MovePreview { get; } = new();
 	public string ActivePlayerId { get; private set; }
 	public string PlayerId => ActivePlayerId;
 	public bool IsBattleOver => _engine.World.battleResult != EBattleResult.Ongoing;
 	public int TurnNumber => _engine.Tick;
-	public EBattlePhase Phase { get; private set; } = (EBattlePhase)(-1);
+	public EBattlePhase Phase { get; private set; } = EBattlePhase.Preloaded;
 	public bool IsAtTurnStart => _activatedThisTurn.Count == 0;
 	public TurnReplay? PendingReplay { get; private set; }
 	public int PendingReplayTurn { get; private set; }
@@ -75,6 +77,16 @@ public sealed class BattleOrchestrator : IDisposable
 	}
 
 	public static BattleOrchestrator FromEncounter(
+		BattleEncounter encounter,
+		int gridSize = 64,
+		string? preferredPlayerId = null)
+	{
+		var orchestrator = PrepareFromEncounter(encounter, gridSize, preferredPlayerId);
+		orchestrator.Start("encounter ready");
+		return orchestrator;
+	}
+
+	public static BattleOrchestrator PrepareFromEncounter(
 		BattleEncounter encounter,
 		int gridSize = 64,
 		string? preferredPlayerId = null)
@@ -128,7 +140,7 @@ public sealed class BattleOrchestrator : IDisposable
 		var pilotsByActorId = encounter.Spawns.ToDictionary(
 			spawn => spawn.Ship.Id,
 			spawn => spawn.Pilot);
-		return CreateFromWorld(world, layout, player.State.Id, "encounter ready", pilotsByActorId);
+		return CreateFromWorld(world, layout, player.State.Id, pilotsByActorId);
 	}
 
 	public static BattleOrchestrator FromWorld(
@@ -150,7 +162,9 @@ public sealed class BattleOrchestrator : IDisposable
 			world.Grid,
 			world.Asteroids.ToList(),
 			world.UnitRegistry.All.ToDictionary(unit => unit.State.Id, unit => unit.Team));
-		return CreateFromWorld(world, layout, playerId, "battle world restored", pilotsByActorId);
+		var orchestrator = CreateFromWorld(world, layout, playerId, pilotsByActorId);
+		orchestrator.Start("battle world restored");
+		return orchestrator;
 	}
 
 	/// <summary>
@@ -184,7 +198,6 @@ public sealed class BattleOrchestrator : IDisposable
 		BattleWorld world,
 		BattleLayout layout,
 		string playerId,
-		string phaseReason,
 		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null)
 	{
 		var actorRuntimes = new ActorRuntimes<ActorRuntime>();
@@ -219,13 +232,25 @@ public sealed class BattleOrchestrator : IDisposable
 		}
 
 		orchestrator.InitializeRoundExecutionAgent();
-
-		if (world.battleResult == EBattleResult.Ongoing)
-			orchestrator.BeginTurn(phaseReason);
-		else
-			orchestrator.SetPhase(EBattlePhase.BattleOver, phaseReason);
-
 		return orchestrator;
+	}
+
+	public void Preload(string reason)
+	{
+		if (Phase != EBattlePhase.Preloaded)
+			return;
+
+		if (IsBattleOver)
+			SetPhase(EBattlePhase.BattleOver, reason);
+		else if (NextLivingActivation()?.ExecutionAgent is UserExecutionAgent)
+			BeginTurn(reason);
+	}
+
+	public void Start(string reason)
+	{
+		Preload(reason);
+		if (Phase == EBattlePhase.Preloaded)
+			BeginTurn(reason);
 	}
 
 	internal void EnterPlayerTurn(string reason = "player turn")

@@ -282,7 +282,7 @@ public sealed class PoseHitOpportunityTests
 		var first = preview.MovementPickPreferences(sim, PlayerId, "enemy", options);
 		var second = preview.MovementPickPreferences(sim, PlayerId, "other-enemy", options);
 		Assert.NotSame(first, second);
-		var actorOptions = preview.MoveOptions(sim, PlayerId, "enemy", isPlanning: true);
+		var actorOptions = preview.MoveOptions(sim, battle.MovePreview, PlayerId, "enemy", isPlanning: true);
 		var otherActor = preview.MovementPickPreferences(sim, "enemy", "other-enemy", actorOptions);
 		Assert.NotSame(second, otherActor);
 	}

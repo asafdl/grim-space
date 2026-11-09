@@ -7,8 +7,9 @@ namespace GrimSpace.World.StarSystem.Events;
 public static class WorldEventCatalog
 {
 	internal static readonly AsteroidAccident Asteroid = new();
+	internal static readonly DriftSalvage Drift = new();
 
-	private static readonly IReadOnlyList<Entry> Definitions = [Asteroid];
+	private static readonly IReadOnlyList<Entry> Definitions = [Asteroid, Drift];
 
 	public static EWorldEventId Pick(double unitRoll) =>
 		WeightedPick.Of(Definitions, entry => entry.Weight, unitRoll).Id;
@@ -47,5 +48,25 @@ public static class WorldEventCatalog
 				(> 0, _) => $"{shieldsLost} shield damage",
 				_ => $"{hullLost} hull damage",
 			};
+	}
+
+	internal sealed class DriftSalvage : Entry
+	{
+		public int ScrapMin => 80;
+		public int ScrapMax => 160;
+		public double IndustrialCoreChance => 0.02;
+		public double BaseTriggerChance => 0;
+		public double DeliberationSwing => 0.20;
+
+		public override EWorldEventId Id => EWorldEventId.DriftSalvage;
+		public override int Weight => 1;
+
+		public override IWorldEventRoll CreateRoll(ulong rngSeed) =>
+			new RollForDriftSalvageAction(StarSystemActorIds.WorldEvents, rngSeed);
+
+		public WorldEventPresentation Announce(string pilotName) =>
+			new(
+				"Strange Signature Detected",
+				$"Only lazy bots ignore chance for loot. Luckily {pilotName} is not one of them.");
 	}
 }

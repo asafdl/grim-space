@@ -274,6 +274,88 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 			out _));
 	}
 
+	[Fact]
+	public void EngageAfterContact_AdoptsPreparedBattleWithWarmMoveCache()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var battleReady = 0;
+		run.BattleReady += () => battleReady++;
+		FundHazardPay(run);
+		ReachPlayerContact(run, "pirate-a");
+
+		run.StarSystem.PlayerAgent!.TryEnqueue([new EngageAction(RunState.PlayerFleetUnitId)]);
+		run.StarSystem.AdvanceClock();
+		Assert.True(SpinWait.SpinUntil(() => !run.IsBattleLaunching, TimeSpan.FromSeconds(30)));
+		run.CompleteBattleLaunch();
+
+		Assert.Equal(1, battleReady);
+		Assert.NotNull(run.ActiveBattle);
+		using var battle = run.CreateActiveBattleOrchestrator();
+		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
+		Assert.Equal(1, battle.MovePreview.BuildCount);
+		battle.MovePreview.GetPaths(battle.PlayerAgent.Sim, battle.PlayerId);
+		Assert.Equal(1, battle.MovePreview.BuildCount);
+	}
+
+	[Fact]
+	public void FleeAfterContact_DiscardsPreparedBattle()
+	{
+		using var run = RunState.CreateNewRun(42);
+		FundHazardPay(run);
+		ReachPlayerContact(run, "pirate-a");
+		var engagementId = run.StarSystem.Map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id;
+
+		run.StarSystem.PlayerAgent!.TryEnqueue([new FleeAction(RunState.PlayerFleetUnitId)]);
+		run.StarSystem.AdvanceClock();
+		run.ReceiveEngagementFact(new Record<EngagementCommitted>(new EngagementCommitted(
+			engagementId,
+			RunState.PlayerFleetUnitId,
+			new[] { "pirate-a", RunState.PlayerFleetUnitId })));
+
+		Assert.False(run.IsBattleLaunching);
+		using var battle = run.CreateActiveBattleOrchestrator();
+		Assert.Equal(0, battle.MovePreview.BuildCount);
+	}
+
+	[Fact]
+	public void MismatchedCommit_FallsBackToSynchronousBuild()
+	{
+		using var run = RunState.CreateNewRun(42);
+		FundHazardPay(run);
+		ReachPlayerContact(run, "pirate-a");
+
+		run.ReceiveEngagementFact(new Record<EngagementCommitted>(new EngagementCommitted(
+			"engagement-other",
+			RunState.PlayerFleetUnitId,
+			new[] { "pirate-a", RunState.PlayerFleetUnitId })));
+
+		Assert.False(run.IsBattleLaunching);
+		Assert.Equal("engagement-other", run.ActiveBattle!.Id);
+		using var battle = run.CreateActiveBattleOrchestrator();
+		Assert.Equal(0, battle.MovePreview.BuildCount);
+	}
+
+	private static void FundHazardPay(RunState run) =>
+		Assert.True(
+			run.StarSystem.Map.PlayerResources.TryApply(
+				ResourceBundle.Of(
+					ResourceId.Credits,
+					StrategicEconomyConfig.HazardPayCreditsPerPilot * 4)));
+
+	private static void ReachPlayerContact(RunState run, string pirateId)
+	{
+		var map = run.StarSystem.Map;
+		AddPirate(map, pirateId);
+		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		new SetTravelTargetEffect(
+			RunState.PlayerFleetUnitId,
+			TravelTarget.Fleet(pirateId, EContactIntent.Engagement))
+			.Apply(map, new ActorRuntime(), RunState.PlayerFleetUnitId);
+		run.StarSystem.CommitSetup(new ReachContactAction(RunState.PlayerFleetUnitId, pirateId));
+		Assert.True(EngagementQueries.TryGetPendingPlayerEngagement(map, RunState.PlayerFleetUnitId, out _));
+	}
+
 	private static EngagementCommitted CommitPlayerEngagement(RunState run)
 	{
 		Assert.True(

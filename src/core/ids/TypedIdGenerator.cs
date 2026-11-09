@@ -8,7 +8,13 @@ public static class TypedIdGenerator
 		.Separator("-")
 		.Format(Style.LowerCase); 
 
-	public static string NextInstanceSlug() => InstanceNames.Generate();
+	private static readonly Lock InstanceNamesSync = new();
+
+	public static string NextInstanceSlug()
+	{
+		lock (InstanceNamesSync)
+			return InstanceNames.Generate();
+	}
 
 	public static string NextId(string typeSlug) => Format(typeSlug, NextInstanceSlug());
 

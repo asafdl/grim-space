@@ -5,6 +5,7 @@ using GrimSpace.World.StarSystem.Events;
 using GrimSpace.World.StarSystem.Ids;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.World.StarSystem.Resources;
 using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.Tests.World.StarSystem.Events;
@@ -65,6 +66,29 @@ public sealed class WorldEventHudTests
 	}
 
 	[Fact]
+	public void Dismiss_Salvage_EnqueuesSalvageAcknowledge()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pending = OpenSalvage(run);
+		var hud = new RecordingWorldEventHud();
+		IAction? enqueued = null;
+
+		using var _ = Attach(run, hud, action =>
+		{
+			enqueued = action;
+			return true;
+		});
+		hud.RequestDismiss();
+
+		Assert.Equal(
+			new AcknowledgeDriftSalvageAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
+		Assert.Equal(pending.Reward, hud.Reward);
+		Assert.Equal(pending, run.StarSystem.Map.PendingWorldEvent);
+		Assert.False(hud.IsOpen);
+	}
+
+	[Fact]
 	public void RejectedDismiss_ClosesTheShellAndLeavesThePrompt()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
@@ -111,6 +135,21 @@ public sealed class WorldEventHudTests
 		return pending;
 	}
 
+	private static PendingWorldEvent OpenSalvage(RunState run)
+	{
+		var pilot = run.PilotRegistry.Active[0];
+		var pending = new PendingWorldEvent(
+			"world-event-salvage",
+			EWorldEventId.DriftSalvage,
+			pilot.Id,
+			pilot.AssignedShipId!,
+			0,
+			new WorldEventPresentation("Combed a Derelict", "Test body."),
+			ResourceBundle.Of(ResourceId.ScrapAlloy, WorldEventCatalog.Drift.ScrapMin));
+		run.StarSystem.CommitSetup(new DriftSalvageFoundAction(StarSystemActorIds.WorldEvents, pending));
+		return pending;
+	}
+
 	private static int HullOf(RunState run, string shipId) =>
 		run.ItemInventory.Get(shipId).CurrentHullPoints;
 
@@ -122,11 +161,14 @@ public sealed class WorldEventHudTests
 
 		public event Action? DismissRequested;
 
-		public void Sync(WorldEventPresentation presentation)
+		public void Sync(WorldEventPresentation presentation, ResourceBundle? reward = null)
 		{
 			Presentation = presentation;
+			Reward = reward;
 			IsOpen = true;
 		}
+
+		public ResourceBundle? Reward { get; private set; }
 
 		public void Close() => IsOpen = false;
 

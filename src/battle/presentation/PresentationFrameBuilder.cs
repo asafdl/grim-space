@@ -38,7 +38,7 @@ public sealed class PresentationFrameBuilder
 		FocusId(battle) != battle.PlayerId;
 
 	public IReadOnlyList<MovePathOption> PreviewMoveOptions(BattleOrchestrator battle, UserExecutionAgent agent) =>
-		_preview.MoveOptions(agent.Sim, battle.PlayerId, FocusId(battle), agent.IsPlanning);
+		_preview.MoveOptions(agent.Sim, battle.MovePreview, battle.PlayerId, FocusId(battle), agent.IsPlanning);
 
 	public void AppendTurn(BattleOrchestrator battle, int turnNumber, IReadOnlyList<ITimelineEntry> history)
 	{
@@ -79,7 +79,7 @@ public sealed class PresentationFrameBuilder
 			&& !IsBoardEnemy(battle, previewUnitTeams, rangeEnemyId))
 			state.ClearRangeEnemy();
 		var canControl = acceptsCommands && isPlanning && !isInspecting;
-		var moveOptions = _preview.MoveOptions(sim, playerId, focusId, isPlanning);
+		var moveOptions = _preview.MoveOptions(sim, battle.MovePreview, playerId, focusId, isPlanning);
 		var committedMoveCheckpoints = _preview.CommittedMoveCheckpoints(sim, playerId);
 		var abilityActorId = canControl || isInspecting ? focusId : playerId;
 		var legalCapabilities = canControl || isInspecting

@@ -26,6 +26,7 @@ public partial class Session : Node
 	private bool _beginningMapFromMenu;
 	private bool _mapScenePreloadRequested;
 	private PackedScene? _preloadedMapScene;
+	private PackedScene? _battleScene;
 	private Task<State>? _preparedRunTask;
 	private TutorialDialogHost? _tutorialDialogHost;
 	private readonly ISaveGameStorage _saveStorage;
@@ -266,7 +267,7 @@ public partial class Session : Node
 
 		Run.ActiveBattle = null;
 		_devMenu.Close();
-		GetTree().ChangeSceneToFile(BattleScenePath);
+		ChangeToBattleScene();
 	}
 
 	private void GrantDebugResources()
@@ -325,6 +326,8 @@ public partial class Session : Node
 	public void PrepareFirstScene()
 	{
 		BeginMapScenePreload();
+		if (ResourceLoader.LoadThreadedGetStatus(BattleScenePath) == ResourceLoader.ThreadLoadStatus.InvalidResource)
+			ResourceLoader.LoadThreadedRequest(BattleScenePath);
 		BeginPreparedRun();
 	}
 
@@ -391,10 +394,14 @@ public partial class Session : Node
 		if (holdSeconds > 0f)
 			await ToSignal(GetTree().CreateTimer(holdSeconds), SceneTreeTimer.SignalName.Timeout);
 
+		while (Run?.IsBattleLaunching == true)
+			await ToSignal(GetTree().CreateTimer(0), SceneTreeTimer.SignalName.Timeout);
+
+		Run?.CompleteBattleLaunch();
 		if (Run?.ActiveBattle is null)
 			return;
 
-		GetTree().ChangeSceneToFile(BattleScenePath);
+		ChangeToBattleScene();
 	}
 
 	private void BeginMapScenePreload()
@@ -487,11 +494,19 @@ public partial class Session : Node
 	{
 		if (Run.ActiveBattle is not null)
 		{
-			GetTree().ChangeSceneToFile(BattleScenePath);
+			ChangeToBattleScene();
 			return;
 		}
 
 		ChangeToMapScene();
+	}
+
+	private void ChangeToBattleScene()
+	{
+		_battleScene ??= ResourceLoader.LoadThreadedGetStatus(BattleScenePath) == ResourceLoader.ThreadLoadStatus.InvalidResource
+			? GD.Load<PackedScene>(BattleScenePath)
+			: ResourceLoader.LoadThreadedGet(BattleScenePath) as PackedScene;
+		GetTree().ChangeSceneToPacked(_battleScene);
 	}
 
 	private void ChangeToMapScene()

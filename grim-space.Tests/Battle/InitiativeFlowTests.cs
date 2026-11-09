@@ -48,6 +48,54 @@ public sealed class InitiativeFlowTests
 			UnitRegistry.For(battle.Engine.World).ActivationOrder);
 	}
 
+	[Fact]
+	public void Preload_OpensPlayerTurnWhenPlayerActsFirst()
+	{
+		using var battle = BattleOrchestrator.PrepareFromEncounter(
+			new BattleEncounter
+			{
+				Id = "prepare-test",
+				Seed = 1,
+				Objective = EObjective.EliminateOpponents,
+				Spawns =
+				[
+					Spawn("player", EType.Fighter, ETeam.Player, 1, new UserExecutionAgent()),
+					Spawn("enemy", EType.Gunship, ETeam.Enemy, 4),
+				],
+			},
+			gridSize: 12);
+
+		Assert.Equal(EBattlePhase.Preloaded, battle.Phase);
+
+		battle.Preload("test");
+
+		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
+	}
+
+	[Fact]
+	public void Preload_StaysPreloadedWhenEnemyActsFirst()
+	{
+		using var battle = BattleOrchestrator.PrepareFromEncounter(
+			new BattleEncounter
+			{
+				Id = "prepare-enemy-first",
+				Seed = 1,
+				Objective = EObjective.EliminateOpponents,
+				Spawns =
+				[
+					Spawn("player", EType.Gunship, ETeam.Player, 1, new UserExecutionAgent()),
+					Spawn("enemy", EType.Fighter, ETeam.Enemy, 4),
+				],
+			},
+			gridSize: 12);
+
+		battle.Preload("test");
+		Assert.Equal(EBattlePhase.Preloaded, battle.Phase);
+
+		battle.Start("test");
+		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
+	}
+
 	private static BattleSpawn Spawn(
 		string id,
 		EType chassis,

@@ -12,6 +12,7 @@ public sealed class MovePreviewCache
 
 	public IReadOnlyList<RouteHitPreview> GetPaths(BattleSimulation sim, string actorId)
 	{
+		_entries.RemoveAll(entry => !ReferenceEquals(entry.Sim, sim));
 		var movementPrefix = MovementPrefix(sim.Actions, actorId);
 		var occupancyFingerprint = OccupancyFingerprint(sim.World);
 		var movementBudget = MovementBudget(sim.World, actorId);

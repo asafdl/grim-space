@@ -95,6 +95,13 @@ public static class EngagementQueries
 		return true;
 	}
 
+	internal static string ResolveInitiatorId(string firstId, State first, string secondId, State second) =>
+		first.CurrentEngagement?.Hunting is not null
+			? firstId
+			: second.CurrentEngagement?.Hunting is not null
+				? secondId
+				: firstId;
+
 	internal static string? ResolveCounterpartyId(State state)
 	{
 		if (state.CurrentEngagement is not { } engagement)

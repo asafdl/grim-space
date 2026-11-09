@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Ui.Components;
 using GrimSpace.World.StarSystem.Events;
+using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -11,7 +12,7 @@ public interface IWorldEventHud
 
 	bool IsOpen { get; }
 
-	void Sync(WorldEventPresentation presentation);
+	void Sync(WorldEventPresentation presentation, ResourceBundle? reward = null);
 
 	void Close();
 
@@ -43,7 +44,7 @@ public sealed partial class WorldEventHudOverlay : Control, IWorldEventHud
 
 	public bool IsOpen => _shell.IsOpen;
 
-	public void Sync(WorldEventPresentation presentation)
+	public void Sync(WorldEventPresentation presentation, ResourceBundle? reward = null)
 	{
 		_busy = false;
 		_shell.Open(presentation.Title);
@@ -52,7 +53,7 @@ public sealed partial class WorldEventHudOverlay : Control, IWorldEventHud
 		_shell.SetBackHandler(null);
 
 		var body = HudWidgets.CreateCardList();
-		body.AddChild(CreateBodyCard(presentation.Body));
+		body.AddChild(CreateBodyCard(presentation.Body, reward));
 		_shell.SetBody(body);
 		_shell.SetFooter(
 		[
@@ -86,7 +87,7 @@ public sealed partial class WorldEventHudOverlay : Control, IWorldEventHud
 		DismissRequested?.Invoke();
 	}
 
-	private static UiCard CreateBodyCard(string body)
+	private static UiCard CreateBodyCard(string body, ResourceBundle? reward)
 	{
 		var card = new UiCard(body, "", "", "")
 		{
@@ -95,6 +96,8 @@ public sealed partial class WorldEventHudOverlay : Control, IWorldEventHud
 		};
 		card.SetVisual(UiCardVisual.Technical);
 		card.SetInteractive(false);
+		if (reward is { IsEmpty: false })
+			card.SetTrailingContent(ResourceRewardDisplay.CreateCompact(reward));
 		return card;
 	}
 }

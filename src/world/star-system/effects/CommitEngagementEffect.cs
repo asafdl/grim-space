@@ -26,11 +26,7 @@ public sealed class CommitEngagementEffect : IEffect<StarMap, Runtime.ActorRunti
 	{
 		var first = world.StateOf(_firstUnitId);
 		var second = world.StateOf(_secondUnitId);
-		var initiatorId = first.CurrentEngagement?.Hunting is not null
-			? _firstUnitId
-			: second.CurrentEngagement?.Hunting is not null
-				? _secondUnitId
-				: _firstUnitId;
+		var initiatorId = EngagementQueries.ResolveInitiatorId(_firstUnitId, first, _secondUnitId, second);
 
 		var engagementId = first.CurrentEngagement?.Id
 			?? second.CurrentEngagement?.Id

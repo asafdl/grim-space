@@ -38,7 +38,7 @@ public sealed class WorldEventController : IDisposable
 	private void Sync()
 	{
 		if (_pendingEvent() is { } pending)
-			_hud.Sync(pending.Presentation);
+			_hud.Sync(pending.Presentation, pending.Reward);
 		else if (_hud.IsOpen)
 			_hud.Close();
 	}
@@ -52,7 +52,7 @@ public sealed class WorldEventController : IDisposable
 		}
 
 		_hud.SetBusy(true);
-		if (_tryEnqueue(new AcknowledgeAsteroidImpactAction(State.PlayerFleetUnitId, pending.Id)))
+		if (_tryEnqueue(Acknowledge(pending)))
 		{
 			_hud.Close();
 			return;
@@ -68,5 +68,28 @@ public sealed class WorldEventController : IDisposable
 	{
 		_impactSubscription.Dispose();
 		_hud.DismissRequested -= OnDismissRequested;
+	}
+
+	internal static IDisposable Join(IDisposable first, IDisposable second) =>
+		new JoinedSubscriptions(first, second);
+
+	private static IAction Acknowledge(PendingWorldEvent pending) =>
+		pending.EventId switch
+		{
+			EWorldEventId.AsteroidAccident =>
+				new AcknowledgeAsteroidImpactAction(State.PlayerFleetUnitId, pending.Id),
+			EWorldEventId.DriftSalvage =>
+				new AcknowledgeDriftSalvageAction(State.PlayerFleetUnitId, pending.Id),
+			_ => throw new InvalidOperationException(
+				$"No acknowledge action is registered for {pending.EventId}."),
+		};
+
+	private sealed class JoinedSubscriptions(IDisposable first, IDisposable second) : IDisposable
+	{
+		public void Dispose()
+		{
+			first.Dispose();
+			second.Dispose();
+		}
 	}
 }

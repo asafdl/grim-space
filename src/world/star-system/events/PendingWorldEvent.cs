@@ -1,3 +1,5 @@
+using GrimSpace.World.StarSystem.Resources;
+
 namespace GrimSpace.World.StarSystem.Events;
 
 public sealed record WorldEventPresentation(string Title, string Body);
@@ -12,4 +14,5 @@ public sealed record PendingWorldEvent(
 	string PilotId,
 	string ShipId,
 	int Damage,
-	WorldEventPresentation Presentation);
+	WorldEventPresentation Presentation,
+	ResourceBundle? Reward = null);

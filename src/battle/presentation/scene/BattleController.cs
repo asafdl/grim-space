@@ -75,7 +75,7 @@ public partial class BattleController : Node3D
 	private readonly Dictionary<string, string> _pilotShipIds = new(StringComparer.Ordinal);
 	private bool _exiting;
 	private int _xpDifficulty = BattleEncounter.DefaultXpDifficulty;
-	private EBattlePhase _lastPhase = (EBattlePhase)(-1);
+	private EBattlePhase _lastPhase = EBattlePhase.Preloaded;
 	private readonly List<IReadOnlyList<string>> _completedTurnOrders = [];
 	private readonly List<string> _resolvedRoundActivations = [];
 	private readonly Dictionary<string, EType> _unitTypes = new(StringComparer.Ordinal);

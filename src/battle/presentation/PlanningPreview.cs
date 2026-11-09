@@ -24,8 +24,6 @@ public sealed class PlanningPreview
 {
 	private const string PreviewVoidBombId = "__preview_void_bomb__";
 
-	private readonly MovePreviewCache _moveCache = new();
-
 	private BattleSimulation? _lastSim;
 	private int _pickWorldVersion = -1;
 	private IReadOnlyList<IAction> _pickActions = [];
@@ -103,6 +101,7 @@ public sealed class PlanningPreview
 
 	public IReadOnlyList<MovePathOption> MoveOptions(
 		BattleSimulation sim,
+		MovePreviewCache moveCache,
 		string playerId,
 		string focusId,
 		bool isPlanning)
@@ -123,7 +122,7 @@ public sealed class PlanningPreview
 				.ToList();
 		}
 
-		return _moveCache.GetPaths(sim, playerId)
+		return moveCache.GetPaths(sim, playerId)
 			.Select(route => ToMovePathOption(sim, route.Session))
 			.ToList();
 	}
@@ -351,7 +350,6 @@ public sealed class PlanningPreview
 		_pickActions = [];
 		_pickActorId = null;
 		_pickEnemyId = null;
-		_moveCache.Clear();
 		_envelopeCacheSim = null;
 		_envelopeCacheActions = [];
 		_envelopeCache.Clear();

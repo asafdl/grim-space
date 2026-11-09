@@ -202,6 +202,20 @@ public sealed class State : IDisposable
 	private IDisposable? _pilotSalaryPayrollSubscription;
 	private IDisposable? _pilotHazardPayrollSubscription;
 	private IDisposable? _battleOutcomeSubscription;
+	private IDisposable? _reachContactSubscription;
+	private IDisposable? _fleeSubscription;
+	private PreparedBattle? _preparedBattle;
+	private (EngagementCommitted Fact, Task<PreparedBattleBuild> Build)? _battleLaunch;
+	private PreparedBattleBuild? _adoptedBattle;
+
+	private sealed record PreparedBattleBuild(BattleEncounter Encounter, BattleOrchestrator Battle);
+
+	private sealed record PreparedBattle(
+		string EngagementId,
+		string InitiatorFleetId,
+		string[] ParticipantFleetIds,
+		string? SelectedShipId,
+		Task<PreparedBattleBuild> Build);
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
 	{
@@ -317,16 +331,26 @@ public sealed class State : IDisposable
 			BattleEngagementComposition.EnsurePlayable(ActiveBattle.Spawns, ActiveBattle.Id);
 
 		ReleaseBattleOutcomeSubscription();
+		var prepared = RestoredBattleWorld is null
+			&& _adoptedBattle is { } adopted
+			&& ReferenceEquals(adopted.Encounter, ActiveBattle)
+				? adopted.Battle
+				: null;
+		if (prepared is null)
+			_adoptedBattle?.Battle.Dispose();
+		_adoptedBattle = null;
+
 		var orchestrator = RestoredBattleWorld is { } savedWorld
 			? BattleOrchestrator.FromSavedWorld(
 				savedWorld,
 				ResolveActiveBattlePlayerId(savedWorld),
 				ActiveBattle)
-			: BattleOrchestrator.FromEncounter(
+			: prepared ?? BattleOrchestrator.FromEncounter(
 				ActiveBattle,
 				preferredPlayerId: ResolveActiveBattlePlayerId(null));
 		RestoredBattleWorld = null;
 		_battleOutcomeSubscription = orchestrator.Subscribe<Record<BattleOutcome>>(OnCommittedBattleOutcome);
+		prepared?.Start("encounter ready");
 		return orchestrator;
 	}
 
@@ -339,12 +363,7 @@ public sealed class State : IDisposable
 
 	private string ResolveActiveBattlePlayerId(BattleWorld? savedWorld)
 	{
-		var runtime = StarSystem.RuntimeFor(PlayerFleetUnitId);
-		var selected = PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			runtime,
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
+		var selected = EnsureSelectedFleetMember();
 
 		string[] playerUnitIds = savedWorld is not null
 			? savedWorld.UnitRegistry.All
@@ -664,6 +683,11 @@ public sealed class State : IDisposable
 		_barks?.Dispose();
 		ReleaseStarSystemSubscriptions();
 		ReleaseBattleOutcomeSubscription();
+		if (_battleLaunch is { } launch)
+			DisposeWhenBuilt(launch.Build);
+		_battleLaunch = null;
+		_adoptedBattle?.Battle.Dispose();
+		_adoptedBattle = null;
 		Transitions.Dispose();
 		StarSystem?.Dispose();
 	}
@@ -688,6 +712,17 @@ public sealed class State : IDisposable
 			StarSystem.Subscribe<Record<PilotSalaryPayroll>>(OnPilotSalaryPayroll);
 		_pilotHazardPayrollSubscription =
 			StarSystem.Subscribe<Record<HazardPayrollResult>>(OnPilotHazardPayroll);
+		_reachContactSubscription = StarSystem.Subscribe<ReachContactAction>(contact =>
+		{
+			if (contact.Intent == EContactIntent.Engagement
+				&& (contact.InitiatorId == PlayerFleetUnitId || contact.TargetId == PlayerFleetUnitId))
+				PrepareBattle();
+		});
+		_fleeSubscription = StarSystem.Subscribe<FleeAction>(flee =>
+		{
+			if (flee.ActorId == PlayerFleetUnitId)
+				DiscardPreparedBattle();
+		});
 		StarSystem.ResourceTransactionCommitted += OnResourceTransactionForStatistics;
 		StarSystem.BindSalaryPayrollRoster(SnapshotSalaryPayrollRoster);
 		StarSystem.BindFleetSalaryDiscountStacks(SnapshotFleetSalaryDiscountStacks);
@@ -722,6 +757,11 @@ public sealed class State : IDisposable
 		_pilotSalaryPayrollSubscription = null;
 		_pilotHazardPayrollSubscription?.Dispose();
 		_pilotHazardPayrollSubscription = null;
+		_reachContactSubscription?.Dispose();
+		_reachContactSubscription = null;
+		_fleeSubscription?.Dispose();
+		_fleeSubscription = null;
+		DiscardPreparedBattle();
 		if (StarSystem is not null)
 			StarSystem.ResourceTransactionCommitted -= OnResourceTransactionForStatistics;
 	}
@@ -1065,6 +1105,10 @@ public sealed class State : IDisposable
 			&& string.Equals(activeBattleId, fact.EngagementId, StringComparison.Ordinal))
 			return;
 
+		if (_battleLaunch is { } launching
+			&& string.Equals(launching.Fact.EngagementId, fact.EngagementId, StringComparison.Ordinal))
+			return;
+
 		if (_resolvedBattleIds.Contains(fact.EngagementId))
 		{
 			ReleaseResolvedBattle(fact.EngagementId);
@@ -1091,44 +1135,189 @@ public sealed class State : IDisposable
 				$"Retrying battle launch for engagement '{fact.EngagementId}' (no active battle in run state).");
 		}
 
+		var build = TakePreparedBattle(fact);
+		if (build is { IsCompleted: false })
+		{
+			_battleLaunch = (fact, build);
+			BattleReady?.Invoke();
+			return;
+		}
+
+		if (LaunchBattle(fact, build))
+			BattleReady?.Invoke();
+	}
+
+	public bool IsBattleLaunching => _battleLaunch is { Build.IsCompleted: false };
+
+	public void CompleteBattleLaunch()
+	{
+		if (_battleLaunch is not { } launch || !launch.Build.IsCompleted)
+			return;
+
+		_battleLaunch = null;
+		LaunchBattle(launch.Fact, launch.Build);
+	}
+
+	private bool LaunchBattle(EngagementCommitted fact, Task<PreparedBattleBuild>? build)
+	{
 		try
 		{
-			var fleets = fact.ParticipantFleetIds
-				.Select(id => StarSystem.Map.FleetRegistry.FleetOf(id))
-				.ToArray();
-			EnsureRegistryForFleets(fleets);
-			var seed = Random.Shared.Next();
-			var tutorialScriptedSpawn = TutorialBeatContracts.RequiresCanonicalFirstBattleLayout(
-				_tutorialState,
-				StarSystem.Map,
-				fact.ParticipantFleetIds);
-			var excludedShipIds = ShipIdsExcludedByRefusedPilots(fact.RefusedPilotIds);
-			IReadOnlySet<string>? playerDeployShipIds = null;
-			if (excludedShipIds is not null)
+			if (build is { IsCompletedSuccessfully: true })
 			{
-				playerDeployShipIds = GetFieldedShipIds()
-					.Where(shipId => !excludedShipIds.Contains(shipId))
-					.ToHashSet(StringComparer.Ordinal);
+				_adoptedBattle = build.Result;
+				ActiveBattle = build.Result.Encounter;
+			}
+			else
+			{
+				if (build?.Exception is { } buildError)
+					GameLog.LogException(buildError, "Prepared battle failed; building synchronously.");
+				ActiveBattle = CreateEncounter(fact);
 			}
 
-			ActiveBattle = EngagementBattleFactory.Create(
-				fleets,
-				ItemInventory,
-				seed,
-				fact.EngagementId,
-				fact.InitiatorFleetId,
-				BuildPilotBattleSnapshots(playerDeployShipIds),
-				tutorialScriptedSpawn: tutorialScriptedSpawn,
-				playerDeployShipIds: playerDeployShipIds);
 			_launchedEngagementIds.Add(fact.EngagementId);
-			BattleReady?.Invoke();
+			return true;
 		}
 		catch (Exception ex)
 		{
 			GameLog.LogException(ex, "Failed to construct battle from committed engagement.");
 			StarSystem.RollbackFailedEngagementLaunch(fact, PlayerFleetUnitId);
+			return false;
 		}
 	}
+
+	private BattleEncounter CreateEncounter(EngagementCommitted fact)
+	{
+		var fleets = fact.ParticipantFleetIds
+			.Select(id => StarSystem.Map.FleetRegistry.FleetOf(id))
+			.ToArray();
+		EnsureRegistryForFleets(fleets);
+		var tutorialScriptedSpawn = TutorialBeatContracts.RequiresCanonicalFirstBattleLayout(
+			_tutorialState,
+			StarSystem.Map,
+			fact.ParticipantFleetIds);
+		var excludedShipIds = ShipIdsExcludedByRefusedPilots(fact.RefusedPilotIds);
+		IReadOnlySet<string>? playerDeployShipIds = null;
+		if (excludedShipIds is not null)
+		{
+			playerDeployShipIds = GetFieldedShipIds()
+				.Where(shipId => !excludedShipIds.Contains(shipId))
+				.ToHashSet(StringComparer.Ordinal);
+		}
+
+		return EngagementBattleFactory.Create(
+			fleets,
+			ItemInventory,
+			Random.Shared.Next(),
+			fact.EngagementId,
+			fact.InitiatorFleetId,
+			BuildPilotBattleSnapshots(playerDeployShipIds),
+			tutorialScriptedSpawn: tutorialScriptedSpawn,
+			playerDeployShipIds: playerDeployShipIds);
+	}
+
+	private void PrepareBattle()
+	{
+		DiscardPreparedBattle();
+		var map = StarSystem.Map;
+		if (!map.FleetRegistry.TryGet(PlayerFleetUnitId, out var player)
+			|| player.State.CurrentEngagement is not { Phase: EEngagementPhase.AwaitingDecision } engagement
+			|| EngagementQueries.ResolveCounterpartyId(player.State) is not { } counterpartyId
+			|| !map.FleetRegistry.TryGet(counterpartyId, out var counterparty))
+			return;
+
+		try
+		{
+			var fleets = new[] { player, counterparty }
+				.OrderBy(fleet => fleet.State.Id, StringComparer.Ordinal)
+				.ToArray();
+			var participantIds = fleets.Select(fleet => fleet.State.Id).ToArray();
+			EnsureRegistryForFleets(fleets);
+			var inventory = new Inventory();
+			foreach (var fleet in fleets)
+			{
+				foreach (var member in fleet.Members)
+					inventory.Register(ItemInventory.Get(member.Id).Clone(), fleet.State.Id);
+			}
+
+			var initiatorId = EngagementQueries.ResolveInitiatorId(
+				PlayerFleetUnitId, player.State, counterpartyId, counterparty.State);
+			var pilots = BuildPilotBattleSnapshots(null);
+			var tutorialScriptedSpawn = TutorialBeatContracts.RequiresCanonicalFirstBattleLayout(
+				_tutorialState, map, participantIds);
+			var selected = EnsureSelectedFleetMember();
+			var seed = Random.Shared.Next();
+			var engagementId = engagement.Id;
+
+			_preparedBattle = new PreparedBattle(
+				engagementId,
+				initiatorId,
+				participantIds,
+				selected,
+				Task.Run(() =>
+				{
+					var encounter = EngagementBattleFactory.Create(
+						fleets,
+						inventory,
+						seed,
+						engagementId,
+						initiatorId,
+						pilots,
+						tutorialScriptedSpawn: tutorialScriptedSpawn);
+					var playerUnitIds = encounter.Spawns
+						.Where(spawn => spawn.Team == ETeam.Player)
+						.Select(spawn => spawn.Ship.Id)
+						.ToArray();
+					var battle = BattleOrchestrator.PrepareFromEncounter(
+						encounter,
+						preferredPlayerId: PlayerFleetSelection.ResolveBattlePlayerId(selected, playerUnitIds));
+					battle.Preload("encounter ready");
+					if (battle.Phase == EBattlePhase.PlayerTurn)
+						battle.MovePreview.GetPaths(battle.PlayerAgent.Sim, battle.PlayerId);
+					return new PreparedBattleBuild(encounter, battle);
+				}));
+		}
+		catch (Exception ex)
+		{
+			GameLog.LogException(ex, "Failed to prepare battle for pending engagement.");
+		}
+	}
+
+	private Task<PreparedBattleBuild>? TakePreparedBattle(EngagementCommitted fact)
+	{
+		var prepared = _preparedBattle;
+		_preparedBattle = null;
+		if (prepared is null)
+			return null;
+
+		if (string.Equals(prepared.EngagementId, fact.EngagementId, StringComparison.Ordinal)
+			&& string.Equals(prepared.InitiatorFleetId, fact.InitiatorFleetId, StringComparison.Ordinal)
+			&& prepared.ParticipantFleetIds.SequenceEqual(fact.ParticipantFleetIds, StringComparer.Ordinal)
+			&& fact.RefusedPilotIds is null
+			&& prepared.SelectedShipId == EnsureSelectedFleetMember())
+			return prepared.Build;
+
+		DisposeWhenBuilt(prepared.Build);
+		return null;
+	}
+
+	private void DiscardPreparedBattle()
+	{
+		if (_preparedBattle is { } prepared)
+			DisposeWhenBuilt(prepared.Build);
+		_preparedBattle = null;
+	}
+
+	private static void DisposeWhenBuilt(Task<PreparedBattleBuild> build) =>
+		build.ContinueWith(
+			task => task.Result.Battle.Dispose(),
+			TaskContinuationOptions.OnlyOnRanToCompletion);
+
+	private string? EnsureSelectedFleetMember() =>
+		PlayerFleetSelection.EnsureSelectedMember(
+			StarSystem.Map,
+			StarSystem.RuntimeFor(PlayerFleetUnitId),
+			PlayerFleetUnitId,
+			GetFieldedShipIds());
 
 	private void ValidateOutcomeHandoffs(BattleOutcome outcome)
 	{
