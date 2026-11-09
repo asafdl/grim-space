@@ -44,6 +44,7 @@ public partial class UnitView : Node3D
 	private readonly int[] _shieldPoints = new int[Faces.Length];
 	private readonly Color[] _shieldTints = new Color[Faces.Length];
 	private readonly MeshInstance3D?[] _shieldFaces = new MeshInstance3D?[Faces.Length];
+	private readonly ShaderMaterial?[] _shieldLinks = new ShaderMaterial?[Faces.Length];
 	private readonly Tween?[] _shieldGlowTweens = new Tween?[Faces.Length];
 	private AudioStreamPlayer3D? _shieldHum;
 	private Aabb _hullBounds;
@@ -874,10 +875,14 @@ public partial class UnitView : Node3D
 			{
 				Name = $"Shield{face}",
 				Mesh = ShieldBubbleMesh.CreateFace(_hullBounds, face),
-				MaterialOverride = ShieldFaceMaterials.Create(_hullBounds, _shieldColor),
+				MaterialOverride = ShieldFaceMaterials.Create(_hullBounds, _shieldColor, face),
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			};
 			PresentationLayers.MarkUx(instance);
+			var link = ShieldBubbleMesh.CreatePowerLink(_hullBounds, face, _shieldColor);
+			PresentationLayers.MarkUx(link);
+			instance.AddChild(link);
+			_shieldLinks[(int)face] = (ShaderMaterial)link.MaterialOverride;
 			_shieldFaces[(int)face] = instance;
 			_visualRoot.AddChild(instance);
 		}
@@ -954,7 +959,9 @@ public partial class UnitView : Node3D
 		_teleport.Play(
 			_hull,
 			() => ApplyPose(arrival),
-			_shieldFaces.OfType<MeshInstance3D>().Where(face => face.Visible));
+			_shieldFaces.OfType<MeshInstance3D>()
+				.Where(face => face.Visible)
+				.SelectMany(face => face.GetChildren().OfType<MeshInstance3D>().Prepend(face)));
 	}
 
 	public void AnimateRam(State destination)
@@ -1199,6 +1206,7 @@ public partial class UnitView : Node3D
 			var previous = _shieldPoints[index];
 			var material = instance.MaterialOverride as ShaderMaterial
 				?? throw new InvalidOperationException($"Shield {face} requires its energy shader material.");
+			var link = _shieldLinks[index]!;
 			var tint = ShieldFaceMaterials.TintFor(_shieldColor, state.CurrentShieldPoints[face], maxOnFace, temporary);
 			if (previous == points && _shieldTints[index] == tint && animate)
 				continue;
@@ -1214,6 +1222,8 @@ public partial class UnitView : Node3D
 				material.SetShaderParameter("team_color", tint);
 				material.SetShaderParameter("opacity", points > 0 ? 1f : 0f);
 				material.SetShaderParameter("pulse_strength", 0f);
+				link.SetShaderParameter("team_color", tint);
+				link.SetShaderParameter("opacity", points > 0 ? 1f : 0f);
 				continue;
 			}
 
@@ -1226,6 +1236,7 @@ public partial class UnitView : Node3D
 			material.SetShaderParameter("team_color", tint);
 			material.SetShaderParameter("pulse_color", pulse);
 			material.SetShaderParameter("pulse_strength", 0f);
+			link.SetShaderParameter("team_color", tint);
 			if (previous == 0)
 				material.SetShaderParameter("opacity", 0f);
 			var initialOpacity = (float)material.GetShaderParameter("opacity");
@@ -1245,7 +1256,11 @@ public partial class UnitView : Node3D
 			tween.SetTrans(Tween.TransitionType.Sine);
 			tween.SetEase(Tween.EaseType.InOut);
 			var setPulse = Callable.From<float>(value => material.SetShaderParameter("pulse_strength", value));
-			var setOpacity = Callable.From<float>(value => material.SetShaderParameter("opacity", value));
+			var setOpacity = Callable.From<float>(value =>
+			{
+				material.SetShaderParameter("opacity", value);
+				link.SetShaderParameter("opacity", value);
+			});
 			tween.TweenMethod(setPulse, 0f, 4f, ShieldGlowRiseSeconds);
 			tween.Parallel().TweenMethod(setOpacity, initialOpacity, 1f, ShieldGlowRiseSeconds);
 			tween.Parallel().TweenMethod(vibrate, 0f, (float)ShieldGlowRiseSeconds, ShieldGlowRiseSeconds);

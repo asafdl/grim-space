@@ -60,6 +60,14 @@ internal sealed class CanonicalConstructorJsonConverterFactory : JsonConverterFa
 					?? parameter.Name!;
 				if (!root.TryGetProperty(propertyName, out var property))
 				{
+					if (parameter.HasDefaultValue)
+					{
+						arguments[index] = parameter.DefaultValue is DBNull
+							? null
+							: parameter.DefaultValue;
+						continue;
+					}
+
 					throw new JsonException(
 						$"Missing property '{propertyName}' for '{typeToConvert.Name}'.");
 				}

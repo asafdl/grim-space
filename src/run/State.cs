@@ -200,6 +200,7 @@ public sealed class State : IDisposable
 	private IDisposable? _ownedShipPurchasedSubscription;
 	private IDisposable? _pilotHireCommittedSubscription;
 	private IDisposable? _pilotSalaryPayrollSubscription;
+	private IDisposable? _pilotWalkedOutSubscription;
 	private IDisposable? _pilotHazardPayrollSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 	private IDisposable? _reachContactSubscription;
@@ -710,6 +711,8 @@ public sealed class State : IDisposable
 			StarSystem.Subscribe<Record<PilotHireCommitted>>(OnPilotHireCommitted);
 		_pilotSalaryPayrollSubscription =
 			StarSystem.Subscribe<Record<PilotSalaryPayroll>>(OnPilotSalaryPayroll);
+		_pilotWalkedOutSubscription =
+			StarSystem.Subscribe<Record<string>>(OnPilotWalkedOut);
 		_pilotHazardPayrollSubscription =
 			StarSystem.Subscribe<Record<HazardPayrollResult>>(OnPilotHazardPayroll);
 		_reachContactSubscription = StarSystem.Subscribe<ReachContactAction>(contact =>
@@ -755,6 +758,8 @@ public sealed class State : IDisposable
 		_pilotHireCommittedSubscription = null;
 		_pilotSalaryPayrollSubscription?.Dispose();
 		_pilotSalaryPayrollSubscription = null;
+		_pilotWalkedOutSubscription?.Dispose();
+		_pilotWalkedOutSubscription = null;
 		_pilotHazardPayrollSubscription?.Dispose();
 		_pilotHazardPayrollSubscription = null;
 		_reachContactSubscription?.Dispose();
@@ -1032,6 +1037,21 @@ public sealed class State : IDisposable
 		if (!rosterChanged)
 			return;
 
+		RefreshFieldedRoster();
+	}
+
+	private void OnPilotWalkedOut(Record<string> record)
+	{
+		if (!PilotRegistry.TryGet(record.Value, out var pilot))
+			return;
+
+		PilotRegistry.Remove(pilot.Id);
+		GameLog.Log($"Pilot '{pilot.Name}' walked after the fleet refused their stake.");
+		RefreshFieldedRoster();
+	}
+
+	private void RefreshFieldedRoster()
+	{
 		RefreshStrategicFleetProjection();
 		RefreshStrategicPilotCapabilities();
 		PlayerFleetSelection.EnsureSelectedMember(

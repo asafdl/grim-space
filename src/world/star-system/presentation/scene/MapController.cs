@@ -164,7 +164,9 @@ public partial class MapController : Node3D
 			action => _orchestrator.PlayerAgent!.TryEnqueue([action]),
 			sync => WorldEventController.Join(
 				_orchestrator.Subscribe<AsteroidImpactAction>(_ => sync()),
-				_orchestrator.Subscribe<DriftSalvageFoundAction>(_ => sync())),
+				_orchestrator.Subscribe<DriftSalvageFoundAction>(_ => sync()),
+				_orchestrator.Subscribe<DistressCallReceivedAction>(_ => sync()),
+				_orchestrator.Subscribe<CompulsiveStakeDemandedAction>(_ => sync())),
 			_strategicHud.PresentSystemError);
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,

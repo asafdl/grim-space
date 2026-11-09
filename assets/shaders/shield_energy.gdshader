@@ -8,6 +8,9 @@ uniform float opacity : hint_range(0.0, 1.0) = 1.0;
 uniform vec4 pulse_color : source_color = vec4(0.32, 0.85, 1.0, 1.0);
 uniform float pulse_strength = 0.0;
 uniform float dissolve : hint_range(0.0, 1.0) = 0.0;
+uniform vec3 link_point = vec3(0.0, 0.0, 1.0);
+uniform float link_glow = 0.0;
+uniform float link_phase = 0.0;
 varying vec3 shell_position;
 
 void vertex() {
@@ -55,6 +58,11 @@ void fragment() {
 		sin(dot(direction, vec3(5.0, -4.0, 3.0)) + TIME * 0.2));
 	float markings = pattern * patches * (0.3 + 0.65 * fresnel);
 	float energy = rim_core * 1.2 + arc * arc_breaks * 0.8 + markings * 0.45;
+	float link_distance = 1.0 - dot(direction, link_point);
+	float link_arrival = pow(0.5 + 0.5 * cos(link_phase - TIME * 2.2), 6.0);
+	float link_spot = link_glow * exp(-link_distance * 60.0) * (0.7 + link_arrival * 0.8);
+	float link_hexes = link_glow * pattern * exp(-link_distance * 14.0) * (0.35 + link_arrival * 0.65);
+	energy += link_spot * 1.5 + link_hexes;
 	ALBEDO = vec3(0.0);
 	SPECULAR = 0.0;
 	EMISSION = team_color.rgb * (energy * 3.0

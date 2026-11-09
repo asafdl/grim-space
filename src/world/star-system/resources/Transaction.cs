@@ -10,6 +10,7 @@ public static class TransactionSource
 	public const string MerchantPurchase = "merchant";
 	public const string WreckageSalvage = "wreckage-salvage";
 	public const string WorldEventSalvage = "world-event-salvage";
+	public const string WorldEvent = "world-event";
 	public const string TravelFuel = "travel-fuel";
 	public const string FleeFuel = "flee-fuel";
 	public const string PilotSalary = "pilot-salary";

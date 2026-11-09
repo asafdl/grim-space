@@ -114,6 +114,34 @@ internal static class ShieldBubbleMesh
 	internal static Vector3 Radius(Aabb bounds) =>
 		bounds.Size * (0.5f * (1f + ClearanceRatio)) + Vector3.One * MinimumClearance;
 
+	public static MeshInstance3D CreatePowerLink(Aabb bounds, ESpatialOrientation face, Color tint)
+	{
+		var direction = UnitFaceLocalGeometry.OutwardNormal(face);
+		var start = bounds.GetCenter() + direction * bounds.Size * 0.38f;
+		var end = bounds.GetCenter() + direction * Radius(bounds);
+		var length = start.DistanceTo(end);
+		var lateral = direction.Cross(direction.Y != 0 ? Vector3.Right : Vector3.Up).Normalized();
+		var mesh = new CylinderMesh
+		{
+			TopRadius = 0.008f,
+			BottomRadius = 0.008f,
+			Height = length,
+			RadialSegments = 8,
+			Rings = 24,
+		};
+		return new MeshInstance3D
+		{
+			Name = $"PowerLink{face}",
+			Mesh = mesh,
+			Position = (start + end) * 0.5f,
+			Basis = new Basis(lateral, direction, lateral.Cross(direction)),
+			MaterialOverride = ShieldFaceMaterials.CreateLink(tint, length, face),
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+			// Vertex sway moves the line outside the cylinder's static bounds.
+			CustomAabb = mesh.GetAabb().Grow(0.06f),
+		};
+	}
+
 	private static int FaceGroup(ESpatialOrientation face) =>
 		face switch
 		{

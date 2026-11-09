@@ -555,16 +555,18 @@ public sealed partial class ModalShell : Control
 		button.SetVisual(_footerButtonVisual);
 		button.Pressed += () => action.OnPressed(button);
 
-		if (action.BadgeIconPath is not { Length: > 0 } iconPath
-			|| action.BadgeAmount is not { } amount
-			|| amount <= 0)
+		if (action.BadgeIconPath is not { Length: > 0 } iconPath)
+			return button;
+
+		int? amount = action.BadgeAmount is > 0 ? action.BadgeAmount : null;
+		if (amount is null && action.BadgeTooltip is null)
 			return button;
 
 		button.SetTrailingContent(CreateFooterBadge(amount, iconPath, action.BadgeTooltip));
 		return button;
 	}
 
-	private static Control CreateFooterBadge(int amount, string iconPath, HudTooltipContent? tooltip)
+	private static Control CreateFooterBadge(int? amount, string iconPath, HudTooltipContent? tooltip)
 	{
 		var row = new HBoxContainer
 		{
@@ -573,14 +575,17 @@ public sealed partial class ModalShell : Control
 		};
 		row.AddThemeConstantOverride("separation", 4);
 
-		var amountLabel = new Label
+		if (amount is { } value)
 		{
-			Text = amount.ToString(),
-			MouseFilter = MouseFilterEnum.Ignore,
-			VerticalAlignment = VerticalAlignment.Center,
-		};
-		HudStyles.ApplyTextRole(amountLabel, HudTextRole.Metadata);
-		row.AddChild(amountLabel);
+			var amountLabel = new Label
+			{
+				Text = value.ToString(),
+				MouseFilter = MouseFilterEnum.Ignore,
+				VerticalAlignment = VerticalAlignment.Center,
+			};
+			HudStyles.ApplyTextRole(amountLabel, HudTextRole.Metadata);
+			row.AddChild(amountLabel);
+		}
 
 		var icon = new TextureRect
 		{

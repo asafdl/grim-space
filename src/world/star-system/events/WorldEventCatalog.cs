@@ -8,8 +8,10 @@ public static class WorldEventCatalog
 {
 	internal static readonly AsteroidAccident Asteroid = new();
 	internal static readonly DriftSalvage Drift = new();
+	internal static readonly DistressCall Distress = new();
+	internal static readonly CompulsiveStake Stake = new();
 
-	private static readonly IReadOnlyList<Entry> Definitions = [Asteroid, Drift];
+	private static readonly IReadOnlyList<Entry> Definitions = [Asteroid, Drift, Distress, Stake];
 
 	public static EWorldEventId Pick(double unitRoll) =>
 		WeightedPick.Of(Definitions, entry => entry.Weight, unitRoll).Id;
@@ -68,5 +70,54 @@ public static class WorldEventCatalog
 			new(
 				"Strange Signature Detected",
 				$"Only lazy bots ignore chance for loot. Luckily {pilotName} is not one of them.");
+	}
+
+	internal sealed class DistressCall : Entry
+	{
+		public int ScrapMin => 80;
+		public int ScrapMax => 160;
+		public int CreditsMin => 40;
+		public int CreditsMax => 100;
+		public double BaseTriggerChance => 0;
+		public double AllegianceSwing => 0.20;
+
+		public override EWorldEventId Id => EWorldEventId.DistressCall;
+		public override int Weight => 1;
+
+		public override IWorldEventRoll CreateRoll(ulong rngSeed) =>
+			new RollForDistressCallAction(StarSystemActorIds.WorldEvents, rngSeed);
+
+		public WorldEventPresentation AnnounceKill(string pilotName) =>
+			new(
+				"Only a Fool Broadcasts His Location",
+				$"{pilotName} answered the distress call and came back alone. The hold is heavier.");
+
+		public WorldEventPresentation AnnounceSurvivor(string pilotName, string survivorName) =>
+			new(
+				"Survivor Wants to Join",
+				$"{pilotName} investigated and found {survivorName} at a distress beacon, their ship is fried, but they say they can still fight.");
+	}
+
+	internal sealed class CompulsiveStake : Entry
+	{
+		public int CreditsMin => 50;
+		public int CreditsMax => 120;
+		public int IgnoreWalkChancePercent => 50;
+		public double BaseTriggerChance => 0;
+		public double CompulsionSwing => 0.20;
+
+		public override EWorldEventId Id => EWorldEventId.CompulsiveStake;
+		public override int Weight => 1;
+
+		public override IWorldEventRoll CreateRoll(ulong rngSeed) =>
+			new RollForCompulsiveStakeAction(StarSystemActorIds.WorldEvents, rngSeed);
+
+		public WorldEventPresentation Announce(string pilotName, int credits) =>
+			new(
+				"I'm Good For It, I Promise",
+				$"{pilotName} stops you and asks for {credits} credits. Look man, we've been on the road for a while, and I could use a little fun. I'm good for it, I promise!");
+
+		public string IgnoreTooltipBody =>
+			$"{IgnoreWalkChancePercent}% chance they leave the fleet.";
 	}
 }

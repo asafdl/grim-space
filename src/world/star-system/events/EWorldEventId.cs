@@ -4,4 +4,6 @@ public enum EWorldEventId
 {
 	AsteroidAccident,
 	DriftSalvage,
+	DistressCall,
+	CompulsiveStake,
 }

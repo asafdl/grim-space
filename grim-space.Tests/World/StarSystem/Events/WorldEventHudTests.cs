@@ -1,5 +1,7 @@
 using GrimSpace.Core.Actions;
+using GrimSpace.Pilots;
 using GrimSpace.Tests.Run;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Events;
 using GrimSpace.World.StarSystem.Ids;
@@ -84,8 +86,86 @@ public sealed class WorldEventHudTests
 			new AcknowledgeDriftSalvageAction(RunState.PlayerFleetUnitId, pending.Id),
 			enqueued);
 		Assert.Equal(pending.Reward, hud.Reward);
+		Assert.Null(hud.Recruit);
 		Assert.Equal(pending, run.StarSystem.Map.PendingWorldEvent);
 		Assert.False(hud.IsOpen);
+	}
+
+	[Fact]
+	public void Dismiss_DistressLoot_EnqueuesLootAcknowledge()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pending = OpenDistressLoot(run);
+		var hud = new RecordingWorldEventHud();
+		IAction? enqueued = null;
+
+		using var _ = Attach(run, hud, action =>
+		{
+			enqueued = action;
+			return true;
+		});
+		hud.RequestDismiss();
+
+		Assert.Equal(
+			new AcknowledgeDistressCallAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
+		Assert.Equal(pending.Reward, hud.Reward);
+		Assert.Null(hud.Recruit);
+		Assert.False(hud.IsOpen);
+	}
+
+	[Fact]
+	public void AcceptAndReject_DistressRecruit_EnqueueThoseActions()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pending = OpenDistressRecruit(run);
+		var hud = new RecordingWorldEventHud();
+		IAction? enqueued = null;
+
+		using var _ = Attach(run, hud, action =>
+		{
+			enqueued = action;
+			return true;
+		});
+
+		Assert.Equal(pending.Recruit, hud.Recruit);
+		Assert.Null(hud.Reward);
+		hud.RequestReject();
+		Assert.Equal(
+			new RejectDistressRecruitAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
+
+		hud.RequestAccept();
+		Assert.Equal(
+			new AcceptDistressRecruitAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
+	}
+
+	[Fact]
+	public void PayAndWalk_Stake_EnqueueThoseActions()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pending = OpenStake(run);
+		var hud = new RecordingWorldEventHud();
+		IAction? enqueued = null;
+
+		using var _ = Attach(run, hud, action =>
+		{
+			enqueued = action;
+			return true;
+		});
+
+		Assert.True(hud.StakeChoice);
+		Assert.Equal(pending.Reward, hud.Reward);
+		hud.RequestReject();
+		Assert.Equal(
+			new RefuseCompulsiveStakeAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
+
+		hud.RequestAccept();
+		Assert.Equal(
+			new PayCompulsiveStakeAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
 	}
 
 	[Fact]
@@ -118,7 +198,11 @@ public sealed class WorldEventHudTests
 			hud,
 			() => run.StarSystem.Map.PendingWorldEvent,
 			tryEnqueue ?? (_ => false),
-			sync => run.StarSystem.Subscribe<AsteroidImpactAction>(_ => sync()),
+			sync => WorldEventController.Join(
+				run.StarSystem.Subscribe<AsteroidImpactAction>(_ => sync()),
+				run.StarSystem.Subscribe<DriftSalvageFoundAction>(_ => sync()),
+				run.StarSystem.Subscribe<DistressCallReceivedAction>(_ => sync()),
+				run.StarSystem.Subscribe<CompulsiveStakeDemandedAction>(_ => sync())),
 			presentError ?? ((_, _) => { }));
 
 	private static PendingWorldEvent OpenAnnouncement(RunState run)
@@ -150,6 +234,57 @@ public sealed class WorldEventHudTests
 		return pending;
 	}
 
+	private static PendingWorldEvent OpenDistressLoot(RunState run)
+	{
+		var pilot = run.PilotRegistry.Active[0];
+		var pending = new PendingWorldEvent(
+			"world-event-distress-loot",
+			EWorldEventId.DistressCall,
+			pilot.Id,
+			pilot.AssignedShipId!,
+			0,
+			new WorldEventPresentation("Killed the Caller", "Test body."),
+			ResourceBundle.Create(
+				(ResourceId.ScrapAlloy, WorldEventCatalog.Distress.ScrapMin),
+				(ResourceId.Credits, WorldEventCatalog.Distress.CreditsMin)));
+		run.StarSystem.CommitSetup(new DistressCallReceivedAction(StarSystemActorIds.WorldEvents, pending));
+		return pending;
+	}
+
+	private static PendingWorldEvent OpenDistressRecruit(RunState run)
+	{
+		var pilot = run.PilotRegistry.Active[0];
+		var pending = new PendingWorldEvent(
+			"world-event-distress-recruit",
+			EWorldEventId.DistressCall,
+			pilot.Id,
+			pilot.AssignedShipId!,
+			0,
+			new WorldEventPresentation("Survivor Wants Aboard", "Test body."),
+			Recruit: new PilotRecruitProfile(
+				"Survivor",
+				"pilot_02",
+				EPilotBackgroundId.HydraulicAbuser,
+				classId: EOperatorClassId.Support));
+		run.StarSystem.CommitSetup(new DistressCallReceivedAction(StarSystemActorIds.WorldEvents, pending));
+		return pending;
+	}
+
+	private static PendingWorldEvent OpenStake(RunState run)
+	{
+		var pilot = run.PilotRegistry.Active[0];
+		var pending = new PendingWorldEvent(
+			"world-event-stake",
+			EWorldEventId.CompulsiveStake,
+			pilot.Id,
+			pilot.AssignedShipId!,
+			0,
+			new WorldEventPresentation("Wants a Stake", "Test body."),
+			ResourceBundle.Of(ResourceId.Credits, -WorldEventCatalog.Stake.CreditsMin));
+		run.StarSystem.CommitSetup(new CompulsiveStakeDemandedAction(StarSystemActorIds.WorldEvents, pending));
+		return pending;
+	}
+
 	private static int HullOf(RunState run, string shipId) =>
 		run.ItemInventory.Get(shipId).CurrentHullPoints;
 
@@ -161,14 +296,28 @@ public sealed class WorldEventHudTests
 
 		public event Action? DismissRequested;
 
-		public void Sync(WorldEventPresentation presentation, ResourceBundle? reward = null)
+		public event Action? AcceptRequested;
+
+		public event Action? RejectRequested;
+
+		public void Sync(
+			WorldEventPresentation presentation,
+			ResourceBundle? reward = null,
+			PilotRecruitProfile? recruit = null,
+			bool stakeChoice = false)
 		{
 			Presentation = presentation;
 			Reward = reward;
+			Recruit = recruit;
+			StakeChoice = stakeChoice;
 			IsOpen = true;
 		}
 
+		public bool StakeChoice { get; private set; }
+
 		public ResourceBundle? Reward { get; private set; }
+
+		public PilotRecruitProfile? Recruit { get; private set; }
 
 		public void Close() => IsOpen = false;
 
@@ -179,5 +328,9 @@ public sealed class WorldEventHudTests
 		public bool TryHandleInput(Godot.InputEvent @event) => false;
 
 		public void RequestDismiss() => DismissRequested?.Invoke();
+
+		public void RequestAccept() => AcceptRequested?.Invoke();
+
+		public void RequestReject() => RejectRequested?.Invoke();
 	}
 }

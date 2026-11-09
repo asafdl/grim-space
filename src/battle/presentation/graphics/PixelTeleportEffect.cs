@@ -26,7 +26,8 @@ public partial class PixelTeleportEffect : Node
 				continue;
 			if (mesh.MaterialOverride is not null)
 			{
-				if (mesh.MaterialOverride is ShaderMaterial shield && shield.Shader == ShieldFaceMaterials.Shader)
+				if (mesh.MaterialOverride is ShaderMaterial shield
+					&& (shield.Shader == ShieldFaceMaterials.Shader || shield.Shader == ShieldFaceMaterials.LinkShader))
 				{
 					_shields.Add(shield);
 					continue;

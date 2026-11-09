@@ -17,6 +17,9 @@ public partial class ShieldBubblePreview : Node3D
 	private readonly List<(Node3D Node, bool Covered)> _shields = [];
 	private readonly List<Node3D> _groups = [];
 	private readonly List<(Node3D Node, int Coverage)> _rows = [];
+	private readonly List<MeshInstance3D> _powerLinks = [];
+	private readonly List<ShaderMaterial> _linkedShields = [];
+	private bool _showPowerLinks = true;
 	private Camera3D _camera = null!;
 	private Label _status = null!;
 	private bool _showShields = true;
@@ -114,6 +117,14 @@ public partial class ShieldBubblePreview : Node3D
 		}
 		else if (key.Keycode == Key.F)
 			_distance = 85f;
+		else if (key.Keycode == Key.E)
+		{
+			_showPowerLinks = !_showPowerLinks;
+			foreach (var link in _powerLinks)
+				link.Visible = _showPowerLinks;
+			foreach (var shield in _linkedShields)
+				shield.SetShaderParameter("link_glow", _showPowerLinks ? 1f : 0f);
+		}
 		else if (key.Keycode == Key.Space)
 		{
 			_showShields = !_showShields;
@@ -176,11 +187,16 @@ public partial class ShieldBubblePreview : Node3D
 			.ToArray();
 		if (faces.Length == 0)
 			throw new InvalidOperationException("Shield comparison requires a ship with shield meshes.");
+		var links = faces.SelectMany(face => face.GetChildren().OfType<MeshInstance3D>()).ToArray();
 		if (option == 5)
 		{
 			_shields.AddRange(faces.Select(face => ((Node3D)face, face.Visible)));
+			_powerLinks.AddRange(links);
+			_linkedShields.AddRange(faces.Select(face => (ShaderMaterial)face.MaterialOverride));
 			return;
 		}
+		foreach (var link in links)
+			link.Visible = false;
 		if (option is 0 or 1)
 		{
 			foreach (var orientation in Enum.GetValues<ESpatialOrientation>())
@@ -246,6 +262,7 @@ public partial class ShieldBubblePreview : Node3D
 			+ "Each pair: ally left (muted blue), enemy right (muted amber); original keeps its blue\n"
 			+ "1-6: style | C: cycle coverage / all rows | O: overview | F: far | Arrows: orbit | Wheel: zoom | Space: shields\n"
 			+ "Rows: all six faces / forward depleted / three faces depleted / none. Static coverage; no replay.";
+		_status.Text += $"\nE: power links {(_showPowerLinks ? "ON" : "OFF")} (style 6 only); soft drift + outward pulse";
 	}
 
 	private static void AddLabel(Node3D parent, string text, Vector3 position, int fontSize) =>

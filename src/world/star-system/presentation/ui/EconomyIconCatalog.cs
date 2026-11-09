@@ -7,6 +7,7 @@ public static class EconomyIconCatalog
 {
 	public const string SalaryIconPath = "res://assets/ui/economy/day-symbol.png";
 	public const string HazardPayIconPath = "res://assets/ui/economy/hazard-swords-symbol.png";
+	public const string LeaveIconPath = "res://assets/ui/events/leave.png";
 
 	public static HudTooltipContent SalaryTooltip { get; } =
 		new HudTooltipContent(
