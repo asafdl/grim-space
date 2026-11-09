@@ -17,7 +17,56 @@ internal static class ShieldBubbleMesh
 			Radius = 1,
 		}.Generate().MakeDMesh();
 
+	private static readonly DMesh3 SmoothBubble =
+		new Sphere3Generator_NormalizedCube
+		{
+			EdgeVertices = 25,
+			Radius = 1,
+		}.Generate().MakeDMesh();
+
 	public static ArrayMesh CreateFace(Aabb bounds, ESpatialOrientation face)
+	{
+		var (vertices, normals) = PrepareSurface(bounds, face);
+		var arrays = new Godot.Collections.Array();
+		arrays.Resize((int)Mesh.ArrayType.Max);
+		arrays[(int)Mesh.ArrayType.Vertex] = vertices;
+		arrays[(int)Mesh.ArrayType.Normal] = normals;
+		var mesh = new ArrayMesh();
+		mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+		return mesh;
+	}
+
+	internal static (Vector3[] Vertices, Vector3[] Normals) PrepareSurface(Aabb bounds, ESpatialOrientation face)
+	{
+		var vertices = new List<Vector3>();
+		var normals = new List<Vector3>();
+		var radius = Radius(bounds);
+		foreach (var triangleId in SmoothBubble.TriangleIndices())
+		{
+			if (SmoothBubble.GetTriangleGroup(triangleId) != FaceGroup(face))
+				continue;
+			var triangle = SmoothBubble.GetTriangle(triangleId);
+			var a = Direction(triangle.a);
+			var b = Direction(triangle.b);
+			var c = Direction(triangle.c);
+			if ((b - a).Cross(c - a).Dot(a) > 0)
+				(b, c) = (c, b);
+			foreach (var direction in new[] { a, b, c })
+			{
+				vertices.Add(bounds.GetCenter() + direction * radius);
+				normals.Add((direction / radius).Normalized());
+			}
+		}
+		return (vertices.ToArray(), normals.ToArray());
+
+		Vector3 Direction(int index)
+		{
+			var vertex = SmoothBubble.GetVertex(index);
+			return new Vector3((float)vertex.x, (float)vertex.y, (float)vertex.z);
+		}
+	}
+
+	public static ArrayMesh CreateWireframeFace(Aabb bounds, ESpatialOrientation face)
 	{
 		var arrays = new Godot.Collections.Array();
 		arrays.Resize((int)Mesh.ArrayType.Max);
@@ -54,15 +103,16 @@ internal static class ShieldBubbleMesh
 
 	private static Vector3 FitToBounds(Vector3d vertex, Aabb bounds)
 	{
-		var halfSize = bounds.Size * 0.5f;
-		var clearance = halfSize * ClearanceRatio + Vector3.One * MinimumClearance;
-		var radius = halfSize + clearance;
+		var radius = Radius(bounds);
 
-		return bounds.Position + halfSize + new Vector3(
+		return bounds.GetCenter() + new Vector3(
 			(float)vertex.x * radius.X,
 			(float)vertex.y * radius.Y,
 			(float)vertex.z * radius.Z);
 	}
+
+	internal static Vector3 Radius(Aabb bounds) =>
+		bounds.Size * (0.5f * (1f + ClearanceRatio)) + Vector3.One * MinimumClearance;
 
 	private static int FaceGroup(ESpatialOrientation face) =>
 		face switch

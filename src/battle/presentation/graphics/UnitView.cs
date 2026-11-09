@@ -51,6 +51,7 @@ public partial class UnitView : Node3D
 	private PixelTeleportEffect? _teleport;
 	private Tween? _shakeTween;
 	private Color _bindColor = Colors.White;
+	private Color _shieldColor;
 	private ShaderMaterial? _ghostMaterial;
 	private readonly Dictionary<GeometryInstance3D, ShaderMaterial> _moveGhostMaterials = [];
 	private MovementTrailView? _movementTrail;
@@ -150,11 +151,12 @@ public partial class UnitView : Node3D
 		base._ExitTree();
 	}
 
-	public void Bind(State state, Color color)
+	public void Bind(State state, Color color, Color? shieldColor = null)
 	{
 		Name = state.Id;
 		_type = state.Type;
 		_bindColor = color;
+		_shieldColor = shieldColor ?? ShieldFaceMaterials.TeamTint(null);
 		Array.Fill(_shieldPoints, -1);
 		_idleCycleTime = GD.Randf() * 4;
 		_idleRoot = new Node3D { Name = "IdleMotion" };
@@ -872,7 +874,7 @@ public partial class UnitView : Node3D
 			{
 				Name = $"Shield{face}",
 				Mesh = ShieldBubbleMesh.CreateFace(_hullBounds, face),
-				MaterialOverride = ShieldFaceMaterials.Create(),
+				MaterialOverride = ShieldFaceMaterials.Create(_hullBounds, _shieldColor),
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			};
 			PresentationLayers.MarkUx(instance);
@@ -1195,11 +1197,9 @@ public partial class UnitView : Node3D
 			var temporary = TemporaryShields.TotalOnFace(state, face);
 			var points = System.Math.Max(0, state.CurrentShieldPoints[face] + temporary);
 			var previous = _shieldPoints[index];
-			var material = instance.MaterialOverride as StandardMaterial3D
-				?? _teleport?.ReplacedOverride(instance) as StandardMaterial3D;
-			if (material is null)
-				continue;
-			var tint = ShieldFaceMaterials.TintFor(state.CurrentShieldPoints[face], maxOnFace, temporary);
+			var material = instance.MaterialOverride as ShaderMaterial
+				?? throw new InvalidOperationException($"Shield {face} requires its energy shader material.");
+			var tint = ShieldFaceMaterials.TintFor(_shieldColor, state.CurrentShieldPoints[face], maxOnFace, temporary);
 			if (previous == points && _shieldTints[index] == tint && animate)
 				continue;
 
@@ -1211,8 +1211,9 @@ public partial class UnitView : Node3D
 			if (!animate || previous < 0 || previous == points)
 			{
 				instance.Visible = points > 0;
-				material.AlbedoColor = tint;
-				material.EmissionEnergyMultiplier = 0f;
+				material.SetShaderParameter("team_color", tint);
+				material.SetShaderParameter("opacity", points > 0 ? 1f : 0f);
+				material.SetShaderParameter("pulse_strength", 0f);
 				continue;
 			}
 
@@ -1222,11 +1223,13 @@ public partial class UnitView : Node3D
 			var pulse = points > previous
 				? new Color(0.32f, 0.85f, 1f)
 				: new Color(1f, 0.5f, 0.12f);
-			var glowTint = new Color(pulse.R * 3f, pulse.G * 3f, pulse.B * 3f);
-			material.Emission = pulse;
+			material.SetShaderParameter("team_color", tint);
+			material.SetShaderParameter("pulse_color", pulse);
+			material.SetShaderParameter("pulse_strength", 0f);
 			if (previous == 0)
-				material.AlbedoColor = new Color(pulse, 0f);
-			var finalTint = points > 0 ? tint : new Color(tint, 0f);
+				material.SetShaderParameter("opacity", 0f);
+			var initialOpacity = (float)material.GetShaderParameter("opacity");
+			var finalOpacity = points > 0 ? 1f : 0f;
 			var changeFraction = Mathf.Clamp(
 				(float)System.Math.Abs(points - previous) / System.Math.Max(1, maxOnFace), 0f, 1f);
 			var amplitude = Mathf.Lerp(0.012f, 0.06f, Mathf.Sqrt(changeFraction));
@@ -1241,11 +1244,13 @@ public partial class UnitView : Node3D
 			_shieldGlowTweens[index] = tween;
 			tween.SetTrans(Tween.TransitionType.Sine);
 			tween.SetEase(Tween.EaseType.InOut);
-			tween.TweenProperty(material, "emission_energy_multiplier", 4f, ShieldGlowRiseSeconds);
-			tween.Parallel().TweenProperty(material, "albedo_color", glowTint, ShieldGlowRiseSeconds);
+			var setPulse = Callable.From<float>(value => material.SetShaderParameter("pulse_strength", value));
+			var setOpacity = Callable.From<float>(value => material.SetShaderParameter("opacity", value));
+			tween.TweenMethod(setPulse, 0f, 4f, ShieldGlowRiseSeconds);
+			tween.Parallel().TweenMethod(setOpacity, initialOpacity, 1f, ShieldGlowRiseSeconds);
 			tween.Parallel().TweenMethod(vibrate, 0f, (float)ShieldGlowRiseSeconds, ShieldGlowRiseSeconds);
-			tween.TweenProperty(material, "emission_energy_multiplier", 0f, ShieldChangeSeconds - ShieldGlowRiseSeconds);
-			tween.Parallel().TweenProperty(material, "albedo_color", finalTint, ShieldChangeSeconds - ShieldGlowRiseSeconds);
+			tween.TweenMethod(setPulse, 4f, 0f, ShieldChangeSeconds - ShieldGlowRiseSeconds);
+			tween.Parallel().TweenMethod(setOpacity, 1f, finalOpacity, ShieldChangeSeconds - ShieldGlowRiseSeconds);
 			tween.Parallel().TweenMethod(vibrate, (float)ShieldGlowRiseSeconds, (float)ShieldChangeSeconds,
 				ShieldChangeSeconds - ShieldGlowRiseSeconds);
 			tween.TweenCallback(Callable.From(() =>

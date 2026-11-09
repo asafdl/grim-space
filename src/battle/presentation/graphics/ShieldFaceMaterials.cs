@@ -1,27 +1,36 @@
 using Godot;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
 internal static class ShieldFaceMaterials
 {
-	private static readonly Color Full = new(0.35f, 0.75f, 1f, 0.82f);
-	private static readonly Color Depleted = new(0.16f, 0.24f, 0.32f, 0.6f);
-	private static readonly Color Temporary = new(0.7f, 0.4f, 1f, 0.86f);
+	private static Shader? _shader;
+	public static Shader Shader => _shader ??= GD.Load<Shader>("res://assets/shaders/shield_energy.gdshader")
+		?? throw new InvalidOperationException("Could not load the shield energy shader.");
 
-	public static Color TintFor(int points, int maxPoints, int temporaryPoints)
+	public static Color TeamTint(ETeam? team) => team switch
 	{
-		if (temporaryPoints > 0)
-			return Temporary;
+		ETeam.Player => new Color(0.52f, 0.68f, 0.76f),
+		ETeam.Enemy => new Color(0.76f, 0.59f, 0.49f),
+		_ => new Color(0.64f, 0.67f, 0.7f),
+	};
 
+	public static Color TintFor(Color teamTint, int points, int maxPoints, int temporaryPoints)
+	{
 		var fraction = maxPoints > 0 ? Mathf.Clamp((float)points / maxPoints, 0f, 1f) : 0f;
-		return Depleted.Lerp(Full, fraction);
+		var tint = teamTint * Mathf.Lerp(0.55f, 1f, fraction);
+		if (temporaryPoints > 0)
+			tint = teamTint.Lightened(0.15f);
+		return new Color(tint, 1f);
 	}
 
-	public static StandardMaterial3D Create()
+	public static ShaderMaterial Create(Aabb bounds, Color tint)
 	{
-		var material = WeaponPreviewMaterials.CreateWireframe(Full);
-		material.EmissionEnabled = true;
-		material.EmissionEnergyMultiplier = 0f;
+		var material = new ShaderMaterial { Shader = Shader };
+		material.SetShaderParameter("team_color", tint);
+		material.SetShaderParameter("bubble_center", bounds.GetCenter());
+		material.SetShaderParameter("bubble_radius", ShieldBubbleMesh.Radius(bounds));
 		return material;
 	}
 }

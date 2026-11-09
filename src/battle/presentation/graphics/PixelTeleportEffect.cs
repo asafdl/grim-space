@@ -9,6 +9,7 @@ public partial class PixelTeleportEffect : Node
 	public const double DurationSeconds = FadeSeconds * 2 + HiddenSeconds;
 	private readonly List<(MeshInstance3D Mesh, int Surface, Material? Original, ShaderMaterial Effect)> _surfaces = [];
 	private readonly List<(MeshInstance3D Mesh, Material Original, ShaderMaterial Effect)> _overrides = [];
+	private readonly List<ShaderMaterial> _shields = [];
 	private Tween? _tween;
 
 	public void Play(Node3D hull, Action relocate, IEnumerable<MeshInstance3D>? extraMeshes = null)
@@ -25,6 +26,11 @@ public partial class PixelTeleportEffect : Node
 				continue;
 			if (mesh.MaterialOverride is not null)
 			{
+				if (mesh.MaterialOverride is ShaderMaterial shield && shield.Shader == ShieldFaceMaterials.Shader)
+				{
+					_shields.Add(shield);
+					continue;
+				}
 				_overrides.Add((mesh, mesh.MaterialOverride, CreateEffectMaterial(shader, mesh, mesh.MaterialOverride)));
 				continue;
 			}
@@ -39,7 +45,7 @@ public partial class PixelTeleportEffect : Node
 					CreateEffectMaterial(shader, mesh, active)));
 			}
 		}
-		if (_surfaces.Count == 0 && _overrides.Count == 0)
+		if (_surfaces.Count == 0 && _overrides.Count == 0 && _shields.Count == 0)
 			throw new InvalidOperationException("Pixel teleport has no mesh surfaces.");
 		foreach (var over in _overrides)
 			over.Mesh.MaterialOverride = over.Effect;
@@ -57,6 +63,12 @@ public partial class PixelTeleportEffect : Node
 	{
 		_tween?.Kill();
 		_tween = null;
+		foreach (var shield in _shields)
+		{
+			if (IsInstanceValid(shield))
+				shield.SetShaderParameter("dissolve", 0f);
+		}
+		_shields.Clear();
 		foreach (var over in _overrides)
 		{
 			if (IsInstanceValid(over.Mesh))
@@ -71,17 +83,6 @@ public partial class PixelTeleportEffect : Node
 		_surfaces.Clear();
 	}
 
-	public Material? ReplacedOverride(MeshInstance3D mesh)
-	{
-		foreach (var over in _overrides)
-		{
-			if (over.Mesh == mesh)
-				return over.Original;
-		}
-
-		return null;
-	}
-
 	public void SetPaused(bool paused)
 	{
 		if (paused)
@@ -94,6 +95,8 @@ public partial class PixelTeleportEffect : Node
 
 	private void SetDissolve(float amount)
 	{
+		foreach (var shield in _shields)
+			shield.SetShaderParameter("dissolve", amount);
 		foreach (var over in _overrides)
 			over.Effect.SetShaderParameter("dissolve", amount);
 		foreach (var surface in _surfaces)

@@ -398,6 +398,17 @@ Strategic reward passives use the same runtime pipeline. Wreckage investigation 
 
 Rebuild after changing exported properties, signals, or tool scripts.
 
+For shield readability experiments, run [`shield_bubble_preview.tscn`](scenes/dev/shield_bubble_preview.tscn).
+It compares the original wireframe, a quieter team-tinted wireframe, octagonal panels with triangular fillers, triangular facets, a smooth energy shell, and stylized energy.
+The panel variants use flat geometry, translucent surfaces, emissive seams, and specular highlights under two directional lights.
+The smooth shell uses a procedural fading hexagonal pattern, angle-dependent transparency, soft directional highlight lobes, and restrained emission; it needs no texture. Its six independently masked regions follow the same coverage fixtures as the other styles.
+The stylized variant uses the production shield renderer: broken emissive contours, a slowly moving curved arc, and sparse fading pattern patches. Its center stays nearly invisible and it has no specular response.
+Each style shows ally/enemy pairs with all six faces shielded, the forward face depleted, forward/starboard/dorsal depleted, and no shields, derived from fixture shield points. The lab explicitly equips six shield faces rather than using the fighter's partially shielded default loadout.
+The lab opens on a close view of the fully shielded stylized pair. Use **1–6** to switch styles, **C** to cycle coverage states/all rows, **O** for the full overview, **F** for a far view, arrow keys to orbit, the mouse wheel to zoom, and **Space** to hide/show the active faces.
+The camera uses perspective; muted blue/amber distinguish teams in the alternatives. Battles use the stylized renderer with muted blue for allies, muted amber for enemies, and gray for unassigned views, without changing hull or HUD palettes.
+Production shields remain six independently visible curved patches derived from regular and temporary shield points. Low regular shields dim their team's tint; temporary shields lighten it without replacing team identity. Gain/loss pulses, depletion fades, ghost hiding, and synchronized pixel teleport dissolve remain presentation-only.
+Animated shield/replay transitions remain covered by [`shield_glow_preview.tscn`](scenes/dev/shield_glow_preview.tscn), with a changing blue ally and an unchanged amber enemy control.
+
 ### Tests
 
 Rules and orchestration tests live in `grim-space.Tests/` and run without Godot:

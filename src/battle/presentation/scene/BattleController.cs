@@ -203,6 +203,7 @@ public partial class BattleController : Node3D
 		_unitsRoot = GetNode<Node3D>("Units");
 		_battleView = new BattleView { Name = "BattleView" };
 		_unitsRoot.AddChild(_battleView);
+		_battleView.ShieldTintForActor = actorId => ShieldFaceMaterials.TeamTint(TeamForActor(actorId));
 		_battleView.BindInitial(layout.Participants.Select(pair =>
 			(pair.Key, _battle.Engine.World.StateOf(pair.Key), ColorFor(pair.Value))));
 		_enemyRangeTether = new EnemyRangeTetherView { Name = "EnemyRangeTether" };
@@ -823,16 +824,22 @@ public partial class BattleController : Node3D
 		_cameraDirector.FocusPlayer(GetPlayerRenderedPosition());
 	}
 
-	private Color ColorForActor(string actorId)
+	private ETeam? TeamForActor(string actorId)
 	{
 		if (UnitRegistry.For(_battle.Engine.World).TryGet(actorId, out var unit))
-			return ColorFor(unit.Team);
+			return unit.Team;
 
 		if (_battle.Layout.Participants.TryGetValue(actorId, out var team))
-			return ColorFor(team);
+			return team;
 
-		return Colors.White;
+		if (_currentFrame is not null && _currentFrame.PreviewUnitTeams.TryGetValue(actorId, out var previewTeam))
+			return previewTeam;
+
+		return null;
 	}
+
+	private Color ColorForActor(string actorId) =>
+		TeamForActor(actorId) is { } team ? ColorFor(team) : Colors.White;
 
 	private void ApplyFrame(PresentationFrame frame)
 	{

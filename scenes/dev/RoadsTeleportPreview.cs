@@ -57,7 +57,7 @@ public partial class RoadsTeleportPreview : Node3D
 			{
 				Name = $"Shield{face}",
 				Mesh = ShieldBubbleMesh.CreateFace(bounds, face),
-				MaterialOverride = ShieldFaceMaterials.Create(),
+				MaterialOverride = ShieldFaceMaterials.Create(bounds, ShieldFaceMaterials.TeamTint(ETeam.Player)),
 				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			});
 		}

@@ -11,6 +11,7 @@ public partial class BattleView : Node3D
 	private readonly Dictionary<string, UnitView> _unitViews = new();
 
 	public IReadOnlyDictionary<string, UnitView> UnitViews => _unitViews;
+	public Func<string, Color> ShieldTintForActor { get; set; } = _ => ShieldFaceMaterials.TeamTint(null);
 
 	public void BindInitial(IEnumerable<(string id, State state, Color color)> units)
 	{
@@ -24,7 +25,7 @@ public partial class BattleView : Node3D
 			return;
 
 		var view = new UnitView();
-		view.Bind(state, color);
+		view.Bind(state, color, ShieldTintForActor(state.Id));
 		AddChild(view);
 		_unitViews[state.Id] = view;
 	}

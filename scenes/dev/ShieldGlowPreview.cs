@@ -65,7 +65,8 @@ public partial class ShieldGlowPreview : Node3D
 		{
 			var view = new UnitView();
 			AddChild(view);
-			view.Bind(state, Colors.White);
+			view.Bind(state, Colors.White, ShieldFaceMaterials.TeamTint(
+				state.Id == "shield-changing" ? ETeam.Player : ETeam.Enemy));
 			_views.Add(state.Id, view);
 		}
 		var layer = new CanvasLayer();
@@ -179,7 +180,7 @@ public partial class ShieldGlowPreview : Node3D
 		_replay.Play(replay, 1, new Dictionary<string, ETeam>
 		{
 			["shield-changing"] = ETeam.Player,
-			["shield-control"] = ETeam.Player,
+			["shield-control"] = ETeam.Enemy,
 		});
 	}
 
