@@ -28,10 +28,15 @@ public sealed partial class PilotPortrait : TextureRect
 		};
 		AddChild(_viewport);
 		_robot = new RobotPortrait { Size = new Vector2(320, 320) };
+		_robot.EyeOpennessChanged += () =>
+			_viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
 		_viewport.AddChild(_robot);
 		Texture = _viewport.GetTexture();
 		SetIdentity(portraitId);
 	}
+
+	public override void _Process(double delta) =>
+		_robot.SetProcess(IsVisibleInTree());
 
 	public void SetIdentity(string portraitId)
 	{

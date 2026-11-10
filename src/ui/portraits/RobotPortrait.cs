@@ -46,6 +46,10 @@ public sealed partial class RobotPortrait : Control
 	private RobotPortraitPalette _palette = new();
 	private RobotPortraitLayer _layer;
 	private float _eyeOpenness = 1f;
+	private double _blinkWait = 6 + Random.Shared.NextDouble() * 39;
+	private double _blinkTime = -1;
+
+	public event Action? EyeOpennessChanged;
 
 	public RobotPortraitParts Parts
 	{
@@ -90,8 +94,11 @@ public sealed partial class RobotPortrait : Control
 		{
 			if (!float.IsFinite(value) || value < 0f || value > 1f)
 				throw new ArgumentOutOfRangeException(nameof(value), "Eye openness must be between zero and one.");
+			if (_eyeOpenness == value)
+				return;
 			_eyeOpenness = value;
 			LayoutLayers();
+			EyeOpennessChanged?.Invoke();
 		}
 	}
 
@@ -124,6 +131,32 @@ public sealed partial class RobotPortrait : Control
 		UpdateColors();
 		UpdateVisibility();
 		LayoutLayers();
+	}
+
+	public override void _Process(double delta)
+	{
+		if (!IsVisibleInTree() || Layer != RobotPortraitLayer.All)
+			return;
+
+		if (_blinkTime < 0)
+		{
+			_blinkWait -= delta;
+			if (_blinkWait > 0)
+				return;
+			_blinkTime = 0;
+		}
+
+		_blinkTime += delta;
+		if (_blinkTime >= .16)
+		{
+			EyeOpenness = 1f;
+			_blinkTime = -1;
+			_blinkWait = 6 + Random.Shared.NextDouble() * 39;
+			return;
+		}
+		EyeOpenness = (float)(_blinkTime < .06
+			? 1 - _blinkTime / .06
+			: (_blinkTime - .06) / .10);
 	}
 
 	private TextureRect AddLayer()
