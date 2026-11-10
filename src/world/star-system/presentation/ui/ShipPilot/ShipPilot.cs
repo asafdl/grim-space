@@ -3,27 +3,32 @@ using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
 using GrimSpace.Units;
+using GrimSpace.World.StarSystem.Presentation.Facilities;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
-public partial class ShipPilot : PanelContainer
+public partial class ShipPilot : Control
 {
 	private const int PortraitSize = 64;
-	private static readonly Vector2 BarSize = new(64, 6);
-
-	private static readonly Color BorderColor =
-		HudPalettes.WithAlpha(HudPalettes.BlueCyan.Border, 0.8f);
+	private const float FrameSize = PortraitSize + 8f;
+	private const float PortraitHeight = FrameSize * 0.8f;
+	private const float RosterReticleSize = 60f;
+	private static readonly Vector2 BarSize = new(6, PortraitHeight);
 
 	private Label _levelLabel = null!;
 	private LevelUpButton _levelUpButton = null!;
 	private TextureRect _portrait = null!;
-	private ProgressBar _shieldBar = null!;
-	private ProgressBar _hullBar = null!;
 	private ProgressBar _xpBar = null!;
+	private readonly ShipPicker _shipPicker = new();
+	private Control _shipAnchor = null!;
+	private HudTooltipHost? _shipReticle;
+	private IEnumerable<ShipInstance> _candidateShips = [];
+	private (ShipInstance? Ship, int Hull, int BaseHull, int Shield, int BaseShield)? _shipStatus;
 	private string? _portraitId;
 	private string? _pilotId;
 
 	public event Action<string>? PilotSheetRequested;
+	public event Action<string, string>? ShipAssignmentRequested;
 
 	public Control Portrait => _portrait;
 
@@ -39,9 +44,11 @@ public partial class ShipPilot : PanelContainer
 		int experiencePoints,
 		int claimedLevel,
 		bool canLearnSkill,
-		ShipInstance? ship)
+		ShipInstance? ship,
+		IEnumerable<ShipInstance> candidateShips)
 	{
 		_pilotId = pilotId;
+		_candidateShips = candidateShips;
 		if (!string.Equals(_portraitId, portraitId, StringComparison.Ordinal))
 		{
 			_portrait.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
@@ -49,13 +56,27 @@ public partial class ShipPilot : PanelContainer
 		}
 		_levelLabel.Text = $"LV {claimedLevel}";
 		_levelUpButton.Visible = canLearnSkill;
-		_shieldBar.Visible = ship is not null;
-		_hullBar.Visible = ship is not null;
-		if (ship is not null)
+		var shipStatus = (ship, ship?.CurrentHullPoints ?? 0, ship?.Loadout.BaseHullPoints ?? 0,
+			ship?.TotalCurrentShieldPoints ?? 0, ship?.TotalBaseShieldPoints ?? 0);
+		if (_shipStatus != shipStatus)
 		{
-			ShipBox.SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalBaseShieldPoints);
-			ShipBox.SetBar(_hullBar, ship.CurrentHullPoints, ship.Loadout.BaseHullPoints);
+			_shipStatus = shipStatus;
+			if (_shipReticle is not null)
+			{
+				_shipAnchor.RemoveChild(_shipReticle);
+				_shipReticle.QueueFree();
+			}
+			_shipReticle = _shipPicker.CreateReticle(
+				ship,
+				() => _candidateShips,
+				candidate => ShipRecruitmentDisplay.CompareTooltip(candidate, ship),
+				candidate => ShipAssignmentRequested?.Invoke(pilotId, candidate.Id));
+			_shipAnchor.AddChild(_shipReticle);
+			_shipReticle.Scale = Vector2.One * (RosterReticleSize / ShipPicker.ReticleSize);
 		}
+		_shipReticle!.SetTooltip(ship is null
+			? HudTooltipContent.Plain("No ship - cannot deploy\nRight-click to assign a ship")
+			: ShipRecruitmentDisplay.ShipTooltip(ship));
 		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
 		if (xpToNext > 0)
 			ShipBox.SetBar(_xpBar, xpInLevel, xpToNext);
@@ -67,45 +88,31 @@ public partial class ShipPilot : PanelContainer
 		var xpLine = xpToNext > 0
 			? $"XP {xpInLevel}/{xpToNext}"
 			: "XP max";
-		var shipDetails = ship is null
-			? "No ship - cannot deploy"
-			: $"{ship.Spec.Chassis}\n"
-				+ $"HP {ship.CurrentHullPoints}/{ship.Loadout.BaseHullPoints}\n"
-				+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalBaseShieldPoints}";
 		HudTooltipCard.SetTooltip(
 			_portrait,
 			$"{pilotName}\n"
 			+ $"Lv {claimedLevel} · {xpLine}\n"
-			+ (canLearnSkill ? "Level up available\n" : "")
-			+ shipDetails);
+			+ (canLearnSkill ? "Level up available" : ""));
 	}
 
 	private void Build()
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
-		CustomMinimumSize = new Vector2(PortraitSize + 8, 0);
+		var portraitPosition = new Vector2(FrameSize * 0.05f, FrameSize * 0.1f);
+		var portraitSize = new Vector2(FrameSize * 0.9f, PortraitHeight);
+		var reticlePosition = portraitPosition + portraitSize - Vector2.One * RosterReticleSize / 2f;
+		CustomMinimumSize = reticlePosition + Vector2.One * RosterReticleSize;
 		SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-		ApplyPanelStyle();
+		AddChild(_shipPicker);
 
-		var margin = new MarginContainer();
-		foreach (var marginName in new[] { "margin_left", "margin_top", "margin_right", "margin_bottom" })
-			margin.AddThemeConstantOverride(marginName, 4);
-		AddChild(margin);
-
-		var column = new VBoxContainer
-		{
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		column.AddThemeConstantOverride("separation", 3);
-		margin.AddChild(column);
-
+		AddChild(ShipBox.Frame(Vector2.Zero, FrameSize, HudPalettes.BlueCyan.Secondary));
 		var portraitFrame = new Control
 		{
-			CustomMinimumSize = new Vector2(PortraitSize, PortraitSize),
-			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			Position = portraitPosition,
+			Size = portraitSize,
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		column.AddChild(portraitFrame);
+		AddChild(portraitFrame);
 
 		_portrait = new TextureRect
 		{
@@ -117,12 +124,18 @@ public partial class ShipPilot : PanelContainer
 		_portrait.GuiInput += OnPortraitGuiInput;
 		portraitFrame.AddChild(_portrait);
 
+		_xpBar = ShipBox.CreateBar(HudPalettes.PurpleRed.Secondary, BarSize);
+		_xpBar.AddThemeStyleboxOverride("background", new StyleBoxEmpty());
+		_xpBar.Size = BarSize;
+		_xpBar.FillMode = (int)ProgressBar.FillModeEnum.BottomToTop;
+		portraitFrame.AddChild(_xpBar);
+
 		_levelLabel = new Label
 		{
-			OffsetLeft = 1,
-			OffsetTop = PortraitSize - 17,
+			OffsetLeft = BarSize.X + 1,
+			OffsetTop = PortraitHeight - 17,
 			OffsetRight = 29,
-			OffsetBottom = PortraitSize - 1,
+			OffsetBottom = PortraitHeight - 1,
 			HorizontalAlignment = HorizontalAlignment.Left,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
@@ -134,21 +147,22 @@ public partial class ShipPilot : PanelContainer
 		_levelUpButton = new LevelUpButton
 		{
 			OffsetLeft = PortraitSize - 29,
-			OffsetTop = PortraitSize - 31,
+			OffsetTop = 1,
 			OffsetRight = PortraitSize - 1,
-			OffsetBottom = PortraitSize - 1,
+			OffsetBottom = 31,
 			Visible = false,
 		};
 		HudTooltipCard.SetTooltip(_levelUpButton, "Level up");
 		_levelUpButton.Pressed += OnLevelUpPressed;
 		portraitFrame.AddChild(_levelUpButton);
 
-		_shieldBar = ShipBox.CreateBar(ShipBox.ShieldColor, BarSize);
-		column.AddChild(_shieldBar);
-		_hullBar = ShipBox.CreateBar(ShipBox.HullColor, BarSize);
-		column.AddChild(_hullBar);
-		_xpBar = ShipBox.CreateBar(HudPalettes.PurpleRed.Secondary, BarSize);
-		column.AddChild(_xpBar);
+		_shipAnchor = new Control
+		{
+			Position = reticlePosition,
+			Size = Vector2.One * RosterReticleSize,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		AddChild(_shipAnchor);
 	}
 
 	private void OnPortraitGuiInput(InputEvent @event)
@@ -162,26 +176,6 @@ public partial class ShipPilot : PanelContainer
 	{
 		if (_pilotId is not null)
 			PilotSheetRequested?.Invoke(_pilotId);
-	}
-
-	private void ApplyPanelStyle()
-	{
-		const int borderWidth = 1;
-		AddThemeStyleboxOverride(
-			"panel",
-			new StyleBoxFlat
-			{
-				BgColor = HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.9f),
-				BorderColor = BorderColor,
-				BorderWidthLeft = borderWidth,
-				BorderWidthTop = borderWidth,
-				BorderWidthRight = borderWidth,
-				BorderWidthBottom = borderWidth,
-				CornerRadiusTopLeft = 4,
-				CornerRadiusTopRight = 4,
-				CornerRadiusBottomRight = 4,
-				CornerRadiusBottomLeft = 4,
-			});
 	}
 
 	private sealed partial class LevelUpButton : Button

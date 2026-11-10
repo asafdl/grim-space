@@ -3,6 +3,7 @@ using GrimSpace.Application;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
+using GrimSpace.Units;
 using GrimSpace.World.StarSystem;
 using GrimSpace.Pilots.Barks;
 using GrimSpace.World.StarSystem.Presentation.Scene;
@@ -106,6 +107,13 @@ public partial class PlayerFleetHud : MarginContainer
 			{
 				card = new ShipPilot();
 				card.PilotSheetRequested += OnPilotSheetRequested;
+				card.ShipAssignmentRequested += (pilotId, selectedShipId) =>
+				{
+					if (!run.TryAssignPilotToShip(pilotId, selectedShipId, out var failure))
+						GD.PushWarning($"Ship assignment rejected: {failure}.");
+					Sync(run);
+					OpenDeployment()?.Refresh();
+				};
 				_pilots[pilot.Id] = card;
 				_pilotColumn.AddChild(card);
 				BindDeploymentDrag(card.Portrait, pilot.Id);
@@ -127,7 +135,10 @@ public partial class PlayerFleetHud : MarginContainer
 				pilot.ExperiencePoints,
 				pilot.ClaimedLevel,
 				PilotSkillAvailability.AvailableToLearn(pilot).Count > 0,
-				ship);
+				ship,
+				run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId)
+					.Where(candidate => candidate.Id != pilot.AssignedShipId
+						&& OperatorClassCompatibility.CanOperate(pilot.ClassId, candidate.Spec.ClassId)));
 		}
 
 		foreach (var pilotId in _pilots.Keys.Except(rosterPilotIds, StringComparer.Ordinal).ToArray())

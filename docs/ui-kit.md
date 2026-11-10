@@ -61,6 +61,14 @@ with the mouse wheel or its up/down arrows, using the same `HudCycleArrow` as th
 character sheet and ship picker. Arrows dim at the scroll limits;
 wheel input over the rail does not zoom the map. The engagement preview includes
 eight pilots to exercise scrolling without changing the four deployment slots.
+Each fleet portrait has a 60-pixel ship reticle centered on its bottom-right corner, outside
+the portrait-only blue beveled frame shared with engagement slots, using the same right-click picker
+as deployment: tier-sorted pages, compatible owned ships, and comparison tooltips.
+Choosing a ship uses the run's assignment/swap rules and refreshes any open deployment
+slots without changing their pilot selection. Hull and shield points appear on the
+ship reticle's arcs and tooltip, not the pilot portrait; XP fills bottom-up along
+the portrait's left edge as an overlay without shifting the portrait.
+Unassigned pilots show an empty reticle that can still open the picker.
 
 ## Pilot speech
 

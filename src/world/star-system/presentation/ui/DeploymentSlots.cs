@@ -106,7 +106,7 @@ public sealed partial class DeploymentSlots : HBoxContainer
 		Refresh();
 	}
 
-	private void Refresh()
+	public void Refresh()
 	{
 		foreach (var child in GetChildren().OfType<Control>())
 		{
