@@ -56,7 +56,8 @@ public sealed partial class UiCard : BaseButton, IUiSized
 		string description,
 		string trailingValue,
 		Texture2D? portrait = null,
-		HudPalette? palette = null)
+		HudPalette? palette = null,
+		TextureRect? portraitImage = null)
 	{
 		var shader = GD.Load<Shader>(ShaderPath)
 			?? throw new InvalidOperationException($"Could not load UI palette shader '{ShaderPath}'.");
@@ -97,16 +98,14 @@ public sealed partial class UiCard : BaseButton, IUiSized
 		_content.AddThemeConstantOverride("separation", 24);
 		_margin.AddChild(_content);
 
-		if (portrait is not null)
+		if (portrait is not null || portraitImage is not null)
 		{
-			_content.AddChild(new TextureRect
-			{
-				Texture = portrait,
-				CustomMinimumSize = new Vector2(138f, 172f),
-				MouseFilter = MouseFilterEnum.Ignore,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			});
+			var image = portraitImage ?? new TextureRect { Texture = portrait };
+			image.CustomMinimumSize = new Vector2(138f, 172f);
+			image.MouseFilter = MouseFilterEnum.Ignore;
+			image.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+			image.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+			_content.AddChild(image);
 		}
 
 		_textColumn = new VBoxContainer

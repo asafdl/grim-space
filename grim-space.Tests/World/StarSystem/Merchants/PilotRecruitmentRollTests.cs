@@ -26,6 +26,9 @@ public sealed class PilotRecruitmentRollTests
 			Assert.Equal(first[index].Slot, second[index].Slot);
 			Assert.Equal(first[index].Profile.Name, second[index].Profile.Name);
 			Assert.Equal(first[index].Profile.PortraitId, second[index].Profile.PortraitId);
+			Assert.StartsWith("robot_v1:", first[index].Profile.PortraitId, StringComparison.Ordinal);
+			Assert.Equal(first[index].Profile.PortraitId,
+				Pilot.FromRecruitProfile($"ship-{index}", first[index].Profile).PortraitId);
 			Assert.Equal(first[index].Profile.BackgroundId, second[index].Profile.BackgroundId);
 			Assert.Equal(first[index].Profile.ClassId, second[index].Profile.ClassId);
 			Assert.Equal(first[index].Profile.PositiveQuirkIds, second[index].Profile.PositiveQuirkIds);

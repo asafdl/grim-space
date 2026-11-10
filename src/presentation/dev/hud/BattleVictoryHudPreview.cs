@@ -1,6 +1,5 @@
 using Godot;
 using GrimSpace.Battle.Presentation.Ui;
-using GrimSpace.Run;
 
 namespace GrimSpace.Presentation.Dev.Hud;
 
@@ -42,7 +41,7 @@ public sealed partial class BattleVictoryHudPreview : Control
 		new([
 			new BattleVictoryPilotRow(
 				"Syndi Krauss",
-				Pilot.PortraitPool[0],
+				"robot_v1:1",
 				"Fighter · T1",
 				142,
 				18,
@@ -53,7 +52,7 @@ public sealed partial class BattleVictoryHudPreview : Control
 				'A'),
 			new BattleVictoryPilotRow(
 				"Rust Bucket",
-				Pilot.PortraitPool[4],
+				"robot_v1:5",
 				"Repurposed Miner · T0",
 				67,
 				44,
@@ -64,7 +63,7 @@ public sealed partial class BattleVictoryHudPreview : Control
 				'B'),
 			new BattleVictoryPilotRow(
 				"Vacuum Kid",
-				Pilot.PortraitPool[8],
+				"robot_v1:9",
 				"Interceptor · T2",
 				23,
 				91,

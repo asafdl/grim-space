@@ -16,11 +16,119 @@ The UI kit provides reusable, asset-backed Godot controls for the game's sci-fi 
 | [`UiListItem`](../src/ui/components/UiListItem.cs) | Short, wide selectable rows for shops and other collections | `Tag`, `Bracket`, `Technical` |
 | [`UiCard`](../src/ui/components/UiCard.cs) | Rich content requiring title, subtitle, description, trailing value, and optional image | `Angled`, `Framed`, `Technical` |
 | [`UiReticle`](../src/ui/components/UiReticle.cs) | Decorative status/target reticle | `Blue`, `Cyan`, `Teal`, `White` |
+| [`RobotPortrait`](../src/ui/portraits/RobotPortrait.cs) | Layered SVG robot portrait compositor and parts preview | 9 eye styles × 9 mouths, 6 screens, 5 ear pairs, 4 antenna options, 5 pauldron pairs, 1 chest |
+| [`PilotPortrait`](../src/ui/portraits/PilotPortrait.cs) | Seeded robot avatar rendered as a texture for pilot UI | Persisted identity, legacy-ID compatibility |
 | [`HudTooltipCard`](../src/components/HudTooltipCard.cs) | Pointer-following world-object tooltip card | Blue-cyan |
 
 Each component type has its own file. Artwork variants share their component's behavior and are selected through `UiButtonVisual`, `UiContainerVisual`, `UiListItemVisual`, and `UiCardVisual`. These C# Godot controls do not require `.tscn` wrappers.
 
 The development gallery is [`ui_components_preview.tscn`](../scenes/dev/ui_components_preview.tscn); run it with F6 to inspect every approved variant and palette, including the setting controls.
+
+The robot parts gallery is [`robot_portrait_preview.tscn`](../scenes/dev/robot_portrait_preview.tscn).
+It provides a Randomize button, a large generated avatar, a six-avatar sample
+gallery, and isolated parts beside their assembled context. Randomize refreshes
+the hero and samples together; there are no part or color pickers.
+Assembled portraits use [`backdrops/soot.svg`](../assets/ui/robot_portraits/backdrops/soot.svg),
+a subdued olive-to-charcoal radial gradient behind all parts. Isolated part
+previews remain transparent. The backdrop is fixed, untinted, and does not
+consume random selections or change generated identities.
+Authored SVG pools live under
+[`assets/ui/robot_portraits/`](../assets/ui/robot_portraits/); the compositor loads
+textures rather than constructing shapes in code. All assets use a transparent
+320-square canvas with baked-in attachment positions. The chest and pauldrons
+share a bottom baseline at Y=310.
+Screen artwork is widened 15% around X=160 in both bezel and glass assets;
+ear modules sit 15 canvas units farther outward on each side to remain visible.
+Eyes and mouths are independent selections, not locked expression pairs.
+Separate galleries and the `Eye + Mouth` tab expose all 81
+combinations; changing either selection leaves the other unchanged.
+
+Asset pools are `faces` (paired `_eyes` and `_mouth` files), `screens` (paired
+`_bezel` and `_glass` files), `ears`, `antennas`, `shoulders`, `chest`,
+`cracks`, `tape`, and `rust`, plus the fixed `backdrops/soot` asset.
+File stems match the lowercase part enum names in
+[`RobotPortraitParts`](../src/ui/portraits/RobotPortraitParts.cs). `None` intentionally
+has no antenna asset. White/grayscale artwork allows independent layer tinting;
+keep the full canvas when editing or exporting rather than trimming transparency.
+Layer order is backdrop, chest, pauldrons, ears, antenna, bezel, glass, eyes, mouth,
+rust, cracks, tape. Flavor overlays retain their authored colors and do not glow.
+Each flavor pool has two variants plus `None` (no asset). Randomization
+independently gives each effect a 50% chance of being absent, otherwise selecting
+either variant equally. This allows all 27 effect combinations, including clean
+portraits. Effects are selected after parts and colors, preserving those choices
+for existing seeds. The preview has isolated effect tabs and a stacked example row.
+Tape placement chooses the head crown or either shoulder; cracks choose the
+monitor, head crown, chest, or either shoulder. Seeded placements include small
+position jitter and full-circle rotations (0–359 degrees), using shape-specific attachment
+points and reduced overlay scales. Existing SVG artwork is reused without runtime
+shape generation. Explicit parts without placement retain the SVG's original position.
+Randomized cracks are 50% larger than the corresponding tape placement scale,
+with a thick dark fracture and bright edge for readability on both glass and metal.
+Body crack anchors sit higher to accommodate their larger rotated footprint.
+Glass and face SVGs share an 8-unit LED grid with 6-square cells and 2-unit gaps.
+The glass contains dim cells within its silhouette; expressions light matching cells
+instead of drawing smooth strokes. The triangular screen shifts both face layers
+down 24 units (three whole rows), without horizontal compression, preserving cell
+alignment. Hardware artwork is unchanged.
+Cells are explicit SVG rectangles, not SVG pattern fills (unsupported by the
+Godot SVG importer). This artwork is authored in the assets, not generated at runtime.
+Smug, Hateful, and Strange eye/mouth assets extend the original six styles.
+The preview includes a dedicated row of these matched expressions.
+[`face_glow.gdshader`](../assets/ui/robot_portraits/face_glow.gdshader) adds a soft
+glyph-colored halo and a brighter core to both facial textures, leaving hardware
+and monitor cells unchanged. It samples the authored alpha, so mixed expressions
+and eye scaling retain the same effect without separate glow artwork or scene bloom.
+
+The Godot-free [`RobotPortraitGenerator`](../src/ui/portraits/RobotPortraitGenerator.cs)
+selects SVG part IDs and one complete authored color palette from a seed.
+The twelve equally weighted palettes are Naval (blue steel / amber LEDs),
+Butcher (oxblood / icy cyan), Reactor (forest green / lime), Salvage
+(bronze / turquoise), Occult (plum / pink), Ash (gunmetal / red),
+Hazard (charcoal with industrial yellow / amber), Frost (pale steel with navy / blue),
+Corrosion (oxidized teal with copper / orange), Ivory (aged ivory with brown iron / green),
+Cobalt (deep blue with graphite / violet), and Ember (burnt orange with dark iron / warm white).
+Each fixes the primary metal on casing/chest, secondary metal on ears/pauldrons,
+antenna accent, and matched dark monitor/LED colors. Colors are never mixed
+between palettes or swapped between parts. Each LED/monitor pair exceeds
+4.5:1 luminance contrast before the screen artwork dims it further.
+Independent part choices and weathering keep mercs varied within each palette.
+This palette revision recolors existing seeds and can change their weathering
+because fewer random draws are consumed; the six base part selections remain unchanged.
+The preview displays the hero seed; the same seed reproduces the choices with the
+current generator and pools. It does not assign or change pilot identity.
+Eyes are a separate texture with an `EyeOpenness` scale from 0 to 1 reserved for
+blinks. Blink timing is not implemented yet.
+
+### Pilot avatar identity and rendering
+
+[`PilotPortraitId`](../src/pilots/PilotPortraitId.cs) rolls IDs in the
+`robot_v1:<nonnegative seed>` format. Starter pilots, other created pilots,
+merchant recruits, and rescued recruits use these IDs instead of the old
+ten-image pool. The existing `PortraitId` field remains the identity authority:
+recruitment freezes it before hiring, and pilot copies, run saves, and battle
+snapshots retain it. UI refreshes never roll a new seed.
+
+Existing saved `pilot_01` through `pilot_10` IDs resolve to robot seeds 1 through
+10 without rewriting saves. Pilots that previously shared an old portrait
+therefore still share an avatar. Unknown IDs throw rather than silently selecting
+a substitute. Reproducibility uses the current generator, pools, and runtime;
+the seed is not a frozen serialization of every part or color across future
+generator changes.
+
+[`PilotPortrait`](../src/ui/portraits/PilotPortrait.cs) owns a 320-square,
+2D-only `SubViewport` and the existing SVG compositor. It renders once after
+creation or an identity change, then retains the viewport texture without
+per-frame avatar rendering. Its nodes and texture live with the owning widget;
+there is no global portrait registry. The texture supports the existing
+`TextureRect` sizing, circular masks, frames, tooltips, and drag previews.
+Generic UI components accept a supplied portrait image node without depending
+on pilot identity or generation.
+
+Robot avatars replace pilot images in the strategic roster, deployment slots
+and drag previews, character sheets, hiring and rescue cards, focused battle
+HUD, victory rows, and speech previews. Victory rows use the battle snapshot's
+portrait when the pilot is no longer in the roster. Ship/unit icons in the
+turn-flow bar remain ship/unit icons.
 
 ### HUD screen previews
 

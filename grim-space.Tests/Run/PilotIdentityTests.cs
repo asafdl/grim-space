@@ -32,6 +32,8 @@ public sealed class PilotIdentityTests
 	{
 		var pilot = Pilot.CreateForShip("fighter-a", rng: new Random(42));
 
+		Assert.StartsWith("robot_v1:", pilot.PortraitId, StringComparison.Ordinal);
+		Assert.Equal(pilot.PortraitId, Pilot.CreateForShip("fighter-b", rng: new Random(42)).PortraitId);
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
 		Assert.Equal(
 			EPilotQuirkPolarity.Positive,
@@ -74,6 +76,8 @@ public sealed class PilotIdentityTests
 	{
 		var pilot = Pilot.CreateStarterForShip("starter-a", new Random(42), classId);
 
+		Assert.StartsWith("robot_v1:", pilot.PortraitId, StringComparison.Ordinal);
+		Assert.Equal(pilot.PortraitId, Pilot.CreateStarterForShip("starter-b", new Random(42), classId).PortraitId);
 		Assert.Contains(PilotBackgroundCatalog.All, background => background.Id == pilot.BackgroundId);
 		Assert.Equal(EPilotQuirkId.Charismatic, Assert.Single(pilot.PositiveQuirkIds));
 		Assert.Equal(EPilotQuirkId.NeuroDrugAddict, Assert.Single(pilot.NegativeQuirkIds));
@@ -136,6 +140,7 @@ public sealed class PilotIdentityTests
 		var restoredDto = ReflectionJson.Read<PilotPersistenceDto>(serializedDto);
 		var restored = Pilot.FromPersistence(restoredDto);
 
+		Assert.Equal(pilot.PortraitId, restored.PortraitId);
 		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
 		Assert.Equal(pilot.PositiveQuirkIds, restored.PositiveQuirkIds);
 		Assert.Equal(pilot.NegativeQuirkIds, restored.NegativeQuirkIds);
@@ -154,6 +159,7 @@ public sealed class PilotIdentityTests
 		restoredRegistry.RestoreSnapshot([dto]);
 
 		Assert.True(restoredRegistry.TryGet(pilot.Id, out var restored));
+		Assert.Equal(pilot.PortraitId, restored.PortraitId);
 		Assert.Equal(pilot.BackgroundId, restored.BackgroundId);
 		Assert.Equal(pilot.PositiveQuirkIds, restored.PositiveQuirkIds);
 		Assert.Equal(pilot.NegativeQuirkIds, restored.NegativeQuirkIds);

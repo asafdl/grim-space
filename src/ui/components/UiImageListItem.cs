@@ -28,7 +28,8 @@ public sealed partial class UiImageListItem : UiListItem
 		string trailingValue,
 		Texture2D? image,
 		HudPalette? palette = null,
-		Color? frameEdgeColor = null)
+		Color? frameEdgeColor = null,
+		TextureRect? portraitImage = null)
 		: base(title, metadata, trailingValue, palette)
 	{
 		Sizing.SetDefaultSize(new UiSize(0f, DefaultRowHeight));
@@ -56,9 +57,10 @@ public sealed partial class UiImageListItem : UiListItem
 		}
 
 		// Null image keeps the bracket body and slot width so rows align with image rows.
-		if (image is not null)
+		if (image is not null || portraitImage is not null)
 		{
-			_portrait = new UiFramedPortrait(image, _frameMaterial ?? PaletteMaterial);
+			_portrait = new UiFramedPortrait(
+				portraitImage ?? new TextureRect { Texture = image }, _frameMaterial ?? PaletteMaterial);
 			AddChild(_portrait);
 		}
 

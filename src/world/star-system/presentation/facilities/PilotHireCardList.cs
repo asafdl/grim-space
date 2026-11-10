@@ -3,6 +3,7 @@ using GrimSpace.Components;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
+using GrimSpace.Ui.Portraits;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Economy;
@@ -54,7 +55,8 @@ internal static class PilotHireCardList
 			profile.Name,
 			"",
 			"",
-			ShipPilotPortraitCatalog.TextureFor(profile.PortraitId))
+			image: null,
+			portraitImage: new PilotPortrait(profile.PortraitId))
 		{
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};

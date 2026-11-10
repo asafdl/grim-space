@@ -59,7 +59,8 @@ public sealed class PilotRegistryTests
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		Assert.StartsWith("pilot-", pilot.Id, StringComparison.Ordinal);
 		Assert.False(string.IsNullOrWhiteSpace(pilot.Name));
-		Assert.Contains(pilot.PortraitId, Pilot.PortraitPool);
+		Assert.StartsWith("robot_v1:", pilot.PortraitId, StringComparison.Ordinal);
+		Assert.InRange(PilotPortraitId.SeedFor(pilot.PortraitId), 0, int.MaxValue);
 		Assert.Equal(shipId, pilot.AssignedShipId);
 		Assert.Equal(2, run.PilotRegistry.Assigned.Count);
 		Assert.Equal(pilot, RunTestKit.StarterRangerPilot(run));

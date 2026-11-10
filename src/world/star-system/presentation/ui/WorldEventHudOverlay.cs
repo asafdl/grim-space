@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Pilots;
 using GrimSpace.Ui.Components;
+using GrimSpace.Ui.Portraits;
 using GrimSpace.World.StarSystem.Events;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 using GrimSpace.World.StarSystem.Resources;
@@ -178,7 +179,7 @@ public sealed partial class WorldEventHudOverlay : Control, IWorldEventHud
 			PilotHireDisplay.CardSubtitle(recruit),
 			body,
 			"",
-			ShipPilotPortraitCatalog.TextureFor(recruit.PortraitId))
+			portraitImage: new PilotPortrait(recruit.PortraitId))
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeOverride = new UiSizeOverride(Height: 200f),

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <g transform="translate(-24 0) scale(1.15 1)">
+  <path d="M160 43C209 43 240 85 240 139C240 197 207 233 160 233C113 233 80 197 80 139C80 85 111 43 160 43Z" fill="#fff" stroke="#151b18" stroke-width="5"/>
+  <path d="M113 211L123 219M198 219L207 211" stroke="#ccc" stroke-width="2"/>
+  </g>
+</svg>

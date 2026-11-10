@@ -3,6 +3,7 @@ using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Ui.Components;
+using GrimSpace.Ui.Portraits;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
@@ -65,7 +66,7 @@ public sealed partial class DeploymentSlots : HBoxContainer
 		if (_run is not { } run || !run.PilotRegistry.TryGet(pilotId, out var pilot))
 			return default;
 		var preview = new Control { MouseFilter = MouseFilterEnum.Ignore };
-		preview.AddChild(Image(ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId),
+		preview.AddChild(Image(pilot.PortraitId,
 			portraitRect.Position - grabPosition, portraitRect.Size));
 		source.SetDragPreview(preview);
 		return pilotId;
@@ -133,7 +134,7 @@ public sealed partial class DeploymentSlots : HBoxContainer
 				_selection[index] is null ? palette.Border : palette.Secondary));
 			if (_selection[index] is { } pilotId && run.PilotRegistry.TryGet(pilotId, out var pilot))
 			{
-				var portrait = Image(ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId),
+				var portrait = Image(pilot.PortraitId,
 					PortraitRect.Position, PortraitRect.Size);
 				portrait.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
 				host.AddChild(portrait);
@@ -163,11 +164,10 @@ public sealed partial class DeploymentSlots : HBoxContainer
 		return badge;
 	}
 
-	private static TextureRect Image(Texture2D texture, Vector2 position, Vector2 size) =>
-		new()
+	private static PilotPortrait Image(string portraitId, Vector2 position, Vector2 size) =>
+		new(portraitId)
 		{
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			Texture = texture,
 			Position = position,
 			Size = size,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,

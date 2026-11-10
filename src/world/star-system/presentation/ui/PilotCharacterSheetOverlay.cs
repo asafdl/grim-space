@@ -3,6 +3,7 @@ using GrimSpace.Components;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
+using GrimSpace.Ui.Portraits;
 using GrimSpace.Units;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -142,7 +143,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		portraitRow.AddThemeConstantOverride("separation", 6);
 		portraitRow.AddChild(BuildPilotCursor(-1, canCyclePilots));
 		portraitRow.AddChild(new UiFramedPortrait(
-			ShipPilotPortraitCatalog.TextureFor(pilot.PortraitId))
+			new PilotPortrait(pilot.PortraitId))
 		{
 			SizeOverride = new UiSizeOverride(PortraitSize, PortraitSize),
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,

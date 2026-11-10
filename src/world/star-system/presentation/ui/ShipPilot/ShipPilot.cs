@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
+using GrimSpace.Ui.Portraits;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 
@@ -17,7 +18,7 @@ public partial class ShipPilot : Control
 
 	private Label _levelLabel = null!;
 	private LevelUpButton _levelUpButton = null!;
-	private TextureRect _portrait = null!;
+	private PilotPortrait _portrait = null!;
 	private ProgressBar _xpBar = null!;
 	private readonly ShipPicker _shipPicker = new();
 	private Control _shipAnchor = null!;
@@ -51,7 +52,7 @@ public partial class ShipPilot : Control
 		_candidateShips = candidateShips;
 		if (!string.Equals(_portraitId, portraitId, StringComparison.Ordinal))
 		{
-			_portrait.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
+			_portrait.SetIdentity(portraitId);
 			_portraitId = portraitId;
 		}
 		_levelLabel.Text = $"LV {claimedLevel}";
@@ -114,7 +115,7 @@ public partial class ShipPilot : Control
 		};
 		AddChild(portraitFrame);
 
-		_portrait = new TextureRect
+		_portrait = new PilotPortrait
 		{
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,

@@ -10,20 +10,6 @@ namespace GrimSpace.Run;
 
 public sealed class Pilot
 {
-	internal static readonly string[] PortraitPool =
-	[
-		"pilot_01",
-		"pilot_02",
-		"pilot_03",
-		"pilot_04",
-		"pilot_05",
-		"pilot_06",
-		"pilot_07",
-		"pilot_08",
-		"pilot_09",
-		"pilot_10",
-	];
-
 	private static readonly UniqueName DisplayNames = new UniqueName(
 		Adjectives.WordList,
 		[Animals.WordList, Colors.WordList])
@@ -113,7 +99,7 @@ public sealed class Pilot
 	internal static string RollRecruitPortraitId(Random rng)
 	{
 		ArgumentNullException.ThrowIfNull(rng);
-		return PortraitPool[rng.Next(PortraitPool.Length)];
+		return PilotPortraitId.Roll(rng);
 	}
 
 	public static Pilot CreateForShip(
@@ -127,7 +113,7 @@ public sealed class Pilot
 		return new Pilot(
 			TypedIdGenerator.NextId("pilot"),
 			DisplayNames.Generate(),
-			PortraitPool[rng.Next(PortraitPool.Length)],
+			RollRecruitPortraitId(rng),
 			PilotBackgroundCatalog.Roll(rng).Id,
 			classId,
 			[PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng)],
@@ -176,7 +162,7 @@ public sealed class Pilot
 		return new Pilot(
 			TypedIdGenerator.NextId("pilot"),
 			DisplayNames.Generate(),
-			PortraitPool[rng.Next(PortraitPool.Length)],
+			RollRecruitPortraitId(rng),
 			PilotBackgroundCatalog.Roll(rng).Id,
 			classId,
 			[EPilotQuirkId.Charismatic],

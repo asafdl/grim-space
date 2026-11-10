@@ -6,6 +6,7 @@ using GrimSpace.Components;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Heat;
 using GrimSpace.Ui.Components;
+using GrimSpace.Ui.Portraits;
 using GrimSpace.Units.Loadouts.Defenses;
 using GrimSpace.World.StarSystem.Presentation.Ui;
 
@@ -50,6 +51,7 @@ public sealed partial class BattleCommandHud : Control
 	private readonly BattlePortraitHealthBar _healthBar;
 	private readonly BattlePortraitShieldBar _shieldBar;
 	private readonly UiFramedPortrait _pilotPortrait;
+	private readonly PilotPortrait _pilotAvatar;
 	public Control PilotPortrait => _pilotPortrait;
 	private readonly Label _pilotPortraitPlaceholder;
 	private string? _pilotPortraitId;
@@ -141,6 +143,7 @@ public sealed partial class BattleCommandHud : Control
 		AddChild(_healthBar);
 		var pilotPortrait = CreatePilotPortrait();
 		_pilotPortrait = pilotPortrait.Portrait;
+		_pilotAvatar = pilotPortrait.Avatar;
 		_pilotPortraitPlaceholder = pilotPortrait.Placeholder;
 		AddChild(pilotPortrait.Root);
 
@@ -374,7 +377,7 @@ public sealed partial class BattleCommandHud : Control
 			return;
 		}
 
-		_pilotPortrait.SetPortrait(ShipPilotPortraitCatalog.TextureFor(portraitId));
+		_pilotAvatar.SetIdentity(portraitId);
 		_pilotPortrait.Visible = true;
 		_pilotPortraitPlaceholder.Visible = false;
 	}
@@ -594,7 +597,7 @@ public sealed partial class BattleCommandHud : Control
 		return button;
 	}
 
-	private static (Control Root, UiFramedPortrait Portrait, Label Placeholder) CreatePilotPortrait()
+	private static (Control Root, UiFramedPortrait Portrait, PilotPortrait Avatar, Label Placeholder) CreatePilotPortrait()
 	{
 		var host = new Control
 		{
@@ -612,8 +615,9 @@ public sealed partial class BattleCommandHud : Control
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 
+		var avatar = new PilotPortrait();
 		var framedPortrait = new UiFramedPortrait(
-			ShipPilotPortraitCatalog.TextureFor("pilot_01"),
+			avatar,
 			palette: HudPalettes.PurpleRed)
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
@@ -641,7 +645,7 @@ public sealed partial class BattleCommandHud : Control
 		placeholder.AddThemeConstantOverride("outline_size", 2);
 		placeholder.AddThemeFontSizeOverride("font_size", 12);
 		host.AddChild(placeholder);
-		return (host, framedPortrait, placeholder);
+		return (host, framedPortrait, avatar, placeholder);
 	}
 
 	private static void SetPressed(Button button, bool pressed)

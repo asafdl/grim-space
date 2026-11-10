@@ -1,6 +1,6 @@
 using Godot;
 using GrimSpace.Ui.Components;
-using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.Ui.Portraits;
 
 namespace GrimSpace.Presentation.Dev.Hud;
 
@@ -18,9 +18,8 @@ public sealed partial class PilotSpeechHudPreview : Control
 		AddChild(column);
 		foreach (var (pilotId, portraitId) in new[] { ("lead", "pilot_01"), ("wing", "pilot_04"), ("robot", "pilot_09") })
 		{
-			var portrait = new TextureRect
+			var portrait = new PilotPortrait(portraitId)
 			{
-				Texture = ShipPilotPortraitCatalog.TextureFor(portraitId),
 				CustomMinimumSize = new Vector2(64, 64),
 				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,

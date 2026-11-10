@@ -245,6 +245,27 @@ public sealed class BattleVictorySummaryTests
 		Assert.False(Assert.Single(summary.Pilots, row => row.DisplayName == "pilot-b").IsScrapped);
 	}
 
+	[Fact]
+	public void Build_UsesSnapshotPortraitWhenPilotNoLongerInRoster()
+	{
+		const string portraitId = "robot_v1:12345";
+		var spawn = new BattleSpawn
+		{
+			Ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter),
+			Pilot = new PilotBattleSnapshot("pilot-a", [], portraitId),
+			Team = ETeam.Player,
+			Faction = EFaction.Player,
+		};
+		var outcome = WinOutcome(
+			[OutcomeTestKit.Handoff("fighter-a", EType.Fighter, 0)],
+			new Dictionary<string, int>());
+
+		var summary = BattleVictorySummaryBuilder.Build(
+			outcome, [spawn], PilotProgression.DefaultXpDifficulty, [], _ => null);
+
+		Assert.Equal(portraitId, Assert.Single(summary.Pilots).PortraitId);
+	}
+
 	private static BattleOutcome WinOutcome(
 		IReadOnlyList<UnitStateHandoff> handoffs,
 		IReadOnlyDictionary<string, int> performanceByUnitId) =>

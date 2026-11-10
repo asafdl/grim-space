@@ -2,7 +2,7 @@ using Godot;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Ui.Components;
-using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.Ui.Portraits;
 
 namespace GrimSpace.Battle.Presentation.Ui;
 
@@ -71,7 +71,8 @@ public sealed partial class BattleVictoryPilotRowView : Control
 				row.ExperienceEarned,
 				row.IsScrapped),
 			string.Empty,
-			ShipPilotPortraitCatalog.TextureFor(row.PortraitId))
+			image: null,
+			portraitImage: new PilotPortrait(row.PortraitId))
 		{
 			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
 			AnchorRight = 1f,

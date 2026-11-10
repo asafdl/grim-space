@@ -29,6 +29,15 @@ public sealed partial class UiFramedPortrait : Control, IUiSized
 		Texture2D portrait,
 		ShaderMaterial? framePaletteMaterial = null,
 		HudPalette? palette = null)
+		: this(new TextureRect { Texture = portrait ?? throw new ArgumentNullException(nameof(portrait)) },
+			framePaletteMaterial, palette)
+	{
+	}
+
+	public UiFramedPortrait(
+		TextureRect portrait,
+		ShaderMaterial? framePaletteMaterial = null,
+		HudPalette? palette = null)
 	{
 		ArgumentNullException.ThrowIfNull(portrait);
 		_sizing = new UiSizing(this, new UiSize(0f, 0f));
@@ -58,14 +67,11 @@ public sealed partial class UiFramedPortrait : Control, IUiSized
 		var circleClip = GD.Load<Shader>(CircleClipShaderPath)
 			?? throw new InvalidOperationException(
 				$"Could not load circle clip shader '{CircleClipShaderPath}'.");
-		_image = new TextureRect
-		{
-			Texture = portrait,
-			Material = new ShaderMaterial { Shader = circleClip },
-			MouseFilter = MouseFilterEnum.Ignore,
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
-		};
+		_image = portrait;
+		_image.Material = new ShaderMaterial { Shader = circleClip };
+		_image.MouseFilter = MouseFilterEnum.Ignore;
+		_image.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+		_image.StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered;
 		AddChild(_image);
 
 		Resized += LayoutPortrait;
