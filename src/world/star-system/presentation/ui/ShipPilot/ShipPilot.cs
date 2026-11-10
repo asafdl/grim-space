@@ -10,10 +10,11 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public partial class ShipPilot : Control
 {
-	private const int PortraitSize = 64;
+	private const int PortraitSize = 96;
 	private const float FrameSize = PortraitSize + 8f;
 	private const float PortraitHeight = FrameSize * 0.8f;
 	private const float RosterReticleSize = 60f;
+	internal const float RosterWidth = FrameSize * .95f + RosterReticleSize / 2f;
 	private static readonly Vector2 BarSize = new(6, PortraitHeight);
 
 	private Label _levelLabel = null!;

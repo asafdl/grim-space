@@ -1,5 +1,6 @@
 using Godot;
 using GrimSpace.Components;
+using GrimSpace.Ui.Portraits;
 
 namespace GrimSpace.Ui.Components;
 
@@ -11,13 +12,16 @@ public sealed partial class PilotSpeechHost : CanvasLayer
 {
 	private const float AnchorGap = 6f;
 	private const float ViewportPadding = 8f;
+	private const float AvatarSize = 64f;
 
-	public readonly record struct Anchor(Rect2 Rect, bool Above = false);
+	public readonly record struct Anchor(Rect2 Rect, bool Above = false, string? PortraitId = null);
 
 	private readonly Func<string, Anchor?> _resolveAnchor;
 	private readonly Control _root;
 	private readonly Queue<(string PilotId, string Text)> _pending = new();
 	private PilotSpeechBubble? _bubble;
+	private PilotPortrait? _avatar;
+	private TextureRect? _avatarFrame;
 	private string? _speakerId;
 	private Action? _whenIdle;
 
@@ -122,6 +126,8 @@ public sealed partial class PilotSpeechHost : CanvasLayer
 	{
 		_bubble?.QueueFree();
 		_bubble = null;
+		_avatar = null;
+		_avatarFrame = null;
 		_speakerId = null;
 	}
 
@@ -141,6 +147,54 @@ public sealed partial class PilotSpeechHost : CanvasLayer
 		var anchor = placement.Rect;
 		var size = bubble.GetCombinedMinimumSize();
 		var viewport = _root.GetViewportRect().Size;
+		if (placement.PortraitId is { } portraitId)
+		{
+			if (_avatar is null)
+			{
+				var material = new ShaderMaterial
+				{
+					Shader = GD.Load<Shader>("res://assets/ui/components/runtime/button_palette.gdshader")
+						?? throw new InvalidOperationException("Missing UI palette shader."),
+				};
+				material.SetShaderParameter("surface_color", HudPalettes.BlueCyan.DeepSurface);
+				material.SetShaderParameter("edge_color", HudPalettes.BlueCyan.Secondary);
+				material.SetShaderParameter("palette_mix", 1f);
+				_avatarFrame = new TextureRect
+				{
+					Texture = GD.Load<Texture2D>("res://assets/ui/components/runtime/deployment_pilot_frame_blue.png")
+						?? throw new InvalidOperationException("Missing deployment frame."),
+					Material = material,
+					ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+					StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+					Size = Vector2.One * AvatarSize,
+					MouseFilter = Control.MouseFilterEnum.Ignore,
+				};
+				bubble.AddChild(_avatarFrame);
+				_avatar = new PilotPortrait(portraitId)
+				{
+					Position = new Vector2(AvatarSize * .05f, AvatarSize * .1f),
+					Size = new Vector2(AvatarSize * .9f, AvatarSize * .8f),
+				};
+				_avatarFrame.AddChild(_avatar);
+			}
+			_avatar.SetIdentity(portraitId);
+			_avatarFrame!.Visible = true;
+			var avatarOffset = AvatarSize + AnchorGap + PilotSpeechBubble.TailWidth;
+			var groupSize = new Vector2(size.X + avatarOffset, Mathf.Max(size.Y, AvatarSize));
+			var origin = new Vector2(
+				Mathf.Clamp(anchor.GetCenter().X - groupSize.X / 2f, ViewportPadding,
+					Mathf.Max(ViewportPadding, viewport.X - groupSize.X - ViewportPadding)),
+				Mathf.Clamp(anchor.Position.Y - groupSize.Y - AnchorGap, ViewportPadding,
+					Mathf.Max(ViewportPadding, viewport.Y - groupSize.Y - ViewportPadding)));
+			bubble.Position = origin + new Vector2(avatarOffset, (groupSize.Y - size.Y) / 2f);
+			bubble.Size = size;
+			_avatarFrame.Position = new Vector2(-avatarOffset, (size.Y - AvatarSize) / 2f);
+			bubble.ShowTail = true;
+			bubble.TailY = size.Y / 2f;
+			return;
+		}
+		if (_avatarFrame is not null)
+			_avatarFrame.Visible = false;
 		bubble.ShowTail = !placement.Above;
 		if (placement.Above)
 		{

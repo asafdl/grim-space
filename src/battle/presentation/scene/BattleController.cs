@@ -1050,7 +1050,13 @@ public partial class BattleController : Node3D
 		if (!GetViewport().GetVisibleRect().HasPoint(screen))
 			return null;
 
-		return new PilotSpeechHost.Anchor(new Rect2(screen, Vector2.Zero), Above: true);
+		var portraitId = Session.Instance.Run.PilotRegistry.TryGet(pilotId, out var pilot)
+			? pilot.PortraitId
+			: _encounterPilots.TryGetValue(pilotId, out var encounterPilot)
+				? encounterPilot.PortraitId
+				: _encounterSpawns.First(spawn => spawn.PilotId == pilotId).Pilot?.PortraitId
+					?? throw new InvalidOperationException($"Missing portrait for speaking pilot '{pilotId}'.");
+		return new PilotSpeechHost.Anchor(new Rect2(screen, Vector2.Zero), Above: true, PortraitId: portraitId);
 	}
 
 	private Vector3 GetPlayerRenderedPosition() =>

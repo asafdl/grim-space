@@ -166,7 +166,10 @@ ship assignments, or hazard pay.
 
 The fleet rail fits the available viewport height and scrolls overflowing portraits
 with the mouse wheel or its up/down arrows, using the same `HudCycleArrow` as the
-character sheet and ship picker. Arrows dim at the scroll limits;
+character sheet and ship picker. Fleet portrait sizing uses a 96-pixel base
+(previously 64), with a matching wider rail and 132-pixel arrow scroll steps.
+Ship badges remain 60 pixels; deployment slots and battle portraits are unchanged.
+Arrows dim at the scroll limits;
 wheel input over the rail does not zoom the map. The engagement preview includes
 eight pilots to exercise scrolling without changing the four deployment slots.
 Each fleet portrait has a 60-pixel ship reticle centered on its bottom-right corner, outside
@@ -184,10 +187,20 @@ Battle presentation registers allied encounter pilots with the same run-owned di
 The focused ship's merc speaks beside the ability-HUD portrait when visible; other
 allies (and focused allies with a hidden portrait) speak above their rendered ship,
 offset two world units along +Y and projected into the screen overlay at constant UI size.
-Ship bubbles omit the portrait connector. Anchor resolution runs each frame, so
-focus changes move an active bubble without restarting its typewriter. Hidden,
+These ship-following barks include a 64-pixel generated pilot avatar on the left,
+using the fleet roster's blue-cyan beveled rectangular frame and portrait insets,
+with the bubble connector pointing to that avatar rather than to the ship.
+The avatar inherits the bubble's fade and lifetime; the combined group is clamped
+inside the viewport. The focused pilot retains the existing HUD portrait connector
+without a duplicate avatar. Anchor resolution runs each frame, so
+focus changes move an active bubble and show/hide its attached avatar without
+restarting its typewriter. Strategic-map speech is unchanged. Hidden,
 non-live, behind-camera, or offscreen ship anchors are unavailable. Battle exit
 unregisters its handles.
+
+The speech preview exercises moving projected anchors, right-edge clamping, and
+HUD portrait anchors. Press Space to switch focus between lead and wing while a
+line is playing; click to replay the queue.
 
 After a damaging impact on a player unit visibly completes, replay supplies its
 currently living allied ships to the bark director. It selects 1–3 mercs with
