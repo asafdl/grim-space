@@ -388,7 +388,8 @@ public sealed class SaveGamePersistenceTests
 			new AcceptContractAction("fleet", "contract", "spawn"),
 			new DeclineContractAction("fleet", "contract"),
 			new CompleteDeliveryFacilityLegAction("fleet", "poi", "facility", "operator", "contract", 0),
-			new InvestigateWreckageAction("fleet", "contract", "ambush-spawn"),
+			new InvestigateWreckageAction("fleet", "contract"),
+			new ReachWreckageAction("fleet", "contract", "ambush-spawn"),
 		};
 
 		Assert.Collection(
@@ -396,7 +397,8 @@ public sealed class SaveGamePersistenceTests
 			restored => Assert.Equal(actions[0], restored),
 			restored => Assert.Equal(actions[1], restored),
 			restored => Assert.Equal(actions[2], restored),
-			restored => Assert.Equal(actions[3], restored));
+			restored => Assert.Equal(actions[3], restored),
+			restored => Assert.Equal(actions[4], restored));
 	}
 
 	[Fact]

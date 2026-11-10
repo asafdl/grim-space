@@ -1,3 +1,5 @@
+using GrimSpace.Math;
+using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
 using GrimSpace.Tests.Run;
 using GrimSpace.World.StarSystem;
@@ -39,11 +41,25 @@ public sealed class WorldEventScheduleTests
 	}
 
 	[Fact]
-	public void Wake_WithoutActivePilots_SchedulesNothing()
+	public void RollOrder_SamplesAtMostSixDistinctPilots()
+	{
+		var pilots = Enumerable.Range(0, 9)
+			.Select(index => Pilot.CreateForShip($"ship-{index}", rng: new Random(index)))
+			.ToArray();
+
+		var order = WorldEventContexts.RollOrder(new StableRandom(7), pilots);
+
+		Assert.Equal(WorldEventContexts.MaxRolledPilots, order.Count);
+		Assert.Equal(order.Count, order.Select(pilot => pilot.Id).Distinct().Count());
+		Assert.All(order, pilot => Assert.Contains(pilot, pilots));
+	}
+
+	[Fact]
+	public void Wake_WithoutAssignedPilots_SchedulesNothing()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
-		foreach (var pilot in run.PilotRegistry.Active.ToArray())
-			run.PilotRegistry.Deactivate(pilot.Id);
+		foreach (var pilot in run.PilotRegistry.Assigned.ToArray())
+			run.PilotRegistry.Unassign(pilot.Id);
 
 		AdvanceTickTo(run.StarSystem, WorldEventConfig.WakeCadenceTicks);
 

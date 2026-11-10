@@ -9,11 +9,10 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public partial class ShipPilot : PanelContainer
 {
 	private const int PortraitSize = 64;
-	private const int BarWidth = 64;
+	private static readonly Vector2 BarSize = new(64, 6);
 
-	private static readonly Color DefaultBorderColor =
+	private static readonly Color BorderColor =
 		HudPalettes.WithAlpha(HudPalettes.BlueCyan.Border, 0.8f);
-	private static readonly Color SelectedBorderColor = HudPalettes.BlueCyan.Primary;
 
 	private Label _levelLabel = null!;
 	private LevelUpButton _levelUpButton = null!;
@@ -23,10 +22,7 @@ public partial class ShipPilot : PanelContainer
 	private ProgressBar _xpBar = null!;
 	private string? _portraitId;
 	private string? _pilotId;
-	private string? _shipId;
-	private bool _selected;
 
-	public event Action<string>? Selected;
 	public event Action<string>? PilotSheetRequested;
 
 	public Control Portrait => _portrait;
@@ -43,11 +39,9 @@ public partial class ShipPilot : PanelContainer
 		int experiencePoints,
 		int claimedLevel,
 		bool canLearnSkill,
-		ShipInstance ship,
-		bool selected)
+		ShipInstance? ship)
 	{
 		_pilotId = pilotId;
-		_shipId = ship.Id;
 		if (!string.Equals(_portraitId, portraitId, StringComparison.Ordinal))
 		{
 			_portrait.Texture = ShipPilotPortraitCatalog.TextureFor(portraitId);
@@ -55,11 +49,16 @@ public partial class ShipPilot : PanelContainer
 		}
 		_levelLabel.Text = $"LV {claimedLevel}";
 		_levelUpButton.Visible = canLearnSkill;
-		SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalBaseShieldPoints);
-		SetBar(_hullBar, ship.CurrentHullPoints, ship.Loadout.BaseHullPoints);
+		_shieldBar.Visible = ship is not null;
+		_hullBar.Visible = ship is not null;
+		if (ship is not null)
+		{
+			ShipBox.SetBar(_shieldBar, ship.TotalCurrentShieldPoints, ship.TotalBaseShieldPoints);
+			ShipBox.SetBar(_hullBar, ship.CurrentHullPoints, ship.Loadout.BaseHullPoints);
+		}
 		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
 		if (xpToNext > 0)
-			SetBar(_xpBar, xpInLevel, xpToNext);
+			ShipBox.SetBar(_xpBar, xpInLevel, xpToNext);
 		else
 		{
 			_xpBar.MaxValue = 1;
@@ -68,15 +67,17 @@ public partial class ShipPilot : PanelContainer
 		var xpLine = xpToNext > 0
 			? $"XP {xpInLevel}/{xpToNext}"
 			: "XP max";
+		var shipDetails = ship is null
+			? "No ship - cannot deploy"
+			: $"{ship.Spec.Chassis}\n"
+				+ $"HP {ship.CurrentHullPoints}/{ship.Loadout.BaseHullPoints}\n"
+				+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalBaseShieldPoints}";
 		HudTooltipCard.SetTooltip(
 			_portrait,
 			$"{pilotName}\n"
 			+ $"Lv {claimedLevel} · {xpLine}\n"
 			+ (canLearnSkill ? "Level up available\n" : "")
-			+ $"{ship.Spec.Chassis}\n"
-			+ $"HP {ship.CurrentHullPoints}/{ship.Loadout.BaseHullPoints}\n"
-			+ $"SP {ship.TotalCurrentShieldPoints}/{ship.TotalBaseShieldPoints}");
-		SetSelected(selected);
+			+ shipDetails);
 	}
 
 	private void Build()
@@ -84,7 +85,7 @@ public partial class ShipPilot : PanelContainer
 		MouseFilter = MouseFilterEnum.Ignore;
 		CustomMinimumSize = new Vector2(PortraitSize + 8, 0);
 		SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-		ApplyPanelStyle(selected: false);
+		ApplyPanelStyle();
 
 		var margin = new MarginContainer();
 		foreach (var marginName in new[] { "margin_left", "margin_top", "margin_right", "margin_bottom" })
@@ -142,22 +143,18 @@ public partial class ShipPilot : PanelContainer
 		_levelUpButton.Pressed += OnLevelUpPressed;
 		portraitFrame.AddChild(_levelUpButton);
 
-		_shieldBar = CreateBar(new Color(0.25f, 0.62f, 0.95f));
+		_shieldBar = ShipBox.CreateBar(ShipBox.ShieldColor, BarSize);
 		column.AddChild(_shieldBar);
-		_hullBar = CreateBar(new Color(0.85f, 0.15f, 0.18f));
+		_hullBar = ShipBox.CreateBar(ShipBox.HullColor, BarSize);
 		column.AddChild(_hullBar);
-		_xpBar = CreateBar(HudPalettes.PurpleRed.Secondary);
+		_xpBar = ShipBox.CreateBar(HudPalettes.PurpleRed.Secondary, BarSize);
 		column.AddChild(_xpBar);
 	}
 
 	private void OnPortraitGuiInput(InputEvent @event)
 	{
-		if (@event is not InputEventMouseButton { Pressed: true } mouseButton)
-			return;
-
-		if (mouseButton.ButtonIndex == MouseButton.Left && _shipId is not null)
-			Selected?.Invoke(_shipId);
-		else if (mouseButton.ButtonIndex == MouseButton.Right && _pilotId is not null)
+		if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }
+			&& _pilotId is not null)
 			PilotSheetRequested?.Invoke(_pilotId);
 	}
 
@@ -167,25 +164,15 @@ public partial class ShipPilot : PanelContainer
 			PilotSheetRequested?.Invoke(_pilotId);
 	}
 
-	private void SetSelected(bool selected)
+	private void ApplyPanelStyle()
 	{
-		if (_selected == selected)
-			return;
-
-		_selected = selected;
-		ApplyPanelStyle(selected);
-	}
-
-	private void ApplyPanelStyle(bool selected)
-	{
-		var borderColor = selected ? SelectedBorderColor : DefaultBorderColor;
-		var borderWidth = selected ? 2 : 1;
+		const int borderWidth = 1;
 		AddThemeStyleboxOverride(
 			"panel",
 			new StyleBoxFlat
 			{
 				BgColor = HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.9f),
-				BorderColor = borderColor,
+				BorderColor = BorderColor,
 				BorderWidthLeft = borderWidth,
 				BorderWidthTop = borderWidth,
 				BorderWidthRight = borderWidth,
@@ -196,39 +183,6 @@ public partial class ShipPilot : PanelContainer
 				CornerRadiusBottomLeft = 4,
 			});
 	}
-
-	private static ProgressBar CreateBar(Color color)
-	{
-		var bar = new ProgressBar
-		{
-			CustomMinimumSize = new Vector2(BarWidth, 6),
-			ShowPercentage = false,
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		bar.AddThemeStyleboxOverride("fill", MakeBarStyle(color));
-		bar.AddThemeStyleboxOverride(
-			"background",
-			MakeBarStyle(HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.95f)));
-		return bar;
-	}
-
-	private static void SetBar(ProgressBar bar, int current, int max)
-	{
-		max = Mathf.Max(0, max);
-		current = Mathf.Clamp(current, 0, max);
-		bar.MaxValue = max;
-		bar.Value = current;
-	}
-
-	private static StyleBoxFlat MakeBarStyle(Color color) =>
-		new()
-		{
-			BgColor = color,
-			CornerRadiusTopLeft = 2,
-			CornerRadiusTopRight = 2,
-			CornerRadiusBottomLeft = 2,
-			CornerRadiusBottomRight = 2,
-		};
 
 	private sealed partial class LevelUpButton : Button
 	{

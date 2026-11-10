@@ -6,8 +6,7 @@ namespace GrimSpace.World.StarSystem.Contact;
 
 public readonly record struct PendingWreckDecision(
 	string ContractId,
-	Contract Contract,
-	bool IsAmbush);
+	Contract Contract);
 
 public static class WreckageQueries
 {
@@ -28,10 +27,21 @@ public static class WreckageQueries
 			|| contract.Objective is not WreckageObjective wreckage)
 			return false;
 
-		decision = new PendingWreckDecision(
-			contractId,
-			contract,
-			wreckage.Outcome is WreckageOutcome.Ambush);
+		decision = new PendingWreckDecision(contractId, contract);
+		return true;
+	}
+
+	/// <summary>Ambush fleets carry their wreck contract as <c>SourceContractId</c>.</summary>
+	public static bool TryGetAmbushContract(StarMap world, string fleetId, out string contractId)
+	{
+		contractId = "";
+		if (!world.FleetRegistry.TryGet(fleetId, out var fleet)
+			|| fleet.State.SourceContractId is not { } sourceId
+			|| !world.ContractRegistry.TryGetState(sourceId, out var state)
+			|| state is not WreckageContractState { Status: EContractStatus.Active, RequiresAmbushResolution: true })
+			return false;
+
+		contractId = sourceId;
 		return true;
 	}
 

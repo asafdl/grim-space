@@ -36,10 +36,7 @@ public sealed class FetchMerchantCatalogActionDef
 	{
 		if (action is not FetchMerchantCatalogAction fetch)
 			return false;
-		if (!world.FleetRegistry.TryGet(fetch.ActorId, out var fleet))
-			return false;
-		if (!fleet.Members.Any(member =>
-				string.Equals(member.Id, fetch.ShipSnapshot.Id, StringComparison.Ordinal)))
+		if (world.ItemInventory?.IsOwnedBy(fetch.ShipSnapshot.Id, fetch.ActorId) != true)
 			return false;
 		if (!EndpointServesCatalog(fetch.Endpoint, fetch.Catalog, world))
 			return false;

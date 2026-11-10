@@ -47,7 +47,6 @@ public sealed class Pilot
 	public IReadOnlyList<EPilotQuirkId> PositiveQuirkIds { get; }
 	public IReadOnlyList<EPilotQuirkId> NegativeQuirkIds { get; }
 	public string? AssignedShipId { get; }
-	public bool IsActive { get; }
 	public int ExperiencePoints { get; }
 	public int ClaimedLevel { get; }
 	public IReadOnlyList<EPilotSkillId> LearnedSkills { get; }
@@ -64,7 +63,6 @@ public sealed class Pilot
 		IReadOnlyList<EPilotQuirkId> positiveQuirkIds,
 		IReadOnlyList<EPilotQuirkId> negativeQuirkIds,
 		string? assignedShipId,
-		bool isActive,
 		int experiencePoints,
 		int claimedLevel,
 		IReadOnlyList<EPilotSkillId> learnedSkills,
@@ -94,7 +92,6 @@ public sealed class Pilot
 		PositiveQuirkIds = PilotQuirkCatalog.ValidateQuirks(positiveQuirkIds, EPilotQuirkPolarity.Positive);
 		NegativeQuirkIds = PilotQuirkCatalog.ValidateQuirks(negativeQuirkIds, EPilotQuirkPolarity.Negative);
 		AssignedShipId = assignedShipId;
-		IsActive = isActive;
 		ExperiencePoints = experiencePoints;
 		ClaimedLevel = claimedLevel;
 		LearnedSkills = learnedSkills;
@@ -136,7 +133,6 @@ public sealed class Pilot
 			[PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng)],
 			[PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng)],
 			assignedShipId,
-			false,
 			0,
 			PilotProgression.LevelFor(0),
 			EmptySkills,
@@ -160,7 +156,6 @@ public sealed class Pilot
 			profile.PositiveQuirkIds,
 			profile.NegativeQuirkIds,
 			assignedShipId,
-			false,
 			profile.ExperiencePoints,
 			profile.ClaimedLevel,
 			profile.LearnedSkills,
@@ -187,7 +182,6 @@ public sealed class Pilot
 			[EPilotQuirkId.Charismatic],
 			[EPilotQuirkId.NeuroDrugAddict],
 			assignedShipId,
-			false,
 			0,
 			PilotProgression.LevelFor(0),
 			EmptySkills,
@@ -199,7 +193,7 @@ public sealed class Pilot
 	internal Pilot WithExperience(int experiencePoints) =>
 		Copy(experiencePoints: experiencePoints);
 
-	internal Pilot WithAssignment(string? assignedShipId, bool isActive) =>
+	internal Pilot WithAssignment(string? assignedShipId) =>
 		new(
 			Id,
 			Name,
@@ -209,7 +203,6 @@ public sealed class Pilot
 			PositiveQuirkIds,
 			NegativeQuirkIds,
 			assignedShipId,
-			isActive,
 			ExperiencePoints,
 			ClaimedLevel,
 			LearnedSkills,
@@ -220,9 +213,6 @@ public sealed class Pilot
 
 	internal Pilot WithPersonality(PilotPersonality personality) =>
 		Copy(personality: personality);
-
-	internal Pilot WithActive(bool isActive) =>
-		Copy(isActive: isActive);
 
 	internal Pilot WithSalaryPayroll(int missedSalaryPeriods) =>
 		Copy(missedSalaryPeriods: missedSalaryPeriods);
@@ -261,7 +251,6 @@ public sealed class Pilot
 			dto.PositiveQuirkIds,
 			dto.NegativeQuirkIds,
 			dto.AssignedShipId,
-			dto.IsActive,
 			dto.ExperiencePoints,
 			dto.ClaimedLevel,
 			dto.LearnedSkills,
@@ -271,7 +260,7 @@ public sealed class Pilot
 			dto.Personality);
 	}
 
-	internal PilotPersistenceDto ToPersistence(int activeOrder = -1) =>
+	internal PilotPersistenceDto ToPersistence(int deploymentOrder = -1) =>
 		new(
 			Id,
 			Name,
@@ -283,8 +272,7 @@ public sealed class Pilot
 			ExperiencePoints,
 			ClaimedLevel,
 			LearnedSkills,
-			IsActive,
-			IsActive ? activeOrder : -1,
+			deploymentOrder,
 			BaseSalaryCredits,
 			MissedSalaryPeriods,
 			MissedHazardPeriods,
@@ -292,7 +280,6 @@ public sealed class Pilot
 			Personality);
 
 	private Pilot Copy(
-		bool? isActive = null,
 		int? experiencePoints = null,
 		int? claimedLevel = null,
 		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
@@ -308,7 +295,6 @@ public sealed class Pilot
 			PositiveQuirkIds,
 			NegativeQuirkIds,
 			AssignedShipId,
-			isActive ?? IsActive,
 			experiencePoints ?? ExperiencePoints,
 			claimedLevel ?? ClaimedLevel,
 			learnedSkills ?? LearnedSkills,

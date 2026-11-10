@@ -10,7 +10,6 @@ public sealed record StarSystemRuntimeDto(
 	long JourneyIdSequence,
 	IReadOnlyDictionary<string, int> IgnoreUntilTickByTargetId,
 	int ActionCooldownUntilTick,
-	string? SelectedMemberShipId,
 	long FuelLedgerJourneyId,
 	double FuelChargedDistanceAlongCurrentJourney,
 	double FuelUnchargedDistance);

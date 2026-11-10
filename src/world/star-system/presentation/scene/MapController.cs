@@ -111,21 +111,31 @@ public partial class MapController : Node3D
 				BattleReplaying: false,
 				SceneTransitioning: false));
 
+		// Below StrategicHud (layer 10) so the roster stays draggable above the modal backdrop.
+		var engagementLayer = new CanvasLayer { Layer = 9 };
+		AddChild(engagementLayer);
 		var engagementHud = new EngagementHudOverlay();
-		_uiLayer.AddChild(engagementHud);
+		engagementLayer.AddChild(engagementHud);
+		var deployment = new DeploymentSlots();
+		_strategicHud.PlayerFleet.Deployment = deployment;
 		_engagement = new EngagementController(
 			engagementHud,
-			() => EngagementQueries.TryGetPendingPlayerEngagement(
+			deployment,
+			slots => slots.Reset(Session.Instance.Run),
+			pilotIds => EngagementQueries.TryGetPendingPlayerEngagement(
 				_orchestrator.Map,
 				State.PlayerFleetUnitId,
-				out var pending)
+				out var pending,
+				pilotIds)
 					? pending
 					: null,
-			() => _orchestrator.PlayerAgent!.TryEnqueue(
-				[new EngageAction(State.PlayerFleetUnitId)]),
+			pilotIds => _orchestrator.PlayerAgent!.TryEnqueue(
+				[new EngageAction(State.PlayerFleetUnitId, pilotIds)]),
 			() => _orchestrator.PlayerAgent!.TryEnqueue(
 				[new FleeAction(State.PlayerFleetUnitId)]),
-			sync => _orchestrator.Subscribe<ReachContactAction>(_ => sync()),
+			sync => WorldEventController.Join(
+				_orchestrator.Subscribe<ReachContactAction>(_ => sync()),
+				_orchestrator.Subscribe<ReachWreckageAction>(_ => sync())),
 			_strategicHud.PresentSystemError);
 		_deliveryMeetingDialog = new DeliveryTurnInDialogPresenter(_uiLayer, _orchestrator);
 		_mapBinding = new MapSceneBinding(
@@ -166,7 +176,9 @@ public partial class MapController : Node3D
 				_orchestrator.Subscribe<AsteroidImpactAction>(_ => sync()),
 				_orchestrator.Subscribe<DriftSalvageFoundAction>(_ => sync()),
 				_orchestrator.Subscribe<DistressCallReceivedAction>(_ => sync()),
-				_orchestrator.Subscribe<CompulsiveStakeDemandedAction>(_ => sync())),
+				_orchestrator.Subscribe<CompulsiveStakeDemandedAction>(_ => sync()),
+				_orchestrator.Subscribe<PotshotReportedAction>(_ => sync()),
+				_orchestrator.Subscribe<DebrisDetourReportedAction>(_ => sync())),
 			_strategicHud.PresentSystemError);
 		_intentTranslator = new UserIntentTranslator(
 			_orchestrator.PlayerAgent!,

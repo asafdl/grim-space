@@ -1,5 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Core.Ids;
+using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
@@ -8,9 +10,16 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record ReachWreckageAction(string ActorId, string ContractId)
-	: IAction<StarMap, ActorRuntime>
+public sealed record ReachWreckageAction(
+	string ActorId,
+	string ContractId,
+	string AmbushSpawnIdentity) : IAction<StarMap, ActorRuntime>
 {
+	public ReachWreckageAction(string actorId, string contractId)
+		: this(actorId, contractId, TypedIdGenerator.NextInstanceSlug())
+	{
+	}
+
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		ReachWreckageDef.Instance;
 }
@@ -41,8 +50,27 @@ public sealed class ReachWreckageDef
 		{
 			new StopAtCurrentLocationEffect(reach.ActorId),
 			new ClearPursueContactEffect(reach.ActorId),
-			new SetPendingWreckContractEffect(reach.ActorId, reach.ContractId),
 		};
+		var wreckage = (WreckageObjective)world.ContractRegistry.All
+			.First(contract => contract.Id == reach.ContractId)
+			.Objective;
+		if (wreckage.Outcome is WreckageOutcome.Ambush ambush)
+		{
+			// Ambushes skip the wreck decision and use the engagement decision instead.
+			var ambushUnitId = AmbushUnitIdFor(wreckage);
+			effects.Add(new RecordWreckInvestigatedEffect(reach.ContractId, wreckage.WreckageId));
+			if (!world.FleetRegistry.TryGet(ambushUnitId, out _))
+				effects.Add(new SpawnMapUnitEffect(ContractEnemySpawner.CreateAmbushFleet(
+					ambush.Fleet,
+					wreckage.Position,
+					ambushUnitId,
+					reach.AmbushSpawnIdentity,
+					reach.ContractId)));
+			effects.Add(new SetEngagementIntentEffect(reach.ActorId, ambushUnitId));
+			effects.Add(new ReachContactEffect(reach.ActorId, ambushUnitId));
+		}
+		else
+			effects.Add(new SetPendingWreckContractEffect(reach.ActorId, reach.ContractId));
 
 		if (unit.State.Type == EType.PlayerFleet)
 			effects.Add(new PlayerInputEffect(true));
@@ -73,4 +101,7 @@ public sealed class ReachWreckageDef
 
 		return WreckageContactRange.IsWithinReachRange(world, runtime, reach.ActorId, wreckage.Position);
 	}
+
+	internal static string AmbushUnitIdFor(WreckageObjective wreckage) =>
+		$"{wreckage.WreckageId}.ambush";
 }

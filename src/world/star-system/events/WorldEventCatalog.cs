@@ -10,8 +10,11 @@ public static class WorldEventCatalog
 	internal static readonly DriftSalvage Drift = new();
 	internal static readonly DistressCall Distress = new();
 	internal static readonly CompulsiveStake Stake = new();
+	internal static readonly MinerPotshot Potshot = new();
+	internal static readonly LongDetour DebrisDetour = new();
 
-	private static readonly IReadOnlyList<Entry> Definitions = [Asteroid, Drift, Distress, Stake];
+	private static readonly IReadOnlyList<Entry> Definitions =
+		[Asteroid, Drift, Distress, Stake, Potshot, DebrisDetour];
 
 	public static EWorldEventId Pick(double unitRoll) =>
 		WeightedPick.Of(Definitions, entry => entry.Weight, unitRoll).Id;
@@ -119,5 +122,49 @@ public static class WorldEventCatalog
 
 		public string IgnoreTooltipBody =>
 			$"{IgnoreWalkChancePercent}% chance they leave the fleet.";
+	}
+
+	internal sealed class MinerPotshot : Entry
+	{
+		public int Damage => 20;
+		public double BaseTriggerChance => 0;
+		public double AggressionSwing => 0.20;
+
+		public override EWorldEventId Id => EWorldEventId.Potshot;
+		public override int Weight => 1;
+
+		public override IWorldEventRoll CreateRoll(ulong rngSeed) =>
+			new RollForPotshotAction(StarSystemActorIds.WorldEvents, rngSeed);
+
+		public WorldEventPresentation Announce(string pilotName, int shieldsLost, int hullLost) =>
+			new(
+				"Just a Miner Drone",
+				$"{pilotName} decided to have a bit of fun and take a potshot at a passing miner drone. Completely missing the cruiser that was escorting it. Ship takes {Hit(shieldsLost, hullLost)}.");
+
+		private static string Hit(int shieldsLost, int hullLost) =>
+			(shieldsLost, hullLost) switch
+			{
+				(> 0, > 0) => $"{shieldsLost} shield damage and {hullLost} hull damage",
+				(> 0, _) => $"{shieldsLost} shield damage",
+				_ => $"{hullLost} hull damage",
+			};
+	}
+
+	internal sealed class LongDetour : Entry
+	{
+		public int FuelCost => 20;
+		public double BaseTriggerChance => 0;
+		public double CautionSwing => 0.20;
+
+		public override EWorldEventId Id => EWorldEventId.DebrisDetour;
+		public override int Weight => 1;
+
+		public override IWorldEventRoll CreateRoll(ulong rngSeed) =>
+			new RollForDebrisDetourAction(StarSystemActorIds.WorldEvents, rngSeed);
+
+		public WorldEventPresentation Announce(string pilotName) =>
+			new(
+				"The Long Way Around",
+				$"{pilotName} decided to take the \"safer\" route around some space debris. You never know what might be in there lurking. The detour burns [icon: Fuel, text: {FuelCost}].");
 	}
 }

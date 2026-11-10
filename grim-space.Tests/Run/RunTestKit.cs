@@ -49,7 +49,7 @@ internal static class RunTestKit
 
 	public static void EnlistUntilActivePilotCap(State run)
 	{
-		while (run.PilotRegistry.Active.Count < RunPilotRegistry.MaxActivePilots)
+		while (run.PilotRegistry.Assigned.Count < RunPilotRegistry.MaxPilots)
 		{
 			var shipId = GrimSpace.Core.Ids.TypedIdGenerator.NextId("fighter");
 			if (!run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)))

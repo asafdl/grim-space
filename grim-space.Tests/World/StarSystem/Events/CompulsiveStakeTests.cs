@@ -70,7 +70,7 @@ public sealed class CompulsiveStakeTests
 		var roll = TriggeringRoll(run);
 		var demander = RollForCompulsiveStakeDef.SelectDemander(
 			roll.RngSeed,
-			WorldEventContexts.FieldedPilots(run.StarSystem.Map))!;
+			WorldEventContexts.RosterPilots(run.StarSystem.Map))!;
 		var stake = RollForCompulsiveStakeDef.RollStake(roll.RngSeed);
 
 		run.StarSystem.CommitSetup(roll);
@@ -217,10 +217,9 @@ public sealed class CompulsiveStakeTests
 			shipId,
 			run.ItemInventory,
 			RunState.PlayerFleetUnitId);
-		run.PilotRegistry.Activate(pilot.Id, run.ItemInventory, RunState.PlayerFleetUnitId);
-		foreach (var other in run.PilotRegistry.Active.Where(active => active.Id != pilot.Id).ToArray())
+		foreach (var other in run.PilotRegistry.Assigned.Where(active => active.Id != pilot.Id).ToArray())
 			run.PilotRegistry.Unassign(other.Id);
-		return run.PilotRegistry.Active.Single();
+		return run.PilotRegistry.Assigned.Single();
 	}
 
 	private static void StartJourney(RunState run)
@@ -232,7 +231,7 @@ public sealed class CompulsiveStakeTests
 
 	private static RollForCompulsiveStakeAction TriggeringRoll(RunState run)
 	{
-		var pilots = WorldEventContexts.FieldedPilots(run.StarSystem.Map).ToArray();
+		var pilots = WorldEventContexts.RosterPilots(run.StarSystem.Map).ToArray();
 		for (ulong seed = 0; seed < 10_000; seed++)
 		{
 			if (RollForCompulsiveStakeDef.SelectDemander(seed, pilots) is not null)
@@ -256,7 +255,7 @@ public sealed class CompulsiveStakeTests
 
 	private static PendingWorldEvent OpenStake(RunState run, int credits, string id = "world-event-stake")
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			id,
 			EWorldEventId.CompulsiveStake,

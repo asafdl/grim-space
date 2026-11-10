@@ -111,13 +111,13 @@ public sealed class PilotRegistryCapabilityQueryTests
 	}
 
 	[Fact]
-	public void QueryCapabilitiesForActive_ExcludesInactivePilotGrants()
+	public void QueryCapabilitiesForAssigned_ExcludesUnassignedPilotGrants()
 	{
 		var registry = new RunPilotRegistry();
-		var activePilot = Pilot.FromPersistence(
+		var assignedPilot = Pilot.FromPersistence(
 			PilotProgression
 				.AddExperience(
-					Pilot.CreateForShip("fighter-active"),
+					Pilot.CreateForShip("fighter-assigned"),
 					PilotProgression.ExperienceForLevel(3))
 				.LearnPilotSkill(EPilotSkillId.ShieldsUp)
 				.ToPersistence() with
@@ -125,28 +125,22 @@ public sealed class PilotRegistryCapabilityQueryTests
 				BackgroundId = EPilotBackgroundId.OptimalityEnforcer,
 				PositiveQuirkIds = [],
 				NegativeQuirkIds = [],
-				IsActive = false,
 			});
-		var inactivePilot = Pilot.FromPersistence(
-			Pilot.CreateForShip("fighter-inactive").ToPersistence() with
+		var unassignedPilot = Pilot.FromPersistence(
+			Pilot.CreateForShip("fighter-unassigned").ToPersistence() with
 			{
 				BackgroundId = EPilotBackgroundId.ScrapDrone,
 				PositiveQuirkIds = [],
 				NegativeQuirkIds = [],
-				IsActive = false,
+				AssignedShipId = null,
 			});
-		registry.Register(activePilot);
-		registry.Register(inactivePilot);
-		var inventory = new Inventory();
-		inventory.Register(
-			ShipInstance.FromCatalog("fighter-active", EType.Fighter),
-			State.PlayerFleetUnitId);
-		registry.Activate(activePilot.Id, inventory, State.PlayerFleetUnitId);
+		registry.Register(assignedPilot);
+		registry.Register(unassignedPilot);
 
-		var grants = registry.QueryCapabilitiesForActive(BattlePilotCapabilityPipelineFactory.Supports);
+		var grants = registry.QueryCapabilitiesForAssigned(BattlePilotCapabilityPipelineFactory.Supports);
 
 		Assert.Single(grants);
-		Assert.Equal(activePilot.Id, grants[0].PilotId);
+		Assert.Equal(assignedPilot.Id, grants[0].PilotId);
 	}
 
 	[Fact]

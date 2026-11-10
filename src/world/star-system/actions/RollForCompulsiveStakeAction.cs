@@ -43,9 +43,8 @@ public sealed class RollForCompulsiveStakeDef
 		var roll = (RollForCompulsiveStakeAction)action;
 		if (!WorldEventContexts.CanOpenPrompt(world)
 			|| world.ItemInventory is null
-			|| SelectDemander(roll.RngSeed, WorldEventContexts.FieldedPilots(world)) is not { } demander
-			|| !WorldEventContexts.ShipIsTraveling(world, demander.AssignedShipId!)
-			|| !world.ItemInventory.TryGet(demander.AssignedShipId!, out _))
+			|| SelectDemander(roll.RngSeed, WorldEventContexts.RosterPilots(world)) is not { } demander
+			|| !WorldEventContexts.IsTraveling(world, demander))
 			return [];
 
 		var stake = RollStake(roll.RngSeed);
@@ -53,7 +52,7 @@ public sealed class RollForCompulsiveStakeDef
 			$"world-event-{roll.RngSeed:x}",
 			EWorldEventId.CompulsiveStake,
 			demander.Id,
-			demander.AssignedShipId!,
+			demander.AssignedShipId,
 			0,
 			WorldEventCatalog.Stake.Announce(demander.Name, stake),
 			ResourceBundle.Of(ResourceId.Credits, -stake));
@@ -69,8 +68,7 @@ public sealed class RollForCompulsiveStakeDef
 	public static Pilot? SelectDemander(ulong rngSeed, IEnumerable<Pilot> pilots)
 	{
 		var random = new StableRandom(rngSeed);
-		var order = pilots.ToList();
-		random.Shuffle(order);
+		var order = WorldEventContexts.RollOrder(random, pilots);
 		return order.FirstOrDefault(pilot => random.NextDouble() < TriggerChance(pilot));
 	}
 

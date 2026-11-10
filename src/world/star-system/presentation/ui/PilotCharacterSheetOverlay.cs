@@ -26,7 +26,6 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string CritIconPath = "res://assets/ui/battle/crit.png";
 	private const string SkillReticlePath =
 		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
-	private const string PilotCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 	private const int SkillNodeSize = 60;
 	private const int SkillIconSize = 26;
 	private const int PortraitSize = 144;
@@ -44,7 +43,6 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 	public event Action<string, EPilotSkillId>? SkillLearnRequested;
 	public event Action<string, int>? PilotCycleRequested;
-	public event Action<string>? FleetManagementRequested;
 	public event Action<string>? DismissRequested;
 	public event Action? Closed;
 
@@ -89,10 +87,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		_pilotId = pilot.Id;
 		_dismissPopup.Hide();
 		_shell.Open("Character Sheet", pilot.Name);
-		_shell.SetHeader(
-			HudHeaderMode.Back,
-			() => FleetManagementRequested?.Invoke(pilot.Id),
-			"Fleet");
+		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter(
 		[
@@ -195,44 +190,12 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 	private Control BuildPilotCursor(int direction, bool visible)
 	{
-		const int cursorWidth = 20;
-		const int cursorHeight = 16;
-		var host = new Control
+		var host = HudCycleArrow.Create(direction, PortraitSize, direction < 0 ? "Previous pilot" : "Next pilot", () =>
 		{
-			CustomMinimumSize = new Vector2(cursorWidth, PortraitSize),
-			Visible = visible,
-			MouseFilter = MouseFilterEnum.Stop,
-			MouseDefaultCursorShape = CursorShape.PointingHand,
-		};
-		HudTooltipCard.SetTooltip(host, direction < 0 ? "Previous pilot" : "Next pilot");
-		var iconHost = new Control
-		{
-			CustomMinimumSize = new Vector2(cursorWidth, cursorHeight),
-			Position = new Vector2(0f, (PortraitSize - cursorHeight) * 0.5f),
-			MouseFilter = MouseFilterEnum.Ignore,
-			PivotOffset = new Vector2(cursorWidth * 0.5f, cursorHeight * 0.5f),
-			RotationDegrees = direction < 0 ? -90f : 90f,
-		};
-		iconHost.AddChild(new TextureRect
-		{
-			Texture = ResourceLoader.Load<Texture2D>(PilotCursorPath),
-			CustomMinimumSize = new Vector2(cursorWidth, cursorHeight),
-			Size = new Vector2(cursorWidth, cursorHeight),
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			MouseFilter = MouseFilterEnum.Ignore,
-		});
-		host.AddChild(iconHost);
-		host.GuiInput += @event =>
-		{
-			if (@event is InputEventMouseButton
-				{
-					Pressed: true,
-					ButtonIndex: MouseButton.Left,
-				}
-				&& _pilotId is not null)
+			if (_pilotId is not null)
 				PilotCycleRequested?.Invoke(_pilotId, direction);
-		};
+		});
+		host.Visible = visible;
 		return host;
 	}
 

@@ -21,7 +21,7 @@ public sealed class SalaryPayrollEconomyTests
 
 		var discountStacks = run.PilotRegistry.QueryCapabilities(capabilityId =>
 			capabilityId == EPilotCapabilityId.FleetSalaryDiscount).Count;
-		var due = run.PilotRegistry.Active.Sum(active =>
+		var due = run.PilotRegistry.Assigned.Sum(active =>
 			SalaryPayrollAccounting.ApplyFleetSalaryDiscount(
 				StrategicEconomyConfig.SalaryFor(active.BaseSalaryCredits, active.ClaimedLevel),
 				discountStacks));

@@ -18,7 +18,7 @@ public sealed record EnlistPlayerShipAction(string ActorId, ShipSpawnDeclaration
 public sealed class EnlistPlayerShipActionDef
 	: IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	public const int MaxPlayerShips = RunPilotRegistry.MaxActivePilots;
+	public const int MaxPlayerShips = RunPilotRegistry.MaxPilots;
 
 	public static EnlistPlayerShipActionDef Instance { get; } = new();
 

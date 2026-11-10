@@ -60,7 +60,7 @@ public sealed class ScrapRewardBonusModifierTests
 
 		var modified = Assert.IsType<ChangeResourceEffect>(
 			new ScrapRewardBonusModifier(ScrapRewardBonusModifier.MinorBonusPercent).Modify(
-				new InvestigateWreckageAction("player", "contract", "ambush"),
+				new InvestigateWreckageAction("player", "contract"),
 				StarMap.Create(1),
 				new ActorRuntime(),
 				effect));

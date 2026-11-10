@@ -155,7 +155,7 @@ public sealed class RunOverTests
 		var engagementId = run.StarSystem.Map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id;
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var pilotSnapshots = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
-		foreach (var pilot in run.PilotRegistry.Active)
+		foreach (var pilot in run.PilotRegistry.Assigned)
 		{
 			if (pilot.AssignedShipId is { } shipId)
 				pilotSnapshots[shipId] = PilotBattleSnapshot.FromSkills(

@@ -243,7 +243,7 @@ public sealed class PilotPersonalityTests
 		Assert.Equal(expected, pilot.EffectivePersonality);
 		Assert.Equal(default, pilot.Personality);
 		Assert.Equal(expected, pilot.Clone().EffectivePersonality);
-		Assert.Equal(expected, pilot.WithAssignment("ship-1", true).EffectivePersonality);
+		Assert.Equal(expected, pilot.WithAssignment("ship-1").EffectivePersonality);
 	}
 
 	[Fact]
@@ -344,8 +344,7 @@ public sealed class PilotPersonalityTests
 		Assert.Equal(default, original.Personality);
 		Assert.Equal(personality, pilot.Personality);
 		Assert.Equal(personality, pilot.Clone().Personality);
-		Assert.Equal(personality, pilot.WithAssignment("ship-2", true).Personality);
-		Assert.Equal(personality, pilot.WithActive(true).Personality);
+		Assert.Equal(personality, pilot.WithAssignment("ship-2").Personality);
 		Assert.Equal(personality, pilot.WithSalaryPayroll(1).Personality);
 		Assert.Equal(personality, pilot.WithHazardMissedPeriods(1).Personality);
 		Assert.Equal(default, pilot.WithPersonality(default).Personality);

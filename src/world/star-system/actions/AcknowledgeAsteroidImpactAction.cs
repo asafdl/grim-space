@@ -41,7 +41,7 @@ public sealed class AcknowledgeAsteroidImpactDef
 
 		var pending = world.PendingWorldEvent!;
 		var effects = new List<IEffect<StarMap, ActorRuntime>>(3);
-		if (world.ItemInventory?.TryGet(pending.ShipId, out var ship) == true)
+		if (pending.ShipId is not null && world.ItemInventory?.TryGet(pending.ShipId, out var ship) == true)
 		{
 			var before = ship.Clone();
 			var after = FieldedShipDamage.Apply(before, pending.Damage, minimumHull: 1);

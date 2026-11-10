@@ -68,10 +68,9 @@ public sealed class WreckController : IDisposable
 			return;
 		}
 
-		var wasAmbush = _pendingWreck()?.IsAmbush == true;
 		_hud.Close();
 		_presentSystemError(
-			wasAmbush ? "Could not flee the ambush." : "Could not leave wreckage.",
+			"Could not leave wreckage.",
 			"Leave wreckage action was rejected while a pending wreck decision was displayed.");
 	}
 

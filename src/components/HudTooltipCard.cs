@@ -178,41 +178,8 @@ public sealed partial class HudTooltipCard : PanelContainer
 			CustomMaximumSize = new Vector2(TooltipContentWidth, -1f),
 		};
 		ApplyTextStyle(label, RegularFont, _bodyColor, rich: true);
-		AppendFormattedText(label, template);
+		HudIconMarkup.Append(label, template, _bodyColor, TooltipIconSize);
 		return label;
-	}
-
-	private void AppendFormattedText(RichTextLabel label, string template)
-	{
-		var cursor = 0;
-		while (cursor < template.Length)
-		{
-			var tokenStart = template.IndexOf("[icon:", cursor, StringComparison.Ordinal);
-			if (tokenStart < 0)
-			{
-				AddColoredText(label, template[cursor..], _bodyColor);
-				break;
-			}
-
-			AddColoredText(label, template[cursor..tokenStart], _bodyColor);
-			var tokenEnd = template.IndexOf(']', tokenStart);
-			if (tokenEnd < 0)
-				throw new FormatException($"Tooltip icon token is missing a closing bracket: {template[tokenStart..]}");
-
-			var token = template[(tokenStart + 6)..tokenEnd].Trim();
-			var textSeparator = token.IndexOf(", text:", StringComparison.Ordinal);
-			var iconName = (textSeparator >= 0 ? token[..textSeparator] : token).Trim();
-			var icon = HudTooltipIconCatalog.Resolve(iconName);
-			var texture = GD.Load<Texture2D>(icon.Path)
-				?? throw new InvalidOperationException($"Could not load tooltip icon '{icon.Path}'.");
-			var iconModulate = icon.TintIcon ? icon.Color : Colors.White;
-			label.AddImage(texture, TooltipIconSize, TooltipIconSize, iconModulate);
-
-			if (textSeparator >= 0)
-				AddColoredText(label, token[(textSeparator + 7)..].TrimStart(), icon.Color);
-
-			cursor = tokenEnd + 1;
-		}
 	}
 
 	private static void ApplyTextStyle(Control control, Font font, Color color, bool rich)
@@ -220,15 +187,5 @@ public sealed partial class HudTooltipCard : PanelContainer
 		control.AddThemeFontOverride(rich ? "normal_font" : "font", font);
 		control.AddThemeFontSizeOverride(rich ? "normal_font_size" : "font_size", BodyFontSize);
 		control.AddThemeColorOverride(rich ? "default_color" : "font_color", color);
-	}
-
-	private static void AddColoredText(RichTextLabel label, string text, Color color)
-	{
-		if (text.Length == 0)
-			return;
-
-		label.PushColor(color);
-		label.AddText(text);
-		label.Pop();
 	}
 }

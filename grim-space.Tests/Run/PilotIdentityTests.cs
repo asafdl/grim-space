@@ -54,7 +54,6 @@ public sealed class PilotIdentityTests
 			claimedLevel: 1);
 		var pilot = Pilot.FromRecruitProfile("gunship-1", profile);
 
-		Assert.False(pilot.IsActive);
 		Assert.Equal("gunship-1", pilot.AssignedShipId);
 		Assert.Equal(profile.Name, pilot.Name);
 		Assert.Equal(profile.PortraitId, pilot.PortraitId);
@@ -96,7 +95,7 @@ public sealed class PilotIdentityTests
 	public void WithAssignment_PreservesIdentity()
 	{
 		var original = Pilot.CreateForShip("fighter-a");
-		var pilot = original.WithAssignment("fighter-b", true);
+		var pilot = original.WithAssignment("fighter-b");
 
 		Assert.Equal(original.PositiveQuirkIds, pilot.PositiveQuirkIds);
 		Assert.Equal(original.NegativeQuirkIds, pilot.NegativeQuirkIds);
@@ -175,8 +174,7 @@ public sealed class PilotIdentityTests
 			ExperiencePoints: 0,
 			ClaimedLevel: 1,
 			LearnedSkills: [],
-			IsActive: false,
-			ActiveOrder: -1,
+			DeploymentOrder: -1,
 			BaseSalaryCredits: 1,
 			MissedSalaryPeriods: 0,
 			MissedHazardPeriods: 0,

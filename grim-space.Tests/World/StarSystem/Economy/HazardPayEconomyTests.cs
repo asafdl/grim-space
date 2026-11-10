@@ -23,7 +23,7 @@ public sealed class HazardPayEconomyTests
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithHazardMissedPeriods(2));
 		var hazardDue =
-			StrategicEconomyConfig.HazardPayCreditsPerPilot * run.PilotRegistry.Active.Count;
+			StrategicEconomyConfig.HazardPayCreditsPerPilot * run.PilotRegistry.Assigned.Count;
 		var creditsBefore = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
 
 		AddPirate(run);
@@ -51,7 +51,7 @@ public sealed class HazardPayEconomyTests
 			"refuse-engagement",
 			RunState.PlayerFleetUnitId,
 			[RunState.PlayerFleetUnitId, "pirate-a"],
-			RefusedPilotIds: run.PilotRegistry.Active.Select(active => active.Id).ToArray());
+			RefusedPilotIds: run.PilotRegistry.Assigned.Select(active => active.Id).ToArray());
 		run.ReceiveEngagementFact(new Record<EngagementCommitted>(fact));
 
 		Assert.Null(run.ActiveBattle);

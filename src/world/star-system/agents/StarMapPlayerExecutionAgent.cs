@@ -52,8 +52,7 @@ public sealed class StarMapPlayerExecutionAgent
 			or HirePilotAction
 			or AcceptContractAction
 			or DeclineContractAction
-			or CompleteDeliveryFacilityLegAction
-			or SelectActiveFleetShipAction;
+			or CompleteDeliveryFacilityLegAction;
 
 	public MoveAction? PendingMove => _pendingAction as MoveAction;
 

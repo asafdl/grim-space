@@ -58,7 +58,7 @@ public static class StarMapPilotCapabilityPipelineFactory
 		if (orchestrator.PlayerId is null)
 			return;
 
-		var grants = registry.QueryCapabilitiesForActive(Supports);
+		var grants = registry.QueryCapabilitiesForAssigned(Supports);
 		orchestrator.RuntimeFor(orchestrator.PlayerId).ReplaceActionEffects(Build(grants));
 	}
 }

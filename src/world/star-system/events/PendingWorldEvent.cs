@@ -14,7 +14,8 @@ public sealed record PendingWorldEvent(
 	string Id,
 	EWorldEventId EventId,
 	string PilotId,
-	string ShipId,
+	/// <summary>The pilot's ship, or null for a pilot without one.</summary>
+	string? ShipId,
 	int Damage,
 	WorldEventPresentation Presentation,
 	ResourceBundle? Reward = null,

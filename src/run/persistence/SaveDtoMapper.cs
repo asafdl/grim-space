@@ -61,7 +61,6 @@ public static class SaveDtoMapper
 				runtime.IgnoreUntilTickByTargetId,
 				StringComparer.Ordinal),
 			runtime.ActionCooldownUntilTick,
-			runtime.SelectedMemberShipId,
 			runtime.FuelLedgerJourneyId,
 			runtime.FuelChargedDistanceAlongCurrentJourney,
 			runtime.FuelUnchargedDistance);
@@ -85,7 +84,6 @@ public static class SaveDtoMapper
 		runtime.PendingCompletionTick = dto.PendingCompletionTick;
 		runtime.JourneyIdSequence = dto.JourneyIdSequence;
 		runtime.ActionCooldownUntilTick = dto.ActionCooldownUntilTick;
-		runtime.SelectedMemberShipId = dto.SelectedMemberShipId;
 		runtime.ApplyTravelFuelLedger(
 			dto.FuelLedgerJourneyId,
 			dto.FuelChargedDistanceAlongCurrentJourney,

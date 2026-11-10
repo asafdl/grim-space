@@ -114,7 +114,7 @@ public sealed class PurchaseShipActionTests
 		using var run = State.CreateNewRun(42);
 		RunTestKit.EnlistUntilActivePilotCap(run);
 
-		Assert.Equal(RunPilotRegistry.MaxActivePilots, run.PilotRegistry.Active.Count);
+		Assert.Equal(RunPilotRegistry.MaxPilots, run.PilotRegistry.Assigned.Count);
 		var pilotCountBefore = run.PilotRegistry.All.Count;
 		var ownedBefore = run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId).Count();
 

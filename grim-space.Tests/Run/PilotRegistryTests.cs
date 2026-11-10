@@ -25,12 +25,12 @@ public sealed class PilotRegistryTests
 		{
 			using var first = State.CreateNewRun(seed);
 			using var second = State.CreateNewRun(seed);
-			var pilots = first.PilotRegistry.Active;
+			var pilots = first.PilotRegistry.Assigned;
 			Assert.Equal(2, pilots.Count);
 			Assert.Equal(2, pilots.Select(pilot => pilot.ClassId).Distinct().Count());
 			Assert.Equal(
 				pilots.Select(pilot => pilot.ClassId),
-				second.PilotRegistry.Active.Select(pilot => pilot.ClassId));
+				second.PilotRegistry.Assigned.Select(pilot => pilot.ClassId));
 			foreach (var pilot in pilots)
 			{
 				seen.Add(pilot.ClassId);
@@ -61,8 +61,7 @@ public sealed class PilotRegistryTests
 		Assert.False(string.IsNullOrWhiteSpace(pilot.Name));
 		Assert.Contains(pilot.PortraitId, Pilot.PortraitPool);
 		Assert.Equal(shipId, pilot.AssignedShipId);
-		Assert.True(pilot.IsActive);
-		Assert.Equal(2, run.PilotRegistry.Active.Count);
+		Assert.Equal(2, run.PilotRegistry.Assigned.Count);
 		Assert.Equal(pilot, RunTestKit.StarterRangerPilot(run));
 		Assert.Equal(PilotProgression.LevelFor(0), pilot.ClaimedLevel);
 		Assert.Empty(pilot.LearnedSkills);
@@ -85,8 +84,7 @@ public sealed class PilotRegistryTests
 		Assert.True(run.PilotRegistry.TryGetForShip(minerShipId, out var pilot));
 		Assert.Equal(EOperatorClassId.Support, pilot.ClassId);
 		Assert.Equal(minerShipId, pilot.AssignedShipId);
-		Assert.True(pilot.IsActive);
-		Assert.Equal(2, run.PilotRegistry.Active.Count);
+		Assert.Equal(2, run.PilotRegistry.Assigned.Count);
 	}
 
 	[Fact]
@@ -143,14 +141,12 @@ public sealed class PilotRegistryTests
 
 		Assert.True(run.TryAssignPilotToShip(replacement.Id, shipId));
 
-		Assert.Equal(replacement.Id, run.PilotRegistry.Active.Single(active => active.Id == replacement.Id).Id);
+		Assert.Equal(replacement.Id, run.PilotRegistry.Assigned.Single(active => active.Id == replacement.Id).Id);
 		Assert.Equal(shipId, RunTestKit.StarterFighterShipId(run));
 		Assert.True(run.PilotRegistry.TryGet(replacement.Id, out var assignedReplacement));
 		Assert.Equal(shipId, assignedReplacement.AssignedShipId);
-		Assert.True(assignedReplacement.IsActive);
 		Assert.True(run.PilotRegistry.TryGet(originalPilot.Id, out var replacedPilot));
 		Assert.Null(replacedPilot.AssignedShipId);
-		Assert.False(replacedPilot.IsActive);
 	}
 
 	[Fact]
@@ -162,14 +158,13 @@ public sealed class PilotRegistryTests
 		var emptyShipId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryAcquireOwnedShip(
 			new ShipSpawnDeclaration(emptyShipId, BattleUnitType.Fighter, EShipGearTier.T1)));
-		var activeBefore = run.PilotRegistry.Active.Count;
+		var activeBefore = run.PilotRegistry.Assigned.Count;
 
 		Assert.True(run.TryAssignPilotToShip(pilot.Id, emptyShipId));
 
 		Assert.True(run.PilotRegistry.TryGet(pilot.Id, out var moved));
 		Assert.Equal(emptyShipId, moved.AssignedShipId);
-		Assert.True(moved.IsActive);
-		Assert.Equal(activeBefore, run.PilotRegistry.Active.Count);
+		Assert.Equal(activeBefore, run.PilotRegistry.Assigned.Count);
 		Assert.Contains(emptyShipId, run.GetFieldedShipIds());
 		Assert.DoesNotContain(starterShipId, run.GetFieldedShipIds());
 		Assert.False(run.PilotRegistry.TryGetForShip(starterShipId, out _));
@@ -179,7 +174,7 @@ public sealed class PilotRegistryTests
 	public void TryAssignPilotToShip_FieldsReservePilotOntoEmptyShipWhenSquadHasRoom()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
-		Assert.Equal(2, run.PilotRegistry.Active.Count);
+		Assert.Equal(2, run.PilotRegistry.Assigned.Count);
 		var emptyShipId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryAcquireOwnedShip(
 			new ShipSpawnDeclaration(emptyShipId, BattleUnitType.Fighter, EShipGearTier.T1)));
@@ -191,27 +186,7 @@ public sealed class PilotRegistryTests
 
 		Assert.True(run.PilotRegistry.TryGet(reserve.Id, out var fielded));
 		Assert.Equal(emptyShipId, fielded.AssignedShipId);
-		Assert.True(fielded.IsActive);
-		Assert.Equal(3, run.PilotRegistry.Active.Count);
-		Assert.Contains(emptyShipId, run.GetFieldedShipIds());
-	}
-
-	[Fact]
-	public void EnsureActiveRosterFilledFromAssignments_ActivatesAssignedInactivePilots()
-	{
-		using var run = RunTestKit.CreateFighterSupportRun();
-		var emptyShipId = TypedIdGenerator.NextId("fighter");
-		Assert.True(run.TryAcquireOwnedShip(
-			new ShipSpawnDeclaration(emptyShipId, BattleUnitType.Fighter, EShipGearTier.T1)));
-		var reserve = Pilot.CreateForShip(emptyShipId);
-		run.PilotRegistry.Register(reserve);
-		Assert.False(reserve.IsActive);
-		Assert.Equal(emptyShipId, reserve.AssignedShipId);
-
-		Assert.True(run.EnsureActiveRosterFilledFromAssignments());
-
-		Assert.True(run.PilotRegistry.TryGet(reserve.Id, out var fielded));
-		Assert.True(fielded.IsActive);
+		Assert.Equal(3, run.PilotRegistry.Assigned.Count);
 		Assert.Contains(emptyShipId, run.GetFieldedShipIds());
 	}
 
@@ -243,7 +218,7 @@ public sealed class PilotRegistryTests
 		var shipId = "unclassified-reserve";
 		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Gunship)));
 		var fieldedBefore = run.GetFieldedShipIds().ToArray();
-		var activeBefore = run.PilotRegistry.Active.ToArray();
+		var activeBefore = run.PilotRegistry.Assigned.ToArray();
 
 		Assert.False(run.TryAssignPilotToShip(
 			pilot.Id,
@@ -252,7 +227,7 @@ public sealed class PilotRegistryTests
 
 		Assert.Equal(EPilotAssignmentFailureReason.IncompatibleClass, failureReason);
 		Assert.Equal(fieldedBefore, run.GetFieldedShipIds());
-		Assert.Equal(activeBefore, run.PilotRegistry.Active);
+		Assert.Equal(activeBefore, run.PilotRegistry.Assigned);
 		Assert.Equal(run.ItemInventory.Get(shipId).Id, shipId);
 		Assert.Equal(run.ItemInventory.Get(fieldedBefore[0]).Id, pilot.AssignedShipId);
 	}
@@ -270,7 +245,7 @@ public sealed class PilotRegistryTests
 		run.PilotRegistry.Unassign(reservePilot.Id);
 		var assignmentsBefore = run.PilotRegistry.All
 			.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
-			.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+			.Select(candidate => (candidate.Id, candidate.AssignedShipId))
 			.ToArray();
 
 		Assert.False(run.TryAssignPilotToShip(pilot.Id, minerShipId));
@@ -278,13 +253,13 @@ public sealed class PilotRegistryTests
 			assignmentsBefore,
 			run.PilotRegistry.All
 				.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
-				.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+				.Select(candidate => (candidate.Id, candidate.AssignedShipId))
 				.ToArray());
 		Assert.Equal(fighterShipId, pilot.AssignedShipId);
 	}
 
 	[Fact]
-	public void RegistryDirectAssignmentAndActivationRejectIncompatibleShip()
+	public void RegistryDirectAssignmentRejectsIncompatibleShip()
 	{
 		var registry = new RunPilotRegistry();
 		var inventory = new GrimSpace.Run.Items.Inventory();
@@ -294,14 +269,11 @@ public sealed class PilotRegistryTests
 			ShipInstance.FromCatalog("unclassified-ship", EType.RepurposedMiner),
 			playerFleet);
 		registry.Register(pilot);
+		registry.Unassign(pilot.Id);
 
 		Assert.Throws<InvalidOperationException>(() =>
-			registry.Activate(pilot.Id, inventory, playerFleet));
-		Assert.Throws<InvalidOperationException>(() =>
 			registry.AssignShip(pilot.Id, "unclassified-ship", inventory, playerFleet));
-		Assert.Empty(registry.Active);
-		Assert.True(registry.TryGet(pilot.Id, out var unchanged));
-		Assert.False(unchanged.IsActive);
+		Assert.Empty(registry.Assigned);
 	}
 
 	[Fact]
@@ -318,7 +290,7 @@ public sealed class PilotRegistryTests
 		registry.Register(minerPilot);
 		var before = registry.All
 			.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
-			.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+			.Select(candidate => (candidate.Id, candidate.AssignedShipId))
 			.ToArray();
 
 		Assert.Throws<InvalidOperationException>(() =>
@@ -327,7 +299,7 @@ public sealed class PilotRegistryTests
 			before,
 			registry.All
 				.OrderBy(candidate => candidate.Id, StringComparer.Ordinal)
-				.Select(candidate => (candidate.Id, candidate.AssignedShipId, candidate.IsActive))
+				.Select(candidate => (candidate.Id, candidate.AssignedShipId))
 				.ToArray());
 	}
 
@@ -500,24 +472,16 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
-	public void FromSnapshot_ThrowsWhenActivePilotHasNoAssignedShip()
+	public void FromSnapshot_RestoresLastDeploymentOrder()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
+		var deployment = run.PilotRegistry.Assigned.Select(pilot => pilot.Id).Reverse().ToArray();
+		run.PilotRegistry.RecordDeployment(deployment);
 		var registry = PersistenceRegistry.CreateDefault();
-		var snapshot = run.CaptureSnapshot(registry) with
-		{
-			Pilots =
-			[
-				run.PilotRegistry.CaptureSnapshot()[0] with
-				{
-					IsActive = true,
-					ActiveOrder = 0,
-					AssignedShipId = null,
-				},
-			],
-		};
 
-		Assert.Throws<InvalidDataException>(() => State.FromSnapshot(snapshot, registry));
+		using var restored = State.FromSnapshot(run.CaptureSnapshot(registry), registry);
+
+		Assert.Equal(deployment, restored.PilotRegistry.LastDeployment);
 	}
 
 	[Fact]

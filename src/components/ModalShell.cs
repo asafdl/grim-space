@@ -551,6 +551,7 @@ public sealed partial class ModalShell : Control
 		{
 			Disabled = !action.Enabled,
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
 		};
 		button.SetVisual(_footerButtonVisual);
 		button.Pressed += () => action.OnPressed(button);

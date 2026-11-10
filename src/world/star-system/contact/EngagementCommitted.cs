@@ -4,4 +4,5 @@ public sealed record EngagementCommitted(
 	string EngagementId,
 	string InitiatorFleetId,
 	IReadOnlyList<string> ParticipantFleetIds,
-	IReadOnlyList<string>? RefusedPilotIds = null);
+	IReadOnlyList<string>? RefusedPilotIds = null,
+	IReadOnlyList<string>? DeployedPilotIds = null);

@@ -45,7 +45,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		_narrativePicker = new ContractNarrativePicker(_config.Narrative);
 	}
 
-	public void PlanAndPublish()
+	public void PlanAndPublish(bool forceStandardGeneration = false)
 	{
 		if (!_canWork || _actorId is null)
 			return;
@@ -53,7 +53,7 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		ClearBatchInFlight();
 		var world = _world();
 		var tick = world.Timeline.Clock.Current;
-		var action = BuildMaintainAction(world, tick);
+		var action = BuildMaintainAction(world, tick, forceStandardGeneration);
 		var runtime = _runtimeFor(_actorId);
 		if (!MaintainContractBoardDef.Instance.IsLegal(action, world, runtime))
 			return;
@@ -443,10 +443,13 @@ public sealed class ContractBoardExecutionAgent : ExecutionAgent<StarMap, ActorR
 		return candidates[(int)(random.NextDouble() * candidates.Count)];
 	}
 
-	private MaintainContractBoardAction BuildMaintainAction(StarMap map, int tick)
+	private MaintainContractBoardAction BuildMaintainAction(
+		StarMap map,
+		int tick,
+		bool forceStandardGeneration = false)
 	{
 		var additions = new List<ContractAddition>();
-		if (_generationEnabled() && IsCadenceTick(tick))
+		if (_generationEnabled() && (forceStandardGeneration || IsCadenceTick(tick)))
 		{
 			var slots = SlotsToFill(map);
 			var queuedContracts = new List<Contract>();

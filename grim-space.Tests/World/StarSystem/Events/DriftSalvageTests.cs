@@ -99,7 +99,7 @@ public sealed class DriftSalvageTests
 		var roll = TriggeringRoll(run);
 		var finder = RollForDriftSalvageDef.SelectFinder(
 			roll.RngSeed,
-			WorldEventContexts.FieldedPilots(run.StarSystem.Map))!;
+			WorldEventContexts.RosterPilots(run.StarSystem.Map))!;
 		var reward = RollForDriftSalvageDef.RollReward(roll.RngSeed);
 
 		run.StarSystem.CommitSetup(roll);
@@ -115,6 +115,30 @@ public sealed class DriftSalvageTests
 		Assert.Equal(reward, pending.Reward);
 		Assert.Equal(WorldEventCatalog.Drift.Announce(finder.Name), pending.Presentation);
 		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
+	}
+
+	[Fact]
+	public void Roll_ShiplessPilotTravelingWithFleet_CanFindSalvage()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		foreach (var assigned in run.PilotRegistry.Assigned)
+			run.PilotRegistry.Update(assigned.WithPersonality(new PilotPersonality(0, -5, 0)));
+		var passenger = PilotWith(5, "Passenger");
+		run.PilotRegistry.Register(passenger);
+		StartJourney(run);
+		var roll = Enumerable.Range(0, 10_000)
+			.Select(seed => new RollForDriftSalvageAction(StarSystemActorIds.WorldEvents, (ulong)seed))
+			.First(candidate => RollForDriftSalvageDef.SelectFinder(
+				candidate.RngSeed,
+				WorldEventContexts.RosterPilots(run.StarSystem.Map))?.Id == passenger.Id);
+
+		run.StarSystem.CommitSetup(roll);
+		run.StarSystem.AdvanceTick();
+
+		var pending = run.StarSystem.Map.PendingWorldEvent;
+		Assert.NotNull(pending);
+		Assert.Equal(passenger.Id, pending.PilotId);
+		Assert.Null(pending.ShipId);
 	}
 
 	[Fact]
@@ -137,7 +161,7 @@ public sealed class DriftSalvageTests
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = FieldPilot(run, deliberation: -5);
-		foreach (var other in run.PilotRegistry.Active.Where(active => active.Id != pilot.Id).ToArray())
+		foreach (var other in run.PilotRegistry.Assigned.Where(active => active.Id != pilot.Id).ToArray())
 			run.PilotRegistry.Unassign(other.Id);
 		StartJourney(run);
 
@@ -266,8 +290,7 @@ public sealed class DriftSalvageTests
 			shipId,
 			run.ItemInventory,
 			RunState.PlayerFleetUnitId);
-		run.PilotRegistry.Activate(pilot.Id, run.ItemInventory, RunState.PlayerFleetUnitId);
-		return run.PilotRegistry.Active.Single(active => active.Id == pilot.Id);
+		return run.PilotRegistry.Assigned.Single(active => active.Id == pilot.Id);
 	}
 
 	private static void StartJourney(RunState run)
@@ -279,7 +302,7 @@ public sealed class DriftSalvageTests
 
 	private static RollForDriftSalvageAction TriggeringRoll(RunState run)
 	{
-		var pilots = WorldEventContexts.FieldedPilots(run.StarSystem.Map).ToArray();
+		var pilots = WorldEventContexts.RosterPilots(run.StarSystem.Map).ToArray();
 		for (ulong seed = 0; seed < 10_000; seed++)
 		{
 			if (RollForDriftSalvageDef.SelectFinder(seed, pilots) is not null)
@@ -297,7 +320,7 @@ public sealed class DriftSalvageTests
 
 	private static PendingWorldEvent OpenAnnouncement(RunState run, ResourceBundle reward)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-test",
 			EWorldEventId.DriftSalvage,

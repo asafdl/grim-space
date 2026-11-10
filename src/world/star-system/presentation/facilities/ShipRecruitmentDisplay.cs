@@ -15,17 +15,61 @@ internal static class ShipRecruitmentDisplay
 	public static HudTooltipContent OfferTooltip(RecruitmentOffer offer)
 	{
 		ArgumentNullException.ThrowIfNull(offer);
+		return ShipTooltip(
+			offer.Chassis,
+			offer.GearTier,
+			ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed));
+	}
 
-		var title = $"{PilotHireDisplay.ShipChassisLabel(offer.Chassis)} {offer.GearTier}";
-		var stock = ShipCatalog.LoadoutForTier(offer.Chassis, EShipGearTier.T0);
-		var candidate = ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed);
+	public static HudTooltipContent ShipTooltip(ShipInstance ship) =>
+		ShipTooltip(
+			ship.Spec.Chassis,
+			ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis),
+			ship.Loadout);
+
+	/// <summary>Candidate's stats followed by its gains and losses against the equipped ship.</summary>
+	public static HudTooltipContent CompareTooltip(ShipInstance candidate, ShipInstance? equipped)
+	{
+		if (equipped is null)
+			return ShipTooltip(candidate);
+
+		var chassis = candidate.Spec.Chassis;
+		return Build(
+			$"{PilotHireDisplay.ShipChassisLabel(chassis)} {ShipLoadoutGearTier.FromLoadout(candidate.Loadout, chassis)}",
+			candidate.Loadout,
+			equipped.Spec.Chassis,
+			equipped.Loadout,
+			chassis,
+			candidate.Loadout);
+	}
+
+	private static HudTooltipContent ShipTooltip(EType chassis, EShipGearTier gearTier, ShipLoadout candidate)
+	{
+		var stock = ShipCatalog.LoadoutForTier(chassis, EShipGearTier.T0);
+		return Build(
+			$"{PilotHireDisplay.ShipChassisLabel(chassis)} {gearTier}",
+			stock,
+			chassis,
+			stock,
+			chassis,
+			candidate);
+	}
+
+	private static HudTooltipContent Build(
+		string title,
+		ShipLoadout shownBase,
+		EType baselineChassis,
+		ShipLoadout baseline,
+		EType candidateChassis,
+		ShipLoadout candidate)
+	{
 		var changes = new List<(bool Improves, string Line)>();
-		AddHardwareDiff(changes, ShipHardwareDiff.Compare(offer.Chassis, stock, offer.Chassis, candidate));
-		AddMountDeltas(changes, stock, candidate);
-		AddBuffTotals(changes, ChassisBuffCatalog.Sum(candidate.Buffs));
+		AddHardwareDiff(changes, ShipHardwareDiff.Compare(baselineChassis, baseline, candidateChassis, candidate));
+		AddMountDeltas(changes, baseline, candidate);
+		AddBuffTotals(changes, ChassisBuffCatalog.Sum(candidate.Buffs), ChassisBuffCatalog.Sum(baseline.Buffs));
 		var body = string.Join(
 			HudTooltipContent.Divider,
-			new[] { BaseStats(stock), Lines(changes, improves: true), Lines(changes, improves: false) }
+			new[] { BaseStats(shownBase), Lines(changes, improves: true), Lines(changes, improves: false) }
 				.Where(section => section.Length > 0));
 		return new HudTooltipContent(title, body);
 	}
@@ -96,14 +140,17 @@ internal static class ShipRecruitmentDisplay
 		}
 	}
 
-	private static void AddBuffTotals(List<(bool Improves, string Line)> changes, ChassisBuffTotals totals)
+	private static void AddBuffTotals(
+		List<(bool Improves, string Line)> changes,
+		ChassisBuffTotals totals,
+		ChassisBuffTotals baseline)
 	{
-		AddStat(changes, "Damage", totals.WeaponDamagePercent, "%");
-		AddStat(changes, "Overdrive", totals.OverdrivePoints, "%");
-		AddStat(changes, "Heat", totals.HeatCapacityPercent, "%");
-		AddStat(changes, "Heat", totals.HeatRecoveryPercent, "%", " Recovery ");
-		AddStat(changes, "CurrentActionPoints", totals.CurrentActionPoints);
-		AddStat(changes, "CurrentManeuverPoints", totals.CurrentManeuverPoints);
+		AddStat(changes, "Damage", totals.WeaponDamagePercent - baseline.WeaponDamagePercent, "%");
+		AddStat(changes, "Overdrive", totals.OverdrivePoints - baseline.OverdrivePoints, "%");
+		AddStat(changes, "Heat", totals.HeatCapacityPercent - baseline.HeatCapacityPercent, "%");
+		AddStat(changes, "Heat", totals.HeatRecoveryPercent - baseline.HeatRecoveryPercent, "%", " Recovery ");
+		AddStat(changes, "CurrentActionPoints", totals.CurrentActionPoints - baseline.CurrentActionPoints);
+		AddStat(changes, "CurrentManeuverPoints", totals.CurrentManeuverPoints - baseline.CurrentManeuverPoints);
 	}
 
 	private static void AddStat(

@@ -85,7 +85,7 @@ public sealed class CleanupDismissedContractEffect(
 				}
 				break;
 			case WreckageObjective wreckage:
-				yield return InvestigateWreckageDef.AmbushUnitIdFor(wreckage);
+				yield return ReachWreckageDef.AmbushUnitIdFor(wreckage);
 				break;
 		}
 	}

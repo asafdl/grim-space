@@ -19,20 +19,18 @@ public sealed partial class UiImageListItem : UiListItem
 	private const int TextMarginBottom = 24;
 
 	private readonly TextureRect _bracket;
-	private readonly UiFramedPortrait _portrait;
+	private readonly UiFramedPortrait? _portrait;
 	private readonly ShaderMaterial? _frameMaterial;
 
 	public UiImageListItem(
 		string title,
 		string metadata,
 		string trailingValue,
-		Texture2D image,
+		Texture2D? image,
 		HudPalette? palette = null,
 		Color? frameEdgeColor = null)
 		: base(title, metadata, trailingValue, palette)
 	{
-		ArgumentNullException.ThrowIfNull(image);
-
 		Sizing.SetDefaultSize(new UiSize(0f, DefaultRowHeight));
 		SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		SetContentMargins(
@@ -57,14 +55,20 @@ public sealed partial class UiImageListItem : UiListItem
 			_frameMaterial.SetShaderParameter("edge_color", edge);
 		}
 
-		_portrait = new UiFramedPortrait(image, _frameMaterial ?? PaletteMaterial);
-		AddChild(_portrait);
+		// Null image keeps the bracket body and slot width so rows align with image rows.
+		if (image is not null)
+		{
+			_portrait = new UiFramedPortrait(image, _frameMaterial ?? PaletteMaterial);
+			AddChild(_portrait);
+		}
 
 		Resized += LayoutImage;
 		Callable.From(LayoutImage).CallDeferred();
 	}
 
-	public void SetImage(Texture2D image) => _portrait.SetPortrait(image);
+	public Control? Portrait => _portrait;
+
+	public void SetImage(Texture2D image) => _portrait?.SetPortrait(image);
 
 	private protected override void OnPaletteRefreshed(Color surface, float brightness)
 	{
@@ -83,6 +87,9 @@ public sealed partial class UiImageListItem : UiListItem
 			Size.X - PortraitGap - PortraitDiameter + PortraitOverlap);
 		_bracket.Position = Vector2.Zero;
 		_bracket.Size = new Vector2(bodyWidth, Size.Y);
+
+		if (_portrait is null)
+			return;
 
 		var portraitLeft = bodyWidth + PortraitGap - PortraitOverlap;
 		var radius = PortraitDiameter * 0.5f;

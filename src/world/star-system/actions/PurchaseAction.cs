@@ -103,10 +103,7 @@ public sealed class PurchaseActionDef
 		out MerchantCatalog.Offer offer)
 	{
 		offer = default!;
-		if (!world.FleetRegistry.TryGet(purchase.ActorId, out var fleet))
-			return false;
-		if (!fleet.Members.Any(member =>
-				string.Equals(member.Id, purchase.Before.Id, StringComparison.Ordinal)))
+		if (world.ItemInventory?.IsOwnedBy(purchase.Before.Id, purchase.ActorId) != true)
 			return false;
 		if (!EndpointServesPurchaseProvider(purchase, world))
 			return false;

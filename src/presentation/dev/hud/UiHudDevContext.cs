@@ -104,34 +104,11 @@ public sealed class UiHudDevContext
 				facilitySlug,
 				operatorSceneSlotId));
 
-	public ShipInstance SelectedShip()
-	{
-		var runtime = StarSystem.RuntimeFor(State.PlayerFleetUnitId);
-		var shipId = PlayerFleetSelection.EnsureSelectedMember(
-			Map,
-			runtime,
-			State.PlayerFleetUnitId,
-			Run.GetFieldedShipIds())
-			?? throw new InvalidOperationException("HUD preview run has no fielded ship.");
-		return Run.ItemInventory.Get(shipId);
-	}
-
 	public MerchantCatalogQuote BuildCatalogQuote(
 		MerchantEndpoint endpoint,
-		EMerchantCatalog catalog)
-	{
-		var ship = SelectedShip();
-		return new MerchantCatalogQuote(
-			endpoint,
-			catalog,
-			ship.Id,
-			MerchantCatalog.ListFor(catalog, ship, Map));
-	}
-
-	public void RequestCatalog(
-		MerchantEndpoint endpoint,
-		EMerchantCatalog catalog) =>
-		Intents.TryFetchMerchantCatalog(endpoint, catalog, SelectedShip().Clone());
+		EMerchantCatalog catalog,
+		ShipInstance ship) =>
+		new(endpoint, catalog, ship.Id, MerchantCatalog.ListFor(catalog, ship, Map));
 
 	public readonly record struct PilotHirePreviewSetup(
 		string ContractId,

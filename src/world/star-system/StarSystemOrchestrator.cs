@@ -117,6 +117,19 @@ public sealed class StarSystemOrchestrator : IDisposable
 
 	public void SetContractGenerationEnabled(bool enabled) => _contractGenerationEnabled = enabled;
 
+	/// <summary>
+	/// Fills the generated contract board immediately (ignores cadence) so a new run
+	/// is not empty if the player pauses before the first cadence advance.
+	/// </summary>
+	public void SeedContractBoard()
+	{
+		if (!_contractGenerationEnabled)
+			return;
+
+		CommitContractBoardActions(forceStandardGeneration: true);
+		NotifyWorldUpdated();
+	}
+
 	internal void ReconcileContractPresentations() =>
 		_contractBoardAgent.ReconcilePresentations();
 
@@ -675,13 +688,13 @@ public sealed class StarSystemOrchestrator : IDisposable
 		Commit([..actions]);
 	}
 
-	private void CommitContractBoardActions()
+	private void CommitContractBoardActions(bool forceStandardGeneration = false)
 	{
-		_contractBoardAgent.PlanAndPublish();
+		_contractBoardAgent.PlanAndPublish(forceStandardGeneration);
 		if (!_actionSink.TryTakeBatch(StarSystemActorIds.Contracts, out var batch) || batch.Actions.Count == 0)
 			return;
 
-		_engine.Commit([..batch.Actions]);
+		Commit([..batch.Actions]);
 	}
 
 	private void CommitFleetSpawnerActions()

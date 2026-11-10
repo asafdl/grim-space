@@ -184,7 +184,7 @@ public sealed class PilotBarkDirector : IDisposable
 			return;
 
 		_travelBark = null;
-		OfferActivePilots(run, TravelFlavors, 1, 3);
+		OfferAssignedPilots(run, TravelFlavors, 1, 3);
 	}
 
 	private void OnDeliveryContractStateChanged(Record<ContractStateChanged> record)
@@ -208,7 +208,7 @@ public sealed class PilotBarkDirector : IDisposable
 			return;
 		}
 
-		OfferActivePilots(run, DeliveryCompletionFlavors, 1, 1);
+		OfferAssignedPilots(run, DeliveryCompletionFlavors, 1, 1);
 	}
 
 	private void OnContactReached(ReachContactAction action)
@@ -223,28 +223,31 @@ public sealed class PilotBarkDirector : IDisposable
 			return;
 		}
 
-		OfferActivePilots(run, EngagementDecisionFlavors, 1, 3);
+		OfferAssignedPilots(run, EngagementDecisionFlavors, 1, 3);
 	}
 
 	private void OnWreckReached(ReachWreckageAction action)
 	{
 		if (_run is not { } run
 			|| action.ActorId != State.PlayerFleetUnitId
-			|| !WreckageQueries.TryGetPendingPlayerWreckDecision(
-				run.StarSystem.Map, State.PlayerFleetUnitId, out var pending)
-			|| pending.ContractId != action.ContractId)
+			|| !run.StarSystem.Map.ContractRegistry.TryGet(action.ContractId, out var contract)
+			|| contract.Objective is not WreckageObjective wreckage)
 		{
-			GameLog.Log("[Barks] Ignore: no matching player wreck decision.");
+			GameLog.Log("[Barks] Ignore: no matching player wreck contract.");
 			return;
 		}
 
-		OfferActivePilots(run, pending.IsAmbush ? WreckAmbushFlavors : WreckSalvageFlavors, 1, 3);
+		OfferAssignedPilots(
+			run,
+			wreckage.Outcome is WreckageOutcome.Ambush ? WreckAmbushFlavors : WreckSalvageFlavors,
+			1,
+			3);
 	}
 
-	private void OfferActivePilots(
+	private void OfferAssignedPilots(
 		State run, IReadOnlyList<EBarkFlavor> flavors, int minPilots, int maxPilots)
 	{
-		var pilotIds = run.PilotRegistry.Active
+		var pilotIds = run.PilotRegistry.Assigned
 			.Where(pilot => _pilotHandles.ContainsKey(pilot.Id))
 			.Select(pilot => pilot.Id).ToArray();
 		Offer(pilotIds, flavors, minPilots: minPilots, maxPilots: maxPilots);
@@ -252,7 +255,7 @@ public sealed class PilotBarkDirector : IDisposable
 
 	private void PlayOpeningBarks(State run)
 	{
-		foreach (var pilot in run.PilotRegistry.Active)
+		foreach (var pilot in run.PilotRegistry.Assigned)
 		{
 			if (!Script(pilot.Id, PilotBarkCatalog.OpeningLines[0]))
 				continue;

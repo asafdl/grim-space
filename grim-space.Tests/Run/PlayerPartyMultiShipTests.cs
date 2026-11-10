@@ -35,30 +35,14 @@ namespace GrimSpace.Tests.Run;
 public sealed class PlayerPartyMultiShipTests
 {
 	[Fact]
-	public void Snapshot_RestoresSelectedFleetMember()
-	{
-		using var run = RunState.CreateNewRun(42);
-		var secondId = TypedIdGenerator.NextId("fighter");
-		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
-		Assert.True(SelectActiveShip(run, secondId));
-
-		var registry = PersistenceRegistry.CreateDefault();
-		var snapshot = run.CaptureSnapshot(registry);
-		using var restored = RunState.FromSnapshot(snapshot, registry);
-
-		Assert.Equal(
-			secondId,
-			restored.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId).SelectedMemberShipId);
-	}
-
-	[Fact]
-	public void CreateActiveBattleOrchestrator_PrefersSelectedPlayerWhenBattleWorldIsRestoredOver()
+	public void CreateActiveBattleOrchestrator_LeadsWithFirstDeployedPilotWhenBattleWorldIsRestored()
 	{
 		using var run = RunState.CreateNewRun(42);
 		var first = run.GetFieldedShipIds()[0];
 		var secondId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
-		Assert.True(SelectActiveShip(run, secondId));
+		var secondPilot = run.PilotRegistry.All.First(pilot => pilot.AssignedShipId == secondId);
+		run.PilotRegistry.RecordDeployment([secondPilot.Id]);
 
 		var encounter = new BattleEncounter
 		{
@@ -100,13 +84,12 @@ public sealed class PlayerPartyMultiShipTests
 	}
 
 	[Fact]
-	public void CreateNewRun_MerchantPurchaseAppliesToSelectedShip()
+	public void CreateNewRun_MerchantPurchaseAppliesToTargetShipOnly()
 	{
 		using var run = RunState.CreateNewRun(42);
 		var first = run.GetFieldedShipIds()[0];
 		var secondId = TypedIdGenerator.NextId("fighter");
 		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration(secondId, BattleUnitType.Fighter)));
-		Assert.True(SelectActiveShip(run, secondId));
 
 		var selected = run.ItemInventory.Get(secondId);
 		selected.CurrentHullPoints = 1;
@@ -209,11 +192,6 @@ public sealed class PlayerPartyMultiShipTests
 			run.ItemInventory.Register(declaration, pirate.State.Id);
 		return pirate;
 	}
-
-	private static bool SelectActiveShip(RunState run, string shipId) =>
-		new UserIntentTranslator(
-			RunState.PlayerFleetUnitId,
-			run.StarSystem.ImmediatePlayerActions).TrySelectActiveShip(shipId);
 
 	private static void SeedResources(StarMap map, int credits, int scrap)
 	{

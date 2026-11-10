@@ -113,13 +113,13 @@ public sealed class FleeActionTests(StarMapFixture maps)
 		var inactive = Pilot.CreateForShip("inactive", rng: new Random(2)).WithExperience(100);
 		var unassigned = Pilot.CreateForShip("unassigned", rng: new Random(3))
 			.WithExperience(250)
-			.WithAssignment(null, false);
+			.WithAssignment(null);
 		map.PilotRegistry.Register(active);
 		map.PilotRegistry.Register(inactive);
 		map.PilotRegistry.Register(unassigned);
 
 		Assert.Equal(1, inactive.ClaimedLevel);
-		Assert.Equal(40, FleeDef.FuelCost(map));
+		Assert.Equal(40, FleeDef.FuelCost(map, "pirate"));
 	}
 
 	[Theory]
@@ -204,7 +204,7 @@ public sealed class FleeActionTests(StarMapFixture maps)
 	{
 		using var orchestrator = CreateAwaitingDecisionScenario();
 		orchestrator.Map.PilotRegistry = null;
-		Assert.Equal(0, FleeDef.FuelCost(orchestrator.Map));
+		Assert.Equal(0, FleeDef.FuelCost(orchestrator.Map, "pirate"));
 	}
 
 	[Fact]

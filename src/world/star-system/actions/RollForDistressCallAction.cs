@@ -46,9 +46,8 @@ public sealed class RollForDistressCallDef
 		var rosterHasRoom = world.PilotRegistry?.CanRegister == true;
 		if (!WorldEventContexts.CanOpenPrompt(world)
 			|| world.ItemInventory is null
-			|| SelectResponder(roll.RngSeed, WorldEventContexts.FieldedPilots(world), rosterHasRoom) is not { } responder
-			|| !WorldEventContexts.ShipIsTraveling(world, responder.AssignedShipId!)
-			|| !world.ItemInventory.TryGet(responder.AssignedShipId!, out _))
+			|| SelectResponder(roll.RngSeed, WorldEventContexts.RosterPilots(world), rosterHasRoom) is not { } responder
+			|| !WorldEventContexts.IsTraveling(world, responder))
 			return [];
 
 		PendingWorldEvent pending;
@@ -59,7 +58,7 @@ public sealed class RollForDistressCallDef
 				$"world-event-{roll.RngSeed:x}",
 				EWorldEventId.DistressCall,
 				responder.Id,
-				responder.AssignedShipId!,
+				responder.AssignedShipId,
 				0,
 				WorldEventCatalog.Distress.AnnounceSurvivor(responder.Name, recruit.Name),
 				Recruit: recruit);
@@ -70,7 +69,7 @@ public sealed class RollForDistressCallDef
 				$"world-event-{roll.RngSeed:x}",
 				EWorldEventId.DistressCall,
 				responder.Id,
-				responder.AssignedShipId!,
+				responder.AssignedShipId,
 				0,
 				WorldEventCatalog.Distress.AnnounceKill(responder.Name),
 				RollReward(roll.RngSeed));
@@ -90,8 +89,7 @@ public sealed class RollForDistressCallDef
 	public static Pilot? SelectResponder(ulong rngSeed, IEnumerable<Pilot> pilots, bool rosterHasRoom = true)
 	{
 		var random = new StableRandom(rngSeed);
-		var order = pilots.ToList();
-		random.Shuffle(order);
+		var order = WorldEventContexts.RollOrder(random, pilots);
 		foreach (var pilot in order)
 		{
 			var loyal = pilot.EffectivePersonality.Allegiance > 0;

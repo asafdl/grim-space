@@ -39,14 +39,10 @@ public sealed class LeaveWreckageDef
 		if (!IsLegal(leave, world, runtime))
 			return [];
 
-		var contractId = world.StateOf(leave.ActorId).PendingWreckContractId;
-		var effects = new List<IEffect<StarMap, ActorRuntime>>();
-		if (world.ContractRegistry.TryGet(contractId, out var contract)
-			&& contract.Objective is WreckageObjective { Outcome: WreckageOutcome.Ambush })
-			effects.Add(new EndContractEffect(contractId, EContractStatus.Failed));
-
-		effects.Add(new ClearPendingWreckContractEffect(leave.ActorId));
-		effects.Add(new PlayerInputEffect(false));
-		return effects;
+		return
+		[
+			new ClearPendingWreckContractEffect(leave.ActorId),
+			new PlayerInputEffect(false),
+		];
 	}
 }

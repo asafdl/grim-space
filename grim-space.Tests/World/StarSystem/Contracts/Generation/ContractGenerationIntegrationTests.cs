@@ -57,6 +57,30 @@ public sealed class ContractGenerationIntegrationTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void CreateNewRun_WithTutorialsDisabled_PreseedsGeneratedContracts()
+	{
+		using var run = State.CreateNewRun(seed: 42, tutorialsEnabled: false);
+
+		var generated = run.StarSystem.Map.ContractRegistry.Pending
+			.Where(contract =>
+				contract.Category == EContractCategory.Standard
+				&& !contract.IsStoryObjective)
+			.ToList();
+		Assert.Equal(6, generated.Count);
+	}
+
+	[Fact]
+	public void CreateNewRun_WithTutorialsEnabled_DoesNotPreseedGeneratedContracts()
+	{
+		using var run = State.CreateNewRun(seed: 42, tutorialsEnabled: true);
+
+		Assert.False(run.StarSystem.ContractGenerationEnabled);
+		Assert.DoesNotContain(
+			run.StarSystem.Map.ContractRegistry.Pending,
+			contract => contract.Category == EContractCategory.Standard && !contract.IsStoryObjective);
+	}
+
+	[Fact]
 	public void ConfigureTutorials_Off_EnablesContractGeneration()
 	{
 		using var run = State.CreateNewRun(seed: 42, tutorialsEnabled: true);
@@ -86,6 +110,26 @@ public sealed class ContractGenerationIntegrationTests(StarMapFixture maps)
 		run.Tutorials.AdvanceActive();
 
 		Assert.True(run.StarSystem.ContractGenerationEnabled);
+		Assert.Equal(
+			6,
+			run.StarSystem.Map.ContractRegistry.Pending.Count(contract =>
+				contract.Category == EContractCategory.Standard
+				&& !contract.IsStoryObjective));
+	}
+
+	[Fact]
+	public void ConfigureTutorials_Off_PreseedsGeneratedContracts()
+	{
+		using var run = State.CreateNewRun(seed: 42, tutorialsEnabled: true);
+		Assert.False(run.StarSystem.ContractGenerationEnabled);
+
+		run.ConfigureTutorials(false);
+
+		Assert.Equal(
+			6,
+			run.StarSystem.Map.ContractRegistry.Pending.Count(contract =>
+				contract.Category == EContractCategory.Standard
+				&& !contract.IsStoryObjective));
 	}
 
 	[Fact]

@@ -32,18 +32,14 @@ public partial class StrategicHud : CanvasLayer
 	private ResourceTransactionFeed _resourceFeed = null!;
 	private IDisposable _contractStateSubscription = null!;
 	private PlayerFleetHud _playerFleetHud = null!;
-	private FleetManagementOverlay _fleetManagement = null!;
 	private PilotCharacterSheetOverlay _pilotSheet = null!;
 	private SystemErrorBanner _errorBanner = null!;
 	private ReportIssueDialog _reportIssueDialog = null!;
 	private StarSystemOrchestrator _orchestrator = null!;
-	private UserIntentTranslator _intents = null!;
-	private string? _fleetReturnShipId;
-	private bool _returnToFleetAfterPilotSheet;
 
 	public ObjectivesHud Objectives => _objectivesHud;
 	public PlayerFleetHud PlayerFleet => _playerFleetHud;
-	public bool IsBlockingModalOpen => _fleetManagement.IsOpen || _pilotSheet.IsOpen;
+	public bool IsBlockingModalOpen => _pilotSheet.IsOpen;
 	public void PresentInsufficientFunds() => _resourceHud.PresentInsufficientFunds();
 	public void PresentSystemError(string summary, string technicalDetails)
 	{
@@ -58,13 +54,7 @@ public partial class StrategicHud : CanvasLayer
 		_playerFleetHud = GetNode<PlayerFleetHud>("PlayerFleetHud");
 		_modalLayer = new CanvasLayer { Layer = ModalCanvasLayer };
 		AddChild(_modalLayer);
-		_fleetManagement = new FleetManagementOverlay();
-		_fleetManagement.PilotSheetRequested += OnFleetPilotSheetRequested;
-		_fleetManagement.PilotAssignmentRequested += OnPilotAssignmentRequested;
-		_modalLayer.AddChild(_fleetManagement);
 		_pilotSheet = new PilotCharacterSheetOverlay();
-		_pilotSheet.Closed += OnPilotSheetClosed;
-		_pilotSheet.FleetManagementRequested += OnPilotFleetManagementRequested;
 		_modalLayer.AddChild(_pilotSheet);
 		_errorBanner = new SystemErrorBanner();
 		_errorBanner.ReportRequested += OnErrorReportRequested;
@@ -72,44 +62,35 @@ public partial class StrategicHud : CanvasLayer
 		_reportIssueDialog = new ReportIssueDialog();
 		_modalLayer.AddChild(_reportIssueDialog);
 		_orchestrator = Session.Instance.Run.StarSystem;
-		_intents = new UserIntentTranslator(
-			State.PlayerFleetUnitId,
-			_orchestrator.ImmediatePlayerActions);
 		_resourceFeed = new ResourceTransactionFeed();
 		_resourceFeed.Bind(Session.Instance.Run.Transitions, _orchestrator, _resourceHud);
 		_contractStateSubscription =
 			_orchestrator.Subscribe<Record<ContractStateChanged>>(OnContractStateChanged);
 		_objectivesHud.DismissRequested += OnObjectiveDismissRequested;
-		_playerFleetHud.FleetManagementRequested += OnFleetManagementRequested;
 		_playerFleetHud.PilotSheetRequested += OnPilotSheetRequested;
 		_pilotSheet.SkillLearnRequested += OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested += OnPilotCycleRequested;
 		_pilotSheet.DismissRequested += OnPilotDismissRequested;
 		SetProcess(true);
 		SyncObjectives();
-		Session.Instance.Run.EnsureActiveRosterFilledFromAssignments();
+		Session.Instance.Run.RefreshPilotAssignments();
 		_pilotSpeech = new PilotSpeechHost(_playerFleetHud.PortraitAnchorFor, PilotSpeechCanvasLayer);
 		AddChild(_pilotSpeech);
 		_playerFleetHud.BindBarks(Session.Instance.Run.Barks, _pilotSpeech);
-		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator, _intents);
+		_playerFleetHud.Sync(Session.Instance.Run);
 	}
 
 	public override void _Process(double delta)
 	{
 		SyncObjectives();
 		SyncTravelFuelStatus();
-		_playerFleetHud.Sync(Session.Instance.Run, _orchestrator, _intents);
+		_playerFleetHud.Sync(Session.Instance.Run);
 	}
 
 	public override void _ExitTree()
 	{
 		_objectivesHud.DismissRequested -= OnObjectiveDismissRequested;
-		_playerFleetHud.FleetManagementRequested -= OnFleetManagementRequested;
 		_playerFleetHud.PilotSheetRequested -= OnPilotSheetRequested;
-		_fleetManagement.PilotSheetRequested -= OnFleetPilotSheetRequested;
-		_fleetManagement.PilotAssignmentRequested -= OnPilotAssignmentRequested;
-		_pilotSheet.Closed -= OnPilotSheetClosed;
-		_pilotSheet.FleetManagementRequested -= OnPilotFleetManagementRequested;
 		_pilotSheet.SkillLearnRequested -= OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested -= OnPilotCycleRequested;
 		_pilotSheet.DismissRequested -= OnPilotDismissRequested;
@@ -143,86 +124,14 @@ public partial class StrategicHud : CanvasLayer
 
 	public bool TryHandleInput(InputEvent @event)
 	{
-		if (@event.IsActionPressed("map_fleet_management", false, true))
-		{
-			if (_pilotSheet.IsOpen)
-				return false;
-
-			if (_fleetManagement.IsOpen)
-				_fleetManagement.Close();
-			else
-				OnFleetManagementRequested();
-			return true;
-		}
-
-		return _pilotSheet.TryHandleInput(@event) || _fleetManagement.TryHandleInput(@event);
-	}
-
-	private void OnFleetManagementRequested()
-	{
-		_returnToFleetAfterPilotSheet = false;
-		var run = Session.Instance.Run;
-		run.EnsureActiveRosterFilledFromAssignments();
-		var selectedShipId = PlayerFleetSelection.EnsureSelectedMember(
-			_orchestrator.Map,
-			_orchestrator.RuntimeFor(State.PlayerFleetUnitId),
-			State.PlayerFleetUnitId,
-			run.GetFieldedShipIds());
-		_fleetManagement.Open(run, selectedShipId);
+		return _pilotSheet.TryHandleInput(@event);
 	}
 
 	private void OnPilotSheetRequested(string pilotId) =>
-		OpenPilotSheet(pilotId, returnToFleetAfterClose: _fleetManagement.IsOpen);
-
-	private void OnFleetPilotSheetRequested(string pilotId) =>
-		OpenPilotSheet(pilotId, returnToFleetAfterClose: true);
-
-	private void OpenPilotSheet(string pilotId, bool returnToFleetAfterClose)
-	{
-		var fleetWasOpen = _fleetManagement.IsOpen;
-		_fleetReturnShipId = fleetWasOpen ? _fleetManagement.SelectedShipId : null;
-		_returnToFleetAfterPilotSheet = returnToFleetAfterClose && fleetWasOpen;
-
-		if (TryOpenPilotSheet(pilotId))
-			return;
-
-		_returnToFleetAfterPilotSheet = false;
-		if (fleetWasOpen && _fleetReturnShipId is not null)
-			_fleetManagement.Open(Session.Instance.Run, _fleetReturnShipId);
-	}
-
-	private void OnPilotSheetClosed()
-	{
-		if (!_returnToFleetAfterPilotSheet)
-			return;
-
-		_returnToFleetAfterPilotSheet = false;
-		_fleetManagement.Open(Session.Instance.Run, _fleetReturnShipId);
-	}
-
-	private void OnPilotFleetManagementRequested(string pilotId)
-	{
-		var run = Session.Instance.Run;
-		var shipId = run.PilotRegistry.TryGet(pilotId, out var pilot)
-			&& pilot.AssignedShipId is not null
-			&& run.ItemInventory.IsPlayerOwned(pilot.AssignedShipId)
-				? pilot.AssignedShipId
-				: null;
-		_returnToFleetAfterPilotSheet = false;
-		_pilotSheet.Close();
-		_fleetManagement.Open(run, shipId);
-	}
-
-	private void OnPilotAssignmentRequested(string pilotId, string shipId)
-	{
-		Session.Instance.Run.TryAssignPilotToShip(pilotId, shipId);
-	}
+		TryOpenPilotSheet(pilotId);
 
 	private bool TryOpenPilotSheet(string pilotId)
 	{
-		if (_fleetManagement.IsOpen)
-			_fleetManagement.Close();
-
 		var run = Session.Instance.Run;
 		if (!run.PilotRegistry.TryGet(pilotId, out var pilot))
 		{
@@ -255,10 +164,7 @@ public partial class StrategicHud : CanvasLayer
 			return;
 		}
 
-		_returnToFleetAfterPilotSheet = false;
 		_pilotSheet.Close();
-		if (_fleetReturnShipId is not null)
-			_fleetManagement.Open(run, _fleetReturnShipId);
 	}
 
 	private void OnPilotCycleRequested(string pilotId, int direction)

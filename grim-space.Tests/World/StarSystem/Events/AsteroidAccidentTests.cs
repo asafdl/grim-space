@@ -79,7 +79,7 @@ public sealed class AsteroidAccidentTests
 		Assert.NotNull(pending);
 		Assert.Equal(EWorldEventId.AsteroidAccident, pending.EventId);
 		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
-		Assert.Contains(pending.PilotId, run.PilotRegistry.Active.Select(pilot => pilot.Id));
+		Assert.Contains(pending.PilotId, run.PilotRegistry.Assigned.Select(pilot => pilot.Id));
 	}
 
 	[Fact]
@@ -203,7 +203,7 @@ public sealed class AsteroidAccidentTests
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var pending = OpenAnnouncement(run);
-		run.PilotRegistry.Deactivate(run.PilotRegistry.Active[0].Id);
+		run.PilotRegistry.Unassign(run.PilotRegistry.Assigned[0].Id);
 		var before = HullOf(run, pending.ShipId);
 
 		run.StarSystem.CommitSetup(Acknowledge(pending));
@@ -277,7 +277,7 @@ public sealed class AsteroidAccidentTests
 
 	private static PendingWorldEvent OpenAnnouncement(RunState run)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-test",
 			EWorldEventId.AsteroidAccident,

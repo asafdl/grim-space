@@ -54,7 +54,9 @@ public sealed class TutorialRunProgressionTests(StarMapFixture maps)
 
 		Assert.Null(run.Tutorials);
 		Assert.Null(run.TutorialState);
-		Assert.Empty(run.StarSystem.Map.ContractRegistry.Pending);
+		Assert.DoesNotContain(
+			run.StarSystem.Map.ContractRegistry.Pending,
+			contract => contract.IsStoryObjective);
 	}
 
 	[Fact]

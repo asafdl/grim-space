@@ -120,20 +120,31 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void InvestigateAmbush_SpawnsFleetAndCommitsEngagement()
+	public void ReachAmbush_SpawnsFleetIntoEngagementDecision()
 	{
 		var ambushSpec = new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 9, [(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]);
 		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Ambush(ambushSpec));
 		var ambushUnitId = $"{contractId}.wreckage.ambush";
-		OpenWreckDecision(engine, unitId, contractId);
+		PlaceHolderAtWreck(engine, unitId, contractId);
 
-		var history = engine.Commit(new InvestigateWreckageAction(unitId, contractId, "ambush-test"));
+		engine.Commit([new ReachWreckageAction(unitId, contractId, "ambush-test")]);
 
 		Assert.True(engine.World.FleetRegistry.Contains(ambushUnitId));
+		Assert.False(WreckageQueries.TryGetPendingPlayerWreckDecision(engine.World, unitId, out _));
+		Assert.True(EngagementQueries.TryGetPendingPlayerEngagement(engine.World, unitId, out var pending));
+		Assert.True(pending.FleeFailsAmbush);
+		Assert.Equal(0, pending.HazardPayCredits);
+		Assert.Equal(0, pending.FleeFuelCost);
+		Assert.False(InvestigateWreckageDef.Instance.IsLegal(
+			new InvestigateWreckageAction(unitId, contractId), engine.World, engine.ActorRuntimes.For(unitId)));
+
+		var history = engine.Commit(new EngageAction(unitId));
+
 		Assert.True(EngagementQueries.TryGetCommittedPlayerEngagement(engine.World, unitId, out _));
 		Assert.Contains(
 			history,
 			entry => entry is Record<EngagementCommitted>);
+		Assert.DoesNotContain(history, entry => entry is Record<HazardPayrollResult>);
 		Assert.False(ContractFactory.IsWreckageObjectiveMet(contractId, engine.World, unitId));
 		ContractActionTestContext.ReevaluateAndComplete(engine, unitId);
 		Assert.False(engine.World.ContractRegistry.IsCompleted(contractId));
@@ -147,6 +158,26 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 		Assert.Equal(
 			StrategicEconomyConfig.StartingScrapAlloy,
 			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+	}
+
+	[Fact]
+	public void FleeAmbush_FailsContractForFreeAndRemovesFleet()
+	{
+		var ambushSpec = new FleetSpawnSpec(FleetType.PirateFleet, EFaction.Pirates, 9, [(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]);
+		var (engine, unitId, contractId) = CreateEngine(new WreckageOutcome.Ambush(ambushSpec));
+		var ambushUnitId = $"{contractId}.wreckage.ambush";
+		PlaceHolderAtWreck(engine, unitId, contractId);
+		engine.Commit([new ReachWreckageAction(unitId, contractId, "ambush-test")]);
+		var fuel = engine.World.PlayerResources.GetBalance(ResourceId.Fuel);
+
+		engine.Commit(new FleeAction(unitId));
+
+		Assert.Equal(fuel, engine.World.PlayerResources.GetBalance(ResourceId.Fuel));
+		Assert.True(engine.World.ContractRegistry.TryGetState(contractId, out var state)
+			&& state.Status == EContractStatus.Failed);
+		Assert.False(engine.World.FleetRegistry.Contains(ambushUnitId));
+		Assert.False(EngagementQueries.TryGetPendingPlayerEngagement(engine.World, unitId, out _));
+		Assert.False(engine.World.WaitingForPlayerInput);
 	}
 
 	[Fact]

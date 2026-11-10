@@ -13,36 +13,26 @@ namespace GrimSpace.Presentation.Dev.Hud;
 
 public sealed partial class WreckHudPreview : Control
 {
-	[Export]
-	public bool Ambush { get; set; }
-
 	public override void _Ready()
 	{
 		UiHudPreviewChrome.Attach(
 			this,
 			"Wreck decision HUD preview",
-			Ambush ? "Ambush briefing variant" : "Salvage briefing variant");
+			"Salvage briefing variant");
 
-		var contract = CreatePreviewContract(Ambush);
+		var contract = CreatePreviewContract();
 		var overlay = new WreckHudOverlay();
 		UiHudPreviewChrome.MountOverlay(this, overlay);
-		overlay.Sync(new PendingWreckDecision(contract.Id, contract, Ambush));
+		overlay.Sync(new PendingWreckDecision(contract.Id, contract));
 	}
 
-	private static Contract CreatePreviewContract(bool ambush)
+	private static Contract CreatePreviewContract()
 	{
 		var center = new Coord(0, 0, 0);
 		var searchArea = new AreaPick(
 			new AreaIntel("Somewhere in the debris field.", "poi-a", "poi-b", "poi-c"),
 			[center]);
-		WreckageOutcome outcome = ambush
-			? new WreckageOutcome.Ambush(
-				new FleetSpawnSpec(
-					GrimSpace.World.StarSystem.Units.EType.PirateFleet,
-					EFaction.Pirates,
-					9,
-					[(GrimSpace.Units.Enums.EType.RepurposedMiner, GrimSpace.Units.Enums.EShipGearTier.T0)]))
-			: new WreckageOutcome.Salvage(ResourceBundle.Empty);
+		WreckageOutcome outcome = new WreckageOutcome.Salvage(ResourceBundle.Empty);
 		return new Contract(
 			"preview-wreck-contract",
 			new WreckageObjective("preview-wreck-contract.wreckage", searchArea, outcome),
@@ -51,8 +41,6 @@ public sealed partial class WreckHudPreview : Control
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, 75)),
 			new ContractNarrative(
 				"Derelict courier",
-				ambush
-					? "Scanners show a stripped hull drifting inside the debris field. Multiple hostile transponders are masked behind the wreck signature."
-					: "A lightly damaged courier rests in the debris field. Salvage teams estimate recoverable cargo and intact components."));
+				"A lightly damaged courier rests in the debris field. Salvage teams estimate recoverable cargo and intact components."));
 	}
 }

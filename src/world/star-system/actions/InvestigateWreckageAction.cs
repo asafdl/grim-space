@@ -1,6 +1,5 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Core.Ids;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Contracts.Objectives;
 using GrimSpace.World.StarSystem.Effects;
@@ -10,18 +9,11 @@ using GrimSpace.World.StarSystem.Units;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record InvestigateWreckageAction(
-	string ActorId,
-	string ContractId,
-	string AmbushSpawnIdentity) : IAction<StarMap, ActorRuntime>
+public sealed record InvestigateWreckageAction(string ActorId, string ContractId)
+	: IAction<StarMap, ActorRuntime>
 {
 	private static readonly string[] ActionTags =
 		[StarMapActionTags.Reward, StarMapActionTags.Salvage];
-
-	public InvestigateWreckageAction(string actorId, string contractId)
-		: this(actorId, contractId, TypedIdGenerator.NextInstanceSlug())
-	{
-	}
 
 	IReadOnlyList<string> IAction.Tags => ActionTags;
 
@@ -47,7 +39,7 @@ public sealed class InvestigateWreckageDef
 		&& state.HolderUnitId == investigate.ActorId
 		&& state is WreckageContractState wreckageState
 		&& !wreckageState.IsObjectiveMet()
-		&& contract.Objective is WreckageObjective
+		&& contract.Objective is WreckageObjective { Outcome: WreckageOutcome.Salvage }
 		&& unit.State.PendingWreckContractId == investigate.ContractId;
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
@@ -59,46 +51,18 @@ public sealed class InvestigateWreckageDef
 		if (!IsLegal(investigate, world, runtime))
 			return [];
 
-		if (!world.ContractRegistry.TryGet(investigate.ContractId, out var contract)
-			|| contract.Objective is not WreckageObjective wreckage)
-			return [];
-
+		var contract = world.ContractRegistry.All.First(candidate => candidate.Id == investigate.ContractId);
+		var wreckage = (WreckageObjective)contract.Objective;
+		var salvage = (WreckageOutcome.Salvage)wreckage.Outcome;
 		var effects = new List<IEffect<StarMap, ActorRuntime>>
 		{
 			new ClearPendingWreckContractEffect(investigate.ActorId),
 			new RecordWreckInvestigatedEffect(investigate.ContractId, wreckage.WreckageId),
 		};
-
-		switch (wreckage.Outcome)
-		{
-			case WreckageOutcome.Salvage salvage:
-				if (!salvage.Loot.IsEmpty)
-					effects.Add(new ChangeResourceEffect(
-						TransactionSource.WreckageSalvage,
-						salvage.Loot));
-				effects.Add(new PlayerInputEffect(false));
-				break;
-			case WreckageOutcome.Ambush ambush:
-				var ambushUnitId = AmbushUnitIdFor(wreckage);
-				var ambushFleet = ContractEnemySpawner.CreateAmbushFleet(
-					ambush.Fleet,
-					wreckage.Position,
-					ambushUnitId,
-					investigate.AmbushSpawnIdentity,
-					investigate.ContractId);
-				effects.Add(new SpawnMapUnitEffect(ambushFleet));
-				effects.Add(new SetEngagementIntentEffect(investigate.ActorId, ambushUnitId));
-				effects.Add(new CommitEngagementEffect(investigate.ActorId, ambushUnitId));
-				effects.Add(new PlayerInputEffect(false));
-				break;
-			default:
-				throw new InvalidOperationException(
-					$"Unsupported wreckage outcome '{wreckage.Outcome.GetType().Name}'.");
-		}
+		if (!salvage.Loot.IsEmpty)
+			effects.Add(new ChangeResourceEffect(TransactionSource.WreckageSalvage, salvage.Loot));
+		effects.Add(new PlayerInputEffect(false));
 
 		return runtime.ActionEffects.Apply(investigate, world, runtime, effects);
 	}
-
-	internal static string AmbushUnitIdFor(WreckageObjective wreckage) =>
-		$"{wreckage.WreckageId}.ambush";
 }

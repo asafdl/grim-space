@@ -1,6 +1,7 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Run;
+using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Contracts;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.World.StarSystem.Effects;
@@ -26,14 +27,17 @@ public sealed class FleeDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is FleeAction flee
-		&& EngageDef.TryResolveCounterparty(world, flee.ActorId, out _)
+		&& EngageDef.TryResolveCounterparty(world, flee.ActorId, out var counterpartyId)
 		&& (flee.ActorId != State.PlayerFleetUnitId
-			|| world.PlayerResources.GetBalance(ResourceId.Fuel) >= FuelCost(world));
+			|| world.PlayerResources.GetBalance(ResourceId.Fuel) >= FuelCost(world, counterpartyId));
 
-	public static int FuelCost(StarMap world) =>
-		world.PilotRegistry?.All.Sum(pilot =>
-			StrategicEconomyConfig.FleeFuelForLevel(
-				PilotProgression.LevelFor(pilot.ExperiencePoints))) ?? 0;
+	/// <summary>Ambushes are free to flee; the failed wreck contract is the cost.</summary>
+	public static int FuelCost(StarMap world, string counterpartyId) =>
+		WreckageQueries.TryGetAmbushContract(world, counterpartyId, out _)
+			? 0
+			: world.PilotRegistry?.All.Sum(pilot =>
+				StrategicEconomyConfig.FleeFuelForLevel(
+					PilotProgression.LevelFor(pilot.ExperiencePoints))) ?? 0;
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -47,7 +51,7 @@ public sealed class FleeDef
 		var effects = new List<IEffect<StarMap, ActorRuntime>>();
 		if (flee.ActorId == State.PlayerFleetUnitId)
 		{
-			var fuelCost = FuelCost(world);
+			var fuelCost = FuelCost(world, counterpartyId);
 			if (fuelCost > 0)
 			{
 				// Pay before stopping settles travel fuel, so it cannot consume the escape budget.
@@ -61,6 +65,12 @@ public sealed class FleeDef
 		effects.Add(new ClearPursueContactEffect(flee.ActorId));
 		effects.Add(new FleeEngagementEffect(flee.ActorId, counterpartyId));
 		effects.Add(new PlayerInputEffect(false));
+
+		if (WreckageQueries.TryGetAmbushContract(world, counterpartyId, out var ambushContractId))
+		{
+			effects.Add(new CleanupDismissedContractEffect(ambushContractId, flee.ActorId));
+			effects.Add(new EndContractEffect(ambushContractId, EContractStatus.Failed));
+		}
 
 		if (TryResolveDeliveryInterception(world, flee.ActorId, counterpartyId, out var contractId))
 		{

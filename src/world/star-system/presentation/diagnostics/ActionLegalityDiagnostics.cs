@@ -113,10 +113,10 @@ internal static class ActionLegalityDiagnostics
 
 	private static string DescribeFleeIllegality(FleeAction flee, StarMap world)
 	{
-		if (EngageDef.TryResolveCounterparty(world, flee.ActorId, out _)
+		if (EngageDef.TryResolveCounterparty(world, flee.ActorId, out var counterpartyId)
 			&& flee.ActorId == GrimSpace.Run.State.PlayerFleetUnitId)
 		{
-			var required = FleeDef.FuelCost(world);
+			var required = FleeDef.FuelCost(world, counterpartyId);
 			var available = world.PlayerResources.GetBalance(ResourceId.Fuel);
 			if (available < required)
 				return $"insufficient_fuel required={required} available={available}";

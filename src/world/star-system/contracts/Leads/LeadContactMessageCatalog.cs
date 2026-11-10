@@ -38,7 +38,7 @@ public static class LeadContactMessageCatalog
 			BlackMarketFacilityDestination facility =>
 				ContractDisplay.ResolvePoiDisplayName(map, facility.PoiId),
 			BlackMarketSpaceMeetingDestination meeting =>
-				$"set up shop at: {ContractDisplay.FormatSearchAreaIntel(meeting.SearchArea.Intel, map)}",
+				$"{ContractDisplay.FormatSearchAreaIntel(meeting.SearchArea.Intel, map)}",
 			_ => throw new ArgumentOutOfRangeException(nameof(sale), sale.Destination, null),
 		};
 

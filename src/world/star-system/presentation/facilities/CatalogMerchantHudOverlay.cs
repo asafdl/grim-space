@@ -1,23 +1,30 @@
 using Godot;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Components;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Merchants;
 using GrimSpace.World.StarSystem.Presentation.Scene;
 using GrimSpace.Ui.Components;
+using GrimSpace.World.StarSystem.Presentation.Ui;
+using GrimSpace.World.StarSystem.Resources;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
 public sealed partial class CatalogMerchantHudOverlay : Control
 {
 	private readonly ModalShell _shell;
+	private readonly ShipPicker _picker = new();
 	private State _run = null!;
 	private UserIntentTranslator? _intents;
 	private MerchantEndpoint _endpoint;
 	private EMerchantCatalog _catalog;
 	private string _title = "";
 	private string _subtitle = "";
-	private MerchantCatalogQuote? _catalogQuote;
+	private readonly Dictionary<string, MerchantCatalogQuote> _quotes = new(StringComparer.Ordinal);
+	private string? _selectedShipId;
+	private HashSet<string> _requestedShipIds = new(StringComparer.Ordinal);
+	private bool _requesting;
 
 	public event Action<MerchantCatalog.Offer, MerchantCatalog.Target, string>? PurchaseRequested;
 	public event Action? Closed;
@@ -35,6 +42,7 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		AddChild(_shell);
 		_shell.SetDismissVisible(true);
 		_shell.Closed += () => Closed?.Invoke();
+		AddChild(_picker);
 	}
 
 	public bool IsOpen => _shell.IsOpen;
@@ -55,14 +63,16 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		_catalog = catalog;
 		_title = title;
 		_subtitle = subtitle;
-		_catalogQuote = null;
+		_quotes.Clear();
+		_requestedShipIds.Clear();
+		_selectedShipId = null;
 		_shell.Open(title, subtitle);
 		RequestCatalog();
 	}
 
 	public void Close()
 	{
-		_catalogQuote = null;
+		_quotes.Clear();
 		_shell.Close();
 	}
 
@@ -72,22 +82,11 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		if (!IsOpen)
 			return;
 
-		if (!TryGetActiveShip(out var ship))
-		{
-			if (_catalogQuote is not null)
-			{
-				_catalogQuote = null;
-				ShowMain();
-			}
-
-			return;
-		}
-
-		if (_catalogQuote is null
-			|| !string.Equals(_catalogQuote.ShipId, ship.Id, StringComparison.Ordinal))
-			RequestCatalog();
-		else
+		// Fetching itself raises WorldUpdated before quotes arrive; refetch only when ownership changes.
+		if (_requesting || _requestedShipIds.SetEquals(OwnedShips().Select(ship => ship.Id)))
 			ShowMain();
+		else
+			RequestCatalog();
 	}
 
 	public void RefreshCatalog() => RequestCatalog();
@@ -97,30 +96,36 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		if (_intents is null
 			|| quote.Catalog != _catalog
 			|| !quote.Endpoint.Equals(_endpoint)
-			|| !TryGetActiveShip(out var ship)
-			|| !string.Equals(quote.ShipId, ship.Id, StringComparison.Ordinal))
+			|| !_run.ItemInventory.IsOwnedBy(quote.ShipId, State.PlayerFleetUnitId))
 			return;
 
-		_catalogQuote = quote;
+		_quotes[quote.ShipId] = quote;
 		if (IsOpen)
 			ShowMain();
 	}
 
+	private IReadOnlyList<ShipInstance> OwnedShips() =>
+		_run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId);
+
 	private void RequestCatalog()
 	{
-		if (_intents is null || !IsOpen)
+		if (_intents is null || !IsOpen || _requesting)
 			return;
 
-		if (!TryGetActiveShip(out var ship))
+		_requesting = true;
+		try
 		{
-			_catalogQuote = null;
-			ShowMain();
-			return;
+			_quotes.Clear();
+			var ships = OwnedShips();
+			_requestedShipIds = ships.Select(ship => ship.Id).ToHashSet(StringComparer.Ordinal);
+			foreach (var ship in ships)
+				_intents.TryFetchMerchantCatalog(_endpoint, _catalog, ship.Clone());
 		}
-
-		_catalogQuote = null;
-		if (!_intents.TryFetchMerchantCatalog(_endpoint, _catalog, ship.Clone()))
-			ShowMain();
+		finally
+		{
+			_requesting = false;
+		}
+		ShowMain();
 	}
 
 	private void ShowMain()
@@ -133,106 +138,159 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 
 		var body = HudWidgets.CreateCardList();
 		body.AddThemeConstantOverride("separation", 18);
-
-		if (!TryGetActiveShip(out var ship))
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "No ships in your party."));
-			_shell.SetBody(body);
-			return;
-		}
-
-		if (_catalogQuote is null)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				_catalog == EMerchantCatalog.Healing
-					? "Loading services…"
-					: "Loading shop catalog…"));
-			_shell.SetBody(body);
-			return;
-		}
-
-		PopulateHealingOffers(body, ship);
+		var ships = OwnedShips();
+		if (ships.Count == 0)
+			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "No ships in your hold."));
+		else if (ships.Any(ship => !_quotes.ContainsKey(ship.Id)))
+			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "Loading services…"));
+		else
+			PopulateRepairs(body, ships);
 
 		_shell.SetBody(body);
 	}
 
-	private void PopulateHealingOffers(VBoxContainer body, ShipInstance ship)
+	private void PopulateRepairs(VBoxContainer body, IReadOnlyList<ShipInstance> ships)
 	{
-		var offers = _catalogQuote!.Offers;
-		foreach (var offer in offers)
+		var ordered = ships
+			.OrderBy(HealthFraction)
+			.ThenByDescending(ship => ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis))
+			.ToArray();
+		var damaged = ordered.Where(ship => RepairOffers(ship.Id).Count > 0).Select(ship => ship.Id).ToArray();
+		if (_selectedShipId is null || !ships.Any(ship => ship.Id == _selectedShipId))
+			_selectedShipId = damaged.FirstOrDefault() ?? ordered[0].Id;
+		var selected = _run.ItemInventory.Get(_selectedShipId);
+
+		var affordable = AffordableRepairs(ordered);
+		var selectedCost = RepairCost([selected.Id]);
+		body.AddChild(HealSelectedItem(selected, ordered, selectedCost));
+		body.AddChild(BracketItem(
+			"Heal all",
+			damaged.Length == 0
+				? "All ships are at full health."
+				: $"Repair hull and shields on {affordable.Count} of {damaged.Length} damaged ships.",
+			RepairCost(affordable),
+			affordable.Count > 0,
+			() => RequestRepairs(affordable)));
+		var fuel = _quotes[selected.Id].Offers.First(offer => offer.Offering.Kind == MerchantCatalog.Kind.BuyFuel);
+		body.AddChild(BracketItem(
+			$"Buy fuel ({StarMarketSeed.FuelPurchaseAmount})",
+			$"Purchase a {StarMarketSeed.FuelPurchaseAmount}-unit fuel bundle for the fleet.",
+			fuel.Cost,
+			CanAfford(fuel.Cost),
+			() =>
+			{
+				_selectedShipId = null;
+				PurchaseRequested?.Invoke(fuel, fuel.Target, selected.Id);
+			}));
+	}
+
+	private static UiImageListItem BracketItem(
+		string title,
+		string metadata,
+		ResourceBundle cost,
+		bool canAfford,
+		Action onPressed)
+	{
+		var item = new UiImageListItem(title, metadata, "", null)
 		{
-			var captured = offer;
-			var target = captured.Target;
-			var canAfford = _run.StarSystem.Map.PlayerResources.CanApply(captured.Cost.Negate());
-			body.AddChild(MerchantUiListItem.Create(
-				HealingTitle(captured, target),
-				HealingBody(captured, target, ship),
-				captured.Cost,
-				canAfford,
-				() => PurchaseRequested?.Invoke(captured, target, ship.Id)));
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		item.SetTrailingContent(ResourceCostDisplay.CreateBundleInline(cost));
+		item.SetAffordable(canAfford);
+		item.SetEnabled(canAfford);
+		item.Pressed += onPressed;
+		return item;
+	}
+
+	/// <summary>Image row for the selected ship; right-click opens the ship picker.</summary>
+	private UiImageListItem HealSelectedItem(
+		ShipInstance selected,
+		IReadOnlyList<ShipInstance> ordered,
+		ResourceBundle cost)
+	{
+		var canHeal = RepairOffers(selected.Id).Count > 0 && CanAfford(cost);
+		var item = new UiImageListItem(
+			"Heal selected",
+			$"{MerchantOfferDisplay.HullRepairBody(selected.CurrentHullPoints, selected.Loadout.BaseHullPoints)}\n"
+			+ MerchantOfferDisplay.RechargeAllBody(selected.TotalCurrentShieldPoints, selected.TotalBaseShieldPoints),
+			"",
+			UnitPortraitCatalog.For(selected.Spec.Chassis)
+				?? throw new InvalidOperationException($"No portrait for ship chassis {selected.Spec.Chassis}."),
+			frameEdgeColor: ShipBox.TierColor(selected))
+		{
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		item.Portrait!.AddChild(new ShipHealthArcs(selected));
+		item.SetTrailingContent(ResourceCostDisplay.CreateBundleInline(cost));
+		item.SetTooltip(ShipRecruitmentDisplay.ShipTooltip(selected));
+		item.SetAffordable(canHeal || RepairOffers(selected.Id).Count == 0);
+		item.SetEnabled(canHeal);
+		item.Pressed += () => RequestRepairs([selected.Id]);
+		item.GuiInput += @event =>
+		{
+			if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right })
+				return;
+			item.AcceptEvent();
+			_picker.Open(
+				item.Portrait!,
+				ordered.Where(ship => ship.Id != selected.Id),
+				ShipRecruitmentDisplay.ShipTooltip,
+				ship =>
+				{
+					_selectedShipId = ship.Id;
+					ShowMain();
+				});
+		};
+		return item;
+	}
+
+	private IReadOnlyList<MerchantCatalog.Offer> RepairOffers(string shipId) =>
+		_quotes.TryGetValue(shipId, out var quote)
+			? quote.Offers.Where(offer => offer.Offering.Kind
+				is MerchantCatalog.Kind.RepairHull or MerchantCatalog.Kind.RechargeAllShields).ToArray()
+			: [];
+
+	private ResourceBundle RepairCost(IEnumerable<string> shipIds) =>
+		ResourceBundle.Create(shipIds
+			.SelectMany(RepairOffers)
+			.SelectMany(offer => offer.Cost)
+			.GroupBy(entry => entry.Key)
+			.ToDictionary(group => group.Key, group => group.Sum(entry => entry.Value)));
+
+	/// <summary>Ships in display order whose full repair still fits the remaining budget.</summary>
+	private IReadOnlyList<string> AffordableRepairs(IReadOnlyList<ShipInstance> ships)
+	{
+		var picked = new List<string>();
+		foreach (var ship in ships)
+		{
+			if (RepairOffers(ship.Id).Count == 0)
+				continue;
+			var next = RepairCost([.. picked, ship.Id]);
+			if (!CanAfford(next))
+				continue;
+			picked.Add(ship.Id);
 		}
-
-		if (offers.Count == 0)
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"No support services are currently needed."));
+		return picked;
 	}
 
-	private static string HealingTitle(
-		MerchantCatalog.Offer offer,
-		MerchantCatalog.Target target) =>
-		offer.Offering.Kind switch
-		{
-			MerchantCatalog.Kind.RepairHull => "Repair hull",
-			MerchantCatalog.Kind.RechargeAllShields => "Recharge all shields",
-			MerchantCatalog.Kind.RechargeShieldFace when target.Face is { } face =>
-				$"Recharge {MerchantOfferDisplay.FaceLabel(face).ToLowerInvariant()} shields",
-			MerchantCatalog.Kind.BuyFuel => $"Buy fuel ({StarMarketSeed.FuelPurchaseAmount})",
-			_ => throw new InvalidOperationException(
-				$"Unsupported healing service {offer.Offering.Kind}."),
-		};
+	/// <summary>Mean of hull and shield fractions, so large shield pools don't drown out hull damage.</summary>
+	private static float HealthFraction(ShipInstance ship) =>
+		(Fraction(ship.CurrentHullPoints, ship.Loadout.BaseHullPoints)
+			+ Fraction(ship.TotalCurrentShieldPoints, ship.TotalBaseShieldPoints)) / 2f;
 
-	private static string HealingBody(
-		MerchantCatalog.Offer offer,
-		MerchantCatalog.Target target,
-		ShipInstance ship) =>
-		offer.Offering.Kind switch
-		{
-			MerchantCatalog.Kind.RepairHull =>
-				MerchantOfferDisplay.HullRepairBody(
-					ship.CurrentHullPoints,
-					ship.Loadout.BaseHullPoints),
-			MerchantCatalog.Kind.RechargeAllShields =>
-				MerchantOfferDisplay.RechargeAllBody(
-					ship.TotalCurrentShieldPoints,
-					ship.TotalBaseShieldPoints),
-			MerchantCatalog.Kind.RechargeShieldFace when target.Face is { } face =>
-				MerchantOfferDisplay.ShieldRechargeBody(
-					System.Math.Clamp(
-						ship.CurrentShieldPoints[face],
-						0,
-						ship.Loadout.BaseShieldPoints[face]),
-					ship.Loadout.BaseShieldPoints[face]),
-			MerchantCatalog.Kind.BuyFuel =>
-				$"Purchase a {StarMarketSeed.FuelPurchaseAmount}-unit fuel bundle for the fleet.",
-			_ => throw new InvalidOperationException(
-				$"Unsupported healing service {offer.Offering.Kind}."),
-		};
+	private static float Fraction(int current, int max) => max <= 0 ? 1f : (float)current / max;
 
-	private bool TryGetActiveShip(out ShipInstance ship)
+	private void RequestRepairs(IReadOnlyList<string> shipIds)
 	{
-		ship = null!;
-		var runtime = _run.StarSystem.RuntimeFor(State.PlayerFleetUnitId);
-		var shipId = PlayerFleetSelection.EnsureSelectedMember(
-			_run.StarSystem.Map,
-			runtime,
-			State.PlayerFleetUnitId,
-			_run.GetFieldedShipIds());
-		if (shipId is null)
-			return false;
-
-		ship = _run.ItemInventory.Get(shipId);
-		return true;
+		// Purchases refresh the view; drop the selection so it falls back to the most damaged ship.
+		_selectedShipId = null;
+		var purchases = shipIds
+			.SelectMany(id => RepairOffers(id).Select(offer => (offer, id)))
+			.ToArray();
+		foreach (var (offer, id) in purchases)
+			PurchaseRequested?.Invoke(offer, offer.Target, id);
 	}
+
+	private bool CanAfford(ResourceBundle cost) =>
+		_run.StarSystem.Map.PlayerResources.CanApply(cost.Negate());
 }

@@ -18,9 +18,12 @@ public readonly record struct PendingEngagement(
 	bool FleeFailsDelivery,
 	int HazardPayCredits = 0,
 	int FleeFuelCost = 0,
-	int AvailableFuel = 0)
+	int AvailableFuel = 0,
+	int DeployablePilots = 0,
+	bool FleeFailsAmbush = false)
 {
 	public bool CanFlee => AvailableFuel >= FleeFuelCost;
+	public bool CanEngage => DeployablePilots > 0;
 }
 
 public readonly record struct CommittedEngagement(
@@ -36,7 +39,8 @@ public static class EngagementQueries
 	public static bool TryGetPendingPlayerEngagement(
 		StarMap world,
 		string playerId,
-		out PendingEngagement info)
+		out PendingEngagement info,
+		IReadOnlyList<string>? deployedPilotIds = null)
 	{
 		info = default;
 		if (!world.FleetRegistry.TryGet(playerId, out var player))
@@ -51,7 +55,8 @@ public static class EngagementQueries
 			return false;
 
 		var assignedContract = FindAssignedContract(world, counterpartyId);
-		var hazardCandidates = HazardPayrollAccounting.CandidatesFrom(world.PilotRegistry);
+		var hazardCandidates = HazardPayrollAccounting.CandidatesFrom(world.PilotRegistry, deployedPilotIds);
+		var isAmbush = WreckageQueries.TryGetAmbushContract(world, counterpartyId, out _);
 		info = new PendingEngagement(
 			counterpartyId,
 			counterparty.State.Type,
@@ -59,9 +64,11 @@ public static class EngagementQueries
 			EncounterIntelFormatter.FormatFleet(counterparty),
 			assignedContract,
 			IsAssignedDeliveryInterceptor(world, counterpartyId),
-			HazardPayrollAccounting.EstimateCredits(hazardCandidates),
-			FleeDef.FuelCost(world),
-			world.PlayerResources.GetBalance(ResourceId.Fuel));
+			isAmbush ? 0 : HazardPayrollAccounting.EstimateCredits(hazardCandidates),
+			FleeDef.FuelCost(world, counterpartyId),
+			world.PlayerResources.GetBalance(ResourceId.Fuel),
+			hazardCandidates.Count,
+			isAmbush);
 		return true;
 	}
 

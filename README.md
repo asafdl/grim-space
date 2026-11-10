@@ -103,7 +103,7 @@ When replacing or regenerating a star-system, `Run.State` disposes old engine su
 
 ### Engagement costs
 
-Engaging charges hazard pay for fielded pilots (active pilots with assigned ships). Fleeing instead costs fuel for **all owned pilots**, including inactive and unassigned pilots. Each pilot costs `ceil(10 * 1.5^(level - 1))` fuel, using their XP-derived level, then the individual costs are summed: levels 1–6 cost 10, 15, 23, 34, 51, and 76 fuel respectively.
+Engaging charges hazard pay for the pilots deployed in the engagement HUD (up to 4 pilots with assigned ships). Fleeing instead costs fuel for **all owned pilots**, including undeployed and unassigned pilots. Wreck ambushes are the exception: fighting pays no hazard pay, and fleeing costs no fuel but fails the contract. Each pilot costs `ceil(10 * 1.5^(level - 1))` fuel, using their XP-derived level, then the individual costs are summed: levels 1–6 cost 10, 15, 23, 34, 51, and 76 fuel respectively.
 
 [`FleeDef`](src/world/star-system/actions/FleeAction.cs) owns the total and affordability check; [`StrategicEconomyConfig`](src/world/star-system/economy/StrategicEconomyConfig.cs) owns the tuning values. Fleeing requires the full amount and records a `flee-fuel` resource transaction. Insufficient fuel leaves engagement pending and requires engaging instead. Escape cannot bypass this restriction. Flee payment precedes settlement of any outstanding travel fuel.
 

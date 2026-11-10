@@ -40,7 +40,7 @@ public sealed class PilotBarkEventTests
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new WreckRandom(pick));
 		var lines = new List<string>();
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id, line =>
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id, line =>
 		{
 			lines.Add(line);
 			return true;
@@ -66,9 +66,8 @@ public sealed class PilotBarkEventTests
 
 		run.StarSystem.CommitSetup(new ReachWreckageAction(RunState.PlayerFleetUnitId, contract.Id));
 
-		Assert.True(WreckageQueries.TryGetPendingPlayerWreckDecision(
-			map, RunState.PlayerFleetUnitId, out var pending));
-		Assert.Equal(ambush, pending.IsAmbush);
+		Assert.Equal(!ambush, WreckageQueries.TryGetPendingPlayerWreckDecision(
+			map, RunState.PlayerFleetUnitId, out _));
 		Assert.Contains(Assert.Single(lines), PilotBarkCatalog.LinesFor(expected));
 	}
 
@@ -85,7 +84,7 @@ public sealed class PilotBarkEventTests
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
 		var lines = new List<string>();
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id, line =>
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id, line =>
 		{
 			lines.Add(line);
 			return true;
@@ -109,7 +108,7 @@ public sealed class PilotBarkEventTests
 		using var run = RunState.CreateNewRun(42);
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id,
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id,
 			_ => throw new InvalidOperationException("Cancelled journey spoke."));
 		StartTravel(run);
 		var map = run.StarSystem.Map;
@@ -134,7 +133,7 @@ public sealed class PilotBarkEventTests
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
 		var lines = new List<string>();
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id, line =>
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id, line =>
 		{
 			lines.Add(line);
 			return true;
@@ -168,7 +167,7 @@ public sealed class PilotBarkEventTests
 	{
 		using var run = RunState.CreateNewRun(42);
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id,
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id,
 			_ => throw new InvalidOperationException("Unrelated contact triggered a bark."));
 		var map = run.StarSystem.Map;
 		foreach (var id in new[] { "bark-pirate-a", "bark-pirate-b" })
@@ -193,7 +192,7 @@ public sealed class PilotBarkEventTests
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
 		var lines = new List<string>();
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id, line =>
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id, line =>
 		{
 			lines.Add(line);
 			return true;
@@ -221,7 +220,7 @@ public sealed class PilotBarkEventTests
 		NeutralizeActivePersonalities(run);
 		run.TryConsumeOpening();
 		var director = run.Barks;
-		var pilotId = run.PilotRegistry.Active[0].Id;
+		var pilotId = run.PilotRegistry.Assigned[0].Id;
 		director.RegisterPilot(pilotId, _ => true);
 		Assert.True(director.Offer(pilotId, EBarkFlavor.Supportive, 1));
 		director.UnregisterPilot(pilotId);
@@ -236,7 +235,7 @@ public sealed class PilotBarkEventTests
 
 	private static void NeutralizeActivePersonalities(State run)
 	{
-		foreach (var pilot in run.PilotRegistry.Active)
+		foreach (var pilot in run.PilotRegistry.Assigned)
 		{
 			var modifier = PilotBackgroundCatalog.Get(pilot.BackgroundId).PersonalityModifier;
 			// Quirk swings can exceed the personality clamp, so drop them. Baseline then cancels background.
@@ -256,7 +255,7 @@ public sealed class PilotBarkEventTests
 		using var run = State.CreateNewRun(42);
 		run.Barks.Tick(1);
 		var lines = new List<string>();
-		run.Barks.RegisterPilot(run.PilotRegistry.Active[0].Id, line =>
+		run.Barks.RegisterPilot(run.PilotRegistry.Assigned[0].Id, line =>
 		{
 			lines.Add(line);
 			return true;
@@ -289,7 +288,7 @@ public sealed class PilotBarkEventTests
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
 		var lines = new List<string>();
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id, line =>
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id, line =>
 		{
 			lines.Add(line);
 			return true;
@@ -309,7 +308,7 @@ public sealed class PilotBarkEventTests
 		using var run = State.CreateNewRun(42);
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
-		var pilotId = run.PilotRegistry.Active[0].Id;
+		var pilotId = run.PilotRegistry.Assigned[0].Id;
 		director.RegisterPilot(pilotId, _ => throw new InvalidOperationException("Stale handle called."));
 		if (dispose)
 			director.Dispose();
@@ -325,7 +324,7 @@ public sealed class PilotBarkEventTests
 		using var run = State.CreateNewRun(42);
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id,
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id,
 			_ => throw new InvalidOperationException("Acceptance must not trigger a bark."));
 
 		var contractId = TutorialBeatContracts.OfferBeatB(run.StarSystem.Map);
@@ -340,7 +339,7 @@ public sealed class PilotBarkEventTests
 		using var run = State.CreateNewRun(42);
 		run.TryConsumeOpening();
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
-		var pilotId = run.PilotRegistry.Active[0].Id;
+		var pilotId = run.PilotRegistry.Assigned[0].Id;
 		director.RegisterPilot(pilotId, _ => throw new InvalidOperationException("Old handle called."));
 		director.UnregisterPilot(pilotId);
 		var spoken = false;
@@ -369,7 +368,7 @@ public sealed class PilotBarkEventTests
 		using var run = State.CreateNewRun(42);
 		using var director = new PilotBarkDirector(run, new AlwaysSpeakRandom());
 		var lines = new List<string>();
-		director.RegisterPilot(run.PilotRegistry.Active[0].Id, line =>
+		director.RegisterPilot(run.PilotRegistry.Assigned[0].Id, line =>
 		{
 			lines.Add(line);
 			return true;

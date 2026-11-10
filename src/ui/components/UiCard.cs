@@ -34,6 +34,7 @@ public sealed partial class UiCard : BaseButton, IUiSized
 	private readonly Control _content;
 	private readonly VBoxContainer _textColumn;
 	private readonly Label _titleLabel;
+	private RichTextLabel? _titleMarkup;
 	private readonly Label _subtitleLabel;
 	private readonly Label _descriptionLabel;
 	private readonly VBoxContainer _trailingHost;
@@ -128,6 +129,8 @@ public sealed partial class UiCard : BaseButton, IUiSized
 		_titleLabel.AddThemeFontSizeOverride("font_size", 25);
 		_titleLabel.AddThemeConstantOverride("line_spacing", 2);
 		_textColumn.AddChild(_titleLabel);
+		if (HudIconMarkup.Contains(title))
+			InstallTitleMarkup(title);
 
 		_subtitleLabel = new Label
 		{
@@ -182,6 +185,25 @@ public sealed partial class UiCard : BaseButton, IUiSized
 		ButtonUp += RefreshVisualState;
 		ApplyTextVisibility();
 		RefreshVisualState();
+	}
+
+	private void InstallTitleMarkup(string template)
+	{
+		_titleLabel.Text = "";
+		_titleLabel.Visible = false;
+		_titleMarkup = new RichTextLabel
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			FitContent = true,
+			ScrollActive = false,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		_titleMarkup.AddThemeFontSizeOverride("normal_font_size", 25);
+		_titleMarkup.AddThemeConstantOverride("line_separation", 2);
+		HudIconMarkup.Append(_titleMarkup, template, _palette.Title, iconSize: 22f);
+		_textColumn.AddChild(_titleMarkup);
+		_textColumn.MoveChild(_titleMarkup, 0);
 	}
 
 	private void ApplyTextVisibility()

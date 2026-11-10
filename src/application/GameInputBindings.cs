@@ -456,7 +456,6 @@ public static class GameInputBindings
 		Map("map_pan_right", "Pan right", Phy(Key.D), Phy(Key.Right)),
 		Map("map_pause", "Pause / resume", Log(Key.Space)),
 		Map("map_cycle_speed", "Cycle speed", Phy(Key.Shift)),
-		Map("map_fleet_management", "Fleet management", Log(Key.Tab)),
 		MapAny(
 			"map_zoom_in",
 			"Zoom in",

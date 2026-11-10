@@ -14,8 +14,8 @@ public sealed record PilotPersistenceDto(
 	int ExperiencePoints,
 	int ClaimedLevel,
 	IReadOnlyList<EPilotSkillId> LearnedSkills,
-	bool IsActive,
-	int ActiveOrder,
+	/// <summary>Slot in the last engagement deployment, or -1 when not deployed.</summary>
+	int DeploymentOrder,
 	int BaseSalaryCredits,
 	int MissedSalaryPeriods,
 	int MissedHazardPeriods,

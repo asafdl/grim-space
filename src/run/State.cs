@@ -118,7 +118,7 @@ public sealed class State : IDisposable
 			return new InventorySnapshotEntry(SaveDtoMapper.RestoreShip(dto), dto.OwnerId);
 		}));
 		run.PilotRegistry.RestoreSnapshot(snapshot.Pilots);
-		run.ValidateActivePilotAlignment();
+		run.ValidatePilotAssignments();
 
 		var map = SaveDtoMapper.RestoreStarMap(
 			snapshot.StarMap,
@@ -167,27 +167,16 @@ public sealed class State : IDisposable
 		}
 
 		run.SyncContractGenerationFromTutorialState();
-		PlayerFleetSelection.EnsureSelectedMember(
-			run.StarSystem.Map,
-			run.StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			run.GetFieldedShipIds());
 		run.RefreshRunOver();
 		return run;
 	}
 
 	public IReadOnlyList<string> GetFieldedShipIds()
 	{
-		var shipIds = new List<string>(PilotRegistry.Active.Count);
-		foreach (var pilot in PilotRegistry.Active)
-		{
-			if (string.IsNullOrEmpty(pilot.AssignedShipId))
-				continue;
-
-			shipIds.Add(pilot.AssignedShipId);
-		}
-
-		return shipIds;
+		return ItemInventory.ShipsOwnedBy(PlayerFleetUnitId)
+			.Where(ship => PilotRegistry.TryGetForShip(ship.Id, out _))
+			.Select(ship => ship.Id)
+			.ToArray();
 	}
 
 	private readonly HashSet<string> _resolvedBattleIds = new(StringComparer.Ordinal);
@@ -204,6 +193,7 @@ public sealed class State : IDisposable
 	private IDisposable? _pilotHazardPayrollSubscription;
 	private IDisposable? _battleOutcomeSubscription;
 	private IDisposable? _reachContactSubscription;
+	private IDisposable? _reachWreckSubscription;
 	private IDisposable? _fleeSubscription;
 	private PreparedBattle? _preparedBattle;
 	private (EngagementCommitted Fact, Task<PreparedBattleBuild> Build)? _battleLaunch;
@@ -215,7 +205,7 @@ public sealed class State : IDisposable
 		string EngagementId,
 		string InitiatorFleetId,
 		string[] ParticipantFleetIds,
-		string? SelectedShipId,
+		IReadOnlySet<string> Crews,
 		Task<PreparedBattleBuild> Build);
 
 	public void OnCommittedBattleOutcome(Record<BattleOutcome> record)
@@ -362,10 +352,9 @@ public sealed class State : IDisposable
 		ActiveBattle = null;
 	}
 
+	/// <summary>Lead is the first last-deployed pilot's ship present in battle, else the first player unit.</summary>
 	private string ResolveActiveBattlePlayerId(BattleWorld? savedWorld)
 	{
-		var selected = EnsureSelectedFleetMember();
-
 		string[] playerUnitIds = savedWorld is not null
 			? savedWorld.UnitRegistry.All
 				.Where(unit => unit.Team == ETeam.Player)
@@ -376,7 +365,11 @@ public sealed class State : IDisposable
 				.Select(spawn => spawn.Ship.Id)
 				.ToArray();
 
-		return PlayerFleetSelection.ResolveBattlePlayerId(selected, playerUnitIds);
+		return PilotRegistry.LastDeployment
+			.Select(pilotId => PilotRegistry.TryGet(pilotId, out var pilot) ? pilot.AssignedShipId : null)
+			.FirstOrDefault(shipId => shipId is not null && playerUnitIds.Contains(shipId, StringComparer.Ordinal))
+			?? playerUnitIds.FirstOrDefault()
+			?? throw new InvalidOperationException("Battle has no player units.");
 	}
 
 	public bool TryEnlistPlayerShip(ShipSpawnDeclaration declaration)
@@ -433,11 +426,6 @@ public sealed class State : IDisposable
 
 		ApplyPlayerShipAcquire(declaration);
 		RefreshStrategicFleetProjection();
-		PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
 		return true;
 	}
 
@@ -489,7 +477,7 @@ public sealed class State : IDisposable
 			return false;
 
 		PilotRegistry.Remove(pilotId);
-		EnsureActiveRosterFilledFromAssignments();
+		RefreshPilotAssignments();
 		return true;
 	}
 
@@ -539,34 +527,22 @@ public sealed class State : IDisposable
 			return false;
 		}
 		if (string.Equals(pilot.AssignedShipId, shipId, StringComparison.Ordinal))
-		{
-			EnsureActiveRosterFilledFromAssignments();
 			return true;
-		}
 
 		PilotRegistry.AssignPilotToShip(
 			pilotId,
 			shipId,
 			ItemInventory,
 			PlayerFleetUnitId);
-		EnsureActiveRosterFilledFromAssignments();
+		RefreshPilotAssignments();
 		return true;
 	}
 
-	/// <summary>
-	/// Activates assigned reserve pilots into free squad slots and refreshes fleet projection.
-	/// </summary>
-	public bool EnsureActiveRosterFilledFromAssignments()
+	/// <summary>Refreshes fleet projection and pilot capabilities after ship assignments change.</summary>
+	public void RefreshPilotAssignments()
 	{
-		var changed = PilotRegistry.FillActiveSlotsFromAssigned(ItemInventory, PlayerFleetUnitId);
 		RefreshStrategicFleetProjection();
 		RefreshStrategicPilotCapabilities();
-		PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
-		return changed;
 	}
 
 	public void RegenerateMap(int? seed = null)
@@ -582,11 +558,7 @@ public sealed class State : IDisposable
 			ItemInventory));
 		SyncStarPlayerPipeline();
 		SyncContractGenerationFromTutorialState();
-		PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
+		SeedContractBoardIfGenerationEnabled();
 	}
 
 	public static State CreateNewRun(int seed = 0, bool tutorialsEnabled = false)
@@ -617,15 +589,17 @@ public sealed class State : IDisposable
 			run.ItemInventory);
 		run.BindStarSystem(orchestrator);
 		run.SyncStarPlayerPipeline();
-		PlayerFleetSelection.EnsureSelectedMember(
-			run.StarSystem.Map,
-			run.StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			run.GetFieldedShipIds());
 		run.ConfigureTutorials(tutorialsEnabled);
+		run.SeedContractBoardIfGenerationEnabled();
 		run.RefreshRunOver();
 		run._openingPending = true;
 		return run;
+	}
+
+	private void SeedContractBoardIfGenerationEnabled()
+	{
+		if (StarSystem.ContractGenerationEnabled)
+			StarSystem.SeedContractBoard();
 	}
 
 	private void RefreshRunOver()
@@ -650,6 +624,7 @@ public sealed class State : IDisposable
 			Tutorials = null;
 			_tutorialState = null;
 			StarSystem.SetContractGenerationEnabled(true);
+			SeedContractBoardIfGenerationEnabled();
 			return;
 		}
 
@@ -670,8 +645,11 @@ public sealed class State : IDisposable
 
 	private void OnTutorialFlowCompleted(TutorialFlow flow)
 	{
-		if (flow.Id == TutorialController.GraduationFlowId)
-			StarSystem.SetContractGenerationEnabled(true);
+		if (flow.Id != TutorialController.GraduationFlowId)
+			return;
+
+		StarSystem.SetContractGenerationEnabled(true);
+		SeedContractBoardIfGenerationEnabled();
 	}
 
 	public void Dispose()
@@ -721,6 +699,11 @@ public sealed class State : IDisposable
 				&& (contact.InitiatorId == PlayerFleetUnitId || contact.TargetId == PlayerFleetUnitId))
 				PrepareBattle();
 		});
+		_reachWreckSubscription = StarSystem.Subscribe<ReachWreckageAction>(reach =>
+		{
+			if (reach.ActorId == PlayerFleetUnitId)
+				PrepareBattle();
+		});
 		_fleeSubscription = StarSystem.Subscribe<FleeAction>(flee =>
 		{
 			if (flee.ActorId == PlayerFleetUnitId)
@@ -764,6 +747,8 @@ public sealed class State : IDisposable
 		_pilotHazardPayrollSubscription = null;
 		_reachContactSubscription?.Dispose();
 		_reachContactSubscription = null;
+		_reachWreckSubscription?.Dispose();
+		_reachWreckSubscription = null;
 		_fleeSubscription?.Dispose();
 		_fleeSubscription = null;
 		DiscardPreparedBattle();
@@ -878,7 +863,6 @@ public sealed class State : IDisposable
 			? Pilot.CreateStarterForShip(declaration.ShipId, rng, shipClass)
 			: Pilot.CreateForShip(declaration.ShipId, shipClass, rng);
 		PilotRegistry.Register(pilot);
-		PilotRegistry.Activate(pilot.Id, ItemInventory, PlayerFleetUnitId);
 	}
 
 	private void RefreshStrategicFleetProjection()
@@ -914,10 +898,10 @@ public sealed class State : IDisposable
 	private void OnMerchantShipPurchase(Record<MerchantShipPurchase> record)
 	{
 		var purchase = record.Value;
-		if (!GetFieldedShipIds().Contains(purchase.ShipId, StringComparer.Ordinal))
+		if (!ItemInventory.IsOwnedBy(purchase.ShipId, PlayerFleetUnitId))
 		{
 			GameLog.Log(
-				$"Ignoring merchant ship purchase for '{purchase.ShipId}'; ship is not fielded.");
+				$"Ignoring merchant ship purchase for '{purchase.ShipId}'; ship is not player-owned.");
 			return;
 		}
 
@@ -1054,11 +1038,6 @@ public sealed class State : IDisposable
 	{
 		RefreshStrategicFleetProjection();
 		RefreshStrategicPilotCapabilities();
-		PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
 	}
 
 	private void OnFieldedShipDamage(Record<FieldedShipDamage> record)
@@ -1085,11 +1064,6 @@ public sealed class State : IDisposable
 
 		RefreshStrategicFleetProjection();
 		RefreshStrategicPilotCapabilities();
-		PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
 	}
 
 	private bool CanApplyFieldedShipChange(string shipId, ShipInstance before, string source)
@@ -1155,6 +1129,9 @@ public sealed class State : IDisposable
 				$"Retrying battle launch for engagement '{fact.EngagementId}' (no active battle in run state).");
 		}
 
+		if (fact.DeployedPilotIds is { } deployed)
+			PilotRegistry.RecordDeployment(deployed);
+
 		var build = TakePreparedBattle(fact);
 		if (build is { IsCompleted: false })
 		{
@@ -1217,10 +1194,10 @@ public sealed class State : IDisposable
 			fact.ParticipantFleetIds);
 		var excludedShipIds = ShipIdsExcludedByRefusedPilots(fact.RefusedPilotIds);
 		IReadOnlySet<string>? playerDeployShipIds = null;
-		if (excludedShipIds is not null)
+		if (excludedShipIds is not null || fact.DeployedPilotIds is not null)
 		{
-			playerDeployShipIds = GetFieldedShipIds()
-				.Where(shipId => !excludedShipIds.Contains(shipId))
+			playerDeployShipIds = DeployedShipIds(fact)
+				.Where(shipId => excludedShipIds?.Contains(shipId) != true)
 				.ToHashSet(StringComparer.Ordinal);
 		}
 
@@ -1264,7 +1241,6 @@ public sealed class State : IDisposable
 			var pilots = BuildPilotBattleSnapshots(null);
 			var tutorialScriptedSpawn = TutorialBeatContracts.RequiresCanonicalFirstBattleLayout(
 				_tutorialState, map, participantIds);
-			var selected = EnsureSelectedFleetMember();
 			var seed = Random.Shared.Next();
 			var engagementId = engagement.Id;
 
@@ -1272,7 +1248,7 @@ public sealed class State : IDisposable
 				engagementId,
 				initiatorId,
 				participantIds,
-				selected,
+				Crews(GetFieldedShipIds()),
 				Task.Run(() =>
 				{
 					var encounter = EngagementBattleFactory.Create(
@@ -1283,13 +1259,7 @@ public sealed class State : IDisposable
 						initiatorId,
 						pilots,
 						tutorialScriptedSpawn: tutorialScriptedSpawn);
-					var playerUnitIds = encounter.Spawns
-						.Where(spawn => spawn.Team == ETeam.Player)
-						.Select(spawn => spawn.Ship.Id)
-						.ToArray();
-					var battle = BattleOrchestrator.PrepareFromEncounter(
-						encounter,
-						preferredPlayerId: PlayerFleetSelection.ResolveBattlePlayerId(selected, playerUnitIds));
+					var battle = BattleOrchestrator.PrepareFromEncounter(encounter);
 					battle.Preload("encounter ready");
 					if (battle.Phase == EBattlePhase.PlayerTurn)
 						battle.MovePreview.GetPaths(battle.PlayerAgent.Sim, battle.PlayerId);
@@ -1313,12 +1283,27 @@ public sealed class State : IDisposable
 			&& string.Equals(prepared.InitiatorFleetId, fact.InitiatorFleetId, StringComparison.Ordinal)
 			&& prepared.ParticipantFleetIds.SequenceEqual(fact.ParticipantFleetIds, StringComparer.Ordinal)
 			&& fact.RefusedPilotIds is null
-			&& prepared.SelectedShipId == EnsureSelectedFleetMember())
+			&& prepared.Crews.SetEquals(Crews(DeployedShipIds(fact))))
 			return prepared.Build;
 
 		DisposeWhenBuilt(prepared.Build);
 		return null;
 	}
+
+	private IEnumerable<string> DeployedShipIds(EngagementCommitted fact) =>
+		fact.DeployedPilotIds is null
+			? GetFieldedShipIds()
+			: fact.DeployedPilotIds
+				.Select(id => PilotRegistry.TryGet(id, out var pilot) ? pilot.AssignedShipId : null)
+				.OfType<string>();
+
+	/// <summary>Pilot-to-ship pairs; a prepared battle is stale once any pair changes.</summary>
+	private HashSet<string> Crews(IEnumerable<string> shipIds) =>
+		shipIds
+			.Select(shipId => PilotRegistry.TryGetForShip(shipId, out var pilot)
+				? $"{pilot.Id}:{shipId}"
+				: shipId)
+			.ToHashSet(StringComparer.Ordinal);
 
 	private void DiscardPreparedBattle()
 	{
@@ -1331,13 +1316,6 @@ public sealed class State : IDisposable
 		build.ContinueWith(
 			task => task.Result.Battle.Dispose(),
 			TaskContinuationOptions.OnlyOnRanToCompletion);
-
-	private string? EnsureSelectedFleetMember() =>
-		PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
 
 	private void ValidateOutcomeHandoffs(BattleOutcome outcome)
 	{
@@ -1412,17 +1390,12 @@ public sealed class State : IDisposable
 
 		RefreshStrategicFleetProjection();
 		RefreshStrategicPilotCapabilities();
-		PlayerFleetSelection.EnsureSelectedMember(
-			StarSystem.Map,
-			StarSystem.RuntimeFor(PlayerFleetUnitId),
-			PlayerFleetUnitId,
-			GetFieldedShipIds());
 	}
 
 	private void RefreshStrategicPilotCapabilities() =>
 		StarSystem.CommitSetup(new RefreshStrategicPilotCapabilitiesAction(
 			PlayerFleetUnitId,
-			PilotRegistry.QueryCapabilitiesForActive(
+			PilotRegistry.QueryCapabilitiesForAssigned(
 				StarMapPilotCapabilityPipelineFactory.Supports)));
 
 	private void SyncStarPlayerPipeline() =>
@@ -1432,15 +1405,12 @@ public sealed class State : IDisposable
 		IReadOnlySet<string>? playerDeployShipIds = null)
 	{
 		var map = new Dictionary<string, PilotBattleSnapshot>(StringComparer.Ordinal);
-		foreach (var pilot in PilotRegistry.Active)
+		foreach (var pilot in PilotRegistry.Assigned)
 		{
-			if (string.IsNullOrEmpty(pilot.AssignedShipId))
-				continue;
-			if (playerDeployShipIds is not null
-				&& !playerDeployShipIds.Contains(pilot.AssignedShipId))
+			var shipId = pilot.AssignedShipId!;
+			if (playerDeployShipIds is not null && !playerDeployShipIds.Contains(shipId))
 				continue;
 
-			var shipId = pilot.AssignedShipId;
 			var battleGrants = PilotRegistry.QueryCapabilitiesForShip(
 				shipId,
 				BattlePilotCapabilityPipelineFactory.Supports);
@@ -1453,7 +1423,7 @@ public sealed class State : IDisposable
 		return map;
 	}
 
-	private void ValidateActivePilotAlignment()
+	private void ValidatePilotAssignments()
 	{
 		var assignedShips = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var pilot in PilotRegistry.All)
@@ -1478,25 +1448,6 @@ public sealed class State : IDisposable
 					$"Pilot '{pilot.Id}' with class '{pilot.ClassId}' cannot operate ship "
 					+ $"'{pilot.AssignedShipId}' with class '{ship.Spec.ClassId}'.");
 		}
-
-		foreach (var pilot in PilotRegistry.Active)
-		{
-			if (string.IsNullOrEmpty(pilot.AssignedShipId))
-				throw new InvalidDataException($"Active pilot '{pilot.Id}' has no assigned ship.");
-
-			if (!ItemInventory.IsPlayerOwned(pilot.AssignedShipId))
-				throw new InvalidDataException(
-					$"Active pilot '{pilot.Id}' is assigned to non-player ship '{pilot.AssignedShipId}'.");
-
-			if (!PilotRegistry.TryGetForShip(pilot.AssignedShipId, out var owner)
-				|| owner.Id != pilot.Id)
-				throw new InvalidDataException(
-					$"Active pilot '{pilot.Id}' does not own assigned ship '{pilot.AssignedShipId}'.");
-		}
-
-		if (PilotRegistry.Active.Count > RunPilotRegistry.MaxActivePilots)
-			throw new InvalidDataException(
-				$"More than {RunPilotRegistry.MaxActivePilots} active pilots in roster.");
 	}
 
 	private void ReleaseBattleOutcomeSubscription()

@@ -17,15 +17,17 @@ public sealed record HazardPayrollResult(
 
 public static class HazardPayrollAccounting
 {
-	public static IReadOnlyList<HazardPayrollPilot> CandidatesFrom(RunPilotRegistry? pilots)
+	public static IReadOnlyList<HazardPayrollPilot> CandidatesFrom(
+		RunPilotRegistry? pilots,
+		IReadOnlyList<string>? deployedPilotIds = null)
 	{
 		if (pilots is null)
 			return [];
 
 		var roster = new List<HazardPayrollPilot>();
-		foreach (var pilot in pilots.Active)
+		foreach (var pilot in pilots.Assigned)
 		{
-			if (string.IsNullOrEmpty(pilot.AssignedShipId))
+			if (deployedPilotIds?.Contains(pilot.Id, StringComparer.Ordinal) == false)
 				continue;
 
 			roster.Add(new HazardPayrollPilot(

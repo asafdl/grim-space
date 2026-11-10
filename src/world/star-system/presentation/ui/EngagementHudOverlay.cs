@@ -34,7 +34,7 @@ public sealed partial class EngagementHudOverlay : Control
 
 	public bool IsOpen => _shell.IsOpen;
 
-	public void Sync(PendingEngagement pending)
+	public void Sync(PendingEngagement pending, Control? deploymentContent = null)
 	{
 		_pending = pending;
 		_busy = false;
@@ -68,6 +68,17 @@ public sealed partial class EngagementHudOverlay : Control
 				minHeight: 148f));
 		}
 
+		if (pending.FleeFailsAmbush)
+		{
+			body.AddChild(CreateInfoCard(
+				title: "Hostile Signatures Detected!",
+				description: "This is likely an ambush, but fleeing won't get us paid.",
+				visual: UiCardVisual.Angled,
+				palette: HudPalettes.PurpleRed,
+				minHeight: 148f));
+		}
+
+		_shell.SetFooterCenterContent(deploymentContent);
 		_shell.SetBody(body);
 		_shell.SetFooter(
 		[
@@ -89,6 +100,7 @@ public sealed partial class EngagementHudOverlay : Control
 				"Engage",
 				HudActionKind.Primary,
 				RequestEngage,
+				enabled: pending.CanEngage,
 				badgeIconPath: pending.HazardPayCredits > 0
 					? EconomyIconCatalog.HazardPayIconPath
 					: null,
@@ -125,7 +137,7 @@ public sealed partial class EngagementHudOverlay : Control
 
 	private void RequestEngage()
 	{
-		if (_busy)
+		if (_busy || _pending is not { CanEngage: true })
 			return;
 
 		EngageRequested?.Invoke();
@@ -153,6 +165,7 @@ public sealed partial class EngagementHudOverlay : Control
 		string description = "",
 		string trailing = "",
 		UiCardVisual visual = UiCardVisual.Angled,
+		HudPalette? palette = null,
 		float minHeight = 0f)
 	{
 		var card = new UiCard(title, subtitle, description, trailing)
@@ -161,6 +174,8 @@ public sealed partial class EngagementHudOverlay : Control
 			SizeOverride = new UiSizeOverride(Height: minHeight),
 		};
 		card.SetVisual(visual);
+		if (palette is { } customPalette)
+			card.SetPalette(customPalette);
 		card.SetInteractive(false);
 		return card;
 	}

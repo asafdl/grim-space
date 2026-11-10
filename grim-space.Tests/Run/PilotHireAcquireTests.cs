@@ -23,7 +23,6 @@ public sealed class PilotHireAcquireTests
 
 		var pilot = Assert.Single(run.PilotRegistry.All, candidate => candidate.Name == profile.Name);
 		Assert.Null(pilot.AssignedShipId);
-		Assert.False(pilot.IsActive);
 		Assert.Equal(ownedShipsBefore, run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId).Count());
 		Assert.Equal(fieldedShipsBefore, run.GetFieldedShipIds());
 	}

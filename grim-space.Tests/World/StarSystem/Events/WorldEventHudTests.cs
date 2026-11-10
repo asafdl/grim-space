@@ -92,6 +92,51 @@ public sealed class WorldEventHudTests
 	}
 
 	[Fact]
+	public void Dismiss_Potshot_EnqueuesPotshotAcknowledge()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pending = OpenPotshot(run);
+		var hud = new RecordingWorldEventHud();
+		IAction? enqueued = null;
+
+		using var _ = Attach(run, hud, action =>
+		{
+			enqueued = action;
+			return true;
+		});
+		hud.RequestDismiss();
+
+		Assert.Equal(
+			new AcknowledgePotshotAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
+		Assert.Equal(pending, run.StarSystem.Map.PendingWorldEvent);
+		Assert.False(hud.IsOpen);
+	}
+
+	[Fact]
+	public void Dismiss_DebrisDetour_EnqueuesDetourAcknowledge()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pending = OpenDetour(run);
+		var hud = new RecordingWorldEventHud();
+		IAction? enqueued = null;
+
+		using var _ = Attach(run, hud, action =>
+		{
+			enqueued = action;
+			return true;
+		});
+		hud.RequestDismiss();
+
+		Assert.Equal(
+			new AcknowledgeDebrisDetourAction(RunState.PlayerFleetUnitId, pending.Id),
+			enqueued);
+		Assert.Equal(pending.Reward, hud.Reward);
+		Assert.Equal(pending, run.StarSystem.Map.PendingWorldEvent);
+		Assert.False(hud.IsOpen);
+	}
+
+	[Fact]
 	public void Dismiss_DistressLoot_EnqueuesLootAcknowledge()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
@@ -202,12 +247,14 @@ public sealed class WorldEventHudTests
 				run.StarSystem.Subscribe<AsteroidImpactAction>(_ => sync()),
 				run.StarSystem.Subscribe<DriftSalvageFoundAction>(_ => sync()),
 				run.StarSystem.Subscribe<DistressCallReceivedAction>(_ => sync()),
-				run.StarSystem.Subscribe<CompulsiveStakeDemandedAction>(_ => sync())),
+				run.StarSystem.Subscribe<CompulsiveStakeDemandedAction>(_ => sync()),
+				run.StarSystem.Subscribe<PotshotReportedAction>(_ => sync()),
+				run.StarSystem.Subscribe<DebrisDetourReportedAction>(_ => sync())),
 			presentError ?? ((_, _) => { }));
 
 	private static PendingWorldEvent OpenAnnouncement(RunState run)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-test",
 			EWorldEventId.AsteroidAccident,
@@ -221,7 +268,7 @@ public sealed class WorldEventHudTests
 
 	private static PendingWorldEvent OpenSalvage(RunState run)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-salvage",
 			EWorldEventId.DriftSalvage,
@@ -236,7 +283,7 @@ public sealed class WorldEventHudTests
 
 	private static PendingWorldEvent OpenDistressLoot(RunState run)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-distress-loot",
 			EWorldEventId.DistressCall,
@@ -253,7 +300,7 @@ public sealed class WorldEventHudTests
 
 	private static PendingWorldEvent OpenDistressRecruit(RunState run)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-distress-recruit",
 			EWorldEventId.DistressCall,
@@ -272,7 +319,7 @@ public sealed class WorldEventHudTests
 
 	private static PendingWorldEvent OpenStake(RunState run)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-stake",
 			EWorldEventId.CompulsiveStake,
@@ -282,6 +329,35 @@ public sealed class WorldEventHudTests
 			new WorldEventPresentation("Wants a Stake", "Test body."),
 			ResourceBundle.Of(ResourceId.Credits, -WorldEventCatalog.Stake.CreditsMin));
 		run.StarSystem.CommitSetup(new CompulsiveStakeDemandedAction(StarSystemActorIds.WorldEvents, pending));
+		return pending;
+	}
+
+	private static PendingWorldEvent OpenPotshot(RunState run)
+	{
+		var pilot = run.PilotRegistry.Assigned[0];
+		var pending = new PendingWorldEvent(
+			"world-event-potshot",
+			EWorldEventId.Potshot,
+			pilot.Id,
+			pilot.AssignedShipId!,
+			WorldEventCatalog.Potshot.Damage,
+			new WorldEventPresentation("Just a Miner Drone", "Test body."));
+		run.StarSystem.CommitSetup(new PotshotReportedAction(StarSystemActorIds.WorldEvents, pending));
+		return pending;
+	}
+
+	private static PendingWorldEvent OpenDetour(RunState run)
+	{
+		var pilot = run.PilotRegistry.Assigned[0];
+		var pending = new PendingWorldEvent(
+			"world-event-detour",
+			EWorldEventId.DebrisDetour,
+			pilot.Id,
+			pilot.AssignedShipId!,
+			0,
+			new WorldEventPresentation("The Long Way Around", "Test body."),
+			ResourceBundle.Of(ResourceId.Fuel, -WorldEventCatalog.DebrisDetour.FuelCost));
+		run.StarSystem.CommitSetup(new DebrisDetourReportedAction(StarSystemActorIds.WorldEvents, pending));
 		return pending;
 	}
 

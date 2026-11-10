@@ -44,16 +44,15 @@ public sealed class RollForDriftSalvageDef
 		if (reward.IsEmpty
 			|| !WorldEventContexts.CanOpenPrompt(world)
 			|| world.ItemInventory is null
-			|| SelectFinder(roll.RngSeed, WorldEventContexts.FieldedPilots(world)) is not { } finder
-			|| !WorldEventContexts.ShipIsTraveling(world, finder.AssignedShipId!)
-			|| !world.ItemInventory.TryGet(finder.AssignedShipId!, out _))
+			|| SelectFinder(roll.RngSeed, WorldEventContexts.RosterPilots(world)) is not { } finder
+			|| !WorldEventContexts.IsTraveling(world, finder))
 			return [];
 
 		var pending = new PendingWorldEvent(
 			$"world-event-{roll.RngSeed:x}",
 			EWorldEventId.DriftSalvage,
 			finder.Id,
-			finder.AssignedShipId!,
+			finder.AssignedShipId,
 			0,
 			WorldEventCatalog.Drift.Announce(finder.Name),
 			reward);
@@ -69,8 +68,7 @@ public sealed class RollForDriftSalvageDef
 	public static Pilot? SelectFinder(ulong rngSeed, IEnumerable<Pilot> pilots)
 	{
 		var random = new StableRandom(rngSeed);
-		var order = pilots.ToList();
-		random.Shuffle(order);
+		var order = WorldEventContexts.RollOrder(random, pilots);
 		return order.FirstOrDefault(pilot => random.NextDouble() < TriggerChance(pilot));
 	}
 

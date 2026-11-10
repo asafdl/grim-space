@@ -41,7 +41,7 @@ public sealed class RollForAsteroidDodgeDef
 		if (!WorldEventContexts.CanOpenPrompt(world)
 			|| world.ItemInventory is null
 			|| SelectCulprit(roll.RngSeed, WorldEventContexts.FieldedPilots(world)) is not { } culprit
-			|| !WorldEventContexts.ShipIsTraveling(world, culprit.AssignedShipId!)
+			|| !WorldEventContexts.IsTraveling(world, culprit)
 			|| !world.ItemInventory.TryGet(culprit.AssignedShipId!, out var ship))
 			return [];
 
@@ -63,8 +63,7 @@ public sealed class RollForAsteroidDodgeDef
 	public static Pilot? SelectCulprit(ulong rngSeed, IEnumerable<Pilot> pilots)
 	{
 		var random = new StableRandom(rngSeed);
-		var order = pilots.ToList();
-		random.Shuffle(order);
+		var order = WorldEventContexts.RollOrder(random, pilots);
 		return order.FirstOrDefault(pilot => random.NextDouble() < TriggerChance(pilot));
 	}
 

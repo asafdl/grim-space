@@ -11,15 +11,18 @@ public sealed class CommitEngagementEffect : IEffect<StarMap, Runtime.ActorRunti
 	private readonly string _firstUnitId;
 	private readonly string _secondUnitId;
 	private readonly IReadOnlyList<string> _refusedPilotIds;
+	private readonly IReadOnlyList<string>? _deployedPilotIds;
 
 	public CommitEngagementEffect(
 		string firstUnitId,
 		string secondUnitId,
-		IReadOnlyList<string>? refusedPilotIds = null)
+		IReadOnlyList<string>? refusedPilotIds = null,
+		IReadOnlyList<string>? deployedPilotIds = null)
 	{
 		_firstUnitId = firstUnitId;
 		_secondUnitId = secondUnitId;
 		_refusedPilotIds = refusedPilotIds ?? [];
+		_deployedPilotIds = deployedPilotIds;
 	}
 
 	public IReadOnlyList<IRecord> Apply(StarMap world, Runtime.ActorRuntime runtime, string actorId)
@@ -50,7 +53,8 @@ public sealed class CommitEngagementEffect : IEffect<StarMap, Runtime.ActorRunti
 			engagementId,
 			initiatorId,
 			participantIds,
-			_refusedPilotIds.Count == 0 ? null : _refusedPilotIds);
+			_refusedPilotIds.Count == 0 ? null : _refusedPilotIds,
+			_deployedPilotIds);
 		return [new Record<EngagementCommitted>(committed)];
 	}
 

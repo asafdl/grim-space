@@ -160,6 +160,10 @@ public sealed class WorldEventController : IDisposable
 				new AcknowledgeDriftSalvageAction(State.PlayerFleetUnitId, pending.Id),
 			EWorldEventId.DistressCall =>
 				new AcknowledgeDistressCallAction(State.PlayerFleetUnitId, pending.Id),
+			EWorldEventId.Potshot =>
+				new AcknowledgePotshotAction(State.PlayerFleetUnitId, pending.Id),
+			EWorldEventId.DebrisDetour =>
+				new AcknowledgeDebrisDetourAction(State.PlayerFleetUnitId, pending.Id),
 			_ => throw new InvalidOperationException(
 				$"No acknowledge action is registered for {pending.EventId}."),
 		};

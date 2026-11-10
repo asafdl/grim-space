@@ -335,6 +335,49 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 		Assert.Equal(0, battle.MovePreview.BuildCount);
 	}
 
+	[Fact]
+	public void EngageWithDeployment_FieldsAndPaysOnlyDeployedPilots()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var crewed = run.PilotRegistry.All.Where(pilot => pilot.AssignedShipId is not null).ToArray();
+		Assert.True(crewed.Length > 1);
+		FundHazardPay(run);
+		var creditsBefore = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
+		ReachPlayerContact(run, "pirate-a");
+
+		run.StarSystem.PlayerAgent!.TryEnqueue(
+			[new EngageAction(RunState.PlayerFleetUnitId, [crewed[0].Id])]);
+		run.StarSystem.AdvanceClock();
+		Assert.True(SpinWait.SpinUntil(() => !run.IsBattleLaunching, TimeSpan.FromSeconds(30)));
+		run.CompleteBattleLaunch();
+
+		Assert.Equal(
+			[crewed[0].AssignedShipId!],
+			run.ActiveBattle!.Spawns.Where(spawn => spawn.Team == GrimSpace.Units.Enums.ETeam.Player).Select(spawn => spawn.Ship.Id));
+		Assert.Equal(
+			creditsBefore - HazardPayrollAccounting.HazardPayCreditsFor(crewed[0]),
+			run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal([crewed[0].Id], run.PilotRegistry.LastDeployment);
+	}
+
+	[Fact]
+	public void EngageWithInvalidDeployment_IsIllegal()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var crewed = run.PilotRegistry.All.First(pilot => pilot.AssignedShipId is not null);
+		ReachPlayerContact(run, "pirate-a");
+		var map = run.StarSystem.Map;
+
+		Assert.False(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId, []), map, new ActorRuntime()));
+		Assert.False(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId, [crewed.Id, crewed.Id]), map, new ActorRuntime()));
+		Assert.False(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId, ["missing-pilot"]), map, new ActorRuntime()));
+		Assert.True(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId, [crewed.Id]), map, new ActorRuntime()));
+	}
+
 	private static void FundHazardPay(RunState run) =>
 		Assert.True(
 			run.StarSystem.Map.PlayerResources.TryApply(

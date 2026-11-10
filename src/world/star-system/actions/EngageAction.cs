@@ -6,11 +6,14 @@ using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Units;
+using GrimSpace.Run;
 using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-public sealed record EngageAction(string ActorId) : IAction<StarMap, ActorRuntime>
+/// <param name="DeployedPilotIds">Player pilots to field; null fields every pilot with a ship.</param>
+public sealed record EngageAction(string ActorId, IReadOnlyList<string>? DeployedPilotIds = null)
+	: IAction<StarMap, ActorRuntime>
 {
 	public IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>> Definition =>
 		EngageDef.Instance;
@@ -27,7 +30,19 @@ public sealed class EngageDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is EngageAction engage
+		&& IsValidDeployment(world, engage.DeployedPilotIds)
 		&& TryResolveCounterparty(world, engage.ActorId, out _);
+
+	private static bool IsValidDeployment(StarMap world, IReadOnlyList<string>? pilotIds)
+	{
+		if (pilotIds is null)
+			return true;
+		if (pilotIds.Count is 0 or > RunPilotRegistry.MaxDeployedPilots
+			|| pilotIds.Distinct(StringComparer.Ordinal).Count() != pilotIds.Count
+			|| world.PilotRegistry is not { } registry)
+			return false;
+		return pilotIds.All(id => registry.TryGet(id, out var pilot) && pilot.AssignedShipId is not null);
+	}
 
 	public IReadOnlyList<IEffect<StarMap, ActorRuntime>> Resolve(
 		IAction action,
@@ -44,9 +59,10 @@ public sealed class EngageDef
 			new StopAtCurrentLocationEffect(engage.ActorId),
 		};
 
-		if (string.Equals(engage.ActorId, RunState.PlayerFleetUnitId, StringComparison.Ordinal))
+		if (string.Equals(engage.ActorId, RunState.PlayerFleetUnitId, StringComparison.Ordinal)
+			&& !WreckageQueries.TryGetAmbushContract(world, counterpartyId, out _))
 		{
-			var candidates = HazardPayrollAccounting.CandidatesFrom(world.PilotRegistry);
+			var candidates = HazardPayrollAccounting.CandidatesFrom(world.PilotRegistry, engage.DeployedPilotIds);
 			if (candidates.Count > 0)
 			{
 				var result = HazardPayrollAccounting.Resolve(
@@ -63,7 +79,7 @@ public sealed class EngageDef
 			}
 		}
 
-		effects.Add(new CommitEngagementEffect(engage.ActorId, counterpartyId, refusedPilotIds));
+		effects.Add(new CommitEngagementEffect(engage.ActorId, counterpartyId, refusedPilotIds, engage.DeployedPilotIds));
 		effects.Add(new PlayerInputEffect(false));
 		return effects;
 	}

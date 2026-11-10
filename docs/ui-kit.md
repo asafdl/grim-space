@@ -36,14 +36,25 @@ Production overlays have dedicated dev scenes under [`scenes/dev/`](../scenes/de
 | [`engagement_hud_preview.tscn`](../scenes/dev/engagement_hud_preview.tscn) | Engagement (with contract) |
 | [`engagement_hud_plain_preview.tscn`](../scenes/dev/engagement_hud_plain_preview.tscn) | Engagement (no contract) |
 | [`wreck_hud_preview.tscn`](../scenes/dev/wreck_hud_preview.tscn) | Wreck decision (salvage) |
-| [`wreck_ambush_hud_preview.tscn`](../scenes/dev/wreck_ambush_hud_preview.tscn) | Wreck decision (ambush) |
-| [`fleet_management_hud_preview.tscn`](../scenes/dev/fleet_management_hud_preview.tscn) | Fleet management |
 | [`npc_dialog_hud_preview.tscn`](../scenes/dev/npc_dialog_hud_preview.tscn) | NPC dialog |
 | [`pilot_speech_hud_preview.tscn`](../scenes/dev/pilot_speech_hud_preview.tscn) | Pilot speech bubbles |
 | [`dev_menu_hud_preview.tscn`](../scenes/dev/dev_menu_hud_preview.tscn) | Dev menu |
 | [`battle_victory_hud_preview.tscn`](../scenes/dev/battle_victory_hud_preview.tscn) | Battle victory scorecard |
 | [`battle_status_hud_preview.tscn`](../scenes/dev/battle_status_hud_preview.tscn) | Battle command HUD with temporary/passive statuses, stack counters, and inspection switching |
 | [`run_over_hud_preview.tscn`](../scenes/dev/run_over_hud_preview.tscn) | Run over (empty roster) |
+
+The engagement previews retain the normal engagement content and mount the world
+`PlayerFleetHud` alongside it. Four blue beveled frames extracted from the bottom
+row of `1-09.png` (`deployment_pilot_frame_blue.png`, preserved artwork and alpha)
+in the footer accept
+pilot drags; occupied slots can be moved/swapped, or dragged back to the roster
+to remove them. Drag previews retain the grab offset and portrait size; each frame
+accepts drops within a 12-pixel invisible margin, without a snapping hover preview.
+The existing button palette shader maps empty frames to `BlueCyan.Border` and
+occupied frames to `BlueCyan.Secondary`, updating when pilots are dropped or removed.
+Filled frames show the assigned ship in a small `UiReticle`, empty
+when no ship is assigned. Selection is dev-only and does not change deployment,
+ship assignments, or hazard pay.
 
 ## Pilot speech
 

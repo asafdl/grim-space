@@ -42,25 +42,15 @@ public sealed partial class WreckHudOverlay : Control
 		var body = HudWidgets.CreateCardList();
 		body.AddChild(CreateContractCard(contract));
 
-		if (pending.IsAmbush)
-		{
-			body.AddChild(CreateInfoCard(
-				title: "Hostile Signatures Detected!",
-				description: "This is likely an ambush, but fleeing won't get us paid.",
-				visual: UiCardVisual.Angled,
-				palette: HudPalettes.PurpleRed,
-				minHeight: 148f));
-		}
-
 		_shell.SetBody(body);
 		_shell.SetFooter(
 		[
 			new HudAction(
-				pending.IsAmbush ? "Flee" : "Leave",
+				"Leave",
 				HudActionKind.Destructive,
 				RequestLeave),
 			new HudAction(
-				pending.IsAmbush ? "Continue" : "Investigate",
+				"Investigate",
 				HudActionKind.Primary,
 				RequestInvestigate),
 		]);
@@ -106,7 +96,6 @@ public sealed partial class WreckHudOverlay : Control
 		string description = "",
 		string trailing = "",
 		UiCardVisual visual = UiCardVisual.Angled,
-		HudPalette? palette = null,
 		float minHeight = 160f)
 	{
 		var card = new UiCard(title, subtitle, description, trailing)
@@ -115,8 +104,6 @@ public sealed partial class WreckHudOverlay : Control
 			SizeOverride = new UiSizeOverride(Height: minHeight),
 		};
 		card.SetVisual(visual);
-		if (palette is { } customPalette)
-			card.SetPalette(customPalette);
 		card.SetInteractive(false);
 		return card;
 	}

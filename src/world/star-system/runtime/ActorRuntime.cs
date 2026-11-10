@@ -20,7 +20,6 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	public Coord PursuitTrackedTargetJourneyDestination { get; set; }
 	public Coord PursuitPlannedInterceptDestination { get; set; }
 	public bool PursuitForceReplan { get; set; }
-	public string? SelectedMemberShipId { get; set; }
 	public long FuelLedgerJourneyId { get; set; }
 	public double FuelChargedDistanceAlongCurrentJourney { get; set; }
 	public double FuelUnchargedDistance { get; set; }
@@ -59,7 +58,6 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 		PursuitTrackedTargetJourneyDestination = default;
 		PursuitPlannedInterceptDestination = default;
 		PursuitForceReplan = false;
-		SelectedMemberShipId = null;
 		ClearTravelFuelLedger();
 		IgnoreUntilTickByTargetId.Clear();
 	}
@@ -128,7 +126,6 @@ public static class ActorRuntimeCopy
 	{
 		var clone = new ActorRuntime();
 		Restore(clone, Snapshot(session));
-		clone.SelectedMemberShipId = session.SelectedMemberShipId;
 		clone.ReplaceActionEffects(session.ActionEffects);
 		return clone;
 	}

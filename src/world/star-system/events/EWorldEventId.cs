@@ -6,4 +6,6 @@ public enum EWorldEventId
 	DriftSalvage,
 	DistressCall,
 	CompulsiveStake,
+	Potshot,
+	DebrisDetour,
 }

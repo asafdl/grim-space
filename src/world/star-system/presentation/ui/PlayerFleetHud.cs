@@ -12,9 +12,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 public partial class PlayerFleetHud : MarginContainer
 {
 	private readonly Dictionary<string, ShipPilot> _pilots = new(StringComparer.Ordinal);
-	private UiButton _fleetButton = null!;
 	private VBoxContainer _pilotColumn = null!;
-	private UserIntentTranslator? _intents;
 	private PilotBarkDirector? _barks;
 	private PilotSpeechHost? _speech;
 
@@ -30,7 +28,9 @@ public partial class PlayerFleetHud : MarginContainer
 			_barks?.UnregisterPilot(pilotId);
 	}
 
-	public event Action? FleetManagementRequested;
+	/// <summary>Open engagement deployment; roster portraits drag into it while it is visible.</summary>
+	public DeploymentSlots? Deployment { get; set; }
+
 	public event Action<string>? PilotSheetRequested;
 
 	public override void _Ready()
@@ -46,49 +46,29 @@ public partial class PlayerFleetHud : MarginContainer
 		content.AddThemeConstantOverride("separation", 6);
 		margin.AddChild(content);
 
-		_fleetButton = new UiButton("", HudActionKind.Secondary)
-		{
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-		};
-		HudTooltipCard.SetTooltip(_fleetButton, "Manage owned ships and pilot assignments");
-		_fleetButton.SetVisual(UiButtonVisual.Technical);
-		_fleetButton.SizeOverride = new UiSizeOverride(Width: 200f);
-		_fleetButton.Pressed += () => FleetManagementRequested?.Invoke();
-		content.AddChild(_fleetButton);
-
 		_pilotColumn = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		_pilotColumn.AddThemeConstantOverride("separation", 8);
 		content.AddChild(_pilotColumn);
 	}
 
-	public void Sync(State run, StarSystemOrchestrator orchestrator, UserIntentTranslator intents)
+	public void Sync(State run)
 	{
-		_intents = intents;
-		_fleetButton.Text =
-			$"FLEET · {run.GetFieldedShipIds().Count}/{RunPilotRegistry.MaxActivePilots}  "
-			+ $"[{GameInputBindings.Label("map_fleet_management")}]";
-		var runtime = orchestrator.RuntimeFor(State.PlayerFleetUnitId);
-		var selectedShipId = PlayerFleetSelection.EnsureSelectedMember(
-			orchestrator.Map,
-			runtime,
-			State.PlayerFleetUnitId,
-			run.GetFieldedShipIds());
 
-		var activePilotIds = new HashSet<string>(StringComparer.Ordinal);
-		foreach (var pilot in run.PilotRegistry.Active)
+		var rosterPilotIds = new HashSet<string>(StringComparer.Ordinal);
+		var index = 0;
+		foreach (var pilot in run.PilotRegistry.All)
 		{
-			if (pilot.AssignedShipId is null
-				|| !run.ItemInventory.TryGet(pilot.AssignedShipId, out var ship))
-				continue;
-
-			activePilotIds.Add(pilot.Id);
+			var ship = pilot.AssignedShipId is { } shipId
+				? run.ItemInventory.Get(shipId)
+				: null;
+			rosterPilotIds.Add(pilot.Id);
 			if (!_pilots.TryGetValue(pilot.Id, out var card))
 			{
 				card = new ShipPilot();
-				card.Selected += OnPilotSelected;
 				card.PilotSheetRequested += OnPilotSheetRequested;
 				_pilots[pilot.Id] = card;
 				_pilotColumn.AddChild(card);
+				BindDeploymentDrag(card.Portrait, pilot.Id);
 				if (_barks is not null && _speech is { } speech)
 				{
 					var pilotId = pilot.Id;
@@ -96,6 +76,7 @@ public partial class PlayerFleetHud : MarginContainer
 				}
 			}
 
+			_pilotColumn.MoveChild(card, index++);
 			card.SetState(
 				pilot.Id,
 				pilot.Name,
@@ -103,14 +84,12 @@ public partial class PlayerFleetHud : MarginContainer
 				pilot.ExperiencePoints,
 				pilot.ClaimedLevel,
 				PilotSkillAvailability.AvailableToLearn(pilot).Count > 0,
-				ship,
-				string.Equals(pilot.AssignedShipId, selectedShipId, StringComparison.Ordinal));
+				ship);
 		}
 
-		foreach (var pilotId in _pilots.Keys.Except(activePilotIds, StringComparer.Ordinal).ToArray())
+		foreach (var pilotId in _pilots.Keys.Except(rosterPilotIds, StringComparer.Ordinal).ToArray())
 		{
 			var removed = _pilots[pilotId];
-			removed.Selected -= OnPilotSelected;
 			removed.PilotSheetRequested -= OnPilotSheetRequested;
 			removed.QueueFree();
 			_barks?.UnregisterPilot(pilotId);
@@ -121,8 +100,23 @@ public partial class PlayerFleetHud : MarginContainer
 	public Control? PortraitAnchorFor(string pilotId) =>
 		_pilots.TryGetValue(pilotId, out var card) ? card.Portrait : null;
 
-	private void OnPilotSelected(string shipId) =>
-		_intents?.TrySelectActiveShip(shipId);
+	private void BindDeploymentDrag(Control portrait, string pilotId)
+	{
+		portrait.SetDragForwarding(
+			Callable.From<Vector2, Variant>(position => OpenDeployment() is { } deployment
+				? deployment.BeginDrag(portrait, pilotId, position, new Rect2(Vector2.Zero, portrait.Size))
+				: default),
+			Callable.From<Vector2, Variant, bool>((_, data) => OpenDeployment()?.IsPilot(data) == true),
+			Callable.From<Vector2, Variant>((_, data) => OpenDeployment()?.Remove(data.AsString())));
+		portrait.GuiInput += @event =>
+		{
+			if (@event is InputEventMouseButton { DoubleClick: true, ButtonIndex: MouseButton.Left })
+				OpenDeployment()?.Deploy(pilotId);
+		};
+	}
+
+	private DeploymentSlots? OpenDeployment() =>
+		Deployment is { } deployment && deployment.IsVisibleInTree() ? deployment : null;
 
 	private void OnPilotSheetRequested(string pilotId) =>
 		PilotSheetRequested?.Invoke(pilotId);

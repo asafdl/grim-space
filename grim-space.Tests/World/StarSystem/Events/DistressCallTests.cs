@@ -338,10 +338,9 @@ public sealed class DistressCallTests
 			shipId,
 			run.ItemInventory,
 			RunState.PlayerFleetUnitId);
-		run.PilotRegistry.Activate(pilot.Id, run.ItemInventory, RunState.PlayerFleetUnitId);
-		foreach (var other in run.PilotRegistry.Active.Where(active => active.Id != pilot.Id).ToArray())
+		foreach (var other in run.PilotRegistry.Assigned.Where(active => active.Id != pilot.Id).ToArray())
 			run.PilotRegistry.Unassign(other.Id);
-		return run.PilotRegistry.Active.Single();
+		return run.PilotRegistry.Assigned.Single();
 	}
 
 	private static void FillRoster(RunState run)
@@ -363,7 +362,7 @@ public sealed class DistressCallTests
 
 	private static RollForDistressCallAction TriggeringRoll(RunState run)
 	{
-		var pilots = WorldEventContexts.FieldedPilots(run.StarSystem.Map).ToArray();
+		var pilots = WorldEventContexts.RosterPilots(run.StarSystem.Map).ToArray();
 		var room = run.PilotRegistry.CanRegister;
 		for (ulong seed = 0; seed < 10_000; seed++)
 		{
@@ -377,12 +376,12 @@ public sealed class DistressCallTests
 	private static Pilot? Responder(RunState run, ulong seed) =>
 		RollForDistressCallDef.SelectResponder(
 			seed,
-			WorldEventContexts.FieldedPilots(run.StarSystem.Map),
+			WorldEventContexts.RosterPilots(run.StarSystem.Map),
 			run.PilotRegistry.CanRegister);
 
 	private static PendingWorldEvent OpenLoot(RunState run, ResourceBundle reward)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var pending = new PendingWorldEvent(
 			"world-event-distress-loot",
 			EWorldEventId.DistressCall,
@@ -397,7 +396,7 @@ public sealed class DistressCallTests
 
 	private static PendingWorldEvent OpenRecruit(RunState run)
 	{
-		var pilot = run.PilotRegistry.Active[0];
+		var pilot = run.PilotRegistry.Assigned[0];
 		var recruit = RollForDistressCallDef.RollRecruit(3);
 		var pending = new PendingWorldEvent(
 			"world-event-distress-recruit",
