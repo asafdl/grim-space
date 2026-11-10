@@ -537,25 +537,41 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
-	public void Register_RespectsMaxPilotCap()
+	public void Register_AllowsTenPilotsAndRejectsAnEleventh()
 	{
 		var registry = new RunPilotRegistry();
-		for (var index = 0; index < RunPilotRegistry.MaxPilots; index++)
+		for (var index = 0; index < 10; index++)
 			registry.Register(Pilot.CreateForShip($"fighter-{index}"));
 
+		Assert.Equal(10, registry.All.Count);
+		Assert.Equal(10, registry.Assigned.Count);
 		Assert.False(registry.CanRegister);
-		Assert.Throws<InvalidOperationException>(() =>
-			registry.Register(Pilot.CreateForShip("fighter-overflow")));
+		Assert.Throws<InvalidOperationException>(() => registry.Register(Pilot.CreateForShip("eleventh")));
+		registry.Register(registry.All.First());
+		Assert.Equal(10, registry.All.Count);
 	}
 
 	[Fact]
-	public void TryAcquirePilotHire_RejectsWhenRosterFull()
+	public void TryAcquirePilotHire_AddsReservesBeyondFourAndRoundTrips()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
-		RunTestKit.EnlistUntilActivePilotCap(run);
-		Assert.Equal(RunPilotRegistry.MaxPilots, run.PilotRegistry.All.Count);
+		RunTestKit.EnlistFourPilots(run);
+		var fieldedBefore = run.GetFieldedShipIds().ToArray();
 
+		for (var index = 0; index < 6; index++)
+			Assert.True(run.TryAcquirePilotHire(new PilotHireCommitted(
+				new PilotRecruitProfile($"Reserve {index}", "pilot_03", EPilotBackgroundId.PodRacer))));
+
+		Assert.Equal(10, run.PilotRegistry.All.Count);
 		Assert.False(run.TryAcquirePilotHire(new PilotHireCommitted(
-			new PilotRecruitProfile("Overflow", "pilot_03", EPilotBackgroundId.PodRacer))));
+			new PilotRecruitProfile("Eleventh", "pilot_03", EPilotBackgroundId.PodRacer))));
+		Assert.Equal(4, run.PilotRegistry.Assigned.Count);
+		Assert.Equal(fieldedBefore, run.GetFieldedShipIds());
+		var registry = PersistenceRegistry.CreateDefault();
+		using var restored = State.FromSnapshot(run.CaptureSnapshot(registry), registry);
+		Assert.Equal(
+			run.PilotRegistry.All.Select(pilot => (pilot.Id, pilot.Name, pilot.AssignedShipId)),
+			restored.PilotRegistry.All.Select(pilot => (pilot.Id, pilot.Name, pilot.AssignedShipId)));
+		Assert.Equal(fieldedBefore, restored.GetFieldedShipIds());
 	}
 }

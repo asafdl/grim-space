@@ -1,5 +1,6 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
+using GrimSpace.Pilots;
 using GrimSpace.Run;
 using GrimSpace.Run.Items;
 using GrimSpace.Units;
@@ -80,6 +81,40 @@ public sealed class HirePilotActionTests
 		engine.Commit(action);
 
 		Assert.False(HirePilotActionDef.Instance.IsLegal(action, map, runtime));
+	}
+
+	[Theory]
+	[InlineData(9, true)]
+	[InlineData(10, false)]
+	public void Commit_RespectsTenPilotRosterLimit(int pilotCount, bool canHire)
+	{
+		var (engine, contract) = CreateAcceptedPilotsLeadEngine("lead-hire-large-roster");
+		var map = engine.World;
+		map.PilotRegistry = new RunPilotRegistry();
+		for (var index = 0; index < pilotCount; index++)
+			map.PilotRegistry.Register(Pilot.CreateForShip($"existing-{index}"));
+		Assert.True(PilotRecruitment.TryGetHireCandidate(map, contract.Id, 0, out var candidate));
+		var price = PilotRecruitment.Price(map, candidate);
+		SeedResources(map, price);
+		var action = new HirePilotAction(
+			State.PlayerFleetUnitId,
+			new LeadSaleMerchantEndpoint(contract.Id),
+			0);
+		var creditsBefore = map.PlayerResources.GetBalance(ResourceId.Credits);
+
+		Assert.Equal(canHire, engine.CreateSimulation().TryEnqueue(action));
+		if (!canHire)
+		{
+			Assert.Empty(GetLeadState(map, contract.Id).PurchasedPilotHireSlots);
+			Assert.Equal(creditsBefore, map.PlayerResources.GetBalance(ResourceId.Credits));
+			return;
+		}
+		var history = engine.Commit(action);
+
+		Assert.Contains(0, GetLeadState(map, contract.Id).PurchasedPilotHireSlots);
+		Assert.Single(history, entry => entry is Record<PilotHireCommitted>);
+		Assert.True(price.TryGet(ResourceId.Credits, out var creditCost));
+		Assert.Equal(creditsBefore - creditCost, map.PlayerResources.GetBalance(ResourceId.Credits));
 	}
 
 	private static (Engine<StarMap, ActorRuntime> Engine, Contract Contract) CreateAcceptedPilotsLeadEngine(

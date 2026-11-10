@@ -41,7 +41,8 @@ public sealed class PilotBarkDirector : IDisposable
 	public const double DefaultGlobalGapSeconds = 8.0;
 	public const double DefaultPilotCooldownSeconds = 20.0;
 
-	private readonly Dictionary<string, Func<string, bool>> _pilotHandles = new(StringComparer.Ordinal);
+	private readonly Dictionary<string, (Func<string, bool> Say, Func<bool>? IsVisible)> _pilotHandles =
+		new(StringComparer.Ordinal);
 	private readonly Dictionary<string, PilotPersonality> _pinnedPersonalities = new(StringComparer.Ordinal);
 	private readonly State? _run;
 	private readonly Func<string, PilotPersonality> _personalityReader;
@@ -105,11 +106,15 @@ public sealed class PilotBarkDirector : IDisposable
 		_wreckSubscription = _run.StarSystem.Subscribe<ReachWreckageAction>(OnWreckReached);
 	}
 
-	public void RegisterPilot(string pilotId, Func<string, bool> say, PilotPersonality? personality = null)
+	public void RegisterPilot(
+		string pilotId,
+		Func<string, bool> say,
+		PilotPersonality? personality = null,
+		Func<bool>? isVisible = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);
 		ArgumentNullException.ThrowIfNull(say);
-		_pilotHandles.Add(pilotId, say);
+		_pilotHandles.Add(pilotId, (say, isVisible));
 		if (personality is { } pinned)
 			_pinnedPersonalities[pilotId] = pinned;
 	}
@@ -347,7 +352,8 @@ public sealed class PilotBarkDirector : IDisposable
 		}
 
 		var eligiblePilots = pilotIds.Distinct(StringComparer.Ordinal)
-			.Where(pilotId => _pilotHandles.ContainsKey(pilotId)
+			.Where(pilotId => _pilotHandles.TryGetValue(pilotId, out var handle)
+				&& (handle.IsVisible?.Invoke() ?? true)
 				&& (!useCooldowns || !IsCoolingDown(pilotId))).ToArray();
 		if (eligiblePilots.Length == 0)
 		{
@@ -409,11 +415,12 @@ public sealed class PilotBarkDirector : IDisposable
 
 	private bool Speak(string pilotId, string line, bool startsCooldown = true)
 	{
-		if (!_pilotHandles.TryGetValue(pilotId, out var say))
+		if (!_pilotHandles.TryGetValue(pilotId, out var handle)
+			|| !(handle.IsVisible?.Invoke() ?? true))
 		{
 			return false;
 		}
-		if (!say(line))
+		if (!handle.Say(line))
 		{
 			return false;
 		}

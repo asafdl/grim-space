@@ -1,6 +1,5 @@
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
-using GrimSpace.Run;
 using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Runtime;
@@ -18,8 +17,6 @@ public sealed record EnlistPlayerShipAction(string ActorId, ShipSpawnDeclaration
 public sealed class EnlistPlayerShipActionDef
 	: IActionDef<IAction, StarMap, ActorRuntime, IEffect<StarMap, ActorRuntime>>
 {
-	public const int MaxPlayerShips = RunPilotRegistry.MaxPilots;
-
 	public static EnlistPlayerShipActionDef Instance { get; } = new();
 
 	public IEnumerable<IAction> Discover(StarMap world, ActorRuntime runtime, string actorId) => [];
@@ -32,7 +29,7 @@ public sealed class EnlistPlayerShipActionDef
 			return false;
 		if (!world.FleetRegistry.TryGet(enlist.ActorId, out var fleet))
 			return false;
-		if (fleet.Members.Count >= MaxPlayerShips)
+		if (world.PilotRegistry is { CanRegister: false })
 			return false;
 
 		var shipId = enlist.Declaration.ShipId;

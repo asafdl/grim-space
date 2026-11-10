@@ -33,6 +33,42 @@ public sealed class PilotBarkDirectorTests
 		return director;
 	}
 
+	[Fact]
+	public void Select_OnlyPicksCurrentlyVisiblePilots()
+	{
+		var visible = "a";
+		using var director = new PilotBarkDirector(new Random(1));
+		foreach (var id in new[] { "a", "b" })
+			director.RegisterPilot(id, _ => true, isVisible: () => visible == id);
+
+		Assert.Equal("a", Assert.Single(director.Select(
+			["a", "b"], [EBarkFlavor.Supportive], 1, 1, 2)).PilotId);
+		visible = "b";
+		Assert.Equal("b", Assert.Single(director.Select(
+			["a", "b"], [EBarkFlavor.Supportive], 1, 1, 2)).PilotId);
+		visible = "";
+		Assert.Empty(director.Select(["a", "b"], [EBarkFlavor.Supportive], 1));
+	}
+
+	[Fact]
+	public void Present_RechecksVisibilityWithoutStartingCooldownWhenHidden()
+	{
+		var visible = true;
+		var said = new List<string>();
+		using var director = new PilotBarkDirector(new Random(1));
+		director.RegisterPilot("a", line => { said.Add(line); return true; }, isVisible: () => visible);
+		var decision = Assert.Single(director.Select(["a"], [EBarkFlavor.Supportive], 1));
+
+		visible = false;
+		Assert.False(director.Present(decision));
+		Assert.False(director.Script("a", "Hidden scripted line."));
+		Assert.Empty(said);
+
+		visible = true;
+		Assert.True(director.Offer("a", EBarkFlavor.Supportive, 1));
+		Assert.Single(said);
+	}
+
 	[Theory]
 	[InlineData(-5, EBarkFlavor.Anxious)]
 	[InlineData(5, EBarkFlavor.Bloodthirsty)]

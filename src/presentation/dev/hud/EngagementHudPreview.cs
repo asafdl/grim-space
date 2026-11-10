@@ -28,7 +28,7 @@ public sealed partial class EngagementHudPreview : Control
 
 		var dev = UiHudDevContext.Create();
 		_dev = dev;
-		while (dev.Run.PilotRegistry.CanRegister)
+		while (dev.Run.PilotRegistry.All.Count < 8)
 		{
 			var pilot = Pilot.CreateForShip($"preview-unassigned-{dev.Run.PilotRegistry.All.Count}");
 			dev.Run.PilotRegistry.Register(pilot);

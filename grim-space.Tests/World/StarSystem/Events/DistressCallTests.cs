@@ -28,29 +28,40 @@ public sealed class DistressCallTests
 			precision: 10);
 
 	[Theory]
-	[InlineData(5, true, 0.18, 0.22)]
-	[InlineData(-5, true, 0.18, 0.22)]
-	[InlineData(-5, false, 0.18, 0.22)]
-	[InlineData(0, true, 0, 0)]
+	[InlineData(5, 0.18, 0.22)]
+	[InlineData(-5, 0.18, 0.22)]
+	[InlineData(0, 0, 0)]
 	public void SelectResponder_TriggersAtPersonalityAdjustedRate(
 		int allegiance,
-		bool rosterHasRoom,
 		double minRate,
 		double maxRate)
 	{
 		var pilots = new[] { PilotWith(allegiance) };
 
 		var triggers = Enumerable.Range(0, 5_000)
-			.Count(seed => RollForDistressCallDef.SelectResponder((ulong)seed, pilots, rosterHasRoom) is not null);
+			.Count(seed => RollForDistressCallDef.SelectResponder((ulong)seed, pilots) is not null);
 
 		Assert.InRange(triggers / 5_000.0, minRate, maxRate);
 	}
 
 	[Fact]
-	public void SelectResponder_WhenRosterIsFull_SkipsLoyalPilots()
+	public void SelectResponder_AllowsBothLoyalAndSelfishPilots()
 	{
 		var pilots = new[] { PilotWith(5, "loyal"), PilotWith(-5, "selfish") };
 
+		var names = Enumerable.Range(0, 2_000)
+			.Select(seed => RollForDistressCallDef.SelectResponder((ulong)seed, pilots)?.Name)
+			.Where(name => name is not null)
+			.ToArray();
+
+		Assert.Contains("loyal", names);
+		Assert.Contains("selfish", names);
+	}
+
+	[Fact]
+	public void SelectResponder_FullRosterSkipsLoyalPilotsButAllowsLoot()
+	{
+		var pilots = new[] { PilotWith(5, "loyal"), PilotWith(-5, "selfish") };
 		var names = Enumerable.Range(0, 2_000)
 			.Select(seed => RollForDistressCallDef.SelectResponder((ulong)seed, pilots, rosterHasRoom: false)?.Name)
 			.Where(name => name is not null)
@@ -168,26 +179,29 @@ public sealed class DistressCallTests
 	}
 
 	[Fact]
-	public void Roll_LoyalPilotWithAFullRoster_PassesSilently()
+	public void Roll_LoyalPilotWithMoreThanFourPilots_OffersRecruit()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
-		FieldOnly(run, allegiance: 5);
+		var loyal = FieldOnly(run, allegiance: 5);
 		StartJourney(run);
-		var roll = TriggeringRoll(run);
-		FillRoster(run);
+		AddReservePilots(run);
+		var roll = TriggeringRoll(run, loyal.Id);
 
 		run.StarSystem.CommitSetup(roll);
 		run.StarSystem.AdvanceTick();
 
-		Assert.Null(run.StarSystem.Map.PendingWorldEvent);
+		Assert.True(run.PilotRegistry.All.Count > 4);
+		Assert.NotNull(run.StarSystem.Map.PendingWorldEvent);
+		Assert.NotNull(run.StarSystem.Map.PendingWorldEvent.Recruit);
+		Assert.Null(run.StarSystem.Map.PendingWorldEvent.Reward);
 	}
 
 	[Fact]
-	public void Roll_SelfishPilotWithAFullRoster_StillOffersLoot()
+	public void Roll_SelfishPilotWithMoreThanFourPilots_StillOffersLoot()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		FieldOnly(run, allegiance: -5);
-		FillRoster(run);
+		AddReservePilots(run);
 		StartJourney(run);
 		var roll = TriggeringRoll(run);
 
@@ -237,19 +251,40 @@ public sealed class DistressCallTests
 	}
 
 	[Fact]
-	public void Accept_WhenTheRosterFills_DoesNothing()
+	public void Accept_WithMoreThanFourPilots_RegistersSurvivorOnce()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var pending = OpenRecruit(run);
-		FillRoster(run);
+		AddReservePilots(run);
 		var fuel = Balance(run, ResourceId.Fuel);
 		var count = run.PilotRegistry.All.Count;
 
 		run.StarSystem.CommitSetup(Accept(pending));
+		run.StarSystem.CommitSetup(Accept(pending));
 
-		Assert.Equal(count, run.PilotRegistry.All.Count);
+		Assert.True(count > 4);
+		Assert.Equal(count + 1, run.PilotRegistry.All.Count);
+		Assert.Contains(run.PilotRegistry.All, pilot => pilot.Name == pending.Recruit!.Name);
+		Assert.Equal(fuel, Balance(run, ResourceId.Fuel));
+		Assert.Null(run.StarSystem.Map.PendingWorldEvent);
+		Assert.False(run.StarSystem.Map.WaitingForPlayerInput);
+	}
+
+	[Fact]
+	public void Accept_WithTenPilots_DoesNotExceedCapOrConsumePendingRecruit()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var pending = OpenRecruit(run);
+		while (run.PilotRegistry.All.Count < 10)
+			run.PilotRegistry.Register(PilotWith(0, $"bench-{run.PilotRegistry.All.Count}"));
+		var fuel = Balance(run, ResourceId.Fuel);
+
+		run.StarSystem.CommitSetup(Accept(pending));
+
+		Assert.Equal(10, run.PilotRegistry.All.Count);
 		Assert.Equal(fuel, Balance(run, ResourceId.Fuel));
 		Assert.Equal(pending, run.StarSystem.Map.PendingWorldEvent);
+		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
 	}
 
 	[Fact]
@@ -343,14 +378,10 @@ public sealed class DistressCallTests
 		return run.PilotRegistry.Assigned.Single();
 	}
 
-	private static void FillRoster(RunState run)
+	private static void AddReservePilots(RunState run)
 	{
-		var index = 0;
-		while (run.PilotRegistry.CanRegister)
-		{
+		for (var index = 0; index < 4; index++)
 			run.PilotRegistry.Register(PilotWith(0, $"bench-{index}"));
-			index++;
-		}
 	}
 
 	private static void StartJourney(RunState run)
@@ -360,13 +391,13 @@ public sealed class DistressCallTests
 		run.StarSystem.AdvanceTick();
 	}
 
-	private static RollForDistressCallAction TriggeringRoll(RunState run)
+	private static RollForDistressCallAction TriggeringRoll(RunState run, string? responderId = null)
 	{
 		var pilots = WorldEventContexts.RosterPilots(run.StarSystem.Map).ToArray();
-		var room = run.PilotRegistry.CanRegister;
 		for (ulong seed = 0; seed < 10_000; seed++)
 		{
-			if (RollForDistressCallDef.SelectResponder(seed, pilots, room) is not null)
+			if (RollForDistressCallDef.SelectResponder(seed, pilots, run.PilotRegistry.CanRegister) is { } responder
+				&& (responderId is null || responder.Id == responderId))
 				return new RollForDistressCallAction(StarSystemActorIds.WorldEvents, seed);
 		}
 

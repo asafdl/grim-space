@@ -109,12 +109,12 @@ public sealed class PurchaseShipActionTests
 	}
 
 	[Fact]
-	public void CommitSetup_WithRun_RegistersOwnedShipWithoutPilotWhenActiveRosterFull()
+	public void CommitSetup_WithRun_RegistersOwnedShipWithoutPilotWithFourAssignedPilots()
 	{
 		using var run = State.CreateNewRun(42);
-		RunTestKit.EnlistUntilActivePilotCap(run);
+		RunTestKit.EnlistFourPilots(run);
 
-		Assert.Equal(RunPilotRegistry.MaxPilots, run.PilotRegistry.Assigned.Count);
+		Assert.Equal(4, run.PilotRegistry.Assigned.Count);
 		var pilotCountBefore = run.PilotRegistry.All.Count;
 		var ownedBefore = run.ItemInventory.ShipsOwnedBy(State.PlayerFleetUnitId).Count();
 

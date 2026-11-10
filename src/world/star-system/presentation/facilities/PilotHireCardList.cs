@@ -32,13 +32,11 @@ internal static class PilotHireCardList
 			return body;
 		}
 
-		var rosterFull = !run.PilotRegistry.CanRegister;
-
 		foreach (var candidate in candidates)
 		{
 			var captured = candidate;
 			var cost = PilotRecruitment.Price(map, captured);
-			var canAfford = !rosterFull && map.PlayerResources.CanApply(cost.Negate());
+			var canAfford = run.PilotRegistry.CanRegister && map.PlayerResources.CanApply(cost.Negate());
 			body.AddChild(BuildCandidateCard(captured, cost, canAfford, onHire));
 		}
 

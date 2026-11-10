@@ -11,7 +11,7 @@ using RunState = GrimSpace.Run.State;
 
 namespace GrimSpace.World.StarSystem.Actions;
 
-/// <param name="DeployedPilotIds">Player pilots to field; null fields every pilot with a ship.</param>
+/// <param name="DeployedPilotIds">Player pilots to field; null fields all assigned pilots only when within the deployment limit.</param>
 public sealed record EngageAction(string ActorId, IReadOnlyList<string>? DeployedPilotIds = null)
 	: IAction<StarMap, ActorRuntime>
 {
@@ -30,13 +30,15 @@ public sealed class EngageDef
 
 	public bool IsLegal(IAction action, StarMap world, ActorRuntime runtime) =>
 		action is EngageAction engage
-		&& IsValidDeployment(world, engage.DeployedPilotIds)
+		&& IsValidDeployment(world, engage.ActorId, engage.DeployedPilotIds)
 		&& TryResolveCounterparty(world, engage.ActorId, out _);
 
-	private static bool IsValidDeployment(StarMap world, IReadOnlyList<string>? pilotIds)
+	private static bool IsValidDeployment(StarMap world, string actorId, IReadOnlyList<string>? pilotIds)
 	{
 		if (pilotIds is null)
-			return true;
+			return actorId != RunState.PlayerFleetUnitId
+				|| world.PilotRegistry is null
+				|| world.PilotRegistry.Assigned.Count <= RunPilotRegistry.MaxDeployedPilots;
 		if (pilotIds.Count is 0 or > RunPilotRegistry.MaxDeployedPilots
 			|| pilotIds.Distinct(StringComparer.Ordinal).Count() != pilotIds.Count
 			|| world.PilotRegistry is not { } registry)

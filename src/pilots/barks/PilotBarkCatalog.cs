@@ -20,7 +20,9 @@ public static class PilotBarkCatalog
 				"I don't like how many ways this can go wrong.",
 				"I calculate the odds of success as 0.000324488%, in case you were wondering.",
 				"Well this was a choice. Not a great choice, but a choice.",
-				"Is this a bad time to get a salary boost?"
+				"Is this a bad time to get a salary boost?",
+				"Danger circuits are buzzing like crazy!",
+				"What if we just leave, is that so bad?"
 				],
 			[EBarkFlavor.Bloodthirsty] = [
 				"I hope somebody tries something on me.",
@@ -31,7 +33,11 @@ public static class PilotBarkCatalog
 				"Bolts, screws, and plates... Easy to dismantle...",
 				"They say the logic bits scream as they fry...",
 				"Lets make them spare parts.",
-				"I could use some new bolts and screws, YOURS WILL DO."
+				"I could use some new bolts and screws, YOURS WILL DO.",
+				"Less talking, more killing.",
+				"Getting paid to cause pain, what a deal.",
+				"My rustbox of a grand-daddy-creator could hit better than that.",
+				"I hope thier pain circuits are dialed up to max."
 				],
 			[EBarkFlavor.Impatient] = [
 				"Wake me when something explodes.",

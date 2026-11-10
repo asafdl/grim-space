@@ -7,7 +7,7 @@ namespace GrimSpace.Run;
 
 public sealed class RunPilotRegistry : IPilotSkillRosterReader
 {
-	public const int MaxPilots = 4;
+	public const int MaxPilots = 10;
 	public const int MaxDeployedPilots = 4;
 
 	private readonly Dictionary<string, Pilot> _pilotsById = new(StringComparer.Ordinal);
@@ -54,9 +54,8 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 	public void Register(Pilot pilot)
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
-		if (!CanRegister)
+		if (!CanRegister && !_pilotsById.ContainsKey(pilot.Id))
 			throw new InvalidOperationException($"Cannot register more than {MaxPilots} pilots.");
-
 		RegisterCore(pilot);
 	}
 

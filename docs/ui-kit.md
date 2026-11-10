@@ -56,6 +56,12 @@ Filled frames show the assigned ship in a small `UiReticle`, empty
 when no ship is assigned. Selection is dev-only and does not change deployment,
 ship assignments, or hazard pay.
 
+The fleet rail fits the available viewport height and scrolls overflowing portraits
+with the mouse wheel or its up/down arrows, using the same `HudCycleArrow` as the
+character sheet and ship picker. Arrows dim at the scroll limits;
+wheel input over the rail does not zoom the map. The engagement preview includes
+eight pilots to exercise scrolling without changing the four deployment slots.
+
 ## Pilot speech
 
 Battle presentation registers allied encounter pilots with the same run-owned director.
@@ -98,6 +104,11 @@ Each selected pilot independently uses the director's 40% default chance, then r
 Disdain or Relieved for delivery completion and a line from that flavor. Global and
 per-pilot cooldowns apply; dialogs do not block or delay barks. Scripted opening
 lines still play once per new run.
+
+Strategic roster handles supply a live visibility predicate: only portraits fully
+inside the fleet scroll area and screen are eligible for selection. Visibility is
+checked again before speaking, and the same anchor resolver drops active or queued
+speech when its portrait scrolls out of view. The director remains Godot-free.
 
 Committed engagement `ReachContactAction` events also offer a bark when the player
 has an authoritative pending fight/flee decision, whether the player or hostile fleet

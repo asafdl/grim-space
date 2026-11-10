@@ -50,13 +50,31 @@ public sealed class PlayerShipAcquireTests
 	}
 
 	[Fact]
-	public void CanAcquirePlayerShip_BlocksWhenActivePilotCapWouldBeExceededOnMap()
+	public void TryAcquirePlayerShip_EnlistsAndRegistersPilotsBeyondFour()
 	{
 		using var run = RunState.CreateNewRun(42);
-		RunTestKit.EnlistUntilActivePilotCap(run);
+		RunTestKit.EnlistFourPilots(run);
 
-		var blockedId = TypedIdGenerator.NextId("fighter");
-		Assert.False(run.CanAcquirePlayerShip(new ShipSpawnDeclaration(blockedId, BattleUnitType.Fighter)));
+		for (var index = 0; index < 6; index++)
+		{
+			var shipId = TypedIdGenerator.NextId("fighter");
+			var declaration = new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter);
+			Assert.True(run.CanAcquirePlayerShip(declaration));
+			Assert.True(run.TryAcquirePlayerShip(declaration));
+			Assert.True(run.PilotRegistry.TryGetForShip(shipId, out _));
+		}
+
+		Assert.Equal(10, run.PilotRegistry.All.Count);
+		Assert.Equal(10, run.PilotRegistry.Assigned.Count);
+		Assert.Equal(10, run.GetFieldedShipIds().Count);
+		var overflow = new ShipSpawnDeclaration("eleventh-pilot-ship", BattleUnitType.Fighter);
+		Assert.False(run.CanAcquirePlayerShip(overflow));
+		Assert.False(run.TryEnlistPlayerShip(overflow));
+		Assert.False(run.ItemInventory.TryGet(overflow.ShipId, out _));
+		Assert.Equal(
+			run.GetFieldedShipIds(),
+			run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId)
+				.Members.Select(member => member.Id).ToArray());
 	}
 
 	[Fact]
@@ -142,10 +160,10 @@ public sealed class PlayerShipAcquireTests
 	}
 
 	[Fact]
-	public void PurchaseShipAction_RemainsLegalWhenActivePilotCapIsFull()
+	public void PurchaseShipAction_RemainsLegalWithFourAssignedPilots()
 	{
 		using var run = RunState.CreateNewRun(42);
-		RunTestKit.EnlistUntilActivePilotCap(run);
+		RunTestKit.EnlistFourPilots(run);
 
 		var offer = run.StarSystem.Map.Market.ListRecruitmentOffers()
 			.First(candidate => candidate.GearTier == EShipGearTier.T1);

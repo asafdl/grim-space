@@ -54,6 +54,25 @@ public sealed class EngageActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void IsLegal_LargerRosterStillRequiresAtMostFourDeployedPilots()
+	{
+		using var orchestrator = CreateAwaitingDecisionScenario();
+		var registry = new RunPilotRegistry();
+		orchestrator.Map.PilotRegistry = registry;
+		for (var index = 0; index < 8; index++)
+			registry.Register(Pilot.CreateForShip($"assigned-{index}"));
+		var pilotIds = registry.Assigned.Select(pilot => pilot.Id).ToArray();
+		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
+
+		Assert.False(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId), orchestrator.Map, runtime));
+		Assert.False(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId, pilotIds.Take(5).ToArray()), orchestrator.Map, runtime));
+		Assert.True(EngageDef.Instance.IsLegal(
+			new EngageAction(RunState.PlayerFleetUnitId, pilotIds.Take(4).ToArray()), orchestrator.Map, runtime));
+	}
+
+	[Fact]
 	public void Commit_MaterializesInTransitInitiator()
 	{
 		var orchestrator = CreateAwaitingDecisionScenario(inTransit: true);

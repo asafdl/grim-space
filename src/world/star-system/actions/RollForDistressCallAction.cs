@@ -83,8 +83,8 @@ public sealed class RollForDistressCallDef
 	}
 
 	/// <summary>
-	/// Checks eligible pilots in shuffled order. A loyal pilot is skipped when the roster has no open slot.
-	/// The first pilot to answer decides the outcome by their allegiance.
+	/// Checks eligible pilots in shuffled order, skipping recruits when the roster is full.
+	/// The first to answer decides the outcome by their allegiance.
 	/// </summary>
 	public static Pilot? SelectResponder(ulong rngSeed, IEnumerable<Pilot> pilots, bool rosterHasRoom = true)
 	{

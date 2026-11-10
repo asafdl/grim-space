@@ -47,13 +47,13 @@ internal static class RunTestKit
 		spawns.Single(spawn =>
 			spawn.Team == ETeam.Player && spawn.Ship.Spec.Chassis == BattleUnitType.Fighter);
 
-	public static void EnlistUntilActivePilotCap(State run)
+	public static void EnlistFourPilots(State run)
 	{
-		while (run.PilotRegistry.Assigned.Count < RunPilotRegistry.MaxPilots)
+		while (run.PilotRegistry.Assigned.Count < 4)
 		{
 			var shipId = GrimSpace.Core.Ids.TypedIdGenerator.NextId("fighter");
 			if (!run.TryEnlistPlayerShip(new ShipSpawnDeclaration(shipId, BattleUnitType.Fighter)))
-				throw new InvalidOperationException("Failed to enlist ship while filling active pilot cap.");
+				throw new InvalidOperationException("Failed to enlist ship while preparing four assigned pilots.");
 		}
 	}
 }
