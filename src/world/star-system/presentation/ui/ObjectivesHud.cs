@@ -17,7 +17,6 @@ public partial class ObjectivesHud : MarginContainer
 	private static readonly Color FailedBadgeColor = HudPalettes.PurpleRed.Highlight;
 
 	private VBoxContainer _entriesHost = null!;
-	private Label _emptyLabel = null!;
 	private Label _headerCountLabel = null!;
 	private CompactConfirmationPopup _dismissPopup = null!;
 	private readonly Dictionary<string, PanelContainer> _entries = new(StringComparer.Ordinal);
@@ -149,15 +148,6 @@ public partial class ObjectivesHud : MarginContainer
 		AddChild(shell.Root);
 		_headerCountLabel = shell.HeaderBadge!;
 
-		_emptyLabel = new Label
-		{
-			Text = "No active objectives",
-			MouseFilter = MouseFilterEnum.Ignore,
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			ThemeTypeVariation = HudStyles.InformativeItemDescriptionLabelType,
-		};
-		shell.Body.AddChild(_emptyLabel);
-
 		_entriesHost = new VBoxContainer
 		{
 			MouseFilter = MouseFilterEnum.Ignore,
@@ -189,7 +179,6 @@ public partial class ObjectivesHud : MarginContainer
 	private void RefreshListChrome()
 	{
 		var visibleEntries = _activeObjectiveCount + _lingeringObjectiveIds.Count;
-		_emptyLabel.Visible = visibleEntries == 0;
 		_entriesHost.Visible = visibleEntries > 0;
 		_headerCountLabel.Text = $"{_activeObjectiveCount:D2}";
 	}

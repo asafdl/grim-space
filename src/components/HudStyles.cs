@@ -92,15 +92,6 @@ public static class HudStyles
 	public static void SetPanelVariation(PanelContainer panel, string variation) =>
 		panel.ThemeTypeVariation = variation;
 
-	public static string StatusPanelVariation(HudStatusKind kind) =>
-		kind switch
-		{
-			HudStatusKind.Success => "StatusSuccess",
-			HudStatusKind.Warning => "StatusWarning",
-			HudStatusKind.Error => "StatusError",
-			_ => "StatusNeutral",
-		};
-
 	public static string TextVariation(HudTextRole role) =>
 		role switch
 		{

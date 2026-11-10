@@ -42,6 +42,9 @@ public static class PilotBarkCatalog
 				"I'm setting my listening to 5x speed.",
 				"My CPU is in sleep mode for now.",
 				"Can we ask someone who actually knows something???",
+				"It's as if Syndi is watching me waste my life, laughing.",
+				"I head they are looking for pilots in the Carnate wars, maybe I should go there instead.",
+				"My CPU has only 338299182992543325 cycles left, I can't believe we are still here."
 				],
 			[EBarkFlavor.Analytical] = [
 				"The risk was calculated, but badly.",
@@ -66,7 +69,8 @@ public static class PilotBarkCatalog
 				"Stay with the crew. Nobody gets left as spare parts.",
 				"I'll pitch in to recreate you from the scraps.",
 				"That might leave a mark, your fine though, right?",
-				"We don't get paid unless this works."
+				"We don't get paid unless this works.",
+				"When life gives you rust, oil it up."
 				],
 		};
 

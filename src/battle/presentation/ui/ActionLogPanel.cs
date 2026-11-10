@@ -28,10 +28,7 @@ public sealed partial class ActionLogPanel : PanelContainer
 		_renderedEntryCount = entries.Count;
 		_log.Clear();
 		if (entries.Count == 0)
-		{
-			_log.AddText(BattleHudCopy.ActionLogEmpty);
 			return;
-		}
 
 		for (var i = 0; i < entries.Count; i++)
 		{

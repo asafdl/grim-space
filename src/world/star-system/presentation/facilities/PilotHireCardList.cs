@@ -28,25 +28,11 @@ internal static class PilotHireCardList
 		}
 		catch (InvalidOperationException error)
 		{
-			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, error.Message));
-			return body;
-		}
-
-		if (candidates.Count == 0)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"All pilot hire slots on this lead have been filled."));
+			GD.PushError($"Could not create pilot hire offers: {error}");
 			return body;
 		}
 
 		var rosterFull = !run.PilotRegistry.CanRegister;
-		if (rosterFull)
-		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				$"Roster full ({RunPilotRegistry.MaxPilots}/{RunPilotRegistry.MaxPilots})."));
-		}
 
 		foreach (var candidate in candidates)
 		{

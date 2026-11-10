@@ -164,55 +164,6 @@ public static class HudWidgets
 		return panel;
 	}
 
-	public static Control CreateStatusPanel(HudStatusKind kind, string message)
-	{
-		var panel = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, HudStyles.StatusPanelVariation(kind));
-
-		var label = new Label
-		{
-			Text = message,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			ThemeTypeVariation = "Status",
-		};
-		ApplyStatusLabelStyle(label, kind);
-
-		var margin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_top", HudStyles.HalfMargin);
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.HalfMargin);
-		margin.AddChild(label);
-		panel.AddChild(margin);
-		return panel;
-	}
-
-	public static Control CreateWarningPanel(string message)
-	{
-		var panel = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		HudStyles.SetPanelVariation(panel, "Warning");
-
-		var label = new Label
-		{
-			Text = message,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			ThemeTypeVariation = "Body",
-		};
-
-		var margin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-		margin.AddThemeConstantOverride("margin_left", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_right", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_top", HudStyles.Margin);
-		margin.AddThemeConstantOverride("margin_bottom", HudStyles.Margin);
-		margin.AddChild(label);
-		panel.AddChild(margin);
-		return panel;
-	}
-
 	private static Label CreateTextLine(HudTextLine row)
 	{
 		var label = new Label
@@ -240,18 +191,6 @@ public static class HudWidgets
 		};
 		HudStyles.ApplyTextRole(label, bodyRole);
 		return label;
-	}
-
-	private static void ApplyStatusLabelStyle(Label label, HudStatusKind kind)
-	{
-		var textRole = kind switch
-		{
-			HudStatusKind.Success => HudTextRole.Success,
-			HudStatusKind.Warning => HudTextRole.Warning,
-			HudStatusKind.Error => HudTextRole.Danger,
-			_ => HudTextRole.Metadata,
-		};
-		HudStyles.ApplyTextRole(label, textRole);
 	}
 
 	public static HudPanelView CreateInformativePanel(

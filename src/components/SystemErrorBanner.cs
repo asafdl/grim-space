@@ -57,7 +57,7 @@ public sealed partial class SystemErrorBanner : Control
 			CustomMinimumSize = new Vector2(520, 0),
 			MouseFilter = MouseFilterEnum.Stop,
 		};
-		HudStyles.SetPanelVariation(panel, HudStyles.StatusPanelVariation(HudStatusKind.Error));
+		HudStyles.SetPanelVariation(panel, "StatusError");
 		position.AddChild(panel);
 
 		var margin = new MarginContainer();

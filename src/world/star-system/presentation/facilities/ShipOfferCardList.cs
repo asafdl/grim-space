@@ -18,10 +18,6 @@ internal static class ShipOfferCardList
 		body.AddThemeConstantOverride("separation", 10);
 
 		var offers = run.StarSystem.Map.Market.ListRecruitmentOffers();
-		if (offers.Count == 0)
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"No ships are available."));
 
 		foreach (var offer in offers)
 		{

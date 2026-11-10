@@ -53,22 +53,11 @@ public sealed partial class BattleVictoryOverlay : CanvasLayer
 		body.AddThemeConstantOverride("separation", 10);
 
 		var revealRows = new List<Control>();
-		if (summary.Pilots.Count == 0)
+		foreach (var row in summary.Pilots)
 		{
-			var emptyState = HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				BattleHudCopy.VictoryNoPilotPerformance);
-			body.AddChild(emptyState);
-			revealRows.Add(emptyState);
-		}
-		else
-		{
-			foreach (var row in summary.Pilots)
-			{
-				var item = new BattleVictoryPilotRowView(row);
-				body.AddChild(item);
-				revealRows.Add(item);
-			}
+			var item = new BattleVictoryPilotRowView(row);
+			body.AddChild(item);
+			revealRows.Add(item);
 		}
 
 		_shell.SetBody(body);

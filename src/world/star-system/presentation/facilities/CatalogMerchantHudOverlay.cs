@@ -139,11 +139,7 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		var body = HudWidgets.CreateCardList();
 		body.AddThemeConstantOverride("separation", 18);
 		var ships = OwnedShips();
-		if (ships.Count == 0)
-			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "No ships in your hold."));
-		else if (ships.Any(ship => !_quotes.ContainsKey(ship.Id)))
-			body.AddChild(HudWidgets.CreateStatusPanel(HudStatusKind.Neutral, "Loading services…"));
-		else
+		if (ships.Count > 0 && ships.All(ship => _quotes.ContainsKey(ship.Id)))
 			PopulateRepairs(body, ships);
 
 		_shell.SetBody(body);
@@ -165,16 +161,14 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 		body.AddChild(HealSelectedItem(selected, ordered, selectedCost));
 		body.AddChild(BracketItem(
 			"Heal all",
-			damaged.Length == 0
-				? "All ships are at full health."
-				: $"Repair hull and shields on {affordable.Count} of {damaged.Length} damaged ships.",
+			"",
 			RepairCost(affordable),
 			affordable.Count > 0,
 			() => RequestRepairs(affordable)));
 		var fuel = _quotes[selected.Id].Offers.First(offer => offer.Offering.Kind == MerchantCatalog.Kind.BuyFuel);
 		body.AddChild(BracketItem(
 			$"Buy fuel ({StarMarketSeed.FuelPurchaseAmount})",
-			$"Purchase a {StarMarketSeed.FuelPurchaseAmount}-unit fuel bundle for the fleet.",
+			"",
 			fuel.Cost,
 			CanAfford(fuel.Cost),
 			() =>

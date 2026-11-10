@@ -16,14 +16,6 @@ public enum HudHeaderMode
 	TitleOnly,
 }
 
-public enum HudStatusKind
-{
-	Neutral,
-	Success,
-	Warning,
-	Error,
-}
-
 public enum HudTextRole
 {
 	Metadata,

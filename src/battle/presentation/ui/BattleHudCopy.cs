@@ -60,14 +60,12 @@ internal static class BattleHudCopy
 	public const string BackToPlayerTooltip = "Return to your ship and resume planning.";
 
 	public const string ActionLogTitle = "Action Log";
-	public const string ActionLogEmpty = "(no actions yet)";
 
 	public const string Reset = "Reset";
 	public const string ReturnToStarMap = "Return to Star Map";
 	public const string ReturnToMainMenu = "Main Menu";
 	public const string VictoryTitle = "Victory";
 	public const string DefeatTitle = "Objective Failed";
-	public const string VictoryNoPilotPerformance = "No pilot performance to report.";
 	public const string ScrappedStamp = "SCRAP";
 
 	public static string ScorecardTitle(EBattleResult result) =>

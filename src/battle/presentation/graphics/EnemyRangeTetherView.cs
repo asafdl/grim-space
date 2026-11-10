@@ -197,14 +197,17 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		var length = tether.Length();
 		var direction = length > 0f ? tether / length : Vector3.Zero;
 		_lineMesh.ClearSurfaces();
-		_lineMesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		for (var offset = 0f; offset < length; offset += TetherMarkSpacing)
+		if (length > 0f)
 		{
-			_lineMesh.SurfaceAddVertex(from + direction * offset);
-			_lineMesh.SurfaceAddVertex(
-				from + direction * Mathf.Min(offset + TetherMarkLength, length));
+			_lineMesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+			for (var offset = 0f; offset < length; offset += TetherMarkSpacing)
+			{
+				_lineMesh.SurfaceAddVertex(from + direction * offset);
+				_lineMesh.SurfaceAddVertex(
+					from + direction * Mathf.Min(offset + TetherMarkLength, length));
+			}
+			_lineMesh.SurfaceEnd();
 		}
-		_lineMesh.SurfaceEnd();
 		_distanceLabel.Position = from.Lerp(to, 0.5f);
 		_targetInfoVisual.Position = to;
 

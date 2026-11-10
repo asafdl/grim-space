@@ -67,7 +67,7 @@ public sealed partial class ContractHudOverlay : Control
 		_activeFacilityId = activeFacilityId;
 		_activeOperatorName = activeOperatorName;
 		_selected = null;
-		_shell.Open("Contracts", "Select a contract");
+		_shell.Open("Contracts", string.Empty);
 		ShowList();
 	}
 
@@ -96,9 +96,7 @@ public sealed partial class ContractHudOverlay : Control
 		_declinePopup.Hide();
 		var contracts = PresentedContracts();
 		_shell.SetTitle("Contracts");
-		_shell.SetSubtitle(contracts.Length == 0
-			? "No contracts available"
-			: $"{contracts.Length} {Pluralize(contracts.Length, "contract", "contracts")} available");
+		_shell.SetSubtitle(string.Empty);
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter([]);
@@ -109,19 +107,10 @@ public sealed partial class ContractHudOverlay : Control
 
 		var body = HudWidgets.CreateCardList();
 
-		if (contracts.Length == 0)
+		foreach (var contract in contracts)
 		{
-			body.AddChild(HudWidgets.CreateStatusPanel(
-				HudStatusKind.Neutral,
-				"No contracts available from this authority."));
-		}
-		else
-		{
-			foreach (var contract in contracts)
-			{
-				var captured = contract;
-				body.AddChild(CreateContractCard(captured));
-			}
+			var captured = contract;
+			body.AddChild(CreateContractCard(captured));
 		}
 
 		_shell.SetBody(body);
@@ -250,9 +239,6 @@ public sealed partial class ContractHudOverlay : Control
 		line.AddThemeFontSizeOverride("normal_font_size", 16);
 		return line;
 	}
-
-	private static string Pluralize(int count, string singular, string plural) =>
-		count == 1 ? singular : plural;
 
 	private bool TryRefreshSelected()
 	{
