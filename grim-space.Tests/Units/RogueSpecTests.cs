@@ -73,7 +73,8 @@ public sealed class RogueSpecTests
 	[Fact]
 	public void ClassHasDisplayNameSlugAndExclusivePilotCompatibility()
 	{
-		Assert.Equal("Rogue", EOperatorClassId.Rogue.DisplayName());
+		Assert.Equal("Corsair", EOperatorClassId.Rogue.DisplayName());
+		Assert.Equal("Bulwark", EOperatorClassId.Tank.DisplayName());
 		Assert.Equal("rogue", UnitTypeSlug.For(EType.Rogue));
 		foreach (var classId in Enum.GetValues<EOperatorClassId>())
 		{

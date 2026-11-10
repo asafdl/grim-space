@@ -12,7 +12,7 @@ namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public partial class PlayerFleetHud : MarginContainer
 {
-	private const int ScrollStep = 132;
+	private const int ScrollStep = 161;
 
 	private readonly Dictionary<string, ShipPilot> _pilots = new(StringComparer.Ordinal);
 	private VBoxContainer _pilotColumn = null!;
@@ -54,8 +54,9 @@ public partial class PlayerFleetHud : MarginContainer
 		margin.AddChild(content);
 
 		_scrollUp = HudCycleArrow.Create(
-			-1, ShipPilot.RosterWidth, "Scroll pilots up", () => _scroll.ScrollVertical -= ScrollStep, vertical: true);
+			-1, ShipPilot.FrameSize, string.Empty, () => _scroll.ScrollVertical -= ScrollStep, vertical: true);
 		_scrollUp.Name = "ScrollUp";
+		_scrollUp.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
 		content.AddChild(_scrollUp);
 		_scroll = new ScrollContainer
 		{
@@ -71,8 +72,9 @@ public partial class PlayerFleetHud : MarginContainer
 		_pilotColumn.AddThemeConstantOverride("separation", 8);
 		_scroll.AddChild(_pilotColumn);
 		_scrollDown = HudCycleArrow.Create(
-			1, ShipPilot.RosterWidth, "Scroll pilots down", () => _scroll.ScrollVertical += ScrollStep, vertical: true);
+			1, ShipPilot.FrameSize, string.Empty, () => _scroll.ScrollVertical += ScrollStep, vertical: true);
 		_scrollDown.Name = "ScrollDown";
+		_scrollDown.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
 		content.AddChild(_scrollDown);
 		var bar = _scroll.GetVScrollBar();
 		bar.ValueChanged += _ => RefreshScrollButtons();
@@ -132,6 +134,7 @@ public partial class PlayerFleetHud : MarginContainer
 				pilot.Id,
 				pilot.Name,
 				pilot.PortraitId,
+				pilot.ClassId,
 				pilot.ExperiencePoints,
 				pilot.ClaimedLevel,
 				PilotSkillAvailability.AvailableToLearn(pilot).Count > 0,

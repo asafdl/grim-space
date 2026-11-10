@@ -103,9 +103,8 @@ public static class PilotIdentityIconRail
 		return row;
 	}
 
-	private static Control CreateClassIcon(EOperatorClassId classId)
-	{
-		var iconPath = classId switch
+	public static string ClassIconPathFor(EOperatorClassId classId) =>
+		classId switch
 		{
 			EOperatorClassId.SpaceRanger => SpaceRangerClassIconPath,
 			EOperatorClassId.Support => SupportClassIconPath,
@@ -113,11 +112,22 @@ public static class PilotIdentityIconRail
 			EOperatorClassId.Rogue => RogueClassIconPath,
 			_ => throw new ArgumentOutOfRangeException(nameof(classId), classId, null),
 		};
-		return CreateIcon(
-			iconPath,
-			IdentityIconColor,
+
+	public static Color ClassColorFor(EOperatorClassId classId) =>
+		classId switch
+		{
+			EOperatorClassId.SpaceRanger => new Color("#ffc247"),
+			EOperatorClassId.Support => new Color("#69db91"),
+			EOperatorClassId.Tank => new Color("#72b5ff"),
+			EOperatorClassId.Rogue => new Color("#c592f5"),
+			_ => throw new ArgumentOutOfRangeException(nameof(classId), classId, null),
+		};
+
+	private static Control CreateClassIcon(EOperatorClassId classId) =>
+		CreateIcon(
+			ClassIconPathFor(classId),
+			ClassColorFor(classId),
 			HudTooltipContent.Plain($"Class: {classId.DisplayName()}"));
-	}
 
 	private static HudTooltipHost CreateIcon(string iconPath, Color iconColor, HudTooltipContent tooltip)
 	{

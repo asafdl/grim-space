@@ -166,8 +166,9 @@ ship assignments, or hazard pay.
 
 The fleet rail fits the available viewport height and scrolls overflowing portraits
 with the mouse wheel or its up/down arrows, using the same `HudCycleArrow` as the
-character sheet and ship picker. Fleet portrait sizing uses a 96-pixel base
-(previously 64), with a matching wider rail and 132-pixel arrow scroll steps.
+character sheet and ship picker. Fleet portrait sizing uses a 125-pixel base
+(approximately 30% larger than the previous 96), with a matching wider rail and
+161-pixel arrow scroll steps. Class badges and level-up icons retain their sizes.
 Ship badges remain 60 pixels; deployment slots and battle portraits are unchanged.
 Arrows dim at the scroll limits;
 wheel input over the rail does not zoom the map. The engagement preview includes
@@ -180,6 +181,16 @@ slots without changing their pilot selection. Hull and shield points appear on t
 ship reticle's arcs and tooltip, not the pilot portrait; XP fills bottom-up along
 the portrait's left edge as an overlay without shifting the portrait.
 Unassigned pilots show an empty reticle that can still open the picker.
+Roster portraits show a 28-pixel class badge at the frame's top-right, with an
+opaque dark backing and class-colored outline and glyph. The level label is
+removed; level remains in the portrait tooltip, while XP is shown only by the portrait bar. The level-up chevron sits
+at bottom-left, clear of the bottom-right ship reticle, and still opens the
+character sheet. Deployment, battle, and victory portraits are unchanged.
+Class glyph colors are shared through `PilotIdentityIconRail`: Space Ranger
+amber, Support green, Tank blue, and Rogue violet. The same colors apply to class
+icons in hiring, rescue cards, and character sheets.
+The engagement preview includes all four classes and unspent level-ups to check
+badge readability and separation from ship reticles.
 
 ## Pilot speech
 

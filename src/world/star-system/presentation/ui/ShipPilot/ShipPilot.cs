@@ -4,20 +4,24 @@ using GrimSpace.Run;
 using GrimSpace.Ui.Components;
 using GrimSpace.Ui.Portraits;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Facilities;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
 
 public partial class ShipPilot : Control
 {
-	private const int PortraitSize = 96;
-	private const float FrameSize = PortraitSize + 8f;
+	private const int PortraitSize = 125;
+	internal const float FrameSize = PortraitSize + 8f;
 	private const float PortraitHeight = FrameSize * 0.8f;
 	private const float RosterReticleSize = 60f;
 	internal const float RosterWidth = FrameSize * .95f + RosterReticleSize / 2f;
 	private static readonly Vector2 BarSize = new(6, PortraitHeight);
 
-	private Label _levelLabel = null!;
+	private TextureRect _classIcon = null!;
+	private Panel _classBadge = null!;
+	private StyleBoxFlat _classBadgeStyle = null!;
+	private EOperatorClassId? _classId;
 	private LevelUpButton _levelUpButton = null!;
 	private PilotPortrait _portrait = null!;
 	private ProgressBar _xpBar = null!;
@@ -43,6 +47,7 @@ public partial class ShipPilot : Control
 		string pilotId,
 		string pilotName,
 		string portraitId,
+		EOperatorClassId classId,
 		int experiencePoints,
 		int claimedLevel,
 		bool canLearnSkill,
@@ -56,7 +61,15 @@ public partial class ShipPilot : Control
 			_portrait.SetIdentity(portraitId);
 			_portraitId = portraitId;
 		}
-		_levelLabel.Text = $"LV {claimedLevel}";
+		if (_classId != classId)
+		{
+			var classColor = PilotIdentityIconRail.ClassColorFor(classId);
+			_classIcon.Texture = SvgIconLoader.LoadCentered(
+				PilotIdentityIconRail.ClassIconPathFor(classId), classColor, 20);
+			_classBadgeStyle.BorderColor = classColor;
+			HudTooltipCard.SetTooltip(_classBadge, classId.DisplayName());
+			_classId = classId;
+		}
 		_levelUpButton.Visible = canLearnSkill;
 		var shipStatus = (ship, ship?.CurrentHullPoints ?? 0, ship?.Loadout.BaseHullPoints ?? 0,
 			ship?.TotalCurrentShieldPoints ?? 0, ship?.TotalBaseShieldPoints ?? 0);
@@ -87,14 +100,11 @@ public partial class ShipPilot : Control
 			_xpBar.MaxValue = 1;
 			_xpBar.Value = 1;
 		}
-		var xpLine = xpToNext > 0
-			? $"XP {xpInLevel}/{xpToNext}"
-			: "XP max";
 		HudTooltipCard.SetTooltip(
 			_portrait,
 			$"{pilotName}\n"
-			+ $"Lv {claimedLevel} · {xpLine}\n"
-			+ (canLearnSkill ? "Level up available" : ""));
+			+ $"Lv {claimedLevel}"
+			+ (canLearnSkill ? "\nLevel up available" : ""));
 	}
 
 	private void Build()
@@ -132,26 +142,38 @@ public partial class ShipPilot : Control
 		_xpBar.FillMode = (int)ProgressBar.FillModeEnum.BottomToTop;
 		portraitFrame.AddChild(_xpBar);
 
-		_levelLabel = new Label
+		_classBadge = new Panel
 		{
-			OffsetLeft = BarSize.X + 1,
-			OffsetTop = PortraitHeight - 17,
-			OffsetRight = 29,
-			OffsetBottom = PortraitHeight - 1,
-			HorizontalAlignment = HorizontalAlignment.Left,
-			VerticalAlignment = VerticalAlignment.Center,
+			Position = new Vector2(FrameSize - 29, 1),
+			Size = new Vector2(28, 28),
+			MouseFilter = MouseFilterEnum.Stop,
+		};
+		_classBadgeStyle = new StyleBoxFlat
+		{
+			BgColor = HudPalettes.WithAlpha(HudPalettes.BlueCyan.DeepSurface, 1f),
+			BorderColor = HudPalettes.BlueCyan.Secondary,
+			BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1,
+			CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
+			CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
+		};
+		_classBadge.AddThemeStyleboxOverride("panel", _classBadgeStyle);
+		AddChild(_classBadge);
+		_classIcon = new TextureRect
+		{
+			Position = new Vector2(4, 4),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			Size = new Vector2(20, 20),
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
-		_levelLabel.AddThemeFontSizeOverride("font_size", 10);
-		_levelLabel.AddThemeColorOverride("font_color", Colors.White);
-		portraitFrame.AddChild(_levelLabel);
+		_classBadge.AddChild(_classIcon);
 
 		_levelUpButton = new LevelUpButton
 		{
-			OffsetLeft = PortraitSize - 29,
-			OffsetTop = 1,
-			OffsetRight = PortraitSize - 1,
-			OffsetBottom = 31,
+			OffsetLeft = BarSize.X + 2,
+			OffsetTop = PortraitHeight - 30,
+			OffsetRight = BarSize.X + 30,
+			OffsetBottom = PortraitHeight,
 			Visible = false,
 		};
 		HudTooltipCard.SetTooltip(_levelUpButton, "Level up");

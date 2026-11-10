@@ -2,6 +2,7 @@ using Godot;
 using GrimSpace.Run;
 using GrimSpace.Units;
 using EShipGearTier = GrimSpace.Units.Enums.EShipGearTier;
+using EOperatorClassId = GrimSpace.Units.Enums.EOperatorClassId;
 using GrimSpace.World.Factions;
 using GrimSpace.World.StarSystem.Contact;
 using GrimSpace.World.StarSystem.Economy;
@@ -30,7 +31,13 @@ public sealed partial class EngagementHudPreview : Control
 		_dev = dev;
 		while (dev.Run.PilotRegistry.All.Count < 8)
 		{
-			var pilot = Pilot.CreateForShip($"preview-unassigned-{dev.Run.PilotRegistry.All.Count}");
+			var classId = new[]
+			{
+				EOperatorClassId.SpaceRanger, EOperatorClassId.Support,
+				EOperatorClassId.Tank, EOperatorClassId.Rogue,
+			}[(dev.Run.PilotRegistry.All.Count - 2) % 4];
+			var pilot = Pilot.CreateForShip($"preview-unassigned-{dev.Run.PilotRegistry.All.Count}", classId);
+			pilot = PilotProgression.AddExperience(pilot, PilotProgression.ExperienceForLevel(2));
 			dev.Run.PilotRegistry.Register(pilot);
 			dev.Run.PilotRegistry.Unassign(pilot.Id);
 		}
