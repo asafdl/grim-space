@@ -11,7 +11,7 @@ internal static class AbilitySourceMeshes
 
 	public static Node3D CreateLightningCannon() => Ghost(GetLightningBoltMesh());
 
-	public static Node3D CreateHighSpeedRod() =>
+	public static Node3D CreateHighVelocityRod() =>
 		Ghost(new BoxMesh { Size = new Vector3(0.07f, 0.07f, 0.8f) });
 
 	public static Node3D CreateGoopGun() =>

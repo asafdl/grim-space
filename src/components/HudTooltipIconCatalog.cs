@@ -25,7 +25,7 @@ public static class HudTooltipIconCatalog
 		["VoidBombLauncher"] = new("res://assets/ui/abilities/void_bomb.svg", new Color(0.68f, 0.32f, 0.98f)), // hex #ad52fa
 		["MinerBay"] = new("res://assets/ui/abilities/repurposed-miner.svg", new Color(0.4f, 0.9f, 0.58f)), // hex #66e594
 		["Ram"] = new("res://assets/ui/abilities/ram.png", new Color(0.92f, 0.55f, 0.28f)), // hex #eb8c47
-		["HighSpeedRod"] = new("res://assets/ui/abilities/high_speed_rod.svg", new Color(0.2f, 0.95f, 0.9f)),
+		["HighVelocityRod"] = new("res://assets/ui/abilities/high_velocity_rod.svg", new Color(0.2f, 0.95f, 0.9f)),
 		["RoadsWeDontNeedRoads"] = new("res://assets/ui/abilities/roads_we_dont_need_roads.svg", new Color(0.65f, 0.45f, 1f)),
 		["ProtectionDrone"] = new("res://assets/ui/abilities/protection_drone.png", new Color(0.55f, 0.85f, 0.95f)),
 		["Cooldown"] = new("res://assets/ui/battle/cooldown.png", new Color(0.2f, 0.38f, 0.68f)), // hex #3361af

@@ -10,7 +10,7 @@ using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
 
-public sealed record HighSpeedRodAction(string ActorId, ESpatialOrientation MountedOn)
+public sealed record HighVelocityRodAction(string ActorId, ESpatialOrientation MountedOn)
 	: IAction<BattleWorld, ActorRuntime>, IOrientedAction
 {
 	ESpatialOrientation IOrientedAction.Orientation => MountedOn;
@@ -18,17 +18,17 @@ public sealed record HighSpeedRodAction(string ActorId, ESpatialOrientation Moun
 	private static readonly string[] ActionTags = [BattleActionTags.Attack];
 	IReadOnlyList<string> IAction.Tags => ActionTags;
 	public IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> Definition =>
-		HighSpeedRodDef.Instance;
+		HighVelocityRodDef.Instance;
 }
 
-public sealed class HighSpeedRodDef
+public sealed class HighVelocityRodDef
 	: IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>,
 		IOrientedActionDef, IAreaActionDef
 {
-	public static HighSpeedRodDef Instance { get; } = new();
+	public static HighVelocityRodDef Instance { get; } = new();
 	public bool IsBlockable => true;
 
-	public HighSpeedRodAction Bind(string actorId, ESpatialOrientation mountedOn) =>
+	public HighVelocityRodAction Bind(string actorId, ESpatialOrientation mountedOn) =>
 		new(actorId, mountedOn);
 
 	IAction IOrientedActionDef.Bind(string actorId, ESpatialOrientation orientation) =>
@@ -38,7 +38,7 @@ public sealed class HighSpeedRodDef
 	{
 		foreach (var installed in world.StateOf(actorId).Loadout.InstalledAbilities)
 		{
-			if (installed.Kind != EAbilityKind.HighSpeedRod)
+			if (installed.Kind != EAbilityKind.HighVelocityRod)
 				continue;
 			var action = Bind(actorId, installed.MountedOn);
 			if (IsLegal(action, world, runtime))
@@ -49,14 +49,14 @@ public sealed class HighSpeedRodDef
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var rod = Cast(action);
-		return world.StateOf(rod.ActorId).FindInstalled(EAbilityKind.HighSpeedRod, rod.MountedOn) is not null;
+		return world.StateOf(rod.ActorId).FindInstalled(EAbilityKind.HighVelocityRod, rod.MountedOn) is not null;
 	}
 
 	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var rod = Cast(action);
 		var state = world.StateOf(rod.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.HighSpeedRod, rod.MountedOn);
+		var installed = state.FindInstalled(EAbilityKind.HighVelocityRod, rod.MountedOn);
 		return state.IsAlive
 			&& !BattleStatuses.HasOverheat(state)
 			&& installed is not null
@@ -68,15 +68,15 @@ public sealed class HighSpeedRodDef
 	{
 		var rod = Cast(action);
 		var state = world.StateOf(rod.ActorId);
-		var installed = state.FindInstalled(EAbilityKind.HighSpeedRod, rod.MountedOn)
+		var installed = state.FindInstalled(EAbilityKind.HighVelocityRod, rod.MountedOn)
 			?? throw new InvalidOperationException("High Velocity Rod is not installed on this mount.");
-		if (installed.Spec is not HighSpeedRodSpec spec)
+		if (installed.Spec is not HighVelocityRodSpec spec)
 			throw new InvalidOperationException("High Velocity Rod spec missing.");
 		return
 		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
 			new ApplyAreaDamageEffect(
-				EImpactCause.HighSpeedRod,
+				EImpactCause.HighVelocityRod,
 				AffectedCells(rod, world),
 				spec.Damage,
 				state.Position,
@@ -85,10 +85,10 @@ public sealed class HighSpeedRodDef
 		];
 	}
 
-	public IReadOnlySet<Coord> AffectedCells(HighSpeedRodAction action, BattleWorld world)
+	public IReadOnlySet<Coord> AffectedCells(HighVelocityRodAction action, BattleWorld world)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (state.FindInstalled(EAbilityKind.HighSpeedRod, action.MountedOn)?.Spec is not HighSpeedRodSpec spec)
+		if (state.FindInstalled(EAbilityKind.HighVelocityRod, action.MountedOn)?.Spec is not HighVelocityRodSpec spec)
 			return FrozenSet<Coord>.Empty;
 		var step = BodyFrame.From(state).Step(action.MountedOn);
 		var cells = new HashSet<Coord>();
@@ -112,7 +112,7 @@ public sealed class HighSpeedRodDef
 	IReadOnlySet<Coord> IAreaActionDef.AffectedCells(IAction action, BattleWorld world) =>
 		AffectedCells(Cast(action), world);
 
-	private static HighSpeedRodAction Cast(IAction action) =>
-		action as HighSpeedRodAction
-		?? throw new ArgumentException($"Expected {nameof(HighSpeedRodAction)}.", nameof(action));
+	private static HighVelocityRodAction Cast(IAction action) =>
+		action as HighVelocityRodAction
+		?? throw new ArgumentException($"Expected {nameof(HighVelocityRodAction)}.", nameof(action));
 }

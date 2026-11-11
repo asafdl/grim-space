@@ -34,8 +34,8 @@ public sealed class RogueSpec : ShipSpec
 
 	public override IReadOnlyList<WeaponSlot> Slots { get; } =
 	[
-		new(new(EAbilityKind.HighSpeedRod, ESpatialOrientation.Ventral)),
-		new(new(EAbilityKind.HighSpeedRod, ESpatialOrientation.Dorsal)),
+		new(new(EAbilityKind.HighVelocityRod, ESpatialOrientation.Ventral)),
+		new(new(EAbilityKind.HighVelocityRod, ESpatialOrientation.Dorsal)),
 		new(new(EAbilityKind.RoadsWeDontNeedRoads, ESpatialOrientation.Forward)),
 	];
 }

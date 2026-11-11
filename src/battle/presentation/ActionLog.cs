@@ -149,7 +149,7 @@ public static class ActionLog
 	{
 		switch (entry)
 		{
-			case HighSpeedRodAction a:
+			case HighVelocityRodAction a:
 				actorId = a.ActorId;
 				weapon = "High Velocity Rod";
 				mount = $"{FormatEnum(a.MountedOn)} mount";

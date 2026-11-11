@@ -255,19 +255,19 @@ public static class AbilityHudCatalog
 					unit.UsesRemaining(EAbilityKind.Ram),
 					unit.MaxUsesPerTurn(EAbilityKind.Ram)),
 				legality => legality.Weapons.IsKindLegal(EWeaponKind.Ram)),
-			HighSpeedRodDef => new(
-				EPlayerMode.HighSpeedRod,
+			HighVelocityRodDef => new(
+				EPlayerMode.HighVelocityRod,
 				def,
 				new AbilityTargetingSpec(
 					AdjacentMountedSource,
-					AbilitySourceMeshes.CreateHighSpeedRod,
+					AbilitySourceMeshes.CreateHighVelocityRod,
 					new Color(0.2f, 0.95f, 0.9f, 0.5f)),
-				"res://assets/ui/abilities/high_speed_rod.svg",
-				BattleHudCopy.HighSpeedRodTooltipFor,
+				"res://assets/ui/abilities/high_velocity_rod.svg",
+				BattleHudCopy.HighVelocityRodTooltipFor,
 				(unit, _) => BattleHudCopy.Charges(
-					unit.UsesRemaining(EAbilityKind.HighSpeedRod),
-					unit.MaxUsesPerTurn(EAbilityKind.HighSpeedRod)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.HighSpeedRod)),
+					unit.UsesRemaining(EAbilityKind.HighVelocityRod),
+					unit.MaxUsesPerTurn(EAbilityKind.HighVelocityRod)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.HighVelocityRod)),
 			RoadsWeDontNeedRoadsDef => new(
 				EPlayerMode.RoadsWeDontNeedRoads,
 				def,

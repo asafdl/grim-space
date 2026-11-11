@@ -120,7 +120,7 @@ public static class Capabilities
 			EAbilityKind.VoidBombLauncher => VoidBombDef.Instance,
 			EAbilityKind.GoopGun => GoopGunDef.Instance,
 			EAbilityKind.Ram => RamDef.Instance,
-			EAbilityKind.HighSpeedRod => HighSpeedRodDef.Instance,
+			EAbilityKind.HighVelocityRod => HighVelocityRodDef.Instance,
 			EAbilityKind.RoadsWeDontNeedRoads => RoadsWeDontNeedRoadsDef.Instance,
 			EAbilityKind.ProtectionDrone => ProtectionDroneDef.Instance,
 			_ => throw new InvalidOperationException($"No action definition for ability kind '{kind}'."),

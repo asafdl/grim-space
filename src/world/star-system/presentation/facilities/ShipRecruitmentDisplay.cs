@@ -184,7 +184,7 @@ internal static class ShipRecruitmentDisplay
 				[new("Cooldown", bay.CooldownTurns)],
 			RamSpec ram =>
 				[new("Damage", ram.Damage), new("Range", ram.Range, IsDistance: true)],
-			HighSpeedRodSpec rod =>
+			HighVelocityRodSpec rod =>
 				[new("Damage", rod.Damage), new("Range", rod.Range, IsDistance: true)],
 			RoadsWeDontNeedRoadsSpec jump =>
 				[new("Range", jump.Range, IsDistance: true), new("Cooldown", jump.CooldownTurns)],

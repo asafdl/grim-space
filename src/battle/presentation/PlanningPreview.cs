@@ -225,7 +225,7 @@ public sealed class PlanningPreview
 		var lightningCannon = false;
 		var goopGun = false;
 		var ram = false;
-		var highSpeedRod = false;
+		var highVelocityRod = false;
 		var torpedoMounts = new HashSet<ESpatialOrientation>();
 
 		foreach (var action in actions)
@@ -247,8 +247,8 @@ public sealed class PlanningPreview
 				case RamAction:
 					ram = true;
 					break;
-				case HighSpeedRodAction:
-					highSpeedRod = true;
+				case HighVelocityRodAction:
+					highVelocityRod = true;
 					break;
 				case VoidBombAction torpedo:
 					torpedoMounts.Add(torpedo.MountedOn);
@@ -263,7 +263,7 @@ public sealed class PlanningPreview
 			goopGun,
 			torpedoMounts,
 			ram,
-			highSpeedRod);
+			highVelocityRod);
 	}
 
 	public AreaActionPreviews AreaPreviews(

@@ -34,7 +34,7 @@ public sealed class RogueAbilityTests
 			battle.PlayerAgent.Sim.World.StateOf("player"),
 			GrimSpace.Battle.Runtime.ActorRuntime.From(null));
 
-		var tooltip = BattleHudCopy.HighSpeedRodTooltipFor(unit);
+		var tooltip = BattleHudCopy.HighVelocityRodTooltipFor(unit);
 
 		Assert.Equal("[icon: Damage, text: 70] [icon: Crit, text: x3.5]\n[icon: Heat, text: +20]", tooltip.Details);
 		Assert.Contains("Crit when hitting hull", tooltip.Body);
@@ -52,21 +52,21 @@ public sealed class RogueAbilityTests
 	{
 		var battle = CreateBattle(Origin + Coord.Up * 2, enemyHull: 1000, shields: shields);
 		var sim = battle.PlayerAgent.Sim;
-		Assert.True(sim.TryEnqueue(true, new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
+		Assert.True(sim.TryEnqueue(true, new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 
 		Assert.Equal(1000 - hullDamage, sim.World.StateOf("enemy").CurrentHullPoints);
 		Assert.Equal(0, sim.World.StateOf("player").UsesRemaining(
-			new AbilityMount(EAbilityKind.HighSpeedRod, ESpatialOrientation.Dorsal)));
+			new AbilityMount(EAbilityKind.HighVelocityRod, ESpatialOrientation.Dorsal)));
 		Assert.Equal(1, sim.World.StateOf("player").UsesRemaining(
-			new AbilityMount(EAbilityKind.HighSpeedRod, ESpatialOrientation.Ventral)));
+			new AbilityMount(EAbilityKind.HighVelocityRod, ESpatialOrientation.Ventral)));
 		Assert.Equal(4, sim.World.StateOf("player").CurrentActionPoints);
 		Assert.Equal(4, sim.World.StateOf("player").CurrentManeuverPoints);
 		Assert.Equal(20, sim.World.StateOf("player").Heat);
-		Assert.False(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
+		Assert.False(sim.TryEnqueue(new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 		Assert.Equal(1000, battle.Engine.World.StateOf("enemy").CurrentHullPoints);
 		Assert.True(sim.TryUndoLast());
 		Assert.Equal(1000, sim.World.StateOf("enemy").CurrentHullPoints);
-		Assert.Equal(2, sim.World.StateOf("player").UsesRemaining(EAbilityKind.HighSpeedRod));
+		Assert.Equal(2, sim.World.StateOf("player").UsesRemaining(EAbilityKind.HighVelocityRod));
 		Assert.Equal(0, sim.World.StateOf("player").Heat);
 	}
 
@@ -77,7 +77,7 @@ public sealed class RogueAbilityTests
 			buffs: [EChassisBuffOffer.WeaponDamage]);
 		var sim = battle.PlayerAgent.Sim;
 
-		Assert.True(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
+		Assert.True(sim.TryEnqueue(new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 
 		// 70 * 1.2 = 84 penetrates 75 shields; 84 * 3.5 - 75 = 219 hull damage.
 		Assert.Equal(781, sim.World.StateOf("enemy").CurrentHullPoints);
@@ -92,7 +92,7 @@ public sealed class RogueAbilityTests
 		actor.Overheat = true;
 		BattleStatuses.SyncOverheat(actor);
 
-		Assert.False(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
+		Assert.False(sim.TryEnqueue(new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 		Assert.False(sim.TryEnqueue(new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up * 4)));
 	}
 
@@ -102,12 +102,12 @@ public sealed class RogueAbilityTests
 		var battle = CreateBattle(Origin + Coord.Up * 2, shields: 50, temporaryShields: 20);
 		var sim = battle.PlayerAgent.Sim;
 
-		Assert.True(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
+		Assert.True(sim.TryEnqueue(new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 		Assert.Equal(200, sim.World.StateOf("enemy").CurrentHullPoints);
 		Assert.Equal(0, Defense.EffectiveShield(sim.World.StateOf("enemy"),
 			BodyFrame.From(sim.World.StateOf("enemy")).HitFaceFrom(Origin)));
-		var cells = HighSpeedRodDef.Instance.AffectedCells(
-			new HighSpeedRodAction("player", ESpatialOrientation.Dorsal), sim.World);
+		var cells = HighVelocityRodDef.Instance.AffectedCells(
+			new HighVelocityRodAction("player", ESpatialOrientation.Dorsal), sim.World);
 		Assert.Equal(2, cells.Count);
 		Assert.DoesNotContain(Origin + Coord.Up * 3, cells);
 	}
@@ -118,13 +118,13 @@ public sealed class RogueAbilityTests
 		var blockedBattle = CreateBattle(Origin + Coord.Up * 3,
 			blocked: new HashSet<Coord> { Origin + Coord.Up });
 		var sim = blockedBattle.PlayerAgent.Sim;
-		Assert.True(sim.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
+		Assert.True(sim.TryEnqueue(new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 		Assert.Equal(200, sim.World.StateOf("enemy").CurrentHullPoints);
-		Assert.Empty(HighSpeedRodDef.Instance.AffectedCells(
-			new HighSpeedRodAction("player", ESpatialOrientation.Dorsal), sim.World));
+		Assert.Empty(HighVelocityRodDef.Instance.AffectedCells(
+			new HighVelocityRodAction("player", ESpatialOrientation.Dorsal), sim.World));
 
 		var distant = CreateBattle(Origin + Coord.Up * 5).PlayerAgent.Sim;
-		Assert.True(distant.TryEnqueue(new HighSpeedRodAction("player", ESpatialOrientation.Dorsal)));
+		Assert.True(distant.TryEnqueue(new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 		Assert.Equal(200, distant.World.StateOf("enemy").CurrentHullPoints);
 	}
 
@@ -197,7 +197,7 @@ public sealed class RogueAbilityTests
 		var battle = CreateBattle(landing + Coord.Up * 2);
 		var sim = battle.PlayerAgent.Sim;
 		var firstJump = new RoadsWeDontNeedRoadsAction("player", landing);
-		var rod = new HighSpeedRodAction("player", ESpatialOrientation.Dorsal);
+		var rod = new HighVelocityRodAction("player", ESpatialOrientation.Dorsal);
 		Assert.True(sim.TryEnqueue(true, firstJump));
 		Assert.True(sim.TryEnqueue(true, rod));
 		Assert.False(sim.World.StateOf("enemy").IsAlive);
@@ -224,13 +224,13 @@ public sealed class RogueAbilityTests
 		var sim = battle.PlayerAgent.Sim;
 		var actor = sim.World.StateOf("player");
 		var legal = Capabilities.LegalCapabilities(sim, "player");
-		var rodSpec = AbilityHudCatalog.ForUnit(EType.Rogue).Single(spec => spec.Mode == EPlayerMode.HighSpeedRod);
+		var rodSpec = AbilityHudCatalog.ForUnit(EType.Rogue).Single(spec => spec.Mode == EPlayerMode.HighVelocityRod);
 		var rodChoices = AbilityActivation.ResolveChoices(rodSpec, actor, legal);
 		Assert.Equal(2, rodChoices.Count);
 		Assert.All(rodChoices, choice =>
 		{
 			Assert.Equal(0, Coord.Dot(choice.Fore, choice.Dorsal));
-			Assert.IsType<HighSpeedRodAction>(AbilityActivation.CreateExecutionAction(choice));
+			Assert.IsType<HighVelocityRodAction>(AbilityActivation.CreateExecutionAction(choice));
 		});
 		var jumpSpec = AbilityHudCatalog.ForUnit(EType.Rogue).Single(spec => spec.Mode == EPlayerMode.RoadsWeDontNeedRoads);
 		var jumpChoices = AbilityActivation.ResolveChoices(jumpSpec, actor, legal);
@@ -246,7 +246,7 @@ public sealed class RogueAbilityTests
 		});
 		var legality = PlanningPreview.Abilities(legal);
 		Assert.True(legality.RoadsWeDontNeedRoads);
-		Assert.True(legality.Weapons.HighSpeedRod);
+		Assert.True(legality.Weapons.HighVelocityRod);
 	}
 
 	[Fact]
@@ -332,7 +332,7 @@ public sealed class RogueAbilityTests
 	{
 		var battle = CreateBattle(new Coord(1, 1, 1));
 		var jump = new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up * 4);
-		battle.Engine.Commit(jump, new HighSpeedRodAction("player", ESpatialOrientation.Ventral));
+		battle.Engine.Commit(jump, new HighVelocityRodAction("player", ESpatialOrientation.Ventral));
 		var state = battle.Engine.World.StateOf("player");
 		var options = PersistenceJson.CreateOptions();
 		var json = JsonSerializer.Serialize(SaveDtoMapper.CaptureBattleUnitState(state), options);
@@ -341,7 +341,7 @@ public sealed class RogueAbilityTests
 		Assert.Equal(state.Position, restored.Position);
 		Assert.Equal(40, restored.Heat);
 		Assert.Equal(3, restored.CooldownRemaining(JumpMount));
-		Assert.Equal(1, restored.UsesRemaining(EAbilityKind.HighSpeedRod));
+		Assert.Equal(1, restored.UsesRemaining(EAbilityKind.HighVelocityRod));
 		var registry = PersistenceRegistry.CreateDefault();
 		Assert.Equal(jump, registry.Read(registry.Write(jump)));
 		var reset = new Record<CooldownResetOnKillFacts>(new("player", JumpMount));

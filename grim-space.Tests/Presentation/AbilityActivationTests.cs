@@ -31,7 +31,7 @@ public sealed class AbilityActivationTests
 		[
 			BraceDef.Instance,
 			GoopGunDef.Instance,
-			HighSpeedRodDef.Instance,
+			HighVelocityRodDef.Instance,
 			LightningCannonDef.Instance,
 			RamDef.Instance,
 			ScrapDroneSwarmDef.Instance,

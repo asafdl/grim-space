@@ -30,7 +30,7 @@ public sealed class RogueSpecTests
 		Assert.Equal(
 			new[] { ESpatialOrientation.Ventral, ESpatialOrientation.Dorsal },
 			ship.Loadout.InstalledAbilities
-				.Where(ability => ability.Kind == EAbilityKind.HighSpeedRod)
+				.Where(ability => ability.Kind == EAbilityKind.HighVelocityRod)
 				.Select(ability => ability.MountedOn));
 		Assert.Single(ship.Loadout.InstalledAbilities,
 			ability => ability.Kind == EAbilityKind.RoadsWeDontNeedRoads);

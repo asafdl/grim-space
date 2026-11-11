@@ -7,5 +7,5 @@ public enum EWeaponKind
 	GoopGun,
 	VoidBomb,
 	Ram,
-	HighSpeedRod,
+	HighVelocityRod,
 }

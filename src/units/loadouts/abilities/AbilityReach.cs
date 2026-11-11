@@ -10,7 +10,7 @@ public static class AbilityReach
 			LightningCannonSpec lightningCannon =>
 				lightningCannon.LineLength + lightningCannon.MaxChains * lightningCannon.ChainRange,
 			RamSpec ram => ram.Range,
-			HighSpeedRodSpec rod => rod.Range,
+			HighVelocityRodSpec rod => rod.Range,
 			RoadsWeDontNeedRoadsSpec jump => jump.Range,
 			_ => 0,
 		};

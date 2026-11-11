@@ -18,7 +18,7 @@ public sealed class ReplayClipRegistry
 		new ScrapDroneSwarmActionClip(),
 		new DetonateActionClip(),
 		new RamActionClip(),
-		new HighSpeedRodActionClip(),
+		new HighVelocityRodActionClip(),
 		new RoadsWeDontNeedRoadsActionClip(),
 		new HeatVentsActionClip(),
 		new OverchargeEnginesActionClip(),

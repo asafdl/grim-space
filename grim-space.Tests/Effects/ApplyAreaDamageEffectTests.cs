@@ -29,7 +29,7 @@ public sealed class ApplyAreaDamageEffectTests
 		enemy.State.CurrentHullPoints = hull;
 		enemy.State.CurrentShieldPoints[face] = shields;
 		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.HighSpeedRod,
+			EImpactCause.HighVelocityRod,
 			new HashSet<Coord> { enemy.State.Position },
 			100,
 			player.State.Position);
@@ -64,7 +64,7 @@ public sealed class ApplyAreaDamageEffectTests
 		enemy.State.CurrentHullPoints = 1000;
 		enemy.State.CurrentShieldPoints[face] = shields;
 		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.HighSpeedRod,
+			EImpactCause.HighVelocityRod,
 			new HashSet<Coord> { enemy.State.Position },
 			70,
 			player.State.Position,
@@ -84,7 +84,7 @@ public sealed class ApplyAreaDamageEffectTests
 	public void DamageRewritesPreserveHullBreachMultiplier()
 	{
 		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.HighSpeedRod, new HashSet<Coord>(), 70, Coord.Zero,
+			EImpactCause.HighVelocityRod, new HashSet<Coord>(), 70, Coord.Zero,
 			hullBreachDamagePercent: 350);
 		Assert.All(
 			new[]

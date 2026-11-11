@@ -128,7 +128,7 @@ public sealed class NothingButMetalTests
 	[Fact]
 	public void DamageRewritesPreserveConditionalBonusAndExistingFields()
 	{
-		var area = new ApplyAreaDamageEffect(EImpactCause.HighSpeedRod,
+		var area = new ApplyAreaDamageEffect(EImpactCause.HighVelocityRod,
 			new HashSet<Coord>(), 100, Coord.Zero, hullBreachDamagePercent: 350)
 			.WithSpawnedUnitDamageBonusPercent(30)
 			.WithUnshieldedDamageBonusPercent(40);

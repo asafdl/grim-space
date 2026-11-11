@@ -217,9 +217,9 @@ internal static class BattleHudCopy
 			$"Smash into an enemy up to {BattleDistance.ApproximateCells(ram.Range)}.",
 			$"[icon: {Icon.Damage}, text: {ram.Damage}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 
-	public static BattleHudTooltipContent HighSpeedRodTooltipFor(UnitDisplayState unit)
+	public static BattleHudTooltipContent HighVelocityRodTooltipFor(UnitDisplayState unit)
 	{
-		var rod = FirstInstalled<HighSpeedRodSpec>(unit, EAbilityKind.HighSpeedRod)
+		var rod = FirstInstalled<HighVelocityRodSpec>(unit, EAbilityKind.HighVelocityRod)
 			?? throw new InvalidOperationException("High Velocity Rod tooltip requires an installed rod.");
 		return new(
 			"High Velocity Rod",

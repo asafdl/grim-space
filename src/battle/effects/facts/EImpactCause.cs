@@ -6,5 +6,5 @@ public enum EImpactCause
 	LightningCannonBurst,
 	VoidBombBlast,
 	RamImpact,
-	HighSpeedRod,
+	HighVelocityRod,
 }

@@ -119,7 +119,7 @@ public sealed class PilotBarkDirectorTests
 	{
 		var personality = new PilotPersonality(5, -5, 5);
 		using var director = Create(rng: new RecordingRandom(0), personalityReader: _ => personality);
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 0, 10, 0, 10);
 		var decision = Assert.Single(director.SelectPlayerHit(
 			impact, ETeam.Player, ["a"]));
@@ -169,7 +169,7 @@ public sealed class PilotBarkDirectorTests
 	public void SelectPlayerHit_SelectsLivingCandidatesWithoutSpeaking()
 	{
 		var director = Create(rng: new RecordingRandom(0));
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 1, 0, 10, 10);
 
 		var decisions = director.SelectPlayerHit(impact, ETeam.Player, ["a", "b"]);
@@ -189,7 +189,7 @@ public sealed class PilotBarkDirectorTests
 	{
 		var rng = new RecordingRandom(0);
 		using var director = Create(rng: rng);
-		var impact = new ImpactFacts("source", "target", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("source", "target", EImpactCause.HighVelocityRod,
 			default, 0, hullDamage, 0, hullBefore);
 
 		Assert.Empty(director.SelectEnemyKilled(impact, team, ["a", "b"]));
@@ -202,7 +202,7 @@ public sealed class PilotBarkDirectorTests
 	public void SelectEnemyKilled_UsesBattleChanceAndOnlyLivingCandidates(double roll, bool speaks)
 	{
 		using var director = Create(rng: new RecordingRandom(roll));
-		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighVelocityRod,
 			default, 0, 12, 0, 10);
 
 		var decisions = director.SelectEnemyKilled(impact, ETeam.Enemy, ["b"]);
@@ -227,7 +227,7 @@ public sealed class PilotBarkDirectorTests
 	{
 		using var director = Create(rng: new FirstPickRandom(),
 			personalityReader: _ => new(threatResponse, deliberation, allegiance));
-		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighVelocityRod,
 			default, 0, 10, 0, 10);
 
 		Assert.Equal(expected,
@@ -241,7 +241,7 @@ public sealed class PilotBarkDirectorTests
 		using var director = Create(rng: new RecordingRandom(0),
 			personalityReader: _ => personality);
 		Assert.True(director.Script("a", "Already spoke."));
-		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("source", "enemy", EImpactCause.HighVelocityRod,
 			default, 0, 10, 0, 10);
 		var decisions = director.SelectEnemyKilled(impact, ETeam.Enemy, ["a", "b"]);
 
@@ -276,7 +276,7 @@ public sealed class PilotBarkDirectorTests
 	{
 		var rng = new RecordingRandom(0);
 		using var director = Create(rng: rng);
-		var impact = new ImpactFacts("source", "target", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("source", "target", EImpactCause.HighVelocityRod,
 			default, 0, hullDamage, 0, hullBefore);
 
 		Assert.Empty(director.SelectAllyDestroyed(impact, team, ["a", "b"]));
@@ -290,7 +290,7 @@ public sealed class PilotBarkDirectorTests
 		double roll, bool speaks)
 	{
 		using var director = Create(rng: new RecordingRandom(roll));
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 0, 12, 0, 10);
 
 		var decisions = director.SelectAllyDestroyed(impact, ETeam.Player, ["b"]);
@@ -316,7 +316,7 @@ public sealed class PilotBarkDirectorTests
 		Random rng = allegiance == 0 ? new FirstPickRandom() : new RecordingRandom(0);
 		using var director = Create(rng: rng,
 			personalityReader: _ => new(threatResponse, deliberation, allegiance));
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 0, 10, 0, 10);
 		var decision = Assert.Single(director.SelectAllyDestroyed(impact, ETeam.Player, ["b"]));
 
@@ -330,7 +330,7 @@ public sealed class PilotBarkDirectorTests
 		using var director = Create(rng: new RecordingRandom(0),
 			personalityReader: _ => personality);
 		Assert.True(director.Script("b", "Already spoke."));
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 0, 10, 0, 10);
 		var decision = Assert.Single(director.SelectAllyDestroyed(impact, ETeam.Player, ["b"]));
 
@@ -347,7 +347,7 @@ public sealed class PilotBarkDirectorTests
 	public void SelectPlayerHit_OnlyUsesProvidedLivingCandidates()
 	{
 		var director = Create(rng: new RecordingRandom(0));
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 0, 10, 0, 10);
 
 		var decision = Assert.Single(director.SelectPlayerHit(impact, ETeam.Player, ["b"]));
@@ -362,7 +362,7 @@ public sealed class PilotBarkDirectorTests
 	public void SelectPlayerHit_UsesTwentyPercentChance(double roll, bool shouldSpeak)
 	{
 		var director = Create(rng: new RecordingRandom(roll));
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 1, 0, 10, 10);
 
 		var decisions = director.SelectPlayerHit(impact, ETeam.Player, ["a"]);
@@ -376,7 +376,7 @@ public sealed class PilotBarkDirectorTests
 	{
 		var rng = new RecordingRandom(0.2, 0.199);
 		var director = Create(rng: rng);
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 1, 0, 10, 10);
 
 		var decision = Assert.Single(director.SelectPlayerHit(impact, ETeam.Player, ["a", "b"]));
@@ -393,7 +393,7 @@ public sealed class PilotBarkDirectorTests
 		var director = Create(rng: new RecordingRandom(0));
 		Assert.True(director.Script("a", "Already spoke."));
 		director.Tick(elapsed);
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 1, 0, 10, 10);
 
 		for (var i = 0; i < 2; i++)
@@ -411,7 +411,7 @@ public sealed class PilotBarkDirectorTests
 	public void Present_PlayerHit_DoesNotStartStrategicCooldowns(double globalGap, double pilotCooldown)
 	{
 		var director = Create(globalGap, pilotCooldown, new RecordingRandom(0));
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 1, 0, 10, 10);
 		var decision = Assert.Single(director.SelectPlayerHit(impact, ETeam.Player, ["a"]));
 
@@ -426,7 +426,7 @@ public sealed class PilotBarkDirectorTests
 		var director = Create(rng: new RecordingRandom(0));
 		Assert.True(director.Script("a", "Already spoke."));
 		director.Tick(9);
-		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighSpeedRod,
+		var impact = new ImpactFacts("enemy", "ship-a", EImpactCause.HighVelocityRod,
 			default, 1, 0, 10, 10);
 		var decision = Assert.Single(director.SelectPlayerHit(impact, ETeam.Player, ["a"]));
 

@@ -21,7 +21,7 @@ public abstract record AbilitySpec
 			EAbilityKind.VoidBombLauncher => VoidBombLauncherSpec.Baseline,
 			EAbilityKind.GoopGun => GoopGunSpec.Baseline,
 			EAbilityKind.Ram => RamSpec.Baseline,
-			EAbilityKind.HighSpeedRod => HighSpeedRodSpec.Baseline,
+			EAbilityKind.HighVelocityRod => HighVelocityRodSpec.Baseline,
 			EAbilityKind.RoadsWeDontNeedRoads => RoadsWeDontNeedRoadsSpec.Baseline,
 			EAbilityKind.ProtectionDrone => ProtectionDroneSpec.Baseline,
 			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
@@ -302,14 +302,14 @@ public sealed record RamSpec(
 	}
 }
 
-public sealed record HighSpeedRodSpec(
+public sealed record HighVelocityRodSpec(
 	int UsesPerTurn = 1,
 	int Damage = 70,
 	int Range = 4,
 	int HullBreachDamagePercent = 350) : AbilitySpec, IPerTurnAbility, IAreaDamage
 {
-	public static HighSpeedRodSpec Baseline { get; } = new();
-	public override EAbilityKind Kind => EAbilityKind.HighSpeedRod;
+	public static HighVelocityRodSpec Baseline { get; } = new();
+	public override EAbilityKind Kind => EAbilityKind.HighVelocityRod;
 
 	public IReadOnlyList<Coord> GetArea(Coord origin, Coord direction, Coord fore, Coord dorsal) =>
 		Enumerable.Range(1, Range).Select(distance => origin + direction * distance).ToArray();

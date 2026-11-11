@@ -34,16 +34,16 @@ public sealed class ResetCooldownOnKillEffectTests
 		enemy.State.CurrentHullPoints = hull;
 		enemy.State.CurrentShieldPoints.Fill(0);
 		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
-			EImpactCause.HighSpeedRod, new HashSet<Coord> { enemy.State.Position }, 100, player.State.Position));
+			EImpactCause.HighVelocityRod, new HashSet<Coord> { enemy.State.Position }, 100, player.State.Position));
 
 		var records = effect.Apply(world, runtime, player.State.Id);
 
 		Assert.Equal(2 + addedStacks, player.State.ThirstForScrapStacks);
 		Assert.Equal(addedStacks, records.OfType<Record<ThirstForScrapChangedFacts>>().Count());
 		var boosted = Assert.IsType<ApplyAreaDamageEffect>(Assert.Single(BattleStatuses.RewriteOutgoing(
-			new HighSpeedRodAction(player.State.Id, ESpatialOrientation.Forward),
+			new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward),
 			world,
-			[new ApplyAreaDamageEffect(EImpactCause.HighSpeedRod, new HashSet<Coord>(), 100, player.State.Position)])));
+			[new ApplyAreaDamageEffect(EImpactCause.HighVelocityRod, new HashSet<Coord>(), 100, player.State.Position)])));
 		Assert.Equal((2 + addedStacks) * 10, boosted.DamageBonusPercent);
 		Assert.Empty(world.ActivationRoundLists.EntriesFor(player.State.Id));
 
@@ -65,7 +65,7 @@ public sealed class ResetCooldownOnKillEffectTests
 		var mount = player.State.FindInstalled(EAbilityKind.RoadsWeDontNeedRoads)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 3;
 		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
-			EImpactCause.HighSpeedRod,
+			EImpactCause.HighVelocityRod,
 			new HashSet<Coord> { enemy.State.Position },
 			100,
 			player.State.Position));
