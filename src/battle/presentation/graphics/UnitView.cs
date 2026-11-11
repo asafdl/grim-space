@@ -784,15 +784,21 @@ public partial class UnitView : Node3D
 	/// <summary>Updates heat VFX without interrupting pose animation.</summary>
 	public void RefreshHeat(State state) => UpdateHeatIndicator(state);
 
-	private void ClearHeatIndicator() =>
-		_flameHalo?.SetHeat(0, 0, overdrive: false, overheat: false, visible: false);
+	private void ClearHeatIndicator()
+	{
+		if (!IsInstanceValid(_flameHalo))
+			return;
+		_flameHalo.SetHeat(0, 0, overdrive: false, overheat: false, visible: false);
+	}
 
 	private void UpdateHeatIndicator(State state)
 	{
 		// FlameHalo is TopLevel and lives outside _visualRoot, so it must not stay
 		// active through PendingDeath / HideHullForDeath.
+		if (!IsInstanceValid(_flameHalo))
+			return;
 		var showOnUnit = VisualState == UnitVisualState.Live;
-		_flameHalo?.SetHeat(
+		_flameHalo.SetHeat(
 			state.Heat,
 			state.HeatProfile.EffectiveCapacity,
 			state.Overdrive,
@@ -1096,6 +1102,8 @@ public partial class UnitView : Node3D
 
 	public void ClearHeatVentFumes()
 	{
+		if (!IsInstanceValid(this))
+			return;
 		foreach (var effect in GetChildren().OfType<HeatVentFumesEffect>())
 		{
 			effect.Visible = false;
@@ -1329,7 +1337,7 @@ public partial class UnitView : Node3D
 	private static Quaternion NormalizeRotationQuaternion(Quaternion quaternion) =>
 		quaternion.LengthSquared() < Mathf.Epsilon ? Quaternion.Identity : quaternion.Normalized();
 
-	private static Vector3 MovementEndTangent(
+	internal static Vector3 MovementEndTangent(
 		Vector3 chord,
 		Vector3 targetPosition,
 		Coord? nextPosition)
@@ -1349,7 +1357,7 @@ public partial class UnitView : Node3D
 		return direction.Normalized() * length;
 	}
 
-	private static Vector3 Hermite(
+	internal static Vector3 Hermite(
 		Vector3 start,
 		Vector3 end,
 		Vector3 startTangent,

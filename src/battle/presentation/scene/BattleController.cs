@@ -3,6 +3,7 @@ using GrimSpace.Application;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Presentation;
@@ -60,11 +61,19 @@ public partial class BattleController : Node3D
 	private AreaActionPreviewView _areaActionPreview = null!;
 	private VoidBombPreviewView _voidBombPreview = null!;
 	private AbilitySourcePickerView _abilitySourcePicker = null!;
+	private SimulationModePresentation _simulationPresentation = null!;
+	private SimulationBackdropView _simulationBackdrop = null!;
+	private SimulationModeTransitionView _simulationTransition = null!;
 	private CellVolumeMeshStore _cellVolumeMeshes = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private MoveGhostView _moveGhost = null!;
 	private TargetOpportunityOverlay _targetOpportunityOverlay = null!;
+	private RelationshipGuideView _targetingGuide = null!;
+	private Node3D _movementAfterimages = null!;
+	private readonly List<MovementAfterimageView> _movementPathViews = [];
+	private MovementAfterimageView _abilityOrigins = null!;
+	private UnitDisplayState? _abilityAimResult;
 
 	private PresentationFrame _currentFrame = null!;
 
@@ -82,6 +91,9 @@ public partial class BattleController : Node3D
 	private IReadOnlyList<string> _currentTurnActivations = [];
 	private IReadOnlyList<TurnFlowEntry> _turnFlowTimeline = [];
 	private bool _replayCompletesRound;
+	private bool _simulationVisualsEnabled;
+	private bool _requestedSimulationVisuals;
+	private bool _openingVisualTransitionPending = true;
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
 	private bool CanEndTurn =>
@@ -152,8 +164,6 @@ public partial class BattleController : Node3D
 		_frames = new PresentationFrameBuilder();
 		var layout = _battle.Layout;
 
-		var backdrop = new SpaceBackdrop();
-
 		_camera = GetNode<Controller>("Camera3D");
 		_cameraDirector = new BattleCameraDirector(_camera);
 		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
@@ -182,9 +192,9 @@ public partial class BattleController : Node3D
 			openingPose.Distance,
 			openingPose.Yaw,
 			openingPose.Pitch);
-		AddChild(backdrop);
-		backdrop.Build(layout.Grid, backdropSeed, _camera);
-		MoveChild(backdrop, 0);
+		_simulationBackdrop = new SimulationBackdropView { Name = "BattleBackdrop" };
+		AddChild(_simulationBackdrop);
+		_simulationBackdrop.Build(layout.Grid, backdropSeed, _camera);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(
 			GetNode<DirectionalLight3D>("DirectionalLight3D"),
@@ -206,14 +216,38 @@ public partial class BattleController : Node3D
 		_battleView.ShieldTintForActor = actorId => ShieldFaceMaterials.TeamTint(TeamForActor(actorId));
 		_battleView.BindInitial(layout.Participants.Select(pair =>
 			(pair.Key, _battle.Engine.World.StateOf(pair.Key), ColorFor(pair.Value))));
-		_enemyRangeTether = new EnemyRangeTetherView { Name = "EnemyRangeTether" };
+		_simulationPresentation = new SimulationModePresentation(
+			_simulationBackdrop.TintMaterial,
+			_simulationBackdrop.WorldEnvironment,
+			_asteroidView.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>(),
+			new[] { "MovementRangeShell", "MovementLocalGrid", "MovementCentralOutline" }
+				.Select(name => (StandardMaterial3D)_gridView.GetNode<MeshInstance3D>(name).MaterialOverride));
+		_enemyRangeTether = new EnemyRangeTetherView
+		{
+			Name = "EnemyRangeTether",
+			ShowRangeGuides = false,
+		};
 		_enemyRangeTether.Configure(layout.Grid);
 		_unitsRoot.AddChild(_enemyRangeTether);
+		_targetingGuide = new RelationshipGuideView
+		{
+			Name = "TargetingGuide",
+			ShowReticle = false,
+		};
+		_unitsRoot.AddChild(_targetingGuide);
 		_pickedTargetMarks = new PickedTargetMarksView { Name = "PickedTargetMarks" };
 		_unitsRoot.AddChild(_pickedTargetMarks);
-		_moveGhost = new MoveGhostView { Name = "MoveGhost" };
+		_moveGhost = new MoveGhostView
+		{
+			Name = "MoveGhost",
+			ShowAxisGuides = false,
+		};
 		_moveGhost.Configure(_camera);
 		_unitsRoot.AddChild(_moveGhost);
+		_movementAfterimages = new Node3D { Name = "MovementAfterimages" };
+		_unitsRoot.AddChild(_movementAfterimages);
+		_abilityOrigins = new MovementAfterimageView { Name = "AbilityOrigins" };
+		_unitsRoot.AddChild(_abilityOrigins);
 
 		var opportunityLayer = new CanvasLayer
 		{
@@ -276,6 +310,8 @@ public partial class BattleController : Node3D
 		_replayPlayer.TurnFlowIndexChanged += OnTurnFlowIndexChanged;
 		AddChild(_replayPlayer);
 
+		_simulationTransition = new SimulationModeTransitionView { Name = "SimulationModeTransition" };
+		AddChild(_simulationTransition);
 		_replayDirector = new ReplayDirector { Name = "ReplayDirector" };
 		_replayDirector.Configure(
 			_battle,
@@ -283,7 +319,8 @@ public partial class BattleController : Node3D
 			_battleView,
 			_cameraDirector,
 			GetPlayerRenderedPosition,
-			ColorForActor);
+			ColorForActor,
+			() => !_simulationTransition.IsTransitioning);
 		AddChild(_replayDirector);
 
 		_agent.PlanningChanged += RefreshPresentation;
@@ -293,8 +330,20 @@ public partial class BattleController : Node3D
 		_cameraDirector.EnterManual();
 		if (_battle.Phase == EBattlePhase.PlayerTurn)
 			SyncAuthoritativeUnitViewsFromWorld();
+		_simulationVisualsEnabled = false;
+		_requestedSimulationVisuals = false;
 		RefreshPresentation();
-		GetTree().CreateTimer(OpeningCameraHoldSeconds).Timeout += ConfigureTutorial;
+		GetTree().CreateTimer(OpeningCameraHoldSeconds).Timeout += OnOpeningHoldElapsed;
+	}
+
+	private void OnOpeningHoldElapsed()
+	{
+		if (!IsInsideTree() || _exiting)
+			return;
+
+		_openingVisualTransitionPending = false;
+		TransitionSimulationVisualsForPhase(_battle.Phase);
+		ConfigureTutorial();
 	}
 
 	private void ConfigureTutorial()
@@ -343,6 +392,7 @@ public partial class BattleController : Node3D
 
 	public override void _Process(double delta)
 	{
+		_simulationBackdrop?.SyncCamera(_camera);
 		if (_cellVolumeMeshes is null || _currentFrame is null)
 			return;
 
@@ -453,6 +503,7 @@ public partial class BattleController : Node3D
 		}
 
 		RefreshPresentation();
+		TransitionSimulationVisualsForPhase(phase);
 		_battleTutorial?.NotifyBattlePhaseChanged(phase);
 	}
 
@@ -612,6 +663,7 @@ public partial class BattleController : Node3D
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		var previousFrame = _currentFrame;
 		_currentFrame = frame;
+		RefreshPlanningDisplacements(frame);
 		_translator.SetPresentation(
 			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver,
 			canIssueActions: frame.CanAct,
@@ -866,7 +918,8 @@ public partial class BattleController : Node3D
 			frame.PoseHitOpportunities.Concat(lethalTargets).ToArray());
 		_abilitySourcePicker.Apply(
 			frame.AbilityChoices.Count > 1 ? [] : frame.AbilityChoices,
-			frame.AbilityHoveredIndex);
+			frame.AbilityHoveredIndex,
+			showHoveredGhost: _abilityAimResult is null);
 		_areaActionPreview.ApplyFrame(frame);
 		_voidBombPreview.ApplyFrame(frame);
 		_battleHud.Apply(
@@ -877,6 +930,41 @@ public partial class BattleController : Node3D
 		ApplyMountSelector(frame);
 		ReportIssueSystemContext.SetBattleSnapshot(
 			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
+		_simulationPresentation.Apply(
+			_simulationVisualsEnabled,
+			_battleView.UnitViews,
+			frame.PreviewUnitTeams,
+			_battle.PlayerId,
+			frame.RangeEnemy?.EnemyId);
+	}
+
+	private void TransitionSimulationVisualsForPhase(EBattlePhase phase)
+	{
+		if (_openingVisualTransitionPending)
+			return;
+
+		var desired = ShouldUseSimulationVisuals(phase);
+		if (desired == _requestedSimulationVisuals)
+			return;
+
+		_requestedSimulationVisuals = desired;
+		void ApplyMode() => ApplySimulationVisuals(desired);
+		if (desired == _simulationVisualsEnabled)
+			_simulationTransition.ApplyImmediately(ApplyMode);
+		else
+			_simulationTransition.Transition(ApplyMode);
+	}
+
+	private void ApplySimulationVisuals(bool enabled)
+	{
+		_simulationVisualsEnabled = enabled;
+		_simulationPresentation.Apply(
+			enabled,
+			_battleView.UnitViews,
+			_currentFrame.PreviewUnitTeams,
+			_battle.PlayerId,
+			_currentFrame.RangeEnemy?.EnemyId);
+		ApplyTargetingGuide(_currentFrame);
 	}
 
 	private void ApplyMountSelector(PresentationFrame frame)
@@ -931,6 +1019,7 @@ public partial class BattleController : Node3D
 
 	private void ApplyEnemyRangeTether(PresentationFrame frame)
 	{
+		ApplyTargetingGuide(frame);
 		_pickedTargetMarks.Apply(
 			(frame.TargetPick?.PickedIds ?? [])
 				.Select(id => _battleView.UnitViews.GetValueOrDefault(id))
@@ -955,6 +1044,28 @@ public partial class BattleController : Node3D
 				? GameInputBindings.PrimaryLabel("battle_primary_click")
 				: null,
 			damage: frame.AbilityDamage.GetValueOrDefault(closest.EnemyId));
+	}
+
+	private void ApplyTargetingGuide(PresentationFrame frame)
+	{
+		if (!_simulationVisualsEnabled
+			|| _battle.Phase is not (EBattlePhase.PlayerTurn or EBattlePhase.Resolving)
+			|| frame.RangeEnemy is not { } target
+			|| !frame.PreviewUnits.TryGetValue(target.EnemyId, out var targetState))
+		{
+			_targetingGuide.Visible = false;
+			return;
+		}
+
+		var source = frame.MoveGhostState ?? _abilityAimResult ?? frame.FocusState;
+		_targetingGuide.Visible = true;
+		_targetingGuide.Apply(
+			source.Position,
+			targetState.Position,
+			RelationshipGuideView.ReferencePlane.XZ,
+			showAlignment: BattleDistance.SeparationMeters(
+				(_abilityAimResult ?? frame.FocusState).Position,
+				targetState.Position) < RelationshipGuideView.AlignmentDistanceMeters);
 	}
 
 	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)
@@ -1078,11 +1189,53 @@ public partial class BattleController : Node3D
 		var states = frame.PreviewUnits.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.ToState());
+		if (_abilityAimResult is { } aim)
+			states[aim.Id] = aim.ToState();
 		Color FrameColor(string actorId) => ColorForFrameActor(frame, actorId);
 		if (UsesPlanningPreviewForFrameUnitStates(_battle.Phase))
 			_battleView.ApplyPlanningPreview(states, FrameColor);
 		else
 			_battleView.ApplyUnitStates(states, FrameColor);
+	}
+
+	private void RefreshPlanningDisplacements(PresentationFrame frame)
+	{
+		if (_battle.Phase != EBattlePhase.PlayerTurn
+			|| frame.IsInspecting
+			|| frame.FocusId != _battle.ActivePlayerId)
+		{
+			_abilityAimResult = null;
+			_abilityOrigins.ApplyOrigins([]);
+			_movementAfterimages.Visible = false;
+			foreach (var view in _movementPathViews)
+				view.Visible = false;
+			return;
+		}
+
+		var displacement = PlanningPreview.AbilityDisplacements(
+			_agent.Sim,
+			_battle.ActivePlayerId,
+			frame.ShowWeaponPreviews ? frame.HoveredAbilityChoice?.Action : null);
+		_abilityAimResult = displacement.AimResult;
+		_abilityOrigins.ApplyOrigins(displacement.Origins);
+
+		var paths = displacement.MovePaths.ToList();
+		if (frame.SelectedMove is { } selectedMove)
+			paths.Add(selectedMove.Checkpoints);
+		while (_movementPathViews.Count < paths.Count)
+		{
+			var view = new MovementAfterimageView { Name = $"MovementPath{_movementPathViews.Count}" };
+			_movementAfterimages.AddChild(view);
+			_movementPathViews.Add(view);
+		}
+		for (var i = 0; i < _movementPathViews.Count; i++)
+		{
+			var active = i < paths.Count;
+			_movementPathViews[i].Visible = active;
+			if (active)
+				_movementPathViews[i].Apply(paths[i], frame.FocusState);
+		}
+		_movementAfterimages.Visible = true;
 	}
 
 	private Color ColorForFrameActor(PresentationFrame frame, string actorId) =>
@@ -1118,6 +1271,9 @@ public partial class BattleController : Node3D
 		phase != EBattlePhase.Replaying;
 
 	internal static bool UsesPlanningPreviewForFrameUnitStates(EBattlePhase phase) =>
+		ShouldUseSimulationVisuals(phase);
+
+	internal static bool ShouldUseSimulationVisuals(EBattlePhase phase) =>
 		phase is EBattlePhase.PlayerTurn or EBattlePhase.Resolving;
 
 	internal static bool ShouldAllowEndTurn(bool acceptsCommands, bool tutorialBlocksEndTurn) =>
@@ -1208,6 +1364,7 @@ public partial class BattleController : Node3D
 		_battleTutorial?.Dispose();
 		_battleTutorial = null;
 		Session.Instance.DevMenu.ClearBattleActions();
+		_simulationPresentation?.Dispose();
 		_cellVolumeMeshes?.Dispose();
 		_battle?.Dispose();
 		ReportIssueSystemContext.SetBattleSnapshot(null);

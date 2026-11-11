@@ -17,7 +17,6 @@ namespace GrimSpace.Battle.Presentation.Ui;
 internal static class BattleHudCopy
 {
 	public const string TurnLabel = "Turn {0}";
-	public const string SimulationPhase = "SIMULATION PHASE";
 	public const string PauseMenuTitle = "Paused";
 	public const string Continue = "Continue";
 	public const string Retire = "Retire";

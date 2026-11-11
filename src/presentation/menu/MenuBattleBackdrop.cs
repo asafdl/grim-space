@@ -38,7 +38,7 @@ public partial class MenuBattleBackdrop : Node3D
 		Vector3 CameraOffset,
 		Vector3 CameraLookOffset,
 		float CameraFov,
-		float BattleScreenCenter,
+		float RightSpawnScreenX,
 		float SunYawDegrees,
 		float SunPitchDegrees,
 		double LoopDelaySeconds);
@@ -108,7 +108,7 @@ public partial class MenuBattleBackdrop : Node3D
 		CameraOffset: new Vector3(-7f, 3f, -34f),
 		CameraLookOffset: new Vector3(0f, 1.2f, 0f),
 		CameraFov: 45f,
-		BattleScreenCenter: 0.7f,
+		RightSpawnScreenX: 1.08f,
 		SunYawDegrees: -38f,
 		SunPitchDegrees: -9f,
 		LoopDelaySeconds: 3);
@@ -122,6 +122,8 @@ public partial class MenuBattleBackdrop : Node3D
 	private Camera3D _camera = null!;
 	private ShaderMaterial _edgeFade = null!;
 	private Vector3 _sunPosition;
+	private SceneTreeTimer? _beatTimer;
+	private Action? _onBeatTimeout;
 
 	// Building takes ~0.4s, so the menu UI paints first over a black cover, then the battle fades in.
 	public override async void _Ready()
@@ -180,7 +182,11 @@ public partial class MenuBattleBackdrop : Node3D
 		PlayBeat(0);
 	}
 
-	public override void _ExitTree() => GetTree().NodeAdded -= QuietSfx;
+	public override void _ExitTree()
+	{
+		GetTree().NodeAdded -= QuietSfx;
+		CancelBeatTimer();
+	}
 
 	// Battle SFX players are created deep inside views; rerouting on tree entry catches them before they Play().
 	private void QuietSfx(Node node)
@@ -230,7 +236,7 @@ public partial class MenuBattleBackdrop : Node3D
 					"""
 					shader_type canvas_item;
 
-					uniform vec4 lane;
+					uniform vec2 lane;
 					uniform vec3 sun;
 					uniform float aspect;
 					uniform float patchiness = 1.2;
@@ -264,23 +270,34 @@ public partial class MenuBattleBackdrop : Node3D
 					void fragment() {
 						vec2 p = UV * vec2(aspect, 1.0) * 1.8;
 						vec2 drift = vec2(TIME * 0.02, -TIME * 0.012);
-						// Warping the lookup coordinates makes the fade boundary ragged instead of rectangular.
+						// Broad slow lobes swing the haze edge far in and out; fine warp keeps it ragged.
+						vec2 lobes = vec2(fbm(p * 0.4 + drift * 0.5), fbm(p * 0.4 + vec2(3.7, 8.1) - drift * 0.5)) - 0.5;
 						vec2 warp = vec2(fbm(p + drift), fbm(p + vec2(5.2, 1.3) - drift)) - 0.5;
-						vec2 uv = UV + warp * vec2(0.14, 0.2);
+						vec2 uv = UV + warp * vec2(0.08, 0.1) + lobes * vec2(0.3, 0.2);
+						// Lean the edge so the haze spills further into the battle along the bottom than the top.
+						uv.x -= (UV.y - 0.5) * 0.12;
 
-						float sides = max(1.0 - smoothstep(lane.x, lane.y, uv.x), smoothstep(lane.z, lane.w, uv.x));
-						float bands = max(1.0 - smoothstep(0.06, 0.34, uv.y), smoothstep(0.68, 0.94, uv.y));
 						float sun_distance = length((UV - sun.xy) * vec2(aspect, 1.0));
-						float raw = clamp(sides + bands - sides * bands, 0.0, 1.0) * smoothstep(sun.z, sun.z * 1.8, sun_distance);
-
+						float sun_clear = smoothstep(sun.z, sun.z * 1.8, sun_distance);
+						// Haze only behind the menu: battle space runs off the top, bottom and right screen edges.
+						float raw = (1.0 - smoothstep(lane.x, lane.y, uv.x)) * sun_clear;
 						float smoke = fbm(p * 1.6 + drift + fbm(p * 0.7 - TIME * 0.01));
 						float fade = clamp(raw * (1.0 + patchiness) - smoke * patchiness, 0.0, 1.0);
 						fade = fade * fade * (3.0 - 2.0 * fade);
-						// Faint lit wisps inside the transition read as smoke rather than a flat black gradient.
 						float wisp = clamp(smoothstep(0.45, 0.8, fbm(p * 2.4 - vec2(TIME * 0.03, 0.0))) * raw * (1.0 - fade) * 4.0, 0.0, 1.0);
+
+						// A thin nebula veil over all of space ties the open battle to the haze instead of a black cut-out.
+						float veil_noise = fbm(p * 0.8 + lobes * 2.5 + vec2(TIME * 0.015, 0.0));
+						float veil = smoothstep(0.35, 0.9, veil_noise) * 0.4 * mix(0.4, 1.0, sun_clear);
+						float tendril = smoothstep(0.6, 0.85, fbm(p * vec2(0.8, 2.4) + vec2(TIME * 0.025, 0.0) + lobes * 2.0)) * 0.3 * sun_clear;
+
 						float cloud = smoothstep(0.3, 0.85, fbm(p * 1.1 + drift * 1.5 + warp * 3.0));
 						vec3 haze = mix(haze_dark, haze_light, cloud) + smoke_color * wisp;
-						COLOR = vec4(haze, max(fade, wisp * 0.55));
+						float space_alpha = max(veil, tendril) * (1.0 - fade);
+						float alpha = max(max(fade, wisp * 0.55), space_alpha);
+						// Over open space the veil uses the lit haze tone; dark haze at low alpha would vanish against black.
+						vec3 color = mix(haze, haze_light, space_alpha / max(alpha, 0.001) * (1.0 - fade));
+						COLOR = vec4(color, alpha);
 					}
 					""",
 			},
@@ -296,8 +313,8 @@ public partial class MenuBattleBackdrop : Node3D
 		return layer;
 	}
 
-	// An off-axis frustum shifts the whole picture uniformly so the battle lane centres on BattleScreenCenter, leaving the rest for the menu.
-	// The sides reach full haze at the spawn columns and clear partway to the innermost positions any beat reaches; the sun stays uncovered.
+	// An off-axis frustum shifts the picture so right-side ships spawn just past the screen edge; left-side ships spawn
+	// inside the menu haze, which clears partway to the innermost position any beat reaches.
 	private void UpdateEdgeFade()
 	{
 		var size = GetViewport().GetVisibleRect().Size;
@@ -305,21 +322,17 @@ public partial class MenuBattleBackdrop : Node3D
 		var height = 2f * _camera.Near * Mathf.Tan(Mathf.DegToRad(Script.CameraFov) / 2f);
 		_camera.SetFrustum(height, Vector2.Zero, _camera.Near, _camera.Far);
 		float ScreenX(Coord cell) => _camera.UnprojectPosition(WorldMapping.ToWorld(cell)).X / size.X;
-		var spawnXs = _beats[0].StartStates.Values.Select(state => ScreenX(state.Position)).ToArray();
-		var shift = Script.BattleScreenCenter - (spawnXs.Min() + spawnXs.Max()) / 2f;
+		var shift = Script.RightSpawnScreenX - _beats[0].StartStates.Values.Max(state => ScreenX(state.Position));
 		_camera.SetFrustum(height, new Vector2(-shift * height * aspect, 0f), _camera.Near, _camera.Far);
 
-		var spawns = _beats[0].StartStates.Values.Select(state => ScreenX(state.Position)).ToArray();
-		var holds = _beats
+		var leftSpawn = _beats[0].StartStates.Values.Min(state => ScreenX(state.Position));
+		var leftHold = _beats
 			.SelectMany(beat => beat.EndStates.Values)
 			.Where(state => state.Position.X > 0 && state.Position.X < Script.GridSize - 1)
-			.Select(state => ScreenX(state.Position))
-			.ToArray();
-		const float shipMargin = 0.04f;
-		var blackLeft = spawns.Min() + shipMargin;
-		var blackRight = spawns.Max() - shipMargin;
-		_edgeFade.SetShaderParameter("lane", new Vector4(
-			blackLeft, Mathf.Lerp(blackLeft, holds.Min(), 0.6f), Mathf.Lerp(blackRight, holds.Max(), 0.6f), blackRight));
+			.Min(state => ScreenX(state.Position));
+		const float shipMargin = 0.06f;
+		var black = leftSpawn + shipMargin;
+		_edgeFade.SetShaderParameter("lane", new Vector2(black, Mathf.Lerp(black, leftHold, 0.7f)));
 
 		var sun = _camera.UnprojectPosition(_sunPosition) / size;
 		var rim = _camera.UnprojectPosition(_sunPosition + _camera.GlobalBasis.Y * Script.BackdropRadius * RedDwarfSun.RadiusScale) / size;
@@ -400,7 +413,25 @@ public partial class MenuBattleBackdrop : Node3D
 			pause += Script.LoopDelaySeconds;
 		}
 
-		GetTree().CreateTimer(pause).Timeout += () => PlayBeat(next);
+		CancelBeatTimer();
+		_onBeatTimeout = () =>
+		{
+			_beatTimer = null;
+			_onBeatTimeout = null;
+			if (!IsInstanceValid(this) || !IsInsideTree())
+				return;
+			PlayBeat(next);
+		};
+		_beatTimer = GetTree().CreateTimer(pause);
+		_beatTimer.Timeout += _onBeatTimeout;
+	}
+
+	private void CancelBeatTimer()
+	{
+		if (_beatTimer is not null && _onBeatTimeout is not null)
+			_beatTimer.Timeout -= _onBeatTimeout;
+		_beatTimer = null;
+		_onBeatTimeout = null;
 	}
 
 	private void SyncViews(IReadOnlyDictionary<string, ActorState> states)

@@ -19,6 +19,7 @@ public sealed partial class ReplayDirector : Node
 	private BattleCameraDirector _cameraDirector = null!;
 	private Func<Vector3> _playerPosition = () => Vector3.Zero;
 	private Func<string, Color> _colorForActor = _ => Colors.White;
+	private Func<bool> _playbackReady = () => true;
 
 	private TurnReplay? _pendingReplay;
 	private int _pendingCompletedTurn;
@@ -31,7 +32,8 @@ public sealed partial class ReplayDirector : Node
 		BattleView battleView,
 		BattleCameraDirector cameraDirector,
 		Func<Vector3> playerPosition,
-		Func<string, Color> colorForActor)
+		Func<string, Color> colorForActor,
+		Func<bool>? playbackReady = null)
 	{
 		_battle = battle;
 		_replayPlayer = replayPlayer;
@@ -39,6 +41,7 @@ public sealed partial class ReplayDirector : Node
 		_cameraDirector = cameraDirector;
 		_playerPosition = playerPosition;
 		_colorForActor = colorForActor;
+		_playbackReady = playbackReady ?? (() => true);
 
 		_battle.PhaseChanged += OnPhaseChanged;
 		_battle.TurnResolved += OnTurnResolved;
@@ -47,11 +50,11 @@ public sealed partial class ReplayDirector : Node
 
 	public override void _Process(double delta)
 	{
-		if (_pendingReplay is TurnReplay replay)
-		{
-			_pendingReplay = null;
-			StartPlayback(replay, _pendingCompletedTurn);
-		}
+		if (_pendingReplay is not TurnReplay replay || !_playbackReady())
+			return;
+
+		_pendingReplay = null;
+		StartPlayback(replay, _pendingCompletedTurn);
 	}
 
 	private void OnTurnResolved(TurnReplay replay, int completedTurn)

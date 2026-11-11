@@ -34,7 +34,8 @@ public sealed partial class AbilitySourcePickerView : Node3D
 
 	public void Apply(
 		IReadOnlyList<AbilityActivationChoice> choices,
-		int? hoveredIndex)
+		int? hoveredIndex,
+		bool showHoveredGhost = true)
 	{
 		_choices = choices;
 		EnsureSourceCount(choices.Count);
@@ -48,7 +49,8 @@ public sealed partial class AbilitySourcePickerView : Node3D
 					choices[i],
 					_cellMesh,
 					i == hoveredIndex,
-					_cellMaterial);
+					_cellMaterial,
+					showHoveredGhost);
 			}
 		}
 
@@ -133,7 +135,8 @@ public sealed partial class AbilitySourcePickerView : Node3D
 			AbilityActivationChoice choice,
 			ArrayMesh cellMesh,
 			bool hovered,
-			Material idleCellMaterial)
+			Material idleCellMaterial,
+			bool showHoveredGhost)
 		{
 			Root.Position = WorldMapping.ToWorld(choice.Position);
 			Cell.Mesh = cellMesh;
@@ -142,6 +145,7 @@ public sealed partial class AbilitySourcePickerView : Node3D
 				? CellGridGeometry.CreateMaterial(new Color(accent.R, accent.G, accent.B, 0.92f))
 				: idleCellMaterial;
 			EnsureGhost(choice.Targeting);
+			_orient.Visible = !hovered || showHoveredGhost;
 			_orient.Basis = BasisFrom(choice);
 			WeaponPreviewMaterials.ApplyAim(
 				_ghostMaterial!,

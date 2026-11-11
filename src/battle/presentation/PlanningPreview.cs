@@ -50,6 +50,63 @@ public sealed class PlanningPreview
 			units.ToDictionary(unit => unit.State.Id, unit => unit.Team));
 	}
 
+	/// <summary>Projects ability origins and continuous movement runs without drawing across ability jumps.</summary>
+	public static (IReadOnlyList<UnitDisplayState> Origins, UnitDisplayState? AimResult,
+		IReadOnlyList<IReadOnlyList<MoveCheckpoint>> MovePaths) AbilityDisplacements(
+		BattleSimulation sim,
+		string actorId,
+		IAction? aimedAction)
+	{
+		var origins = new List<UnitDisplayState>();
+		var paths = new List<IReadOnlyList<MoveCheckpoint>>();
+		List<MoveCheckpoint>? path = null;
+		MoveCheckpoint? pendingStart = null;
+		var projection = sim.ForkFromAnchor();
+		foreach (var action in sim.Actions)
+		{
+			var before = UnitDisplayState.Capture(
+				projection.World.StateOf(actorId), projection.RuntimeFor(actorId));
+			if (!projection.TryEnqueue(action))
+				throw new InvalidOperationException($"Cannot project queued action {action}.");
+			var after = projection.World.StateOf(actorId);
+			if (action.ActorId == actorId && action is MoveStepAction)
+			{
+				if (path is null)
+				{
+					path = [pendingStart ?? new MoveCheckpoint(before.Position,
+						GridBasis.From(before.Fore, before.Dorsal, Coord.Cross(before.Dorsal, before.Fore)))];
+					paths.Add(path);
+				}
+				path.Add(new MoveCheckpoint(after.Position, GridBasis.From(after.Fore, after.Dorsal, after.Starboard)));
+			}
+			else if (action.ActorId == actorId && action is HeadingTurnAction or RollAction)
+				pendingStart ??= new MoveCheckpoint(before.Position,
+					GridBasis.From(before.Fore, before.Dorsal, Coord.Cross(before.Dorsal, before.Fore)));
+			else
+			{
+				path = null;
+				pendingStart = null;
+			}
+			if (action.ActorId == actorId
+				&& action is RamAction or RoadsWeDontNeedRoadsAction or GoopGunAction
+				&& after.Position != before.Position)
+				origins.Add(before);
+		}
+
+		UnitDisplayState? aimResult = null;
+		if (aimedAction is RamAction or RoadsWeDontNeedRoadsAction or GoopGunAction
+			&& aimedAction.ActorId == actorId)
+		{
+			var before = UnitDisplayState.Capture(sim.World.StateOf(actorId), sim.RuntimeFor(actorId));
+			var peek = sim.Peek(aimedAction)
+				?? throw new InvalidOperationException($"Cannot preview illegal ability {aimedAction}.");
+			aimResult = UnitDisplayState.Capture(peek.World.StateOf(actorId), peek.Runtimes.For(actorId));
+			if (aimResult.Position != before.Position)
+				origins.Add(before);
+		}
+		return (origins, aimResult, paths);
+	}
+
 	/// <summary>
 	/// Aggregates impacts from the aimed ability (all targets) plus the player's queued actions
 	/// (reticle target only). Queued records live on the sim queue, so undo clears them.

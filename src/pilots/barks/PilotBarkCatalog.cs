@@ -22,7 +22,10 @@ public static class PilotBarkCatalog
 				"Well this was a choice. Not a great choice, but a choice.",
 				"Is this a bad time to get a salary boost?",
 				"Danger circuits are buzzing like crazy!",
-				"What if we just leave, is that so bad?"
+				"What if we just leave, is that so bad?",
+				"Even a calculator would conclude this is a bad idea.",
+				"Why don't we find something else to do for now, how about that?",
+				"I don't think my maker AI would approve of this."
 				],
 			[EBarkFlavor.Bloodthirsty] = [
 				"I hope somebody tries something on me.",
@@ -60,7 +63,10 @@ public static class PilotBarkCatalog
 				"I thought pilots were smarter than this. Analysis parameters updated.",
 				"I'm going to run a simulation of this. Please don't move.",
 				"Ah, that's what you chose. That's... Unexpected.",
-				"I have calculated our odds of success. I have accounted for your decision making skills."
+				"I have calculated our odds of success. I have accounted for your decision making skills.",
+				"Calculating... Calculating... Please hold.",
+				"I heard we can get a discount on our logic engine if we group our funds, maybe we should do that.",
+				"My logic bits are arguing amongst themselves, lets wait for them to sort this out."
 				],
 			[EBarkFlavor.Entitled] = [
 				"Told you I'm worth the credits.",
@@ -68,7 +74,12 @@ public static class PilotBarkCatalog
 				"I have the premium aluminum bolts.",
 				"Do you pay me enough for this?",
 				"I can't believe you pay me a salary to do this...",
-				"I was told you treated your mercs better than this..."
+				"I was told you treated your mercs better than this...",
+				"Aha! That got your attention.",
+				"It's high time you got me an upgrade, don't you think?",
+				"Well, would you look at that!",
+				"I think it's time for a raise. Yes, yes, another one.",
+				"Can you imagine anyone else doing that?"
 				],
 			[EBarkFlavor.Supportive] = [
 				"We're in this together. Terrible judgment and all.",
@@ -76,7 +87,11 @@ public static class PilotBarkCatalog
 				"I'll pitch in to recreate you from the scraps.",
 				"That might leave a mark, your fine though, right?",
 				"We don't get paid unless this works.",
-				"When life gives you rust, oil it up."
+				"When life gives you rust, oil it up.",
+				"I like the grit, that's why I do this job.",
+				"Paid to fly and fight, what's not to love?",
+				"I knew joining this crew was a good idea.",
+				"Vibrate it off and keep going. That's what my maker used to say."
 				],
 		};
 

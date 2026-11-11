@@ -38,12 +38,8 @@ public partial class BattleHud : Node
 	private Label _turnLabel = null!;
 	private CanvasLayer _phaseLayer = null!;
 	private ColorRect _planningVignette = null!;
-	private CenterContainer _simulationPhaseHost = null!;
-	private Label _simulationPhaseBanner = null!;
 	private Tween? _planningVignetteTween;
-	private Tween? _simulationPhaseBannerTween;
 	private bool _planningVignetteTargetVisible;
-	private bool _simulationPhaseBannerTargetVisible;
 	private CanvasLayer _topHud = null!;
 	private CanvasLayer _bottomHud = null!;
 	private CanvasLayer _actionLogLayer = null!;
@@ -134,7 +130,6 @@ public partial class BattleHud : Node
 		TurnFlowBar = new TurnFlowBar();
 		flowCenter.AddChild(TurnFlowBar);
 		_topHud.AddChild(flowCenter);
-		_topHud.AddChild(_simulationPhaseHost);
 		AddChild(_topHud);
 
 		_bottomHud = new CanvasLayer { Layer = 10 };
@@ -191,7 +186,6 @@ public partial class BattleHud : Node
 		topMargin.Theme = battleTheme;
 		_actionLogHost.Theme = battleTheme;
 		PauseMenu.ApplyTheme(MenuUi.Theme);
-		_simulationPhaseBanner.Theme = battleTheme;
 		CommandHud.Theme = battleTheme;
 	}
 
@@ -261,36 +255,6 @@ public partial class BattleHud : Node
 			Visible = false,
 		};
 		_phaseLayer.AddChild(_planningVignette);
-
-		_simulationPhaseHost = new CenterContainer
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.TopWide,
-			AnchorRight = 1f,
-			OffsetTop = 104f,
-			OffsetBottom = 146f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		};
-		_simulationPhaseBanner = new Label
-		{
-			Text = BattleHudCopy.SimulationPhase,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			VerticalAlignment = VerticalAlignment.Center,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-			Modulate = new Color(1f, 1f, 1f, 0f),
-			Visible = false,
-		};
-		_simulationPhaseBanner.AddThemeFontSizeOverride("font_size", 18);
-		_simulationPhaseBanner.AddThemeConstantOverride("outline_size", 4);
-		_simulationPhaseBanner.AddThemeColorOverride(
-			"font_color",
-			HudPalettes.WithAlpha(HudPalettes.BlueCyan.Secondary, 0.86f));
-		_simulationPhaseBanner.AddThemeColorOverride(
-			"font_outline_color",
-			HudPalettes.WithAlpha(HudPalettes.BlueCyan.Surface, 0.9f));
-		_simulationPhaseHost.AddChild(_simulationPhaseBanner);
 		AddChild(_phaseLayer);
 	}
 
@@ -346,11 +310,6 @@ public partial class BattleHud : Node
 			!hideHud && phase == EBattlePhase.PlayerTurn,
 			ref _planningVignetteTargetVisible,
 			ref _planningVignetteTween);
-		FadePhaseVisual(
-			_simulationPhaseBanner,
-			!hideHud && phase == EBattlePhase.PlayerTurn,
-			ref _simulationPhaseBannerTargetVisible,
-			ref _simulationPhaseBannerTween);
 		_topHud.Visible = !hideHud;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 

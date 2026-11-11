@@ -116,6 +116,9 @@ public sealed partial class FlameHaloView : Node3D
 
 	public void SetHeat(int heat, int capacity, bool overdrive, bool overheat, bool visible)
 	{
+		if (!IsInstanceValid(this))
+			return;
+
 		var nextActive = visible && capacity > 0 && (heat > 0 || overdrive || overheat);
 		var heatRatio = capacity > 0
 			? Mathf.Clamp(heat / (float)capacity, 0f, 1f)

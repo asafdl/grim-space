@@ -10,6 +10,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class EnemyRangeTetherView : Node3D
 {
+	public bool ShowRangeGuides { get; init; } = true;
+
 	private const float GridRadiusCells = 1.8f;
 	private const float TetherMarkLength = 0.22f;
 	private const float TetherMarkSpacing = 0.72f;
@@ -49,6 +51,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		_gridVisual = new MeshInstance3D
 		{
 			Name = "LocalGrid",
+			Visible = ShowRangeGuides,
 			Mesh = _gridMesh,
 			MaterialOverride = _gridMaterial,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
@@ -59,6 +62,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		_line = new MeshInstance3D
 		{
 			Name = "Line",
+			Visible = ShowRangeGuides,
 			Mesh = _lineMesh,
 			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
 			MaterialOverride = new StandardMaterial3D
@@ -75,6 +79,7 @@ public sealed partial class EnemyRangeTetherView : Node3D
 		_distanceLabel = new Label3D
 		{
 			Name = "Distance",
+			Visible = ShowRangeGuides,
 			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
 			FixedSize = true,
 			PixelSize = 0.0012f,
@@ -183,6 +188,10 @@ public sealed partial class EnemyRangeTetherView : Node3D
 	{
 		var worldFrom = _source!.GlobalPosition;
 		var worldTo = _target!.GlobalPosition;
+		_targetInfoVisual.Position = ToLocal(worldTo);
+		if (!ShowRangeGuides)
+			return;
+
 		if (_lastWorldFrom is Vector3 previousFrom
 			&& _lastWorldTo is Vector3 previousTo
 			&& previousFrom.DistanceSquaredTo(worldFrom) <= EndpointChangeThresholdSquared
@@ -209,7 +218,6 @@ public sealed partial class EnemyRangeTetherView : Node3D
 			_lineMesh.SurfaceEnd();
 		}
 		_distanceLabel.Position = from.Lerp(to, 0.5f);
-		_targetInfoVisual.Position = to;
 
 		_gridMaterial.SetShaderParameter("tether_from", worldFrom);
 		_gridMaterial.SetShaderParameter("tether_to", worldTo);

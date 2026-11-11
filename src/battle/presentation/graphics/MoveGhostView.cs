@@ -8,6 +8,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class MoveGhostView : Node3D
 {
+	public bool ShowAxisGuides { get; init; } = true;
+
 	private static readonly IReadOnlySet<Coord> NoHeadings = new HashSet<Coord>();
 	private static readonly Color PassiveColor = new(0.58f, 0.6f, 0.62f);
 	private const float PathGhostScale = 0.5f;
@@ -45,7 +47,7 @@ public sealed partial class MoveGhostView : Node3D
 		bool selected)
 	{
 		ApplyPath(checkpoints, pathTemplate);
-		_axisGuides.Visible = state is not null;
+		_axisGuides.Visible = ShowAxisGuides && state is not null;
 		if (state is not null)
 			_axisGuides.Position = WorldMapping.ToWorld(state.Position);
 		if (state is null)

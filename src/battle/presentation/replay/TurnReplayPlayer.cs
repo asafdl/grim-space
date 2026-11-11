@@ -71,6 +71,15 @@ public partial class TurnReplayPlayer : Node3D
 	/// <summary>Per-turn timing diagnostics; off for decorative replays such as the menu backdrop.</summary>
 	public bool LogTimings { get; set; } = true;
 
+	private bool _tearingDown;
+
+	public override void _ExitTree()
+	{
+		_tearingDown = true;
+		IsPlaying = false;
+		base._ExitTree();
+	}
+
 	public void Configure(
 		IReadOnlyDictionary<string, UnitView> unitViews,
 		Func<string, Color> colorFor,
@@ -118,6 +127,8 @@ public partial class TurnReplayPlayer : Node3D
 			_removeGoop);
 		foreach (var view in _unitViews.Values)
 		{
+			if (!IsInstanceValid(view))
+				continue;
 			view.SetReplayActive(false);
 			view.ClearHeatVentFumes();
 			view.StopMovementSound();
@@ -165,8 +176,24 @@ public partial class TurnReplayPlayer : Node3D
 		PlayNext();
 	}
 
+	private void ContinueAfter(double seconds, Action continuation)
+	{
+		var waitStart = Stopwatch.GetTimestamp();
+		_scheduledWaitMs += seconds * 1000;
+		GetTree().CreateTimer(seconds).Timeout += () =>
+		{
+			if (_tearingDown || !IsInstanceValid(this))
+				return;
+			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
+			continuation();
+		};
+	}
+
 	private void PlayNext()
 	{
+		if (_tearingDown || !IsInstanceValid(this))
+			return;
+
 		while (_entryIndex < _history.Count)
 		{
 			var entry = _history[_entryIndex++];
@@ -207,13 +234,7 @@ public partial class TurnReplayPlayer : Node3D
 					_actionCount++;
 					if (playback.Pauses)
 					{
-						var waitStart = Stopwatch.GetTimestamp();
-						_scheduledWaitMs += playback.PauseSeconds * 1000;
-						GetTree().CreateTimer(playback.PauseSeconds).Timeout += () =>
-						{
-							_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
-							PlayNext();
-						};
+						ContinueAfter(playback.PauseSeconds, PlayNext);
 						return;
 					}
 
@@ -319,7 +340,7 @@ public partial class TurnReplayPlayer : Node3D
 	private void ApplyHeatChanged(HeatChangedFacts heat)
 	{
 		_clipContext.ReplayState.ApplyHeat(heat);
-		if (!_clipContext.UnitViews.TryGetValue(heat.ActorId, out var view))
+		if (!_clipContext.UnitViews.TryGetValue(heat.ActorId, out var view) || !IsInstanceValid(view))
 			return;
 
 		view.RefreshHeat(_clipContext.ReplayState.StateOf(heat.ActorId));
@@ -342,13 +363,7 @@ public partial class TurnReplayPlayer : Node3D
 			UnitInterestPoints(_clipContext.ReplayState, heal.SourceId, heal.TargetId),
 			CameraImportance.Combat));
 
-		var waitStart = Stopwatch.GetTimestamp();
-		_scheduledWaitMs += ReplayTiming.ImpactPauseSeconds * 1000;
-		GetTree().CreateTimer(ReplayTiming.ImpactPauseSeconds).Timeout += () =>
-		{
-			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
-			PlayNext();
-		};
+		ContinueAfter(ReplayTiming.ImpactPauseSeconds, PlayNext);
 		return true;
 	}
 
@@ -373,13 +388,7 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.ReportInterest?.Invoke(new CameraInterest(
 			UnitInterestPoints(_clipContext.ReplayState, drone.SourceId, drone.TargetId),
 			CameraImportance.Combat));
-		var waitStart = Stopwatch.GetTimestamp();
-		_scheduledWaitMs += duration * 1000;
-		GetTree().CreateTimer(duration).Timeout += () =>
-		{
-			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
-			PlayNext();
-		};
+		ContinueAfter(duration, PlayNext);
 		return true;
 	}
 
@@ -400,13 +409,7 @@ public partial class TurnReplayPlayer : Node3D
 		_clipContext.ReportInterest?.Invoke(new CameraInterest(
 			UnitInterestPoints(_clipContext.ReplayState, shields.TargetId, shields.TargetId),
 			CameraImportance.Combat));
-		var waitStart = Stopwatch.GetTimestamp();
-		_scheduledWaitMs += duration * 1000;
-		GetTree().CreateTimer(duration).Timeout += () =>
-		{
-			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
-			PlayNext();
-		};
+		ContinueAfter(duration, PlayNext);
 		return true;
 	}
 
@@ -464,17 +467,15 @@ public partial class TurnReplayPlayer : Node3D
 			? ReplayTiming.ImpactPauseSeconds + ReplayTiming.DeathExplosionSeconds
 			: ReplayTiming.ImpactPauseSeconds;
 
-		var waitStart = Stopwatch.GetTimestamp();
-		_scheduledWaitMs += pause * 1000;
-		GetTree().CreateTimer(pause).Timeout += () =>
+		ContinueAfter(pause, () =>
 		{
-			_actualWaitMs += Stopwatch.GetElapsedTime(waitStart).TotalMilliseconds;
 			var cleanupStart = Stopwatch.GetTimestamp();
 			if (died)
 			{
 				_removeView(impact.TargetId);
 			}
 			else if (_clipContext.UnitViews.TryGetValue(impact.TargetId, out var lingering)
+				&& IsInstanceValid(lingering)
 				&& _clipContext.ReplayState.Contains(impact.TargetId))
 			{
 				lingering.Sync(_clipContext.ReplayState.StateOf(impact.TargetId));
@@ -488,7 +489,7 @@ public partial class TurnReplayPlayer : Node3D
 				.Select(pair => pair.Key).ToArray();
 			_playImpactReaction(impact, _participants.GetValueOrDefault(impact.TargetId, ETeam.Enemy),
 				livingAllies, PlayNext);
-		};
+		});
 		return true;
 	}
 
