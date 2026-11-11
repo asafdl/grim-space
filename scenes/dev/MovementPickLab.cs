@@ -39,10 +39,7 @@ public partial class MovementPickLab : Node3D
 	private Label3D _targetMarker = null!;
 	private Button _moveButton = null!;
 	private bool _showCellColors;
-	private readonly ImmediateMesh _relationshipMesh = new();
-	private MeshInstance3D _relationshipGuide = null!;
-	private readonly Label3D[] _relationshipDistances = new Label3D[2];
-	private Sprite3D _targetReticle = null!;
+	private RelationshipGuideView _relationshipGuide = null!;
 	private Label _relationshipReadout = null!;
 	private int _referencePlane;
 	private GridView _grid = null!;
@@ -105,7 +102,8 @@ public partial class MovementPickLab : Node3D
 
 		_units = new BattleView { Name = "Ships" };
 		AddChild(_units);
-		BuildRelationshipGuide();
+		_relationshipGuide = new RelationshipGuideView { Name = "RelationshipGuide" };
+		AddChild(_relationshipGuide);
 		BuildHud();
 		RebuildLab();
 	}
@@ -381,6 +379,7 @@ public partial class MovementPickLab : Node3D
 		UpdateCellHighlight();
 		_ghost.Apply(_frame.MoveGhostState, _frame.MoveCheckpoints, _frame.FocusState,
 			_frame.ReachableMoveHeadings, PlayerColor, selected: _frame.SelectedMove is not null);
+		_ghost.GetNode<Node3D>("DottedAxisGuides").Hide();
 		var option = _frame.SelectedMove ?? _frame.HoveredMove;
 		ApplyRelationshipGuide(option?.EndPosition ?? _frame.FocusState.Position, option is not null);
 		_readout.Text =
@@ -402,118 +401,12 @@ public partial class MovementPickLab : Node3D
 			+ _message;
 	}
 
-	private void BuildRelationshipGuide()
-	{
-		_relationshipGuide = new MeshInstance3D
-		{
-			Name = "RelationshipGuide",
-			Mesh = _relationshipMesh,
-			MaterialOverride = CellGridGeometry.CreateMaterial(Colors.White),
-			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-		};
-		PresentationLayers.MarkUx(_relationshipGuide);
-		AddChild(_relationshipGuide);
-		for (var i = 0; i < _relationshipDistances.Length; i++)
-		{
-			var label = new Label3D
-			{
-				Name = $"SegmentDistance{i}",
-				Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-				FixedSize = true,
-				PixelSize = 0.0012f,
-				FontSize = 18,
-				OutlineSize = 4,
-				OutlineModulate = new Color(0.02f, 0.05f, 0.07f, 0.9f),
-				Offset = new Vector2(0, -14),
-			};
-			PresentationLayers.MarkUx(label);
-			_relationshipGuide.AddChild(label);
-			_relationshipDistances[i] = label;
-		}
-		const string reticlePath = "res://assets/ui/battle/enemy_target_reticle.svg";
-		_targetReticle = new Sprite3D
-		{
-			Name = "RelationshipTargetReticle",
-			Texture = GD.Load<Texture2D>(reticlePath)
-				?? throw new InvalidOperationException($"Could not load enemy target reticle '{reticlePath}'."),
-			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			PixelSize = 0.0115f,
-			Modulate = EnemyColor,
-			Shaded = false,
-			TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
-		};
-		PresentationLayers.MarkUx(_targetReticle);
-		AddChild(_targetReticle);
-	}
-
 	private void ApplyRelationshipGuide(Coord sourceCell, bool previewing)
 	{
-		var target = WorldMapping.ToWorld(_referenceEnemyPosition);
-		var source = WorldMapping.ToWorld(sourceCell);
-		var (u, v, normal, planeName) = _referencePlane switch
-		{
-			0 => (Vector3.Right, Vector3.Back, Vector3.Up, "XZ"),
-			1 => (Vector3.Up, Vector3.Back, Vector3.Right, "YZ"),
-			2 => (Vector3.Right, Vector3.Up, Vector3.Back, "XY"),
-			_ => throw new InvalidOperationException("Unknown relationship reference plane."),
-		};
-		var offset = (source - target).Dot(normal);
-		var projected = source - normal * offset;
-		var aligned = Mathf.IsZeroApprox(offset);
-		var connectionTint = new Color(0.6f, 0.85f, 1f);
-		var projectionTint = aligned ? PlayerColor : Colors.Gold;
-		void UpdateDistance(int index, Vector3 from, Vector3 to, Color tint)
-		{
-			var label = _relationshipDistances[index];
-			label.Visible = !from.IsEqualApprox(to);
-			label.Position = (from + to) * 0.5f;
-			label.Modulate = tint;
-			label.Text = BattleDistance.Format(
-				from.DistanceTo(to) / WorldMapping.CellSize * BattleDistance.MetersPerCell);
-		}
-		UpdateDistance(0, source, projected, projectionTint);
-		UpdateDistance(1, projected, target, connectionTint);
-		_targetReticle.Position = target;
-		_relationshipReadout.Text = $"{(previewing ? "Destination" : "Player")} relative to target's {planeName} plane: "
+		var plane = (RelationshipGuideView.ReferencePlane)_referencePlane;
+		var aligned = _relationshipGuide.Apply(sourceCell, _referenceEnemyPosition, plane);
+		_relationshipReadout.Text = $"{(previewing ? "Destination" : "Player")} relative to target's {plane} plane: "
 			+ (aligned ? "ALIGNED (not necessarily a firing position)" : "off-plane");
-
-		_relationshipMesh.ClearSurfaces();
-		_relationshipMesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		void Line(Vector3 from, Vector3 to, Color color)
-		{
-			if (from.IsEqualApprox(to))
-				return;
-			_relationshipMesh.SurfaceSetColor(color);
-			_relationshipMesh.SurfaceAddVertex(from);
-			_relationshipMesh.SurfaceAddVertex(to);
-		}
-
-		Line(source, projected, projectionTint);
-		Line(projected, target, connectionTint);
-
-		var markerRadius = WorldMapping.CellSize * (aligned ? 0.28f : 0.18f);
-		for (var i = 0; i < 32; i++)
-		{
-			var a = Mathf.Tau * i / 32f;
-			var b = Mathf.Tau * (i + 1) / 32f;
-			Line(projected + (u * Mathf.Cos(a) + v * Mathf.Sin(a)) * markerRadius,
-				projected + (u * Mathf.Cos(b) + v * Mathf.Sin(b)) * markerRadius, projectionTint);
-		}
-		if (aligned)
-		{
-			Line(projected - u * markerRadius, projected + u * markerRadius, projectionTint);
-			Line(projected - v * markerRadius, projected + v * markerRadius, projectionTint);
-		}
-		else if (!projected.IsEqualApprox(target))
-		{
-			var cornerSize = Mathf.Min(WorldMapping.CellSize * 0.22f,
-				Mathf.Min(Mathf.Abs(offset), projected.DistanceTo(target)) * 0.5f);
-			var towardSource = normal * Mathf.Sign(offset) * cornerSize;
-			var towardTarget = (target - projected).Normalized() * cornerSize;
-			Line(projected + towardSource, projected + towardSource + towardTarget, projectionTint);
-			Line(projected + towardTarget, projected + towardSource + towardTarget, projectionTint);
-		}
-		_relationshipMesh.SurfaceEnd();
 	}
 
 	private bool CanHitReference(MovePathOption option)
@@ -582,7 +475,6 @@ public partial class MovementPickLab : Node3D
 		relationship.Toggled += enabled =>
 		{
 			_relationshipGuide.Visible = enabled;
-			_targetReticle.Visible = enabled;
 		};
 		column.AddChild(relationship);
 		_relationshipReadout = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -607,11 +499,6 @@ public partial class MovementPickLab : Node3D
 		column.AddChild(new Label
 		{
 			Text = "Axis-line cells: green = firing heading available | gold = alignment only",
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		});
-		column.AddChild(new Label
-		{
-			Text = "Dotted bearing guides: X red | Y green | Z blue",
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		});
 		var buttons = new HBoxContainer();

@@ -68,6 +68,9 @@ public partial class TurnReplayPlayer : Node3D
 
 	public bool IsPlaying { get; private set; }
 
+	/// <summary>Per-turn timing diagnostics; off for decorative replays such as the menu backdrop.</summary>
+	public bool LogTimings { get; set; } = true;
+
 	public void Configure(
 		IReadOnlyDictionary<string, UnitView> unitViews,
 		Func<string, Color> colorFor,
@@ -609,6 +612,13 @@ public partial class TurnReplayPlayer : Node3D
 		IsPlaying = false;
 		EmitTurnFlowIndexChanged();
 
+		if (LogTimings)
+			LogTimingBreakdown();
+		EmitSignal(SignalName.PlaybackComplete);
+	}
+
+	private void LogTimingBreakdown()
+	{
 		var totalMs = _playbackTimer.Elapsed.TotalMilliseconds;
 		GameLog.Log(
 			$"Turn {_turnNumber} replay: total={totalMs:F1}ms "
@@ -625,7 +635,5 @@ public partial class TurnReplayPlayer : Node3D
 			+ $"waitScheduled={_scheduledWaitMs:F1}ms "
 			+ $"waitActual={_actualWaitMs:F1}ms "
 			+ $"other={totalMs - _actionWorkMs - _spawnWorkMs - _impactWorkMs - _actualWaitMs:F1}ms");
-
-		EmitSignal(SignalName.PlaybackComplete);
 	}
 }

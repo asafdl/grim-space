@@ -19,9 +19,6 @@ public partial class StartMenu : Control
 		"Grooming Syndi's beard..."
 	];
 
-	[Export(PropertyHint.Range, "0.005,0.05,0.005")]
-	private float _dustBandEndHalfThicknessRatio = 0.015f;
-
 	private Control _menuColumn = null!;
 	private GameSettingsMenu _settingsMenu = null!;
 	private Control _loadingOverlay = null!;
@@ -29,12 +26,6 @@ public partial class StartMenu : Control
 	private Label _loadingLabel = null!;
 	private int _loadingMessageIndex = -1;
 	private double _loadingMessageNextChangeAt;
-	private Control _art = null!;
-	private Control _dustBandStart = null!;
-	private Control _dustBandEnd = null!;
-	private Control _dustBandWide = null!;
-	private GpuParticles2D _dustParticles = null!;
-	private ParticleProcessMaterial _dustMaterial = null!;
 	private Button _newGameButton = null!;
 	private Button _continueButton = null!;
 	private AudioStreamPlayer _menuHoverSfx = null!;
@@ -47,19 +38,10 @@ public partial class StartMenu : Control
 		_menuColumn = GetNode<Control>("%MenuColumn");
 		_settingsMenu = GetNode<GameSettingsMenu>("%SettingsOverlay");
 		_settingsMenu.Host = GameSettingsApplicator.Host.MainMenu;
-		_settingsMenu.CloseRequested += ShowMainPanel;
+		_settingsMenu.CloseRequested += _settingsMenu.Hide;
 		_loadingOverlay = GetNode<Control>("%LoadingOverlay");
 		_loadingGear = GetNode<Control>("%LoadingGear");
 		_loadingLabel = GetNode<Label>("%LoadingLabel");
-		_art = GetNode<Control>("ArtFrame/Art");
-		_dustBandStart = GetNode<Control>("%DustBandStart");
-		_dustBandEnd = GetNode<Control>("%DustBandEnd");
-		_dustBandWide = GetNode<Control>("%DustBandWide");
-		_dustParticles = GetNode<GpuParticles2D>("%DustParticles");
-		_dustMaterial = (ParticleProcessMaterial)_dustParticles.ProcessMaterial.Duplicate();
-		_dustParticles.ProcessMaterial = _dustMaterial;
-		_art.Resized += OnDustLayoutChanged;
-		CallDeferred(MethodName.UpdateDustLayout);
 
 		_newGameButton = GetNode<Button>("%NewGame");
 		_continueButton = GetNode<Button>("%Continue");
@@ -80,7 +62,7 @@ public partial class StartMenu : Control
 		GetNode<Button>("%PlayIntro").Pressed += OnPlayIntro;
 		_newGameButton.Pressed += OnNewGame;
 		_continueButton.Pressed += OnContinue;
-		GetNode<Button>("%Settings").Pressed += ShowSettingsPanel;
+		GetNode<Button>("%Settings").Pressed += _settingsMenu.Open;
 		GetNode<Button>("%Quit").Pressed += () => GetTree().Quit();
 		var discord = GetNode<TextureButton>("%Discord");
 		discord.MouseDefaultCursorShape = CursorShape.PointingHand;
@@ -93,18 +75,6 @@ public partial class StartMenu : Control
 	{
 		if (!button.Disabled)
 			_menuHoverSfx.Play();
-	}
-
-	private void ShowSettingsPanel()
-	{
-		_menuColumn.Hide();
-		_settingsMenu.Open();
-	}
-
-	private void ShowMainPanel()
-	{
-		_settingsMenu.Hide();
-		_menuColumn.Show();
 	}
 
 	private void OnPlayIntro() =>
@@ -177,40 +147,5 @@ public partial class StartMenu : Control
 		_loadingMessageIndex = nextIndex;
 		_loadingLabel.Text = LoadingMessages[nextIndex];
 		_loadingMessageNextChangeAt = Time.GetTicksMsec() / 1000.0 + 2.5;
-	}
-
-	private void OnDustLayoutChanged() => UpdateDustLayout();
-
-	private void UpdateDustLayout()
-	{
-		var artSize = _art.Size;
-		if (artSize.X < 1f || artSize.Y < 1f)
-			return;
-
-		var start = _dustBandStart.Position;
-		var end = _dustBandEnd.Position;
-		var wide = _dustBandWide.Position;
-		var delta = end - start;
-		var length = delta.Length();
-		if (length < 1f)
-			return;
-
-		var tangent = delta / length;
-		var normal = new Vector2(-tangent.Y, tangent.X);
-		var startHalf = Mathf.Abs((wide - start).Dot(normal));
-		var endHalf = artSize.Y * _dustBandEndHalfThicknessRatio;
-		var bandHalfThickness = (startHalf + endHalf) * 0.5f;
-
-		var center = (start + end) * 0.5f;
-		var visibilityPad = length * 0.5f + bandHalfThickness + 64f;
-
-		_dustParticles.Position = center;
-		_dustParticles.Rotation = delta.Angle();
-		_dustMaterial.EmissionBoxExtents = new Vector3(length * 0.5f, bandHalfThickness, 1f);
-		_dustParticles.VisibilityRect = new Rect2(
-			-visibilityPad,
-			-visibilityPad,
-			visibilityPad * 2f,
-			visibilityPad * 2f);
 	}
 }

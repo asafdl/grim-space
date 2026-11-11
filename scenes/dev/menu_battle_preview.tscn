@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b80yn0pbthn1"]
+
+[ext_resource type="Script" path="res://scenes/dev/MenuBattlePreview.cs" id="1_script"]
+
+[node name="MenuBattlePreview" type="Node3D" unique_id=1813124460]
+script = ExtResource("1_script")

@@ -30,7 +30,7 @@ public sealed partial class SpaceBackdrop : Node3D
 		AddChild(CreateDustStream(center, halfExtent, seed));
 	}
 
-	private static WorldEnvironment CreateWorldEnvironment()
+	internal static WorldEnvironment CreateWorldEnvironment()
 	{
 		var stars = GD.Load<Texture2D>(StarsTexturePath);
 		var sky = new Sky
