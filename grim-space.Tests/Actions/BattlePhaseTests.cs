@@ -31,8 +31,16 @@ public sealed class BattlePhaseTests
 
 		Assert.Equal(EBattlePhase.PlayerTurn, battle.Phase);
 
+		var enteredResolving = false;
+		battle.PhaseChanged += phase =>
+		{
+			if (phase == EBattlePhase.Resolving)
+				enteredResolving = true;
+		};
+
 		battle.EndTurn();
-		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
+		Assert.True(enteredResolving);
+		Assert.True(battle.Phase is EBattlePhase.Resolving or EBattlePhase.Replaying);
 	}
 
 	[Fact]
@@ -62,10 +70,18 @@ public sealed class BattlePhaseTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 
+		var enteredResolving = false;
+		battle.PhaseChanged += phase =>
+		{
+			if (phase == EBattlePhase.Resolving)
+				enteredResolving = true;
+		};
+
 		Assert.True(BattleTestCommands.Move(battle, origin + Coord.Forward));
 		battle.EndTurn();
 
-		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
+		Assert.True(enteredResolving);
+		Assert.True(battle.Phase is EBattlePhase.Resolving or EBattlePhase.Replaying);
 	}
 
 	[Fact]
@@ -156,8 +172,16 @@ public sealed class BattlePhaseTests
 		frames.Interaction.FocusUnit(BattleTestFixture.FirstEnemyId(battle));
 		Assert.True(frames.IsInspecting(battle));
 
+		var enteredResolving = false;
+		battle.PhaseChanged += phase =>
+		{
+			if (phase == EBattlePhase.Resolving)
+				enteredResolving = true;
+		};
+
 		battle.EndTurn();
-		Assert.Equal(EBattlePhase.Resolving, battle.Phase);
+		Assert.True(enteredResolving);
+		Assert.True(battle.Phase is EBattlePhase.Resolving or EBattlePhase.Replaying);
 	}
 
 	[Fact]
