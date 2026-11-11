@@ -3,6 +3,7 @@ using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Player;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -25,7 +26,7 @@ public partial class MovementAfterimageView : Node3D
 			}
 			""",
 	};
-	private readonly List<(UnitView View, ShaderMaterial Material,
+	private readonly List<(EType Type, UnitView View, ShaderMaterial Material,
 		ShaderMaterial SmearMaterial, MultiMeshInstance3D[] Smears)> _echoes = [];
 	private readonly Shader _smearShader = new()
 	{
@@ -44,7 +45,7 @@ public partial class MovementAfterimageView : Node3D
 			}
 			""",
 	};
-	private readonly List<(UnitView View, ShaderMaterial Material)> _origins = [];
+	private readonly List<(EType Type, UnitView View, ShaderMaterial Material)> _origins = [];
 
 	public void ApplyOrigins(IReadOnlyList<UnitDisplayState> origins)
 	{
@@ -56,9 +57,18 @@ public partial class MovementAfterimageView : Node3D
 				view.Bind(origins[i].ToState(), Colors.White);
 				AddChild(view);
 				view.SetProcess(false);
-				_origins.Add((view, CreateMaterial(Colors.White)));
+				_origins.Add((origins[i].Type, view, CreateMaterial(Colors.White)));
 			}
-			var (origin, material) = _origins[i];
+			else if (_origins[i].Type != origins[i].Type)
+			{
+				_origins[i].View.QueueFree();
+				var view = new UnitView { Name = $"AbilityOrigin{i}" };
+				view.Bind(origins[i].ToState(), Colors.White);
+				AddChild(view);
+				view.SetProcess(false);
+				_origins[i] = (origins[i].Type, view, CreateMaterial(Colors.White));
+			}
+			var (_, origin, material) = _origins[i];
 			var progress = (i + 1f) / origins.Count;
 			material.SetShaderParameter("tint", new Color(0.25f, 0.32f, 0.4f, 0.1f)
 				.Lerp(new Color(0.65f, 0.73f, 0.8f, 0.35f), progress));
@@ -125,36 +135,14 @@ public partial class MovementAfterimageView : Node3D
 		}
 
 		while (_echoes.Count < samples.Count)
+			_echoes.Add(CreateEcho(template, _echoes.Count));
+		for (var i = 0; i < samples.Count; i++)
 		{
-			var view = new UnitView { Name = $"Afterimage{_echoes.Count}" };
-			view.Bind(template.ToState(), Colors.White);
-			AddChild(view);
-			view.SetProcess(false);
-			var material = CreateMaterial(Colors.White);
-			StyleHull(view, material);
-			var smearMaterial = new ShaderMaterial { Shader = _smearShader, RenderPriority = -1 };
-			var smears = view.GetNode<Node3D>("IdleMotion/VisualRoot")
-				.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
-				.Where(mesh => mesh.MaterialOverride == material && mesh.Mesh is not null)
-				.Select(mesh =>
-				{
-					var smear = new MultiMeshInstance3D
-					{
-						Name = "MotionSmear",
-						CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-						MaterialOverride = smearMaterial,
-						Multimesh = new MultiMesh
-						{
-							TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-							UseCustomData = true,
-							Mesh = mesh.Mesh,
-							InstanceCount = SmearSlices,
-						},
-					};
-					mesh.AddChild(smear);
-					return smear;
-				}).ToArray();
-			_echoes.Add((view, material, smearMaterial, smears));
+			if (_echoes[i].Type == template.Type)
+				continue;
+
+			_echoes[i].View.QueueFree();
+			_echoes[i] = CreateEcho(template, i);
 		}
 		for (var i = 0; i < _echoes.Count; i++)
 			_echoes[i].View.Visible = i < samples.Count;
@@ -170,7 +158,7 @@ public partial class MovementAfterimageView : Node3D
 			var span = to.Distance - from.Distance;
 			var weight = span > 0f ? (distance - from.Distance) / span : 1f;
 			var progress = distance / total;
-			var (view, material, smearMaterial, smears) = _echoes[index++];
+			var (_, view, material, smearMaterial, smears) = _echoes[index++];
 			view.Present(template.ToState(), UnitVisualState.Ghost);
 			view.Position = from.Position.Lerp(to.Position, weight);
 			view.Basis = from.Basis.Slerp(to.Basis, weight);
@@ -208,6 +196,42 @@ public partial class MovementAfterimageView : Node3D
 		var material = new ShaderMaterial { Shader = GhostShader };
 		material.SetShaderParameter("tint", color);
 		return material;
+	}
+
+	private (EType Type, UnitView View, ShaderMaterial Material,
+		ShaderMaterial SmearMaterial, MultiMeshInstance3D[] Smears) CreateEcho(
+			UnitDisplayState template,
+			int index)
+	{
+		var view = new UnitView { Name = $"Afterimage{index}" };
+		view.Bind(template.ToState(), Colors.White);
+		AddChild(view);
+		view.SetProcess(false);
+		var material = CreateMaterial(Colors.White);
+		StyleHull(view, material);
+		var smearMaterial = new ShaderMaterial { Shader = _smearShader, RenderPriority = -1 };
+		var smears = view.GetNode<Node3D>("IdleMotion/VisualRoot")
+			.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>()
+			.Where(mesh => mesh.MaterialOverride == material && mesh.Mesh is not null)
+			.Select(mesh =>
+			{
+				var smear = new MultiMeshInstance3D
+				{
+					Name = "MotionSmear",
+					CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+					MaterialOverride = smearMaterial,
+					Multimesh = new MultiMesh
+					{
+						TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+						UseCustomData = true,
+						Mesh = mesh.Mesh,
+						InstanceCount = SmearSlices,
+					},
+				};
+				mesh.AddChild(smear);
+				return smear;
+			}).ToArray();
+		return (template.Type, view, material, smearMaterial, smears);
 	}
 
 	private static void StyleHull(UnitView view, Material material)

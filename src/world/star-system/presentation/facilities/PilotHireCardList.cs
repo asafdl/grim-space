@@ -52,7 +52,7 @@ internal static class PilotHireCardList
 	{
 		var profile = candidate.Profile;
 		var item = new UiImageListItem(
-			profile.Name,
+			"",
 			"",
 			"",
 			image: null,
@@ -62,6 +62,7 @@ internal static class PilotHireCardList
 		};
 		item.SetDetailContent(PilotIdentityIconRail.BuildFor(profile));
 		item.SetTrailingContent(BuildHireAndSalaryCost(cost, profile));
+		item.SetTooltip(HudTooltipContent.Plain(PilotHireDisplay.CardSubtitle(profile)));
 		item.SetAffordable(canAfford);
 		item.SetEnabled(canAfford);
 		if (canAfford)

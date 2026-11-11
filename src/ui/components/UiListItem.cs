@@ -120,6 +120,7 @@ public partial class UiListItem : BaseButton, IUiSized
 			MouseFilter = MouseFilterEnum.Ignore,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Visible = !string.IsNullOrEmpty(title),
 		};
 		_titleLabel.AddThemeFontSizeOverride("font_size", 20);
 		_titleLabel.AddThemeConstantOverride("line_spacing", 2);

@@ -85,13 +85,15 @@ public partial class ShipPilot : Control
 				ship,
 				() => _candidateShips,
 				candidate => ShipRecruitmentDisplay.CompareTooltip(candidate, ship),
-				candidate => ShipAssignmentRequested?.Invoke(pilotId, candidate.Id));
+				candidate => ShipAssignmentRequested?.Invoke(pilotId, candidate.Id),
+				openToRight: true);
 			_shipAnchor.AddChild(_shipReticle);
 			_shipReticle.Scale = Vector2.One * (RosterReticleSize / ShipPicker.ReticleSize);
 		}
-		_shipReticle!.SetTooltip(ship is null
-			? HudTooltipContent.Plain("No ship - cannot deploy\nRight-click to assign a ship")
-			: ShipRecruitmentDisplay.ShipTooltip(ship));
+		var shipTooltip = ship is null
+			? HudTooltipContent.Plain("No ship - cannot deploy")
+			: ShipRecruitmentDisplay.ShipTooltip(ship);
+		_shipReticle!.SetTooltip(shipTooltip with { Body = $"{shipTooltip.Body}\n[RMB to assign]" });
 		var (xpInLevel, xpToNext) = PilotProgression.ProgressWithinLevel(experiencePoints);
 		if (xpToNext > 0)
 			ShipBox.SetBar(_xpBar, xpInLevel, xpToNext);

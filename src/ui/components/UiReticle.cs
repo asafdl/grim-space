@@ -24,6 +24,7 @@ public sealed partial class UiReticle : TextureRect, IUiSized
 	private const string TexturePath =
 		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
 	private const float TextureSize = 256f;
+	public const float OuterRingRadiusFactor = 86f / (TextureSize * 0.5f);
 
 	public UiReticle(UiReticleVisual visual = UiReticleVisual.Blue)
 	{

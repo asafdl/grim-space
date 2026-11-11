@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Ui.Components;
 using GrimSpace.Units;
 
 namespace GrimSpace.World.StarSystem.Presentation.Ui;
@@ -12,11 +13,17 @@ public sealed partial class ShipHealthArcs : Control
 
 	private readonly float _shield;
 	private readonly float _hull;
+	private readonly float _radiusFactor;
 
-	public ShipHealthArcs(ShipInstance ship)
+	/// <param name="radiusFactor">
+	/// Fraction of the control half-size used as the ring's outer edge.
+	/// Use <see cref="UiReticle.OuterRingRadiusFactor"/> when framing a reticle.
+	/// </param>
+	public ShipHealthArcs(ShipInstance ship, float radiusFactor = 1f)
 	{
 		_shield = Fraction(ship.TotalCurrentShieldPoints, ship.TotalBaseShieldPoints);
 		_hull = Fraction(ship.CurrentHullPoints, ship.Loadout.BaseHullPoints);
+		_radiusFactor = Mathf.Clamp(radiusFactor, 0.1f, 1f);
 		MouseFilter = MouseFilterEnum.Ignore;
 		AnchorsPreset = (int)LayoutPreset.FullRect;
 		AnchorRight = 1f;
@@ -26,7 +33,11 @@ public sealed partial class ShipHealthArcs : Control
 	public override void _Draw()
 	{
 		var center = Size / 2f;
-		var radius = Mathf.Min(Size.X, Size.Y) / 2f - Width / 2f;
+		var half = Mathf.Min(Size.X, Size.Y) / 2f;
+		// Full factor: stroke inside the control edge. Smaller factor: sit just outside the art ring.
+		var radius = _radiusFactor >= 1f
+			? half - Width / 2f
+			: half * _radiusFactor + Width / 2f;
 		var sweep = Mathf.Pi - 2f * Gap;
 		var bottom = Mathf.Pi / 2f;
 		Half(center, radius, bottom + Gap, sweep, _shield, ShipBox.ShieldColor);

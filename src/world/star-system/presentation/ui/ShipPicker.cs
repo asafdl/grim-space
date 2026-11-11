@@ -22,6 +22,7 @@ public sealed partial class ShipPicker : PopupPanel
 	private ShipInstance[] _ships = [];
 	private Func<ShipInstance, HudTooltipContent> _tooltip = _ => HudTooltipContent.Plain("");
 	private Action<ShipInstance> _picked = _ => { };
+	private Window _parentWindow = null!;
 	private int _pageIndex;
 
 	public ShipPicker()
@@ -44,6 +45,29 @@ public sealed partial class ShipPicker : PopupPanel
 		AddChild(column);
 	}
 
+	public override void _EnterTree()
+	{
+		_parentWindow = GetParent().GetWindow();
+		// WindowInput fires before embedded popups intercept the event.
+		_parentWindow.WindowInput += OnParentWindowInput;
+	}
+
+	public override void _ExitTree()
+	{
+		_parentWindow.WindowInput -= OnParentWindowInput;
+	}
+
+	private void OnParentWindowInput(InputEvent @event)
+	{
+		if (!Visible || @event is not InputEventMouseButton
+			{ Pressed: true, ButtonIndex: MouseButton.Right } mouse)
+			return;
+
+		var position = _parentWindow.GetFinalTransform().AffineInverse() * mouse.Position;
+		if (!new Rect2(Position, Size).HasPoint(position))
+			Hide();
+	}
+
 	private int PageCount => System.Math.Max(1, (_ships.Length + Cells - 1) / Cells);
 
 	/// <summary>Reticle showing <paramref name="ship"/>; right-click opens this picker.</summary>
@@ -51,7 +75,8 @@ public sealed partial class ShipPicker : PopupPanel
 		ShipInstance? ship,
 		Func<IEnumerable<ShipInstance>> candidates,
 		Func<ShipInstance, HudTooltipContent> tooltip,
-		Action<ShipInstance> picked)
+		Action<ShipInstance> picked,
+		bool openToRight = false)
 	{
 		var reticle = new HudTooltipHost
 		{
@@ -92,7 +117,7 @@ public sealed partial class ShipPicker : PopupPanel
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 				MouseFilter = Control.MouseFilterEnum.Ignore,
 			});
-			reticle.AddChild(new ShipHealthArcs(ship));
+			reticle.AddChild(new ShipHealthArcs(ship, UiReticle.OuterRingRadiusFactor));
 			reticle.SetTooltip(ShipRecruitmentDisplay.ShipTooltip(ship));
 		}
 		reticle.GuiInput += @event =>
@@ -104,17 +129,19 @@ public sealed partial class ShipPicker : PopupPanel
 				reticle,
 				candidates().OrderByDescending(ship => ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis)),
 				tooltip,
-				picked);
+				picked,
+				openToRight);
 		};
 		return reticle;
 	}
 
-	/// <summary>Opens above <paramref name="anchor"/>, listing <paramref name="candidates"/> in the given order.</summary>
+	/// <summary>Opens above or to the right of <paramref name="anchor"/>, listing candidates in the given order.</summary>
 	public void Open(
 		Control anchor,
 		IEnumerable<ShipInstance> candidates,
 		Func<ShipInstance, HudTooltipContent> tooltip,
-		Action<ShipInstance> picked)
+		Action<ShipInstance> picked,
+		bool openToRight = false)
 	{
 		_ships = candidates.ToArray();
 		_tooltip = tooltip;
@@ -122,10 +149,11 @@ public sealed partial class ShipPicker : PopupPanel
 		ShowPage(0);
 		var size = GetContentsMinimumSize();
 		var anchorRect = anchor.GetGlobalRect();
+		var position = openToRight
+			? new Vector2(anchorRect.End.X, anchorRect.GetCenter().Y - size.Y / 2f)
+			: new Vector2(anchorRect.GetCenter().X - size.X / 2f, anchorRect.Position.Y - size.Y);
 		Popup(new Rect2I(
-			new Vector2I(
-				Mathf.RoundToInt(anchorRect.GetCenter().X - size.X / 2f),
-				Mathf.RoundToInt(anchorRect.Position.Y - size.Y)),
+			new Vector2I(Mathf.RoundToInt(position.X), Mathf.RoundToInt(position.Y)),
 			new Vector2I(Mathf.CeilToInt(size.X), Mathf.CeilToInt(size.Y))));
 	}
 
@@ -147,6 +175,14 @@ public sealed partial class ShipPicker : PopupPanel
 			var cell = new ShipBox(ship, CellSize);
 			if (ship is not null)
 			{
+				var backing = new ColorRect
+				{
+					Color = HudPalettes.BlueCyan.DeepSurface,
+					Size = Vector2.One * CellSize,
+					MouseFilter = Control.MouseFilterEnum.Ignore,
+				};
+				cell.AddChild(backing);
+				cell.MoveChild(backing, 0);
 				cell.SetTooltip(_tooltip(ship));
 				cell.GuiInput += @event =>
 				{
