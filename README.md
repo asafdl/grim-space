@@ -329,6 +329,8 @@ Tactical replay presents committed healing records with green `+amount` popups, 
 Movement-pose opportunity previews show a green healing heart for simulated healing recipients and retain ability icons for damage targets. Fully restored allies emit no healing record and therefore no healing opportunity badge.
 Movement picking favors simulated firing destinations and enemy-axis lines within an 18-pixel proximity band, retaining them up to a 24-pixel release band; direct aim within one pixel overrides assistance. The reference is the reticle enemy, falling back to the nearest enemy from the planning ship position rather than the hovered destination. Heading remains manual. Six dotted X/Y/Z guides extend three cells each way from the movement ghost. The standalone movement-picking lab shares this scoring and guide rendering, but keeps its comparison controls, colored cells, and snap logs out of battle.
 
+Battle and the simulation-mode lab animate relationship-guide alignment: matching either axis within the selected reference plane sends slightly thicker on-plane dashes toward the enemy, preserving their length, spacing, and color without glow or an additional mesh. Matching the coordinate perpendicular to the plane brightens the junction ring and emits an expanding, fading ring every 2.4 seconds. Battle uses the XZ plane: the dashes respond to X or Z, independently of height, and the ring responds to Y. The existing simulation-mode and 10 km alignment visibility gates still apply in battle; the movement-picking lab retains the static guide.
+
 ### Ship spec, loadout, and ability spec (`src/units/`)
 
 Combat configuration is split in the units package (no Godot, no battle imports):

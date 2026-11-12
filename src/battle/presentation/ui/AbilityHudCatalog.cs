@@ -46,6 +46,7 @@ public static class AbilityHudCatalog
 		Func<UnitDisplayState, BattleHudTooltipContent> Tooltip,
 		Func<UnitDisplayState, AbilityLegality, string> Charges,
 		Func<AbilityLegality, bool> IsLegal,
+		Func<UnitDisplayState, int> CooldownRemaining,
 		TargetPickSpec? TargetPick = null,
 		bool RequiresFacePickAfterTargets = false)
 	{
@@ -76,8 +77,15 @@ public static class AbilityHudCatalog
 			unit.ToState(),
 			ActorRuntime.From(new PilotBattleSnapshot(unit.Id, unit.PilotCapabilities)));
 
-	public static AbilityBarSlotState BuildState(Spec spec, UnitDisplayState unit, AbilityLegality legality) =>
-		new(spec.Tooltip(unit), spec.Charges(unit, legality), spec.IsLegal(legality));
+	public static AbilityBarSlotState BuildState(Spec spec, UnitDisplayState unit, AbilityLegality legality)
+	{
+		var cooldownRemaining = System.Math.Max(0, spec.CooldownRemaining(unit));
+		return new(
+			spec.Tooltip(unit),
+			spec.Charges(unit, legality),
+			Enabled: spec.IsLegal(legality) && cooldownRemaining == 0,
+			CooldownRemaining: cooldownRemaining);
+	}
 
 	private static Spec Resolve(
 		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> def) =>
@@ -95,7 +103,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.ScrapDroneSwarm),
 					unit.MaxUsesPerTurn(EAbilityKind.ScrapDroneSwarm)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.ScrapDroneSwarm)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.ScrapDroneSwarm),
+				unit => unit.PerTurnUsesCooldownRemaining(EAbilityKind.ScrapDroneSwarm)),
 			LightningCannonDef => new(
 				EPlayerMode.LightningCannon,
 				def,
@@ -108,7 +117,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.LightningCannon),
 					unit.MaxUsesPerTurn(EAbilityKind.LightningCannon)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.LightningCannon)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.LightningCannon),
+				unit => unit.PerTurnUsesCooldownRemaining(EAbilityKind.LightningCannon)),
 			GoopGunDef => new(
 				EPlayerMode.GoopGun,
 				def,
@@ -121,7 +131,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ReadyMounts(EAbilityKind.GoopGun),
 					unit.MountCount(EAbilityKind.GoopGun)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.GoopGun)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.GoopGun),
+				unit => unit.CooldownTurnsRemaining(EAbilityKind.GoopGun)),
 			VoidBombDef => new(
 				EPlayerMode.VoidBomb,
 				def,
@@ -134,7 +145,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ReadyMounts(EAbilityKind.VoidBombLauncher),
 					unit.MountCount(EAbilityKind.VoidBombLauncher)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.VoidBomb)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.VoidBomb),
+				unit => unit.CooldownTurnsRemaining(EAbilityKind.VoidBombLauncher)),
 			DetonateDef => new(
 				EPlayerMode.Detonate,
 				def,
@@ -147,7 +159,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.FuelRemaining,
 					unit.Projectile?.FuelTurns ?? 0),
-				legality => legality.Detonate),
+				legality => legality.Detonate,
+				_ => 0),
 			SpawnRepurposedMinerDef => new(
 				EPlayerMode.SpawnRepurposedMiner,
 				def,
@@ -160,7 +173,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ReadyMounts(EAbilityKind.MinerBay),
 					unit.MountCount(EAbilityKind.MinerBay)),
-				legality => legality.SpawnRepurposedMiner),
+				legality => legality.SpawnRepurposedMiner,
+				unit => unit.CooldownTurnsRemaining(EAbilityKind.MinerBay)),
 			ShieldsUpDef => new(
 				EPlayerMode.ShieldsUp,
 				def,
@@ -173,7 +187,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ShieldsUpUsedThisTurn ? 0 : 1,
 					1),
-				legality => legality.ShieldsUp),
+				legality => legality.ShieldsUp,
+				unit => unit.ShieldsUpUsedThisTurn ? 1 : 0),
 			OverchargeEnginesDef => new(
 				EPlayerMode.OverchargeEngines,
 				def,
@@ -186,7 +201,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.OverchargeEnginesCooldownRemaining == 0 ? 1 : 0,
 					1),
-				legality => legality.OverchargeEngines),
+				legality => legality.OverchargeEngines,
+				unit => unit.OverchargeEnginesCooldownRemaining),
 			HeatVentsDef => new(
 				EPlayerMode.HeatVents,
 				def,
@@ -199,7 +215,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.HeatVentsUsedThisTurn ? 0 : 1,
 					1),
-				legality => legality.HeatVents),
+				legality => legality.HeatVents,
+				unit => unit.HeatVentsUsedThisTurn ? 1 : 0),
 			BraceDef => new(
 				EPlayerMode.Brace,
 				def,
@@ -212,7 +229,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ShieldBraceUsedThisTurn || unit.ShieldBraceActive ? 0 : 1,
 					1),
-				legality => legality.Brace),
+				legality => legality.Brace,
+				unit => unit.ShieldBraceUsedThisTurn || unit.ShieldBraceActive ? 1 : 0),
 			ProtectionDroneDef => new(
 				EPlayerMode.ProtectionDrone,
 				def,
@@ -226,6 +244,7 @@ public static class AbilityHudCatalog
 					unit.ReadyMounts(EAbilityKind.ProtectionDrone),
 					unit.MountCount(EAbilityKind.ProtectionDrone)),
 				legality => legality.ProtectionDrone,
+				unit => unit.CooldownTurnsRemaining(EAbilityKind.ProtectionDrone),
 				ProtectionDroneDef.TargetPick),
 			MarkWeakspotDef => new(
 				EPlayerMode.MarkWeakspot,
@@ -240,6 +259,7 @@ public static class AbilityHudCatalog
 					unit.MarkWeakspotCooldownRemaining == 0 ? 1 : 0,
 					1),
 				legality => legality.MarkWeakspot,
+				unit => unit.MarkWeakspotCooldownRemaining,
 				MarkWeakspotDef.TargetPick,
 				RequiresFacePickAfterTargets: true),
 			RamDef => new(
@@ -254,7 +274,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.Ram),
 					unit.MaxUsesPerTurn(EAbilityKind.Ram)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.Ram)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.Ram),
+				unit => unit.PerTurnUsesCooldownRemaining(EAbilityKind.Ram)),
 			HighVelocityRodDef => new(
 				EPlayerMode.HighVelocityRod,
 				def,
@@ -267,7 +288,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.UsesRemaining(EAbilityKind.HighVelocityRod),
 					unit.MaxUsesPerTurn(EAbilityKind.HighVelocityRod)),
-				legality => legality.Weapons.IsKindLegal(EWeaponKind.HighVelocityRod)),
+				legality => legality.Weapons.IsKindLegal(EWeaponKind.HighVelocityRod),
+				unit => unit.PerTurnUsesCooldownRemaining(EAbilityKind.HighVelocityRod)),
 			RoadsWeDontNeedRoadsDef => new(
 				EPlayerMode.RoadsWeDontNeedRoads,
 				def,
@@ -280,7 +302,8 @@ public static class AbilityHudCatalog
 				(unit, _) => BattleHudCopy.Charges(
 					unit.ReadyMounts(EAbilityKind.RoadsWeDontNeedRoads),
 					unit.MountCount(EAbilityKind.RoadsWeDontNeedRoads)),
-				legality => legality.RoadsWeDontNeedRoads),
+				legality => legality.RoadsWeDontNeedRoads,
+				unit => unit.CooldownTurnsRemaining(EAbilityKind.RoadsWeDontNeedRoads)),
 			_ => throw new NotSupportedException(
 				$"No ability HUD metadata is registered for {def.GetType().Name}."),
 		};

@@ -17,6 +17,7 @@ public sealed partial class BattleCommandHud : Control
 	private const string ExecuteTurnText = "EXECUTE TURN";
 	private const int SlotSize = 64;
 	private const float IconPx = 40f;
+	private const float CooldownIconPx = 22f;
 	private const float ConsoleHeight = 160f;
 	private const float ResourceHeight = 128f;
 	private const float ResourceWidth = 240f;
@@ -399,12 +400,14 @@ public sealed partial class BattleCommandHud : Control
 			var card = _abilityCards[i];
 			var state = AbilityHudCatalog.BuildState(card.Spec, focusState, abilities);
 			var isActivePick = mode == card.Spec.Mode && targetPick is not null;
-			card.Button.Disabled = !canAct || !state.Enabled;
+			var onCooldown = state.CooldownRemaining > 0;
+			card.Button.Disabled = !canAct || !state.Enabled || onCooldown;
 			card.Button.SetTooltip(state.Tooltip);
 			SetPressed(card.Button, mode == card.Spec.Mode);
 			card.Button.SelfModulate = Colors.White;
-			ApplyIconDim(card.Button, isActivePick);
+			ApplyIconDim(card.Button, isActivePick, onCooldown);
 			card.CommitTrail.SetActive(isActivePick);
+			ApplyCooldownOverlay(card, onCooldown ? state.CooldownRemaining : 0);
 			ApplyPickBadge(card, isActivePick ? targetPick : null);
 		}
 
@@ -510,13 +513,71 @@ public sealed partial class BattleCommandHud : Control
 			var hotkey = TacticalActionButtonStyle.AddHotkey(
 				button,
 				GameInputBindings.PrimaryLabel(GameInputBindings.AbilityAction(i + 1)));
+			var cooldownOverlay = CreateCooldownOverlay(button);
 			var pickBadge = CreatePickBadge(button);
 			var commitTrail = new AbilityCommitTrail();
 			button.AddChild(commitTrail);
 			button.Pressed += () => AbilityModeRequested?.Invoke(spec);
 			MainActions.AddChild(button);
-			_abilityCards.Add(new AbilityCard(button, hotkey, pickBadge, commitTrail, spec));
+			_abilityCards.Add(new AbilityCard(
+				button,
+				hotkey,
+				cooldownOverlay.Root,
+				cooldownOverlay.Turns,
+				pickBadge,
+				commitTrail,
+				spec));
 		}
+	}
+
+	private static (Control Root, Label Turns) CreateCooldownOverlay(Button button)
+	{
+		var iconDef = HudTooltipIconCatalog.Resolve(nameof(Icon.Cooldown));
+		var root = new CenterContainer
+		{
+			Visible = false,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		root.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		root.GrowHorizontal = GrowDirection.Both;
+		root.GrowVertical = GrowDirection.Both;
+
+		var row = new HBoxContainer
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			Alignment = BoxContainer.AlignmentMode.Center,
+		};
+		row.AddThemeConstantOverride("separation", 4);
+		root.AddChild(row);
+
+		var icon = new TextureRect
+		{
+			Texture = iconDef.TintIcon
+				? SvgIconLoader.LoadCentered(iconDef.Path, iconDef.Color, (int)CooldownIconPx)
+				: SvgIconLoader.LoadRawCentered(iconDef.Path, (int)CooldownIconPx),
+			CustomMinimumSize = new Vector2(CooldownIconPx, CooldownIconPx),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			MouseFilter = MouseFilterEnum.Ignore,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		row.AddChild(icon);
+
+		var turns = new Label
+		{
+			MouseFilter = MouseFilterEnum.Ignore,
+			HorizontalAlignment = HorizontalAlignment.Left,
+			VerticalAlignment = VerticalAlignment.Center,
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+		};
+		turns.AddThemeFontSizeOverride("font_size", 22);
+		turns.AddThemeColorOverride("font_color", Colors.White);
+		turns.AddThemeColorOverride("font_outline_color", new Color(0.02f, 0.05f, 0.08f));
+		turns.AddThemeConstantOverride("outline_size", 5);
+		row.AddChild(turns);
+
+		button.AddChild(root);
+		return (root, turns);
 	}
 
 	private static Label CreatePickBadge(Button button)
@@ -540,6 +601,18 @@ public sealed partial class BattleCommandHud : Control
 		return label;
 	}
 
+	private static void ApplyCooldownOverlay(AbilityCard card, int turnsRemaining)
+	{
+		if (turnsRemaining <= 0)
+		{
+			card.CooldownOverlay.Visible = false;
+			return;
+		}
+
+		card.CooldownOverlay.Visible = true;
+		card.CooldownTurns.Text = turnsRemaining.ToString();
+	}
+
 	private static void ApplyPickBadge(AbilityCard card, TargetPickFrame? targetPick)
 	{
 		if (targetPick is null)
@@ -548,6 +621,7 @@ public sealed partial class BattleCommandHud : Control
 			return;
 		}
 
+		card.CooldownOverlay.Visible = false;
 		card.PickBadge.Visible = true;
 		card.PickBadge.Text = BattleHudCopy.TargetPickProgress(
 			targetPick.PickedIds.Count,
@@ -555,14 +629,19 @@ public sealed partial class BattleCommandHud : Control
 		card.PickBadge.AddThemeColorOverride("font_color", PickBadgeColor);
 	}
 
-	private static void ApplyIconDim(Button button, bool dim)
+	private static void ApplyIconDim(Button button, bool dimWhilePicking, bool onCooldown)
 	{
-		var color = dim ? IconDimWhilePicking : new Color(0.9f, 0.9f, 0.94f);
+		var color = onCooldown
+			? new Color(0.9f, 0.9f, 0.94f, 0.12f)
+			: dimWhilePicking
+				? IconDimWhilePicking
+				: new Color(0.9f, 0.9f, 0.94f);
 		button.AddThemeColorOverride("icon_normal_color", color);
-		button.AddThemeColorOverride("icon_hover_color", dim ? IconDimWhilePicking : Colors.White);
+		button.AddThemeColorOverride("icon_hover_color", onCooldown || dimWhilePicking ? color : Colors.White);
 		button.AddThemeColorOverride(
 			"icon_pressed_color",
-			dim ? IconDimWhilePicking : new Color(0.82f, 0.84f, 0.9f));
+			onCooldown || dimWhilePicking ? color : new Color(0.82f, 0.84f, 0.9f));
+		button.AddThemeColorOverride("icon_disabled_color", onCooldown ? color : new Color(0.5f, 0.52f, 0.56f, 0.5f));
 	}
 
 	private void OnFocusPressed() => FocusRequested?.Invoke();
@@ -748,6 +827,8 @@ public sealed partial class BattleCommandHud : Control
 	private sealed record AbilityCard(
 		BattleHudTooltipButton Button,
 		Label Hotkey,
+		Control CooldownOverlay,
+		Label CooldownTurns,
 		Label PickBadge,
 		AbilityCommitTrail CommitTrail,
 		AbilityHudCatalog.Spec Spec);

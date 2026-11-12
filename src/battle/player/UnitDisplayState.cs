@@ -108,6 +108,17 @@ public sealed record UnitDisplayState(
 	public int MountCount(EAbilityKind kind) =>
 		Mounts.Count(mount => mount.Mount.Kind == kind);
 
+	public int CooldownTurnsRemaining(EAbilityKind kind)
+	{
+		var ofKind = Mounts.Where(mount => mount.Mount.Kind == kind).ToArray();
+		if (ofKind.Length == 0 || ofKind.Any(mount => mount.CooldownRemaining == 0))
+			return 0;
+		return ofKind.Min(mount => mount.CooldownRemaining);
+	}
+
+	public int PerTurnUsesCooldownRemaining(EAbilityKind kind) =>
+		MaxUsesPerTurn(kind) > 0 && UsesRemaining(kind) == 0 ? 1 : 0;
+
 	public BodyFrame ToBodyFrame() =>
 		new(Position, Fore, Dorsal, Coord.Cross(Dorsal, Fore));
 

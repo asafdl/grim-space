@@ -233,6 +233,7 @@ public partial class BattleController : Node3D
 		{
 			Name = "TargetingGuide",
 			ShowReticle = false,
+			AnimateAlignment = true,
 		};
 		_unitsRoot.AddChild(_targetingGuide);
 		_pickedTargetMarks = new PickedTargetMarksView { Name = "PickedTargetMarks" };

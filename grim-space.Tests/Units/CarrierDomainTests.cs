@@ -64,6 +64,10 @@ public sealed class CarrierDomainTests
 			new AbilityLegality(WeaponPeek.Empty, SpawnRepurposedMiner: true, Detonate: false, ShieldsUp: false, OverchargeEngines: false, Brace: false));
 
 		Assert.Equal("1/1", ready.Charges);
+		Assert.Equal(0, ready.CooldownRemaining);
+		Assert.True(ready.Enabled);
 		Assert.Equal("0/1", cooling.Charges);
+		Assert.Equal(CatalogExpectations.DefaultMinerBaySpec().CooldownTurns, cooling.CooldownRemaining);
+		Assert.False(cooling.Enabled);
 	}
 }

@@ -129,7 +129,12 @@ public partial class SimulationModeLab : Node3D
 		AddChild(_afterimages);
 		_abilityOrigins = new MovementAfterimageView { Name = "AbilityOrigins" };
 		AddChild(_abilityOrigins);
-		_targeting = new RelationshipGuideView { Name = "Targeting", ShowReticle = false };
+		_targeting = new RelationshipGuideView
+		{
+			Name = "Targeting",
+			ShowReticle = false,
+			AnimateAlignment = true,
+		};
 		AddChild(_targeting);
 		_targetInfo = new EnemyRangeTetherView { Name = "TargetInfo", ShowRangeGuides = false };
 		_targetInfo.Configure(layout.Grid);
