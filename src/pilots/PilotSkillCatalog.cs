@@ -30,7 +30,7 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Heat Vents",
 					$"Release {PilotSkillPercents.HeatVents.HeatReleased} heat."),
-				minimumEarnedLevel: 3,
+				minimumEarnedLevel: 2,
 				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.ShieldsUp] = new(
 				EPilotSkillId.ShieldsUp,
@@ -38,7 +38,7 @@ public static class PilotSkillCatalog
 				new HudTooltipContent(
 					"Shields Up",
 					$"Boost each shield face by {PilotSkillPercents.ShieldsUp.TemporaryShieldPercentOfFaceMax}% of its maximum until your next turn; pay AP when that turn begins."),
-				minimumEarnedLevel: 3,
+				minimumEarnedLevel: 2,
 				audience: PilotSkillAudience.Global),
 			[EPilotSkillId.OverchargeEngines] = new(
 				EPilotSkillId.OverchargeEngines,
