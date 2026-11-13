@@ -280,6 +280,11 @@ Missed attempts are not retried. Simulation timing keeps pauses and travel speed
 `BlueCyan` is the default for production kit components.
 
 Star-map world-object and HUD-control hovers use `HudTooltipCard` so they share one angled outline and blue-cyan palette.
+Cards created from `HudTooltipContent` can be pinned by holding Alt; while pinned, pointer interaction with the
+underlying HUD is blocked. Icons with descriptions show shared explanations on hover without a link cursor or
+underline; omit the catalog description to disable it. `IconTooltips` can override or provide an explanation for
+a content object. The child uses the hovered icon in place of its title and the palette's secondary border color.
+The separate pointer-following plain-text map tooltip is not pinnable.
 
 Battle status presentation is projected by [`BattleStatusDisplay`](../src/battle/presentation/ui/BattleStatusDisplay.cs)
 from the focused ship's `UnitDisplayState.Statuses`, including temporary effects and installed pilot passives.

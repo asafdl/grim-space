@@ -7,7 +7,13 @@ public static class HudIconMarkup
 	public static bool Contains(string text) =>
 		text.Contains("[icon:", StringComparison.Ordinal);
 
-	public static void Append(RichTextLabel label, string template, Color bodyColor, float iconSize)
+	public static void Append(
+		RichTextLabel label,
+		string template,
+		Color bodyColor,
+		float iconSize,
+		bool interactiveIcons = false,
+		IReadOnlyDictionary<string, HudTooltipContent>? iconTooltips = null)
 	{
 		var cursor = 0;
 		while (cursor < template.Length)
@@ -30,7 +36,12 @@ public static class HudIconMarkup
 			var icon = HudTooltipIconCatalog.Resolve(iconName);
 			var texture = GD.Load<Texture2D>(icon.Path)
 				?? throw new InvalidOperationException($"Could not load icon '{icon.Path}'.");
+			var interactive = interactiveIcons && icon.Tooltip(iconName, iconTooltips) is not null;
+			if (interactive)
+				label.PushMeta(iconName, RichTextLabel.MetaUnderline.Never, iconName);
 			label.AddImage(texture, iconSize, iconSize, icon.TintIcon ? icon.Color : Colors.White);
+			if (interactive)
+				label.Pop();
 
 			if (textSeparator >= 0)
 				AddText(label, token[(textSeparator + ", text:".Length)..].TrimStart(), icon.Color);

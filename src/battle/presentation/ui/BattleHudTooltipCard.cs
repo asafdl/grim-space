@@ -6,7 +6,7 @@ namespace GrimSpace.Battle.Presentation.Ui;
 internal static class BattleHudTooltipCard
 {
 	public static Control Create(BattleHudTooltipContent tooltip) =>
-		HudTooltipCard.Create(tooltip, HudPalettes.PurpleRed);
+		Create(tooltip.ToShared());
 
 	public static Control Create(HudTooltipContent tooltip) =>
 		HudTooltipCard.Create(tooltip, HudPalettes.PurpleRed);

@@ -1,4 +1,5 @@
 using GrimSpace.Battle.PilotCapabilities;
+using GrimSpace.Components;
 using GrimSpace.Tests.Run;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
@@ -10,6 +11,32 @@ namespace GrimSpace.Tests.Pilots;
 [IntegrationTestSuite]
 public sealed class PilotSkillTreeTests
 {
+	[Fact]
+	public void SheetTooltipPreservesIconExplanationsWhenAddingOrigin()
+	{
+		var heat = new HudTooltipContent("Heat", "Heat explanation.");
+		var shield = new HudTooltipContent("Shield", "Shield explanation.");
+		var tooltip = new HudTooltipContent("Test", "[icon: Heat] [icon: Shield]")
+		{
+			IconTooltips = new Dictionary<string, HudTooltipContent>
+			{
+				["Heat"] = heat,
+				["Shield"] = shield,
+			},
+		};
+		var skill = new PilotSkillDefinition(
+			EPilotSkillId.ShieldsUp,
+			[EPilotCapabilityId.ShieldBoost],
+			tooltip);
+
+		var sheet = skill.SheetTooltip;
+
+		Assert.Contains("Origin:", sheet.Details);
+		Assert.NotNull(sheet.IconTooltips);
+		Assert.Equal(heat, sheet.IconTooltips["Heat"]);
+		Assert.Equal(shield, sheet.IconTooltips["Shield"]);
+	}
+
 	[Fact]
 	public void Catalog_EverySkillGrantsSupportedCapability()
 	{

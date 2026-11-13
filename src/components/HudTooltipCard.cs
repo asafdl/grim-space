@@ -22,18 +22,24 @@ public sealed partial class HudTooltipCard : PanelContainer
 	private readonly Color _accentColor;
 	private readonly Color _bodyColor;
 	private readonly VBoxContainer _content;
+	private bool _interactiveIcons;
+	private IReadOnlyDictionary<string, HudTooltipContent>? _iconTooltips;
+	private string? _hint;
 	private string? _presentedText;
+
+	public event Action<string>? IconHoverStarted;
+	public event Action<string>? IconHoverEnded;
 
 	public HudTooltipCard()
 		: this(HudPalettes.BlueCyan)
 	{
 	}
 
-	private HudTooltipCard(HudPalette palette)
+	private HudTooltipCard(HudPalette palette, bool nested = false)
 	{
 		_palette = palette;
 		_fillColor = HudPalettes.WithAlpha(palette.Surface, 0.98f);
-		_borderColor = HudPalettes.WithAlpha(palette.Highlight, 0.9f);
+		_borderColor = HudPalettes.WithAlpha(nested ? palette.Secondary : palette.Highlight, 0.9f);
 		_accentColor = palette.Secondary;
 		_bodyColor = palette.Primary;
 		MouseFilter = MouseFilterEnum.Ignore;
@@ -58,11 +64,29 @@ public sealed partial class HudTooltipCard : PanelContainer
 		control.TooltipText = string.Empty;
 	}
 
-	public static Control Create(HudTooltipContent tooltip, HudPalette palette)
+	public static HudTooltipCard Create(
+		HudTooltipContent tooltip,
+		HudPalette palette,
+		bool pinned = false,
+		string? headerIcon = null)
 	{
 		ArgumentNullException.ThrowIfNull(tooltip);
-		var card = new HudTooltipCard(palette);
-		card.BuildContent(tooltip);
+		var card = new HudTooltipCard(palette, nested: headerIcon is not null);
+		if (!pinned)
+		{
+			card._hint = "Hold Alt to pin.";
+			card.AddChild(new HudTooltipPin(tooltip, palette));
+		}
+		else if (headerIcon is null
+			&& (HudIconMarkup.Contains(tooltip.Body)
+				|| (tooltip.Details is not null && HudIconMarkup.Contains(tooltip.Details))))
+		{
+			card._interactiveIcons = true;
+			card._iconTooltips = tooltip.IconTooltips;
+			card.MouseFilter = MouseFilterEnum.Stop;
+			card._content.MouseFilter = MouseFilterEnum.Pass;
+		}
+		card.BuildContent(tooltip, headerIcon);
 		card.Visible = true;
 		card.ResetSize();
 		card.CustomMinimumSize = card.GetCombinedMinimumSize();
@@ -115,7 +139,7 @@ public sealed partial class HudTooltipCard : PanelContainer
 			true);
 	}
 
-	private void BuildContent(HudTooltipContent tooltip)
+	private void BuildContent(HudTooltipContent tooltip, string? headerIcon = null)
 	{
 		foreach (var child in _content.GetChildren())
 		{
@@ -123,10 +147,13 @@ public sealed partial class HudTooltipCard : PanelContainer
 			child.QueueFree();
 		}
 
-		if (!string.IsNullOrWhiteSpace(tooltip.Title))
+		if (headerIcon is not null)
+			_content.AddChild(CreateFormattedText($"[icon: {headerIcon}]"));
+		else if (!string.IsNullOrWhiteSpace(tooltip.Title))
 			_content.AddChild(CreateTitle(tooltip.Title));
 		AddSections(tooltip.Details);
 		AddSections(tooltip.Body);
+		AddSections(_hint);
 	}
 
 	private void AddSections(string? template)
@@ -171,14 +198,38 @@ public sealed partial class HudTooltipCard : PanelContainer
 	{
 		var label = new RichTextLabel
 		{
-			MouseFilter = MouseFilterEnum.Ignore,
+			MouseFilter = _interactiveIcons ? MouseFilterEnum.Pass : MouseFilterEnum.Ignore,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			FitContent = true,
 			ScrollActive = false,
 			CustomMaximumSize = new Vector2(TooltipContentWidth, -1f),
 		};
 		ApplyTextStyle(label, RegularFont, _bodyColor, rich: true);
-		HudIconMarkup.Append(label, template, _bodyColor, TooltipIconSize);
+		HudIconMarkup.Append(label, template, _bodyColor, TooltipIconSize, _interactiveIcons, _iconTooltips);
+		if (_interactiveIcons)
+		{
+			var hoverArea = new Control { MouseFilter = MouseFilterEnum.Stop };
+			label.AddChild(hoverArea);
+			hoverArea.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+			var hoveredIcon = string.Empty;
+			void UpdateHover(string icon)
+			{
+				if (hoveredIcon == icon)
+					return;
+				if (hoveredIcon.Length > 0)
+					IconHoverEnded?.Invoke(hoveredIcon);
+				hoveredIcon = icon;
+				if (hoveredIcon.Length > 0)
+					IconHoverStarted?.Invoke(hoveredIcon);
+			}
+			hoverArea.MouseEntered += () => UpdateHover(label.GetTooltip(label.GetLocalMousePosition()));
+			hoverArea.MouseExited += () => UpdateHover(string.Empty);
+			hoverArea.GuiInput += input =>
+			{
+				if (input is InputEventMouseMotion)
+					UpdateHover(label.GetTooltip(label.GetLocalMousePosition()));
+			};
+		}
 		return label;
 	}
 
