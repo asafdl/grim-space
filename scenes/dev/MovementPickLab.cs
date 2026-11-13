@@ -86,6 +86,24 @@ public partial class MovementPickLab : Node3D
 		_ghost = new MoveGhostView { Name = "MoveGhost" };
 		_ghost.Configure(_camera);
 		AddChild(_ghost);
+		_ghost.RollButton.GuiInput += @event =>
+		{
+			if (@event is not InputEventMouseButton { Pressed: true } click
+				|| !click.IsActionPressed("battle_primary_click", false, true)
+				|| _frame.SelectedMove is not { } selected)
+				return;
+
+			var bases = _frame.MovePaths
+				.Where(path => path.EndPosition == selected.EndPosition)
+				.Select(path => path.EndBasis).ToArray();
+			if (MovePose.CycleRoll(bases, selected.EndBasis, 1) is { } basis
+				&& basis != selected.EndBasis)
+			{
+				_frames.Interaction.SetMovePose(basis);
+				RefreshFrame();
+			}
+			_ghost.RollButton.AcceptEvent();
+		};
 
 		_targetMarker = new Label3D
 		{

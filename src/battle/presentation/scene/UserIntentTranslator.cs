@@ -24,6 +24,7 @@ public sealed partial class UserIntentTranslator : Node
 	private IActionSink _actions;
 	private readonly Controller _camera;
 	private readonly BattleHud _hud;
+	private readonly Control _rollButton;
 	private readonly AbilitySourcePickerView _abilitySourcePicker;
 	private readonly IReadOnlyDictionary<string, UnitView> _unitViews;
 
@@ -61,6 +62,7 @@ public sealed partial class UserIntentTranslator : Node
 		IActionSink actions,
 		Controller camera,
 		BattleHud hud,
+		Control rollButton,
 		AbilitySourcePickerView abilitySourcePicker,
 		IReadOnlyDictionary<string, UnitView> unitViews)
 	{
@@ -68,6 +70,7 @@ public sealed partial class UserIntentTranslator : Node
 		_actions = actions;
 		_camera = camera;
 		_hud = hud;
+		_rollButton = rollButton;
 		_abilitySourcePicker = abilitySourcePicker;
 		_unitViews = unitViews;
 	}
@@ -232,6 +235,24 @@ public sealed partial class UserIntentTranslator : Node
 			CycleEnemyRequested?.Invoke();
 			GetViewport().SetInputAsHandled();
 			return;
+		}
+
+		if (_mode == EPlayerMode.Move
+			&& _rollButton.IsVisibleInTree()
+			&& @event is InputEventMouse pointer
+			&& _rollButton.GetGlobalRect().HasPoint(pointer.Position))
+		{
+			if (@event is InputEventMouseMotion)
+				return;
+
+			if (@event is InputEventMouseButton { Pressed: true } rollClick
+				&& rollClick.IsActionPressed("battle_primary_click", false, true))
+			{
+				if (_canIssueActions && !_hud.IsPauseMenuOpen)
+					WithCooldown(() => RequestRoll(1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
+				GetViewport().SetInputAsHandled();
+				return;
+			}
 		}
 
 		if (_moveInput.IsPoseSelectionActive)

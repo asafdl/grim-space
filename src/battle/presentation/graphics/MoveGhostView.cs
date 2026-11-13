@@ -24,6 +24,7 @@ public sealed partial class MoveGhostView : Node3D
 	private MultiMeshInstance3D _axisGuides = null!;
 
 	public Node3D? GhostShip => _view is { Visible: true } ship ? ship : null;
+	public Control RollButton { get; private set; } = null!;
 
 	public void Configure(Camera3D camera) => _camera = camera;
 
@@ -32,6 +33,7 @@ public sealed partial class MoveGhostView : Node3D
 		var layer = new CanvasLayer { Layer = 20 };
 		_orientationOverlay = new MoveOrientationOverlay { Name = "OrientationOverlay" };
 		_orientationOverlay.Configure(_camera);
+		RollButton = _orientationOverlay.RollButton;
 		layer.AddChild(_orientationOverlay);
 		AddChild(layer);
 		_axisGuides = CreateAxisGuides();

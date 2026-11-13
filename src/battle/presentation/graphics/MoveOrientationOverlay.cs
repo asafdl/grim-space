@@ -7,7 +7,10 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class MoveOrientationOverlay : Node2D
 {
+	private const float RollIconSize = 48f;
+	private static readonly Vector2 RollIconOffset = new(90f, -90f);
 	private Camera3D _camera = null!;
+	private TextureRect _rollIcon = null!;
 	private Coord? _destination;
 	private IReadOnlySet<Coord> _reachableHeadings = new HashSet<Coord>();
 	private Coord? _selectedHeading;
@@ -16,9 +19,22 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	private float _holdProgress;
 	private readonly Dictionary<Coord, ArrowView> _arrows = [];
 
+	public Control RollButton => _rollIcon;
+
 	public void Configure(Camera3D camera)
 	{
 		_camera = camera;
+		_rollIcon = new TextureRect
+		{
+			Texture = GD.Load<Texture2D>("res://assets/ui/battle/movement_roll.png"),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			Size = Vector2.One * RollIconSize,
+			MouseFilter = Control.MouseFilterEnum.Stop,
+			Visible = false,
+			ZIndex = 1,
+		};
+		AddChild(_rollIcon);
 		foreach (var heading in MovePose.Headings)
 		{
 			var arrow = new ArrowView();
@@ -57,6 +73,7 @@ public sealed partial class MoveOrientationOverlay : Node2D
 
 		if (_destination is not { } destination || !IsInstanceValid(_camera))
 		{
+			_rollIcon.Visible = false;
 			_shellCenter = null;
 			QueueRedraw();
 			return;
@@ -66,12 +83,14 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		_shellCenter = _camera.IsPositionBehind(centerWorld)
 			? null
 			: _camera.UnprojectPosition(centerWorld);
+		_rollIcon.Visible = _shellCenter is not null;
 		QueueRedraw();
 
-		foreach (var handle in MovementSelection.ProjectHeadingHandles(
+		var handles = MovementSelection.ProjectHeadingHandles(
 			_camera,
 			destination,
-			_reachableHeadings))
+			_reachableHeadings);
+		foreach (var handle in handles)
 		{
 			var arrow = _arrows[handle.Heading];
 			arrow.Position = handle.Position;
@@ -81,6 +100,11 @@ public sealed partial class MoveOrientationOverlay : Node2D
 				handle.Rotation,
 				selected: handle.Heading == _selectedHeading,
 				progress: handle.Heading == _heldHeading ? _holdProgress : 0f);
+		}
+
+		if (_shellCenter is { } center)
+		{
+			_rollIcon.Position = center + RollIconOffset - _rollIcon.Size * 0.5f;
 		}
 	}
 

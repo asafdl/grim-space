@@ -287,6 +287,7 @@ public partial class BattleController : Node3D
 			_agent,
 			_camera,
 			_battleHud,
+			_moveGhost.RollButton,
 			_abilitySourcePicker,
 			_battleView.UnitViews)
 		{

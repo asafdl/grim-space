@@ -267,6 +267,8 @@ Strategic engagements deploy as seeded 3D interceptions. The initiating fleet st
 
 Movement uses two independently refilled resources. Action points (AP) pay for translation, while maneuver points (MP) pay for yaw, pitch, and roll. Each chassis owns its AP/MP allotments, supported translations and rotations, and their costs through [`ManeuverabilitySpec`](src/units/maneuvering/ManeuverabilitySpec.cs); battle [`State`](src/battle/units/State.cs) holds the effective profile and current pools. Void bombs derive a zero-MP profile from their launcher snapshot. Path selection ranks exact destination poses by AP cost first, then MP cost.
 
+The movement picker's roll icon stays at a fixed screen-space offset above and right of the selected destination. Clicking it cycles clockwise through reachable roll poses without confirming the move. Keyboard and wheel controls retain both roll directions.
+
 ### Turn loop
 
 Battle vocabulary:
