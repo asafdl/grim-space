@@ -285,6 +285,9 @@ underlying HUD is blocked. Icons with descriptions show shared explanations on h
 underline; omit the catalog description to disable it. `IconTooltips` can override or provide an explanation for
 a content object. The child uses the hovered icon in place of its title and the palette's secondary border color.
 The separate pointer-following plain-text map tooltip is not pinnable.
+Ship tooltips with a comparison can also be pinned with Shift, which opens the current ship alongside the
+candidate and shows signed stat changes on the candidate. At the broker, the baseline is the highest-tier
+assigned ship of the same chassis; without a baseline, Shift has no effect.
 
 Battle status presentation is projected by [`BattleStatusDisplay`](../src/battle/presentation/ui/BattleStatusDisplay.cs)
 from the focused ship's `UnitDisplayState.Statuses`, including temporary effects and installed pilot passives.

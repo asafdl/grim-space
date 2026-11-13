@@ -10,20 +10,29 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 	private bool _pinned;
 	private CanvasLayer? _layer;
 	private HudTooltipCard? _parent;
+	private HudTooltipCard? _comparison;
 	private HudTooltipCard? _child;
+	private HudTooltipCard? _childOrigin;
 	private string? _childIcon;
+	private bool _comparing;
+	private Vector2 _anchor;
 	private double _closeCountdown = -1;
 
 	public override void _Process(double delta)
 	{
+		var comparing = content.Comparison is not null && Input.IsKeyPressed(Key.Shift);
+		var pinHeld = comparing || Input.IsKeyPressed(Key.Alt);
 		if (_pinned)
 		{
-			if (!Input.IsKeyPressed(Key.Alt) || GetParent() is not Control source || !source.IsVisibleInTree())
+			if (!pinHeld || GetParent() is not Control source || !source.IsVisibleInTree())
 			{
 				QueueFree();
 				return;
 			}
 
+			if (_comparing != comparing)
+				ShowParent(comparing);
+			PositionComparison();
 			if (_child is not null)
 			{
 				PositionChild();
@@ -37,7 +46,7 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 			return;
 		}
 
-		if (!Input.IsKeyPressed(Key.Alt) || GetTree().GetNodesInGroup(PinnedGroup).Count > 0)
+		if (!pinHeld || GetTree().GetNodesInGroup(PinnedGroup).Count > 0)
 			return;
 
 		var original = (Control)GetParent();
@@ -46,7 +55,7 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 			return;
 
 		var viewport = owner.GetViewport();
-		var position = PinnedPosition(
+		_anchor = PinnedPosition(
 			popup.Position,
 			popup.IsEmbedded(),
 			owner.GetWindow().Position,
@@ -64,36 +73,67 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 		};
 		_layer.AddChild(backdrop);
 		backdrop.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-		_parent = HudTooltipCard.Create(content, palette, pinned: true);
-		_parent.Position = position;
-		_parent.IconHoverStarted += OnIconHoverStarted;
-		_parent.IconHoverEnded += OnIconHoverEnded;
-		_layer.AddChild(_parent);
+		ShowParent(comparing);
 		popup.QueueFree();
 	}
 
-	private void OnIconHoverStarted(string icon)
+	private void ShowParent(bool comparing)
 	{
-		var iconTooltip = HudTooltipIconCatalog.Resolve(icon).Tooltip(icon, content.IconTooltips);
+		if (_child is not null)
+			CloseChild();
+		if (_parent is not null)
+		{
+			_layer!.RemoveChild(_parent);
+			_parent.QueueFree();
+		}
+		if (_comparison is not null)
+		{
+			_layer!.RemoveChild(_comparison);
+			_comparison.QueueFree();
+			_comparison = null;
+		}
+
+		_comparing = comparing;
+		var shown = comparing ? content.Comparison!.Candidate : content;
+		_parent = CreatePinnedCard(shown);
+		_parent.Position = _anchor;
+		if (comparing)
+			_comparison = CreatePinnedCard(content.Comparison!.Current);
+		PositionComparison();
+	}
+
+	private HudTooltipCard CreatePinnedCard(HudTooltipContent tooltip)
+	{
+		var card = HudTooltipCard.Create(tooltip, palette, pinned: true);
+		card.IconHoverStarted += icon => OnIconHoverStarted(card, tooltip, icon);
+		card.IconHoverEnded += icon => OnIconHoverEnded(card, icon);
+		_layer!.AddChild(card);
+		return card;
+	}
+
+	private void OnIconHoverStarted(HudTooltipCard origin, HudTooltipContent tooltip, string icon)
+	{
+		var iconTooltip = HudTooltipIconCatalog.Resolve(icon).Tooltip(icon, tooltip.IconTooltips);
 		if (iconTooltip is null)
 			return;
 
 		_closeCountdown = -1;
-		if (_child is not null && _childIcon == icon)
+		if (_child is not null && _childIcon == icon && _childOrigin == origin)
 			return;
 		if (_child is not null)
 			CloseChild();
 
 		_childIcon = icon;
+		_childOrigin = origin;
 		_child = HudTooltipCard.Create(iconTooltip, palette, pinned: true, headerIcon: icon);
 		_child.MouseFilter = Control.MouseFilterEnum.Stop;
 		_layer!.AddChild(_child);
 		PositionChild();
 	}
 
-	private void OnIconHoverEnded(string icon)
+	private void OnIconHoverEnded(HudTooltipCard origin, string icon)
 	{
-		if (icon == _childIcon && _child is not null)
+		if (origin == _childOrigin && icon == _childIcon && _child is not null)
 			_closeCountdown = CloseDelay;
 	}
 
@@ -101,14 +141,30 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 	{
 		_child!.QueueFree();
 		_child = null;
+		_childOrigin = null;
 		_childIcon = null;
 		_closeCountdown = -1;
 	}
 
+	private void PositionComparison()
+	{
+		if (_comparison is not null)
+			_comparison.Position = ChildPosition(
+				new Rect2(_parent!.Position, _parent.Size),
+				_comparison.Size,
+				GetViewport().GetVisibleRect());
+	}
+
 	private void PositionChild()
 	{
-		var parent = new Rect2(_parent!.Position, _parent.Size);
-		_child!.Position = ChildPosition(parent, _child.Size, GetViewport().GetVisibleRect());
+		var origin = _childOrigin!;
+		var other = origin == _parent ? _comparison : _parent;
+		var avoid = other is null ? (Rect2?)null : new Rect2(other.Position, other.Size);
+		_child!.Position = ChildPosition(
+			new Rect2(origin.Position, origin.Size),
+			_child.Size,
+			GetViewport().GetVisibleRect(),
+			avoid);
 	}
 
 	internal static Vector2 PinnedPosition(
@@ -120,7 +176,7 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 			? popupPosition
 			: viewportTransform.AffineInverse() * (popupPosition - windowPosition);
 
-	internal static Vector2 ChildPosition(Rect2 parent, Vector2 size, Rect2 viewport)
+	internal static Vector2 ChildPosition(Rect2 parent, Vector2 size, Rect2 viewport, Rect2? avoid = null)
 	{
 		var candidates = new[]
 		{
@@ -137,6 +193,11 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 			var position = candidate.Clamp(viewport.Position, maximum);
 			var intersection = new Rect2(position, size).Intersection(parent);
 			var overlap = intersection.Size.X * intersection.Size.Y;
+			if (avoid is { } other)
+			{
+				var otherIntersection = new Rect2(position, size).Intersection(other);
+				overlap += otherIntersection.Size.X * otherIntersection.Size.Y;
+			}
 			if (overlap < leastOverlap)
 			{
 				best = position;

@@ -1,216 +1,148 @@
-using System.Text;
-using GrimSpace.Math.Grid;
 using GrimSpace.Components;
+using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
-using GrimSpace.Battle.Presentation;
-using GrimSpace.Units.Loadouts;
-using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.World.StarSystem.Merchants;
+using RunState = GrimSpace.Run.State;
+using BattleUnitState = GrimSpace.Battle.Units.State;
 
 namespace GrimSpace.World.StarSystem.Presentation.Facilities;
 
+internal enum ShipStatKind
+{
+	Hull,
+	Shield,
+	HeatCapacity,
+	HeatRecovery,
+	ActionPoints,
+	ManeuverPoints,
+	Initiative,
+	WeaponDamageBonus,
+	OverdriveDamageBonus,
+}
+
+internal readonly record struct ShipStat(
+	ShipStatKind Kind,
+	int Value,
+	int? Delta,
+	ESpatialOrientation? Face = null);
+
 internal static class ShipRecruitmentDisplay
 {
-	public static HudTooltipContent OfferTooltip(RecruitmentOffer offer)
+	public static IReadOnlyList<ShipStat> Stats(ShipInstance ship, ShipInstance? baseline = null)
+	{
+		ArgumentNullException.ThrowIfNull(ship);
+		var current = BattleUnitState.FromShipInstance(ship, Coord.Zero);
+		var previous = baseline is null ? null : BattleUnitState.FromShipInstance(baseline, Coord.Zero);
+		var stats = new List<ShipStat>();
+
+		void Add(ShipStatKind kind, int value, int? old, ESpatialOrientation? face = null) =>
+			stats.Add(new ShipStat(kind, value, old.HasValue ? value - old.Value : null, face));
+
+		Add(ShipStatKind.Hull, current.Loadout.BaseHullPoints, previous?.Loadout.BaseHullPoints);
+		foreach (var face in Enum.GetValues<ESpatialOrientation>())
+			Add(ShipStatKind.Shield, current.Loadout.BaseShieldPoints[face], previous?.Loadout.BaseShieldPoints[face], face);
+		Add(ShipStatKind.HeatCapacity, current.HeatProfile.EffectiveCapacity, previous?.HeatProfile.EffectiveCapacity);
+		Add(ShipStatKind.HeatRecovery, current.HeatProfile.ClearPerTurn, previous?.HeatProfile.ClearPerTurn);
+		Add(ShipStatKind.ActionPoints, current.Maneuverability.BaseActionPoints, previous?.Maneuverability.BaseActionPoints);
+		Add(ShipStatKind.ManeuverPoints, current.Maneuverability.BaseManeuverPoints, previous?.Maneuverability.BaseManeuverPoints);
+		Add(ShipStatKind.Initiative, current.Initiative, previous?.Initiative);
+		Add(ShipStatKind.WeaponDamageBonus, current.Loadout.WeaponDamagePercent, previous?.Loadout.WeaponDamagePercent);
+		Add(ShipStatKind.OverdriveDamageBonus, current.Loadout.OverdriveDamageBonusPercent, previous?.Loadout.OverdriveDamageBonusPercent);
+		return stats;
+	}
+
+	public static ShipInstance? BrokerBaseline(RunState run, EType chassis, Random random)
+	{
+		ArgumentNullException.ThrowIfNull(run);
+		ArgumentNullException.ThrowIfNull(random);
+		var matches = run.GetFieldedShipIds()
+			.Select(run.ItemInventory.Get)
+			.Where(ship => ship.Spec.Chassis == chassis)
+			.Select(ship => (Ship: ship, Tier: ShipLoadoutGearTier.FromLoadout(ship.Loadout, chassis)))
+			.ToArray();
+		if (matches.Length == 0)
+			return null;
+		var highest = matches.Max(match => match.Tier);
+		var best = matches.Where(match => match.Tier == highest).ToArray();
+		return best[random.Next(best.Length)].Ship;
+	}
+
+	public static HudTooltipContent OfferTooltip(RecruitmentOffer offer, ShipInstance? baseline = null)
 	{
 		ArgumentNullException.ThrowIfNull(offer);
-		return ShipTooltip(
-			offer.Chassis,
-			offer.GearTier,
+		var ship = ShipInstance.FromSpec(
+			"ship-offer",
+			ShipCatalog.SpecFor(offer.Chassis),
 			ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed));
+		return BuildTooltip(ship, offer.GearTier, baseline);
 	}
 
 	public static HudTooltipContent ShipTooltip(ShipInstance ship) =>
-		ShipTooltip(
-			ship.Spec.Chassis,
-			ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis),
-			ship.Loadout);
+		BuildTooltip(ship, ShipLoadoutGearTier.FromLoadout(ship.Loadout, ship.Spec.Chassis), null);
 
-	/// <summary>Candidate's stats followed by its gains and losses against the equipped ship.</summary>
-	public static HudTooltipContent CompareTooltip(ShipInstance candidate, ShipInstance? equipped)
+	public static HudTooltipContent CompareTooltip(ShipInstance candidate, ShipInstance? equipped) =>
+		BuildTooltip(candidate, ShipLoadoutGearTier.FromLoadout(candidate.Loadout, candidate.Spec.Chassis), equipped);
+
+	private static HudTooltipContent BuildTooltip(ShipInstance ship, EShipGearTier tier, ShipInstance? baseline)
 	{
-		if (equipped is null)
-			return ShipTooltip(candidate);
+		var title = $"{PilotHireDisplay.ShipChassisLabel(ship.Spec.Chassis)} {tier}";
+		var tooltip = StatTooltip(title, ship);
+		if (baseline is null)
+			return tooltip;
 
-		var chassis = candidate.Spec.Chassis;
-		return Build(
-			$"{PilotHireDisplay.ShipChassisLabel(chassis)} {ShipLoadoutGearTier.FromLoadout(candidate.Loadout, chassis)}",
-			candidate.Loadout,
-			equipped.Spec.Chassis,
-			equipped.Loadout,
-			chassis,
-			candidate.Loadout);
-	}
-
-	private static HudTooltipContent ShipTooltip(EType chassis, EShipGearTier gearTier, ShipLoadout candidate)
-	{
-		var stock = ShipCatalog.LoadoutForTier(chassis, EShipGearTier.T0);
-		return Build(
-			$"{PilotHireDisplay.ShipChassisLabel(chassis)} {gearTier}",
-			stock,
-			chassis,
-			stock,
-			chassis,
-			candidate);
-	}
-
-	private static HudTooltipContent Build(
-		string title,
-		ShipLoadout shownBase,
-		EType baselineChassis,
-		ShipLoadout baseline,
-		EType candidateChassis,
-		ShipLoadout candidate)
-	{
-		var changes = new List<(bool Improves, string Line)>();
-		AddHardwareDiff(changes, ShipHardwareDiff.Compare(baselineChassis, baseline, candidateChassis, candidate));
-		AddMountDeltas(changes, baseline, candidate);
-		AddBuffTotals(changes, ChassisBuffCatalog.Sum(candidate.Buffs), ChassisBuffCatalog.Sum(baseline.Buffs));
-		var body = string.Join(
-			HudTooltipContent.Divider,
-			new[] { BaseStats(shownBase), Lines(changes, improves: true), Lines(changes, improves: false) }
-				.Where(section => section.Length > 0));
-		return new HudTooltipContent(title, body);
-	}
-
-	private static string Lines(IEnumerable<(bool Improves, string Line)> changes, bool improves) =>
-		string.Join('\n', changes.Where(change => change.Improves == improves).Select(change => change.Line));
-
-	private static string BaseStats(ShipLoadout loadout)
-	{
-		var text = new StringBuilder($"[icon: Hull, text: {loadout.BaseHullPoints}]");
-		var shieldGroups = Enum.GetValues<ESpatialOrientation>()
-			.Where(face => loadout.BaseShieldPoints[face] > 0)
-			.GroupBy(face => loadout.BaseShieldPoints[face])
-			.ToArray();
-		foreach (var group in shieldGroups)
+		var currentTitle = $"{PilotHireDisplay.ShipChassisLabel(baseline.Spec.Chassis)} "
+			+ ShipLoadoutGearTier.FromLoadout(baseline.Loadout, baseline.Spec.Chassis);
+		return tooltip with
 		{
-			text.Append($"  [icon: Shield, text: {group.Key}");
-			if (group.Count() < Enum.GetValues<ESpatialOrientation>().Length)
-				text.Append(' ').Append(string.Join('/', group.Select(ShortFace)));
-			text.Append(']');
-		}
-
-		foreach (var ability in loadout.InstalledAbilities.DistinctBy(installed => installed.Spec))
-		{
-			text.Append($"\n[icon: {ability.Kind}]");
-			foreach (var stat in AbilityStats(ability.Spec))
-				text.Append($" [icon: {stat.Icon}, text: {FormatStat(stat, stat.Value, signed: false)}]");
-		}
-
-		return text.ToString();
-	}
-
-	private static void AddHardwareDiff(List<(bool Improves, string Line)> changes, ShipHardwareDiff diff)
-	{
-		if (diff.BaseHullDelta != 0)
-			AddStat(changes, "Hull", diff.BaseHullDelta);
-
-		if (diff.ShieldDeltas.Count == Enum.GetValues<ESpatialOrientation>().Length
-			&& diff.ShieldDeltas.All(shield => shield.Delta == diff.ShieldDeltas[0].Delta))
-			AddStat(changes, "Shield", diff.ShieldDeltas[0].Delta);
-		else
-			foreach (var (face, delta) in diff.ShieldDeltas)
-				AddStat(changes, "Shield", delta, $" {ShortFace(face)}");
-
-		foreach (var ability in diff.AddedAbilities)
-			changes.Add((true, $"+ [icon: {ability.Kind}] {ShortFace(ability.MountedOn)}"));
-		foreach (var ability in diff.RemovedAbilities)
-			changes.Add((false, $"- [icon: {ability.Kind}] {ShortFace(ability.MountedOn)}"));
-	}
-
-	private static void AddMountDeltas(List<(bool Improves, string Line)> changes, ShipLoadout stock, ShipLoadout candidate)
-	{
-		var stockByMount = stock.InstalledAbilities.ToDictionary(installed => installed.Mount);
-		foreach (var ability in candidate.InstalledAbilities)
-		{
-			if (!stockByMount.TryGetValue(ability.Mount, out var baseline))
-				continue;
-
-			var deltas = AbilityStats(ability.Spec)
-				.Zip(AbilityStats(baseline.Spec), (now, was) => (Stat: now, Delta: now.Value - was.Value))
-				.Where(change => change.Delta != 0)
-				.GroupBy(change => change.Delta > 0 != change.Stat.LowerIsBetter);
-			foreach (var group in deltas)
-				changes.Add((
-					group.Key,
-					$"[icon: {ability.Kind}]" + string.Concat(group.Select(change =>
-						$" [icon: {change.Stat.Icon}, text: {FormatStat(change.Stat, change.Delta, signed: true)}]"))));
-		}
-	}
-
-	private static void AddBuffTotals(
-		List<(bool Improves, string Line)> changes,
-		ChassisBuffTotals totals,
-		ChassisBuffTotals baseline)
-	{
-		AddStat(changes, "Damage", totals.WeaponDamagePercent - baseline.WeaponDamagePercent, "%");
-		AddStat(changes, "Overdrive", totals.OverdrivePoints - baseline.OverdrivePoints, "%");
-		AddStat(changes, "Heat", totals.HeatCapacityPercent - baseline.HeatCapacityPercent, "%");
-		AddStat(changes, "Heat", totals.HeatRecoveryPercent - baseline.HeatRecoveryPercent, "%", " Recovery ");
-		AddStat(changes, "CurrentActionPoints", totals.CurrentActionPoints - baseline.CurrentActionPoints);
-		AddStat(changes, "CurrentManeuverPoints", totals.CurrentManeuverPoints - baseline.CurrentManeuverPoints);
-	}
-
-	private static void AddStat(
-		List<(bool Improves, string Line)> changes,
-		string icon,
-		int delta,
-		string suffix = "",
-		string prefix = "")
-	{
-		if (delta != 0)
-			changes.Add((delta > 0, $"[icon: {icon}, text: {prefix}{Signed(delta)}{suffix}]"));
-	}
-
-	private readonly record struct AbilityStat(string Icon, int Value, bool IsDistance = false)
-	{
-		public bool LowerIsBetter => Icon == "Cooldown";
-	}
-
-	private static IReadOnlyList<AbilityStat> AbilityStats(AbilitySpec spec) =>
-		spec switch
-		{
-			ScrapDroneSwarmSpec swarm =>
-				[new("Damage", swarm.Damage), new("Heal", swarm.Heal), new("Range", swarm.BurstRange + 1, IsDistance: true)],
-			LightningCannonSpec cannon =>
-				[new("Damage", cannon.Damage), new("Range", cannon.LineLength, IsDistance: true)],
-			VoidBombLauncherSpec launcher =>
-				[new("Damage", launcher.BlastDamage), new("Range", launcher.BlastRadius, IsDistance: true), new("Cooldown", launcher.CooldownTurns)],
-			GoopGunSpec goop =>
-				[new("Range", goop.Range, IsDistance: true), new("Cooldown", goop.UnavailableTurns)],
-			MinerBaySpec bay =>
-				[new("Cooldown", bay.CooldownTurns)],
-			RamSpec ram =>
-				[new("Damage", ram.Damage), new("Range", ram.Range, IsDistance: true)],
-			HighVelocityRodSpec rod =>
-				[new("Damage", rod.Damage), new("Range", rod.Range, IsDistance: true)],
-			RoadsWeDontNeedRoadsSpec jump =>
-				[new("Range", jump.Range, IsDistance: true), new("Cooldown", jump.CooldownTurns)],
-			ProtectionDroneSpec drone =>
-				[new("Cooldown", drone.CooldownTurns)],
-			_ => throw new ArgumentOutOfRangeException(nameof(spec), spec.Kind, null),
+			Comparison = new HudTooltipComparison(
+				StatTooltip($"Current: {currentTitle}", baseline),
+				StatTooltip($"New: {title}", ship, baseline)),
 		};
+	}
 
-	private static string FormatStat(AbilityStat stat, int value, bool signed)
+	private static HudTooltipContent StatTooltip(string title, ShipInstance ship, ShipInstance? baseline = null)
 	{
-		var text = stat.IsDistance ? BattleDistance.ApproximateCells(value) : value.ToString();
-		return signed && value > 0 ? $"+{text}" : text;
+		var stats = Stats(ship, baseline);
+		return new HudTooltipContent(title, "")
+		{
+			InlineRows =
+			[
+				new HudTooltipInlineRow("Shield", stats.Where(stat => stat.Kind == ShipStatKind.Shield).Select(Row).ToArray()),
+			],
+			Rows = stats.Where(stat => stat.Kind != ShipStatKind.Shield).Select(Row).ToArray(),
+			TwoColumnRows = true,
+		};
+	}
+
+	private static HudTooltipRow Row(ShipStat stat)
+	{
+		var (label, icon, percent) = stat.Kind switch
+		{
+			ShipStatKind.Hull => ("Hull", "Hull", false),
+			ShipStatKind.Shield => (ShortFace(stat.Face!.Value), null, false),
+			ShipStatKind.HeatCapacity => ("Heat", "Heat", false),
+			ShipStatKind.HeatRecovery => ("Cooling", "Heat", false),
+			ShipStatKind.ActionPoints => ("AP", "CurrentActionPoints", false),
+			ShipStatKind.ManeuverPoints => ("MP", "CurrentManeuverPoints", false),
+			ShipStatKind.Initiative => ("Initiative", null, false),
+			ShipStatKind.WeaponDamageBonus => ("Damage", "Damage", true),
+			ShipStatKind.OverdriveDamageBonus => ("Overdrive", "Overdrive", true),
+			_ => throw new ArgumentOutOfRangeException(nameof(stat), stat.Kind, null),
+		};
+		var suffix = percent ? "%" : "";
+		return new HudTooltipRow(label, $"{stat.Value}{suffix}", icon, stat.Delta, suffix);
 	}
 
 	private static string ShortFace(ESpatialOrientation face) =>
 		face switch
 		{
-			ESpatialOrientation.Forward => "Fwd",
-			ESpatialOrientation.Retro => "Aft",
-			ESpatialOrientation.Port => "Port",
-			ESpatialOrientation.Starboard => "Stbd",
-			ESpatialOrientation.Dorsal => "Dors",
-			ESpatialOrientation.Ventral => "Vent",
+			ESpatialOrientation.Forward => "F",
+			ESpatialOrientation.Retro => "A",
+			ESpatialOrientation.Port => "P",
+			ESpatialOrientation.Starboard => "S",
+			ESpatialOrientation.Dorsal => "D",
+			ESpatialOrientation.Ventral => "V",
 			_ => throw new ArgumentOutOfRangeException(nameof(face), face, null),
 		};
-
-	private static string Signed(int value) =>
-		value > 0 ? $"+{value}" : value.ToString();
 }

@@ -2,6 +2,7 @@ using GrimSpace.Components;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run.Persistence;
+using GrimSpace.Tests.Run;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -169,41 +170,85 @@ public sealed class ChassisBuffTests
 	}
 
 	[Fact]
-	public void OfferTooltip_T0ShowsOnlyBaseStats()
+	public void ShipStats_CompareMaximumValuesAndApplyChassisBonuses()
 	{
-		var offer = new RecruitmentOffer(EType.Fighter, EShipGearTier.T0, ResourceBundle.Empty);
+		var spec = FighterSpec.Instance;
+		var baseline = ShipInstance.FromSpec("baseline", spec, spec.NewDefaultLoadout());
+		var loadout = ChassisBuffCatalog.Apply(
+			spec,
+			spec.NewDefaultLoadout(),
+			[EChassisBuffOffer.ShieldFlat, EChassisBuffOffer.HeatCapacity, EChassisBuffOffer.ActionPoint]);
+		var candidate = ShipInstance.FromSpec("candidate", spec, loadout);
+		candidate.CurrentHullPoints = 1;
+		candidate.CurrentShieldPoints[ESpatialOrientation.Forward] = 0;
 
-		var tooltip = ShipRecruitmentDisplay.OfferTooltip(offer);
+		var stats = ShipRecruitmentDisplay.Stats(candidate, baseline);
 
-		Assert.Equal("Fighter T0", tooltip.Title);
-		Assert.StartsWith("[icon: Hull, text: 200]", tooltip.Body);
-		Assert.Contains("[icon: LightningCannon] [icon: Damage, text: 200] [icon: Range, text: 7 km]", tooltip.Body);
-		Assert.DoesNotContain(HudTooltipContent.Divider, tooltip.Body);
+		Assert.Contains(stats, stat => stat.Kind == ShipStatKind.Hull && stat.Value == loadout.BaseHullPoints && stat.Delta == 0);
+		Assert.Contains(stats, stat => stat.Kind == ShipStatKind.Shield && stat.Face == ESpatialOrientation.Forward && stat.Value == 130 && stat.Delta == 30);
+		Assert.Contains(stats, stat => stat.Kind == ShipStatKind.HeatCapacity && stat.Value == 120 && stat.Delta == 20);
+		Assert.Contains(stats, stat => stat.Kind == ShipStatKind.ActionPoints && stat.Value == 5 && stat.Delta == 1);
+		Assert.All(ShipRecruitmentDisplay.Stats(candidate), stat => Assert.Null(stat.Delta));
 	}
 
 	[Fact]
-	public void OfferTooltip_UpgradedTierShowsNetChangesAgainstSameChassisT0()
+	public void BrokerBaseline_UsesHighestTierAssignedShipOfSameChassis()
 	{
-		var offers = StarMarketSeed.Create().ListRecruitmentOffers();
-		foreach (var offer in offers.Where(offer => offer.GearTier != EShipGearTier.T0))
-		{
-			var stock = ShipCatalog.LoadoutForTier(offer.Chassis, EShipGearTier.T0);
-			var rolled = ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed);
-			var totals = ChassisBuffCatalog.Sum(rolled.Buffs);
+		using var run = RunTestKit.CreateFighterSupportRun();
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration("assigned-t1", EType.Fighter, EShipGearTier.T1)));
+		Assert.True(run.TryAcquireOwnedShip(new ShipSpawnDeclaration("unassigned-t3", EType.Fighter, EShipGearTier.T3)));
 
-			var tooltip = ShipRecruitmentDisplay.OfferTooltip(offer);
+		var baseline = ShipRecruitmentDisplay.BrokerBaseline(run, EType.Fighter, new Random(1));
 
-			Assert.EndsWith($" {offer.GearTier}", tooltip.Title);
-			var sections = tooltip.Body.Split(HudTooltipContent.Divider);
-			Assert.InRange(sections.Length, 2, 3);
-			if (rolled.BaseHullPoints != stock.BaseHullPoints)
-				Assert.Contains($"[icon: Hull, text: +{rolled.BaseHullPoints - stock.BaseHullPoints}]", tooltip.Body);
-			if (totals.WeaponDamagePercent > 0)
-				Assert.Contains($"[icon: Damage, text: +{totals.WeaponDamagePercent}%]", tooltip.Body);
-			if (totals.CurrentActionPoints > 0)
-				Assert.Contains($"[icon: CurrentActionPoints, text: +{totals.CurrentActionPoints}]", tooltip.Body);
-			if (totals.CurrentManeuverPoints > 0)
-				Assert.Contains($"[icon: CurrentManeuverPoints, text: +{totals.CurrentManeuverPoints}]", tooltip.Body);
-		}
+		Assert.NotNull(baseline);
+		Assert.Equal("assigned-t1", baseline.Id);
+		Assert.Null(ShipRecruitmentDisplay.BrokerBaseline(run, EType.Rogue, new Random(1)));
+	}
+
+	[Fact]
+	public void BrokerBaseline_RandomlySelectsAmongHighestTierTies()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration("assigned-a", EType.Fighter, EShipGearTier.T1)));
+		Assert.True(run.TryEnlistPlayerShip(new ShipSpawnDeclaration("assigned-b", EType.Fighter, EShipGearTier.T1)));
+		var random = new Random(1);
+
+		var choices = Enumerable.Range(0, 20)
+			.Select(_ => ShipRecruitmentDisplay.BrokerBaseline(run, EType.Fighter, random)!.Id)
+			.ToHashSet();
+
+		Assert.Equal(new HashSet<string> { "assigned-a", "assigned-b" }, choices);
+	}
+
+	[Fact]
+	public void OfferTooltip_ShowsRolledStatsAndAddsComparisonOnlyWithBaseline()
+	{
+		var offer = new RecruitmentOffer(EType.Fighter, EShipGearTier.T1, ResourceBundle.Empty, RollSeed: 7);
+		var rolled = ShipCatalog.LoadoutForTier(offer.Chassis, offer.GearTier, offer.RollSeed);
+		var baseline = ShipInstance.FromCatalog("baseline", offer.Chassis);
+
+		var normal = ShipRecruitmentDisplay.OfferTooltip(offer);
+		var comparison = ShipRecruitmentDisplay.OfferTooltip(offer, baseline);
+
+		Assert.Null(normal.Comparison);
+		Assert.NotNull(normal.Rows);
+		Assert.True(normal.TwoColumnRows);
+		Assert.Equal(rolled.BaseHullPoints, int.Parse(normal.Rows[0].Value));
+		Assert.NotNull(normal.InlineRows);
+		var shields = Assert.Single(normal.InlineRows).Values;
+		Assert.Equal(Enum.GetValues<ESpatialOrientation>().Length, shields.Count);
+		Assert.All(shields, shield => Assert.Null(shield.Delta));
+		Assert.NotNull(comparison.Comparison);
+		Assert.NotNull(comparison.Comparison.Current.Rows);
+		Assert.NotNull(comparison.Comparison.Candidate.Rows);
+		Assert.True(comparison.Comparison.Current.TwoColumnRows);
+		Assert.True(comparison.Comparison.Candidate.TwoColumnRows);
+		Assert.Equal(baseline.Loadout.BaseHullPoints, int.Parse(comparison.Comparison.Current.Rows[0].Value));
+		Assert.Equal(rolled.BaseHullPoints - baseline.Loadout.BaseHullPoints, comparison.Comparison.Candidate.Rows[0].Delta);
+		Assert.NotNull(comparison.Comparison.Candidate.InlineRows);
+		var comparedShields = Assert.Single(comparison.Comparison.Candidate.InlineRows).Values;
+		Assert.Equal(
+			rolled.BaseShieldPoints[ESpatialOrientation.Forward] - baseline.Loadout.BaseShieldPoints[ESpatialOrientation.Forward],
+			comparedShields[0].Delta);
 	}
 }

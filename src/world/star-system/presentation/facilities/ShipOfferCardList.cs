@@ -23,7 +23,8 @@ internal static class ShipOfferCardList
 		{
 			var canAfford = run.StarSystem.Map.PlayerResources.CanApply(offer.Cost.Negate());
 			var item = BuildOfferCard(offer, canAfford, onPurchase);
-			item.SetTooltip(ShipRecruitmentDisplay.OfferTooltip(offer));
+			var baseline = ShipRecruitmentDisplay.BrokerBaseline(run, offer.Chassis, Random.Shared);
+			item.SetTooltip(ShipRecruitmentDisplay.OfferTooltip(offer, baseline));
 			body.AddChild(item);
 		}
 

@@ -228,7 +228,7 @@ public sealed partial class CatalogMerchantHudOverlay : Control
 			_picker.Open(
 				item.Portrait!,
 				ordered.Where(ship => ship.Id != selected.Id),
-				ShipRecruitmentDisplay.ShipTooltip,
+				ship => ShipRecruitmentDisplay.CompareTooltip(ship, selected),
 				ship =>
 				{
 					_selectedShipId = ship.Id;

@@ -51,4 +51,16 @@ public sealed class HudTooltipPlacementTests
 		Assert.InRange(position.X, 0, 30);
 		Assert.InRange(position.Y, 0, 20);
 	}
+
+	[Fact]
+	public void PlacesIconTooltipAwayFromBothComparisonCards()
+	{
+		var position = HudTooltipPin.ChildPosition(
+			new Rect2(400, 300, 200, 150),
+			new Vector2(180, 80),
+			new Rect2(0, 0, 1000, 800),
+			new Rect2(604, 300, 180, 150));
+
+		Assert.Equal(new Vector2(216, 300), position);
+	}
 }

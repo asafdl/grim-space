@@ -74,12 +74,16 @@ public sealed partial class HudTooltipCard : PanelContainer
 		var card = new HudTooltipCard(palette, nested: headerIcon is not null);
 		if (!pinned)
 		{
-			card._hint = "Hold Alt to pin.";
+			card._hint = tooltip.Comparison is null
+				? "Hold Alt to pin."
+				: "Hold Shift to compare. Hold Alt to pin.";
 			card.AddChild(new HudTooltipPin(tooltip, palette));
 		}
 		else if (headerIcon is null
 			&& (HudIconMarkup.Contains(tooltip.Body)
-				|| (tooltip.Details is not null && HudIconMarkup.Contains(tooltip.Details))))
+				|| (tooltip.Details is not null && HudIconMarkup.Contains(tooltip.Details))
+				|| (tooltip.Rows?.Any(row => row.IconName is not null) ?? false)
+				|| (tooltip.InlineRows?.Any(row => row.IconName is not null) ?? false)))
 		{
 			card._interactiveIcons = true;
 			card._iconTooltips = tooltip.IconTooltips;
@@ -153,7 +157,70 @@ public sealed partial class HudTooltipCard : PanelContainer
 			_content.AddChild(CreateTitle(tooltip.Title));
 		AddSections(tooltip.Details);
 		AddSections(tooltip.Body);
+		if (tooltip.InlineRows is not null)
+			foreach (var inline in tooltip.InlineRows)
+			{
+				var prefix = inline.IconName is null ? "" : $"[icon: {inline.IconName}] ";
+				var line = CreateFormattedText(prefix);
+				if (inline.IconName is not null)
+					line.PushColor(HudTooltipIconCatalog.Resolve(inline.IconName).Color);
+				line.AutowrapMode = TextServer.AutowrapMode.Off;
+				line.CustomMaximumSize = new Vector2(-1, -1);
+				var text = new System.Text.StringBuilder(inline.IconName is null ? "" : " ");
+				foreach (var row in inline.Values)
+				{
+					var value = $"{row.Label}:{row.Value}";
+					if (text.Length > (inline.IconName is null ? 0 : 1))
+					{
+						line.AddText(" ");
+						text.Append(' ');
+					}
+					line.AddText(value);
+					text.Append(value);
+					text.Append(AppendDelta(line, row));
+				}
+				if (inline.IconName is not null)
+					line.Pop();
+				line.CustomMinimumSize = new Vector2(
+					RegularFont.GetStringSize(text.ToString(), HorizontalAlignment.Left, -1, BodyFontSize).X
+						+ (inline.IconName is null ? 0 : TooltipIconSize),
+					0);
+				_content.AddChild(line);
+			}
+		if (tooltip.Rows is not null)
+		{
+			var grid = new GridContainer
+			{
+				Columns = tooltip.TwoColumnRows ? 2 : 1,
+				MouseFilter = MouseFilterEnum.Ignore,
+			};
+			grid.AddThemeConstantOverride("h_separation", 16);
+			_content.AddChild(grid);
+			foreach (var row in tooltip.Rows)
+			{
+				var prefix = row.IconName is null ? "" : $"[icon: {row.IconName}] ";
+				var line = CreateFormattedText(prefix);
+				if (row.IconName is not null)
+					line.PushColor(HudTooltipIconCatalog.Resolve(row.IconName).Color);
+				line.AddText($"{row.Label}: {row.Value}");
+				if (row.IconName is not null)
+					line.Pop();
+				AppendDelta(line, row);
+				grid.AddChild(line);
+			}
+		}
 		AddSections(_hint);
+	}
+
+	private static string AppendDelta(RichTextLabel line, HudTooltipRow row)
+	{
+		if (row.Delta is not { } delta || delta == 0)
+			return "";
+		var text = $" [{(delta > 0 ? "+" : "")}{delta}{row.DeltaSuffix}]";
+		line.PushColor(delta > 0 ? Color.FromHtml("#46da0c") : Color.FromHtml("#f72657"));
+		line.AddText(text);
+		line.Pop();
+		return text;
 	}
 
 	private void AddSections(string? template)
