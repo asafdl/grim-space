@@ -280,10 +280,11 @@ Missed attempts are not retried. Simulation timing keeps pauses and travel speed
 `BlueCyan` is the default for production kit components.
 
 Star-map world-object and HUD-control hovers use `HudTooltipCard` so they share one angled outline and blue-cyan palette.
-Cards created from `HudTooltipContent` can be pinned by holding Alt; while pinned, pointer interaction with the
-underlying HUD is blocked. Icons with descriptions show shared explanations on hover without a link cursor or
-underline; omit the catalog description to disable it. `IconTooltips` can override or provide an explanation for
-a content object. The child uses the hovered icon in place of its title and the palette's secondary border color.
+Cards created from `HudTooltipContent` with inspectable icons show "Hold Alt to inspect" and can be pinned by
+holding Alt; while pinned, pointer interaction with the underlying HUD is blocked. Icons with descriptions show
+shared explanations on hover without a link cursor or underline; omit the catalog description to disable it.
+`IconTooltips` can override or provide an explanation for a content object. The child uses the hovered icon in place
+of its title and the palette's secondary border color.
 The separate pointer-following plain-text map tooltip is not pinnable.
 Ship tooltips with a comparison can also be pinned with Shift, which opens the current ship alongside the
 candidate and shows signed stat changes on the candidate. At the broker, the baseline is the highest-tier

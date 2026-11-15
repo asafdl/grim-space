@@ -7,8 +7,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 
 public sealed partial class MoveOrientationOverlay : Node2D
 {
-	private const float RollIconSize = 48f;
-	private static readonly Vector2 RollIconOffset = new(90f, -90f);
+	private const float RollIconSize = 32f;
 	private Camera3D _camera = null!;
 	private TextureRect _rollIcon = null!;
 	private Coord? _destination;
@@ -104,7 +103,10 @@ public sealed partial class MoveOrientationOverlay : Node2D
 
 		if (_shellCenter is { } center)
 		{
-			_rollIcon.Position = center + RollIconOffset - _rollIcon.Size * 0.5f;
+			var cellWidth = center.DistanceTo(_camera.UnprojectPosition(
+				centerWorld + _camera.GlobalBasis.X * WorldMapping.CellSize));
+			var offset = Mathf.Max(48f, cellWidth * 0.55f);
+			_rollIcon.Position = center + new Vector2(offset, -offset) - _rollIcon.Size * 0.5f;
 		}
 	}
 

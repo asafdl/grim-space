@@ -23,8 +23,8 @@ public sealed partial class HudTooltipCard : PanelContainer
 	private readonly Color _bodyColor;
 	private readonly VBoxContainer _content;
 	private bool _interactiveIcons;
+	private bool _hasInspectableIcons;
 	private IReadOnlyDictionary<string, HudTooltipContent>? _iconTooltips;
-	private string? _hint;
 	private string? _presentedText;
 
 	public event Action<string>? IconHoverStarted;
@@ -72,25 +72,27 @@ public sealed partial class HudTooltipCard : PanelContainer
 	{
 		ArgumentNullException.ThrowIfNull(tooltip);
 		var card = new HudTooltipCard(palette, nested: headerIcon is not null);
-		if (!pinned)
-		{
-			card._hint = tooltip.Comparison is null
-				? "Hold Alt to pin."
-				: "Hold Shift to compare. Hold Alt to pin.";
-			card.AddChild(new HudTooltipPin(tooltip, palette));
-		}
-		else if (headerIcon is null
+		card._iconTooltips = tooltip.IconTooltips;
+		if (pinned && headerIcon is null
 			&& (HudIconMarkup.Contains(tooltip.Body)
 				|| (tooltip.Details is not null && HudIconMarkup.Contains(tooltip.Details))
 				|| (tooltip.Rows?.Any(row => row.IconName is not null) ?? false)
 				|| (tooltip.InlineRows?.Any(row => row.IconName is not null) ?? false)))
 		{
 			card._interactiveIcons = true;
-			card._iconTooltips = tooltip.IconTooltips;
 			card.MouseFilter = MouseFilterEnum.Stop;
 			card._content.MouseFilter = MouseFilterEnum.Pass;
 		}
 		card.BuildContent(tooltip, headerIcon);
+		if (!pinned)
+		{
+			if (tooltip.Comparison is not null)
+				card.AddSections("Hold Shift to compare.");
+			if (card._hasInspectableIcons)
+				card.AddSections("Hold Alt to inspect.");
+			if (card._hasInspectableIcons || tooltip.Comparison is not null)
+				card.AddChild(new HudTooltipPin(tooltip, palette, card._hasInspectableIcons));
+		}
 		card.Visible = true;
 		card.ResetSize();
 		card.CustomMinimumSize = card.GetCombinedMinimumSize();
@@ -145,6 +147,7 @@ public sealed partial class HudTooltipCard : PanelContainer
 
 	private void BuildContent(HudTooltipContent tooltip, string? headerIcon = null)
 	{
+		_hasInspectableIcons = false;
 		foreach (var child in _content.GetChildren())
 		{
 			_content.RemoveChild(child);
@@ -209,7 +212,6 @@ public sealed partial class HudTooltipCard : PanelContainer
 				grid.AddChild(line);
 			}
 		}
-		AddSections(_hint);
 	}
 
 	private static string AppendDelta(RichTextLabel line, HudTooltipRow row)
@@ -272,7 +274,8 @@ public sealed partial class HudTooltipCard : PanelContainer
 			CustomMaximumSize = new Vector2(TooltipContentWidth, -1f),
 		};
 		ApplyTextStyle(label, RegularFont, _bodyColor, rich: true);
-		HudIconMarkup.Append(label, template, _bodyColor, TooltipIconSize, _interactiveIcons, _iconTooltips);
+		_hasInspectableIcons |= HudIconMarkup.Append(
+			label, template, _bodyColor, TooltipIconSize, _interactiveIcons, _iconTooltips);
 		if (_interactiveIcons)
 		{
 			var hoverArea = new Control { MouseFilter = MouseFilterEnum.Stop };

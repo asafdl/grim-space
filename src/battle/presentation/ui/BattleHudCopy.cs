@@ -213,7 +213,7 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent RamTooltipFor(RamSpec ram) =>
 		new(
 			"Ram",
-			$"Smash into an enemy up to {BattleDistance.ApproximateCells(ram.Range)}.",
+			$"Smash into an enemy up to [icon: {Icon.Range}, text: {BattleDistance.ApproximateCells(ram.Range)}].",
 			$"[icon: {Icon.Damage}, text: {ram.Damage}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 
 	public static BattleHudTooltipContent HighVelocityRodTooltipFor(UnitDisplayState unit)
@@ -222,7 +222,7 @@ internal static class BattleHudCopy
 			?? throw new InvalidOperationException("High Velocity Rod tooltip requires an installed rod.");
 		return new(
 			"High Velocity Rod",
-			$"Fire up to {BattleDistance.ApproximateCells(rod.Range)}, Crit when hitting hull.",
+			$"Fire up to [icon: {Icon.Range}, text: {BattleDistance.ApproximateCells(rod.Range)}], Crit when hitting hull.",
 			$"[icon: {Icon.Damage}, text: {rod.Damage}] [icon: {Icon.Crit}, text: x{rod.HullBreachDamagePercent / 100m:0.##}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 	}
 
@@ -232,7 +232,7 @@ internal static class BattleHudCopy
 			?? throw new InvalidOperationException("Jump tooltip requires an installed jump ability.");
 		return new(
 			"Roads? We Don't Need Roads",
-			$"Teleport {BattleDistance.ApproximateCells(jump.Range)} in the selected direction. Reset cooldown on kill.",
+			$"Teleport [icon: {Icon.Range}, text: {BattleDistance.ApproximateCells(jump.Range)}] in the selected direction. Reset cooldown on kill.",
 			$"[icon: {Icon.Cooldown}, text: {jump.CooldownTurns} turns] [icon: {Icon.KillReset}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 	}
 
@@ -253,13 +253,13 @@ internal static class BattleHudCopy
 	public static BattleHudTooltipContent ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
 		new(
 			"Scrap Drone Swarm",
-			$"Short-range {BattleDistance.ApproximateCells(swarm.BurstRange + 1)} homing drones. Damages enemies and heals allies in the burst.",
+			$"Short-range [icon: {Icon.Range}, text: {BattleDistance.ApproximateCells(swarm.BurstRange + 1)}] homing drones. Damages enemies and heals allies in the burst.",
 			$"[icon: {Icon.Damage}, text: {swarm.Damage}] [icon: {Icon.Heal}, text: {swarm.Heal}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 
 	public static BattleHudTooltipContent LightningCannonTooltipFor(LightningCannonSpec lightningCannon) =>
 		new(
 			"Lightning Cannon",
-			$"{BattleDistance.ApproximateCells(lightningCannon.LineLength)} beam. Chains up to {lightningCannon.MaxChains} times within {BattleDistance.ApproximateCells(lightningCannon.ChainRange)}.\n" +
+			$"[icon: {Icon.Range}, text: {BattleDistance.ApproximateCells(lightningCannon.LineLength)}] beam. Chains up to {lightningCannon.MaxChains} times within [icon: {Icon.Range}, text: {BattleDistance.ApproximateCells(lightningCannon.ChainRange)}].\n" +
 			$"-{lightningCannon.ChainFalloffPercentPerHop}% per chain hop.",
 			$"[icon: {Icon.Damage}, text: {lightningCannon.Damage}]\n[icon: {Icon.Heat}, text: +{HeatChangeEffect.PerAbilityUse}]");
 

@@ -2,7 +2,7 @@ using Godot;
 
 namespace GrimSpace.Components;
 
-internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalette palette) : Node
+internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalette palette, bool canInspect) : Node
 {
 	private const string PinnedGroup = "hud_pinned_tooltip";
 	private const float TooltipGap = 4f;
@@ -21,7 +21,7 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 	public override void _Process(double delta)
 	{
 		var comparing = content.Comparison is not null && Input.IsKeyPressed(Key.Shift);
-		var pinHeld = comparing || Input.IsKeyPressed(Key.Alt);
+		var pinHeld = comparing || (canInspect && Input.IsKeyPressed(Key.Alt));
 		if (_pinned)
 		{
 			if (!pinHeld || GetParent() is not Control source || !source.IsVisibleInTree())
