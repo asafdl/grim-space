@@ -7,7 +7,7 @@ internal static class TutorialCopy
 {
 	public static string ShieldApproach =>
 		$"You are in combat simulation mode, here you can plan out your actions. You can undo anything.\n" +
-		$"Move to the marked location {GameInputBindings.Label("battle_primary_click")} and match its heading to face the enemy.";
+		$"Move to the marked location {GameInputBindings.Label("battle_primary_click")} and match its heading to face the enemy, an icon should appear to indicate that you have a shot.";
 
 	public static string CameraControls =>
 		$"3 Dimensional space is hard to navigate, make full use of the camera controls:\n- HOLD {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit.\n" +
