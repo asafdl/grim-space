@@ -50,6 +50,6 @@ internal static class TutorialCopy
 
 	public const string TutorialGraduationMessage =
 		"Tutorial completed — explore the world, earn resources, and don't forget to upgrade your ship and heal! " +
-		"You can redo tutorial back on any time in settings.";
+		"You can redo tutorial by reactivating it in settings and starting a new game.";
 
 }
