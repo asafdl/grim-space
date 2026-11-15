@@ -9,7 +9,7 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 	private static readonly HudPalette Palette = HudPalettes.Gold;
 
 	private Tween? _tutorialPulse;
-	private Tween? _acceptGlint;
+	private readonly CommandTrail _acceptTrail = new();
 	private readonly UiNestedContainer _panel;
 	private readonly Label _tutorialTitle;
 	private readonly Label _title;
@@ -96,6 +96,7 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 
 		_accept = CreateTutorialButton();
 		_accept.Pressed += () => Accepted?.Invoke();
+		_accept.AddChild(_acceptTrail);
 		content.AddChild(_accept);
 	}
 
@@ -125,10 +126,7 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 			_accept.ReleaseFocus();
 		Visible = true;
 		StartTutorialPulse();
-		if (_accept.Visible)
-			StartAcceptGlint();
-		else
-			StopAcceptGlint();
+		_acceptTrail.SetActive(_accept.Visible);
 		if (_accept.Visible)
 			_accept.GrabFocus();
 	}
@@ -157,7 +155,7 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 		ClearAssistance();
 		_tutorialPulse?.Kill();
 		_tutorialPulse = null;
-		StopAcceptGlint();
+		_acceptTrail.SetActive(false);
 		Visible = false;
 	}
 
@@ -191,33 +189,6 @@ public sealed partial class TutorialDialog : MarginContainer, ITutorialDialog
 			"modulate",
 			new Color(1f, 1f, 1f, 0.88f),
 			1.5);
-	}
-
-	private void StartAcceptGlint()
-	{
-		StopAcceptGlint();
-		_accept.Modulate = new Color(1f, 1f, 1f, 0.86f);
-		_acceptGlint = CreateTween()
-			.SetLoops()
-			.SetTrans(Tween.TransitionType.Sine)
-			.SetEase(Tween.EaseType.InOut);
-		_acceptGlint.TweenProperty(
-			_accept,
-			"modulate",
-			Colors.White,
-			0.65);
-		_acceptGlint.TweenProperty(
-			_accept,
-			"modulate",
-			new Color(1f, 1f, 1f, 0.86f),
-			0.65);
-	}
-
-	private void StopAcceptGlint()
-	{
-		_acceptGlint?.Kill();
-		_acceptGlint = null;
-		_accept.Modulate = Colors.White;
 	}
 
 	private void OnMetaClicked(Variant metadata)

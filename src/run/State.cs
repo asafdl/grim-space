@@ -572,7 +572,8 @@ public sealed class State : IDisposable
 			BattleUnitType.IndustrialGooper,
 			BattleUnitType.Rogue,
 		];
-		rng.Shuffle(starterChassis);
+		if (!tutorialsEnabled)
+			rng.Shuffle(starterChassis);
 		for (var index = 0; index < 2; index++)
 		{
 			var chassis = starterChassis[index];

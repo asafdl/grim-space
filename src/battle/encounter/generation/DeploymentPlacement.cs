@@ -83,26 +83,21 @@ public static class DeploymentPlacement
 			.ToList();
 
 		var rng = new Random(seed);
+		if (tutorialScriptedSpawn)
+			return PlaceFirstBattleTutorial(
+				[.. attackerMembers, .. interceptedMembers],
+				rng,
+				gridSize,
+				registry,
+				shipIdToPilotSnapshot);
+
 		Coord attackerAnchor;
 		Coord interceptedAnchor;
 		Coord attackerFore;
 		Coord attackerDorsal;
 		Coord interceptedFore;
 		Coord interceptedDorsal;
-		if (tutorialScriptedSpawn)
-		{
-			var center = gridSize / 2;
-			var halfSeparation = System.Math.Min(EngagementSeparation / 2, System.Math.Max(0, center - Margin));
-			var fieldCenter = new Coord(center, center, center);
-			var approach = new Coord(1, 0, 0);
-			attackerAnchor = fieldCenter - approach * halfSeparation;
-			interceptedAnchor = fieldCenter + approach * halfSeparation;
-			attackerFore = approach;
-			attackerDorsal = Coord.Up;
-			interceptedFore = new Coord(-1, 0, 0);
-			interceptedDorsal = Coord.Up;
-		}
-		else if (canonicalLayout || !TryPickVariedEngagementAnchors(rng, gridSize, out attackerAnchor, out interceptedAnchor))
+		if (canonicalLayout || !TryPickVariedEngagementAnchors(rng, gridSize, out attackerAnchor, out interceptedAnchor))
 		{
 			var center = gridSize / 2;
 			var approach = CardinalDirections[rng.Next(CardinalDirections.Length)];
@@ -215,32 +210,89 @@ public static class DeploymentPlacement
 		for (var index = 0; index < members.Count; index++)
 		{
 			var (fleet, member) = members[index];
-			var team = fleet.State.Faction == EFaction.Player ? ETeam.Player : ETeam.Enemy;
 			var position = index == 0 && occupied.Add(anchor)
 				? anchor
 				: PickFormationCell(rng, anchor, basis, occupied, gridSize);
-			PilotBattleSnapshot? pilot = null;
-			if (team == ETeam.Player && shipIdToPilotSnapshot is not null)
-			{
-				if (!shipIdToPilotSnapshot.TryGetValue(member.Id, out pilot))
-					throw new InvalidOperationException(
-						$"Player ship '{member.Id}' has no pilot snapshot for deployment.");
-			}
-
-			spawns.Add(new BattleSpawn
-			{
-				Ship = registry.Get(member.Id).Clone(),
-				Pilot = pilot,
-				Team = team,
-				Faction = fleet.State.Faction,
-				Position = position,
-				Fore = fore,
-				Dorsal = dorsal,
-				ExecutionAgent = fleet.State.Faction == EFaction.Player
-					? new UserExecutionAgent()
-					: new AiController(),
-			});
+			spawns.Add(CreateSpawn(fleet, member, position, fore, dorsal, registry, shipIdToPilotSnapshot));
 		}
+	}
+
+	private static List<BattleSpawn> PlaceFirstBattleTutorial(
+		IReadOnlyList<(Fleet Fleet, FleetMember Member)> members,
+		Random rng,
+		int gridSize,
+		Inventory registry,
+		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot)
+	{
+		var center = gridSize / 2;
+		var target = new Coord(center, center, center);
+		var towardEnemy = new Coord(1, 0, 0);
+		var towardPlayer = new Coord(-1, 0, 0);
+		Coord[] playerSlots = [target + new Coord(-3, -3, 0), target + new Coord(-7, -3, -3), target + new Coord(-7, -3, 3)];
+		Coord[] enemySlots = [target, target + new Coord(11, 1, -6), target + new Coord(11, 1, 6)];
+
+		var players = members
+			.Where(entry => entry.Fleet.State.Faction == EFaction.Player)
+			.OrderBy(entry => registry.Get(entry.Member.Id).Spec.Chassis == BattleUnitType.Fighter ? 0 : 1)
+			.ToArray();
+		var enemies = members
+			.Where(entry => entry.Fleet.State.Faction != EFaction.Player)
+			.ToArray();
+		var occupied = new HashSet<Coord>(playerSlots.Concat(enemySlots));
+		var spawns = new List<BattleSpawn>(members.Count);
+		Place(players, playerSlots, towardEnemy);
+		Place(enemies, enemySlots, towardPlayer);
+		return spawns;
+
+		void Place(IReadOnlyList<(Fleet Fleet, FleetMember Member)> side, Coord[] slots, Coord fore)
+		{
+			var basis = GridBasis.From(fore, Coord.Up, Coord.Cross(Coord.Up, fore));
+			for (var index = 0; index < side.Count; index++)
+			{
+				var position = index < slots.Length
+					? slots[index]
+					: PickFormationCell(rng, slots[^1], basis, occupied, gridSize);
+				spawns.Add(CreateSpawn(
+					side[index].Fleet,
+					side[index].Member,
+					position,
+					fore,
+					Coord.Up,
+					registry,
+					shipIdToPilotSnapshot));
+			}
+		}
+	}
+
+	private static BattleSpawn CreateSpawn(
+		Fleet fleet,
+		FleetMember member,
+		Coord position,
+		Coord fore,
+		Coord dorsal,
+		Inventory registry,
+		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot)
+	{
+		var team = fleet.State.Faction == EFaction.Player ? ETeam.Player : ETeam.Enemy;
+		PilotBattleSnapshot? pilot = null;
+		if (team == ETeam.Player && shipIdToPilotSnapshot is not null
+			&& !shipIdToPilotSnapshot.TryGetValue(member.Id, out pilot))
+			throw new InvalidOperationException(
+				$"Player ship '{member.Id}' has no pilot snapshot for deployment.");
+
+		return new BattleSpawn
+		{
+			Ship = registry.Get(member.Id).Clone(),
+			Pilot = pilot,
+			Team = team,
+			Faction = fleet.State.Faction,
+			Position = position,
+			Fore = fore,
+			Dorsal = dorsal,
+			ExecutionAgent = team == ETeam.Player
+				? new UserExecutionAgent()
+				: new AiController(),
+		};
 	}
 
 	private static Coord PickFormationCell(

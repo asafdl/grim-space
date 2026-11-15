@@ -3,6 +3,10 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Movement;
+using GrimSpace.Core.Actions;
 using GrimSpace.Battle.Encounter.Generation;
 using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Run;
@@ -217,57 +221,76 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void ForEngagement_TutorialScriptedLayout_PlacesEngagementOnXzPlane()
+	public void ForEngagement_TutorialScriptedLayout_PlacesLeadFighterBelowTargetAndBackupFar()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-scripted");
-		var center = 32;
+		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-scripted", minerCount: 3);
+		var target = new Coord(32, 32, 32);
 
-		for (var seed = 0; seed < 16; seed++)
-		{
-			var spawns = DeploymentPlacement.ForEngagement(
-				[playerFleet, enemyFleet],
-				run.ItemInventory,
-				seed,
-				gridSize: 64,
-				playerFleet.State.Id,
-				tutorialScriptedSpawn: true);
-			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
-			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
+		var spawns = DeploymentPlacement.ForEngagement(
+			[playerFleet, enemyFleet],
+			run.ItemInventory,
+			seed: 7,
+			gridSize: 64,
+			enemyFleet.State.Id,
+			tutorialScriptedSpawn: true);
+		var fighter = RunTestKit.StarterFighterBattleSpawn(spawns);
+		var enemies = spawns.Where(spawn => spawn.Team == ETeam.Enemy).ToArray();
 
-			Assert.Equal(new Coord(center - 8, center, center), player.Position);
-			Assert.Equal(new Coord(center + 8, center, center), enemy.Position);
-			Assert.Equal(new Coord(1, 0, 0), player.Fore);
-			Assert.Equal(Coord.Up, player.Dorsal);
-			Assert.Equal(new Coord(-1, 0, 0), enemy.Fore);
-			Assert.Equal(Coord.Up, enemy.Dorsal);
-		}
+		Assert.Equal(target + new Coord(-3, -3, 0), fighter.Position);
+		Assert.Equal(new Coord(1, 0, 0), fighter.Fore);
+		Assert.Equal(
+			[target, target + new Coord(11, 1, -6), target + new Coord(11, 1, 6)],
+			enemies.Select(spawn => spawn.Position));
+		Assert.All(enemies, enemy => Assert.Equal(new Coord(-1, 0, 0), enemy.Fore));
+		Assert.Equal(spawns.Count, spawns.Select(spawn => spawn.Position).Distinct().Count());
 	}
 
 	[Fact]
-	public void ForEngagement_TutorialScriptedLayout_SupportsTurnOneTutorialMove()
+	public void ForEngagement_TutorialScriptedLayout_HeadOnShotIsAbsorbedAndAKillShotIsReachable()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
-		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-turn1");
+		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-shots", minerCount: 3);
+		var target = new Coord(32, 32, 32);
+		var encounter = EngagementBattleFactory.Create(
+			[playerFleet, enemyFleet],
+			run.ItemInventory,
+			seed: 7,
+			"tutorial-scripted",
+			playerFleet.State.Id,
+			tutorialScriptedSpawn: true);
+		var targetId = encounter.Spawns.Single(spawn => spawn.Position == target).Ship.Id;
+		var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
+		var sim = battle.PlayerAgent.Sim;
+		var paths = MovePathEndpoints.DiscoverExtensions(sim, battle.PlayerId);
 
-		for (var seed = 0; seed < 32; seed++)
-		{
-			var encounter = EngagementBattleFactory.Create(
-				[playerFleet, enemyFleet],
-				run.ItemInventory,
-				seed,
-				"tutorial-scripted",
-				playerFleet.State.Id,
-				tutorialScriptedSpawn: true);
-			var player = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns);
-			var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
-			var basis = GridBasis.From(player.Fore, player.Dorsal, Coord.Cross(player.Dorsal, player.Fore));
+		var headOn = paths.First(path =>
+			path.EndPosition == target + new Coord(-3, 0, 0) && path.EndBasis.Forward == new Coord(1, 0, 0));
+		var headOnImpact = Assert.Single(CannonImpactsOn(sim, battle.PlayerId, targetId, headOn.Steps));
+		Assert.True(headOnImpact.ShieldDamage > 0);
+		Assert.Equal(0, headOnImpact.HullDamage);
 
-			Assert.IsType<BattleTutorialObjectiveResult.Resolved>(
-				BattleTutorialObjectives.ResolveTurn1(battle, basis));
-		}
+		Assert.Contains(paths, path =>
+			CannonImpactsOn(sim, battle.PlayerId, targetId, path.Steps).Any(impact => impact.IsLethal));
+	}
+
+	private static IEnumerable<ImpactFacts> CannonImpactsOn(
+		BattleSimulation sim,
+		string playerId,
+		string targetId,
+		IReadOnlyList<IAction> steps)
+	{
+		var fork = sim.ForkFromAnchor();
+		if (!steps.All(step => fork.TryEnqueue(step)))
+			return [];
+
+		return fork.Peek(new LightningCannonAction(playerId))?.Records
+			.OfType<Record<ImpactFacts>>()
+			.Select(record => record.Value)
+			.Where(impact => impact.TargetId == targetId)
+			?? [];
 	}
 
 	[Fact]
@@ -379,14 +402,17 @@ public sealed class DeploymentPlacementTests
 		Assert.Equal("fighter-enemy-dev-7", BattleTestFixture.FirstEnemyId(battle));
 	}
 
-	private static GrimSpace.World.StarSystem.Units.Fleet CreateEnemyFleet(RunState run, string fleetId)
+	private static GrimSpace.World.StarSystem.Units.Fleet CreateEnemyFleet(
+		RunState run,
+		string fleetId,
+		int minerCount = 1)
 	{
 		var pirate = ContractEnemySpawner.CreateAmbushFleet(
 			new FleetSpawnSpec(
 				FleetType.PirateFleet,
 				EFaction.Pirates,
 				42,
-				[(BattleUnitType.RepurposedMiner, EShipGearTier.T0)]),
+				Enumerable.Repeat((BattleUnitType.RepurposedMiner, EShipGearTier.T0), minerCount).ToArray()),
 			new Coord(20, 0, 20),
 			fleetId,
 			"deployment-placement-test");

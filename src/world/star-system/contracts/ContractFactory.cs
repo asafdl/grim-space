@@ -117,7 +117,8 @@ public static class ContractFactory
 		AreaPickerArgs searchAreaPicker,
 		EDangerLevel danger,
 		FleetType fleetType,
-		EFaction faction)
+		EFaction faction,
+		IReadOnlyList<(GrimSpace.Units.Enums.EType Chassis, GrimSpace.Units.Enums.EShipGearTier GearTier)>? members = null)
 	{
 		if (TryCreateHuntObjective(
 			map,
@@ -126,7 +127,8 @@ public static class ContractFactory
 			danger,
 			fleetType,
 			faction,
-			out var objective))
+			out var objective,
+			members))
 			return objective;
 
 		throw new InvalidOperationException(
@@ -140,7 +142,8 @@ public static class ContractFactory
 		EDangerLevel danger,
 		FleetType fleetType,
 		EFaction faction,
-		out HuntObjective objective)
+		out HuntObjective objective,
+		IReadOnlyList<(GrimSpace.Units.Enums.EType Chassis, GrimSpace.Units.Enums.EShipGearTier GearTier)>? members = null)
 	{
 		var groupId = SpawnGroupIdFor(contractId);
 		var spawnSeeds = CreateSpawnSeeds(map.Seed, contractId, groupId, 1);
@@ -151,7 +154,7 @@ public static class ContractFactory
 		}
 
 		var spawnSeed = unchecked((int)StableSeedMixer.From(map.Seed).Add(contractId).Add(groupId).Value);
-		var members = EncounterBudgetRoller.Roll(map.Seed, contractId, "hunt-encounter", danger);
+		members ??= EncounterBudgetRoller.Roll(map.Seed, contractId, "hunt-encounter", danger);
 		var spawnSpec = new FleetSpawnSpec(
 			fleetType,
 			faction,

@@ -275,7 +275,7 @@ public partial class MenuBattleBackdrop : Node3D
 						vec2 warp = vec2(fbm(p + drift), fbm(p + vec2(5.2, 1.3) - drift)) - 0.5;
 						vec2 uv = UV + warp * vec2(0.08, 0.1) + lobes * vec2(0.3, 0.2);
 						// Lean the edge so the haze spills further into the battle along the bottom than the top.
-						uv.x -= (UV.y - 0.5) * 0.12;
+						uv.x -= (UV.y - 0.5) * 0.36;
 
 						float sun_distance = length((UV - sun.xy) * vec2(aspect, 1.0));
 						float sun_clear = smoothstep(sun.z, sun.z * 1.8, sun_distance);
@@ -285,6 +285,12 @@ public partial class MenuBattleBackdrop : Node3D
 						float fade = clamp(raw * (1.0 + patchiness) - smoke * patchiness, 0.0, 1.0);
 						fade = fade * fade * (3.0 - 2.0 * fade);
 						float wisp = clamp(smoothstep(0.45, 0.8, fbm(p * 2.4 - vec2(TIME * 0.03, 0.0))) * raw * (1.0 - fade) * 4.0, 0.0, 1.0);
+						float edge_band = smoothstep(0.04, 0.22, raw * (1.0 - raw));
+						float edge_curls = smoothstep(
+							0.48,
+							0.78,
+							fbm(p * vec2(2.7, 1.2) + lobes * 2.0 + drift * 1.4));
+						float curled_wisp = edge_band * edge_curls * (1.0 - fade) * sun_clear;
 
 						// A thin nebula veil over all of space ties the open battle to the haze instead of a black cut-out.
 						float veil_noise = fbm(p * 0.8 + lobes * 2.5 + vec2(TIME * 0.015, 0.0));
@@ -292,9 +298,10 @@ public partial class MenuBattleBackdrop : Node3D
 						float tendril = smoothstep(0.6, 0.85, fbm(p * vec2(0.8, 2.4) + vec2(TIME * 0.025, 0.0) + lobes * 2.0)) * 0.3 * sun_clear;
 
 						float cloud = smoothstep(0.3, 0.85, fbm(p * 1.1 + drift * 1.5 + warp * 3.0));
-						vec3 haze = mix(haze_dark, haze_light, cloud) + smoke_color * wisp;
+						vec3 haze = mix(haze_dark, haze_light, cloud) + smoke_color * wisp
+							+ vec3(0.32, 0.24, 0.4) * curled_wisp * 0.6;
 						float space_alpha = max(veil, tendril) * (1.0 - fade);
-						float alpha = max(max(fade, wisp * 0.55), space_alpha);
+						float alpha = max(max(max(fade, wisp * 0.55), space_alpha), curled_wisp * 0.28);
 						// Over open space the veil uses the lit haze tone; dark haze at low alpha would vanish against black.
 						vec3 color = mix(haze, haze_light, space_alpha / max(alpha, 0.001) * (1.0 - fade));
 						COLOR = vec4(color, alpha);

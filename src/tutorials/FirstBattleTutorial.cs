@@ -5,12 +5,11 @@ namespace GrimSpace.Tutorials;
 public static class FirstBattleTutorial
 {
 	public const string Id = "first-battle";
-	public const string CameraControlsTargetId = "battle-camera-controls";
-	public const string Turn1MoveTargetId = "battle-turn1-move";
-	public const string Turn1EndTargetId = "battle-turn1-end";
-	public const string Turn2MoveTargetId = "battle-turn2-move";
-	public const string Turn2VoidBombTargetId = "battle-turn2-void-bomb";
-	public const string Turn2EndTargetId = "battle-turn2-end";
+	public const string ShieldApproachTargetId = "battle-shield-approach";
+	public const string ShieldShotTargetId = "battle-shield-shot";
+	public const string UndoTargetId = "battle-undo-plan";
+	public const string FindKillTargetId = "battle-find-kill";
+	public const string ExecuteTargetId = "battle-execute-kill";
 	public const string GoodLuckPilot = "battle-good-luck-pilot";
 
 	public static TutorialFlow Create() =>
@@ -18,55 +17,46 @@ public static class FirstBattleTutorial
 			Id,
 			[
 				new TutorialStep(
-					CameraControlsTargetId,
+					ShieldApproachTargetId,
 					new TutorialDialogContent(
-						"Camera controls",
-						TutorialCopy.CameraControls,
-						AcceptText: "Accept"),
-					ShowIndicator: false,
-					FocusTarget: false,
-					AdvanceOnAccept: true),
-				new TutorialStep(
-					Turn1MoveTargetId,
-					new TutorialDialogContent(
-						"Close the distance",
-						TutorialCopy.MoveToGhostShip,
+						"Line up a shot",
+						TutorialCopy.ShieldApproach,
 						AcceptText: null),
 					ShowIndicator: false,
 					FocusTarget: false,
 					AdvanceOnAccept: false),
 				new TutorialStep(
-					Turn1EndTargetId,
+					ShieldShotTargetId,
 					new TutorialDialogContent(
-						"End simulation phase",
-						TutorialCopy.EndTurnPrompt,
+						"Preview your attack",
+						TutorialCopy.QueueShieldShot,
 						AcceptText: null),
 					ShowIndicator: false,
 					FocusTarget: false,
 					AdvanceOnAccept: false),
 				new TutorialStep(
-					Turn2MoveTargetId,
+					UndoTargetId,
 					new TutorialDialogContent(
-						"Reposition",
-						TutorialCopy.Turn2MovePrompt,
+						"Shields absorb the shot",
+						TutorialCopy.UndoShieldShot,
 						AcceptText: null),
 					ShowIndicator: false,
 					FocusTarget: false,
 					AdvanceOnAccept: false),
 				new TutorialStep(
-					Turn2VoidBombTargetId,
+					FindKillTargetId,
 					new TutorialDialogContent(
-						"Shoot",
-						TutorialCopy.LaunchVentralVoidBomb,
+						"Find a killing angle",
+						TutorialCopy.FindKillShot,
 						AcceptText: null),
 					ShowIndicator: false,
 					FocusTarget: false,
 					AdvanceOnAccept: false),
 				new TutorialStep(
-					Turn2EndTargetId,
+					ExecuteTargetId,
 					new TutorialDialogContent(
-						"Fire solution",
-						TutorialCopy.EndTurnPrompt,
+						"Execute your plan",
+						TutorialCopy.ExecuteKillShot,
 						AcceptText: null),
 					ShowIndicator: false,
 					FocusTarget: false,

@@ -299,7 +299,8 @@ public partial class BattleHud : Node
 		PresentationFrame frame,
 		EBattlePhase phase,
 		bool allowEndTurn,
-		BattleVictorySummary? victorySummary = null)
+		BattleVictorySummary? victorySummary = null,
+		CommandHighlights highlights = default)
 	{
 		var hideHud = frame.ShowOutcomeOverlay;
 		if (hideHud)
@@ -349,14 +350,17 @@ public partial class BattleHud : Node
 			frame.CanAct,
 			focusState,
 			frame.Abilities,
-			frame.TargetPick);
+			frame.TargetPick,
+			highlights.Ability);
 		CommandHud.ApplyCommands(
 			frame.IsInspecting,
 			frame.CanAct,
 			frame.CanFocusCamera,
 			frame.RangeEnemy is not null,
 			frame.CanUndo,
-			allowEndTurn);
+			allowEndTurn,
+			highlights.Undo,
+			highlights.Execute);
 	}
 
 	private Tween? FadePhaseVisual(

@@ -1,31 +1,22 @@
 using Godot;
 using GrimSpace.Battle;
-using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Units;
-using GrimSpace.Core.Actions;
 using GrimSpace.Education;
-using GrimSpace.Math.Grid;
-using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tutorials;
 
 public sealed class BattleTutorialAdapter : IDisposable
 {
-	private const int TutorialTurn1 = 1;
-	private const int TutorialTurn2 = 2;
-
 	private readonly TutorialController _controller;
 	private readonly BattleOrchestrator _battle;
 	private readonly UserExecutionAgent _battleAgent;
 	private readonly PosedUnitGhostView _ghostView;
 	private readonly Action _refocusCamera;
 	private TutorialPresentationBinding? _presentation;
-	private BattleTutorialObjective? _turn1Objective;
-	private BattleTutorialObjective? _turn2Objective;
-	private bool _turn2AwaitingPlayerTurn;
+	private BattleTutorialObjective? _objective;
 	private PosedUnitGhostSpec? _ghostSpec;
 	private bool _ghostSuppressed;
 
@@ -43,12 +34,31 @@ public sealed class BattleTutorialAdapter : IDisposable
 		_battleAgent.PlanningChanged += OnBattlePlanningChanged;
 		_controller.AssistanceRequested += OnAssistanceRequested;
 		_controller.StepPresented += OnStepPresented;
-		_controller.StepAccepted += OnStepAccepted;
 	}
 
+	private bool IsActive => _controller.ActiveFlow?.Id == FirstBattleTutorial.Id;
+
+	private bool TargetDestroyed => _objective is { } objective
+		&& (!UnitRegistry.For(_battle.Engine.World).TryGet(objective.TargetId, out var target)
+			|| !target.State.IsAlive);
+
 	public bool AllowsEndTurn =>
-		_controller.ActiveStep?.TargetId is FirstBattleTutorial.Turn1EndTargetId
-			or FirstBattleTutorial.Turn2EndTargetId;
+		!IsActive
+		|| _controller.ActiveStep?.TargetId == FirstBattleTutorial.GoodLuckPilot
+		|| (_controller.ActiveStep?.TargetId == FirstBattleTutorial.ExecuteTargetId
+			&& _objective is { } objective
+			&& BattleTutorialObjectives.HasQueuedKill(_battleAgent.Sim, _battle.PlayerId, objective.TargetId));
+
+	public bool ResetsPlanOnUndo => IsActive
+		&& _controller.ActiveStep?.TargetId == FirstBattleTutorial.UndoTargetId;
+
+	public CommandHighlights Highlights => !IsActive ? default : _controller.ActiveStep?.TargetId switch
+	{
+		FirstBattleTutorial.ShieldShotTargetId => new(Ability: EPlayerMode.LightningCannon),
+		FirstBattleTutorial.UndoTargetId => new(Undo: true),
+		FirstBattleTutorial.ExecuteTargetId => new(Execute: AllowsEndTurn),
+		_ => default,
+	};
 
 	public void Attach(ITutorialDialog dialog, IWorldFocus worldFocus, IWorldIndicator worldIndicator)
 	{
@@ -61,280 +71,57 @@ public sealed class BattleTutorialAdapter : IDisposable
 		if (_controller.State.IsFlowCompleted(FirstBattleTutorial.Id))
 			return;
 
-		if (_controller.IsActive && _controller.ActiveFlow?.Id == FirstBattleTutorial.Id)
+		if (IsActive)
 		{
-			RestoreObjectives();
-			_presentation.Attach();
+			if (_controller.ActiveStep?.TargetId == FirstBattleTutorial.GoodLuckPilot)
+				_presentation.Attach();
+			else if (ResolveObjective())
+			{
+				_presentation.Attach();
+				AdvanceBattleStepIfReady();
+				if (TargetDestroyed)
+					NotifyBattlePhaseChanged(_battle.Phase);
+			}
 		}
-		else
-			TryStartBattleTutorial();
+		else if (!_controller.IsActive && ResolveObjective()
+			&& _controller.TryStartFlow(FirstBattleTutorial.Create()))
+			_presentation.Attach();
+	}
+
+	private bool ResolveObjective()
+	{
+		var result = BattleTutorialObjectives.ResolveShieldApproach(_battle);
+		if (result is BattleTutorialObjectiveResult.Unreachable unreachable)
+		{
+			GD.PushWarning($"First battle tutorial setup failed: {unreachable.Reason}");
+			if (IsActive)
+				_controller.CancelActive();
+			return false;
+		}
+
+		_objective = ((BattleTutorialObjectiveResult.Resolved)result).Objective;
+		return true;
 	}
 
 	public void Detach()
 	{
 		_controller.ReconcileFromWorldState(cancelBattleFlowWhenOffBattlefield: true);
-		_presentation?.Detach();
 		_presentation?.Dispose();
 		_presentation = null;
 		SetGhostSpec(null);
 	}
 
-	private void OnStepPresented(TutorialFlow _, TutorialStep step, bool __)
+	private void OnStepPresented(TutorialFlow flow, TutorialStep step, bool _)
 	{
-		if (step.TargetId == FirstBattleTutorial.Turn1MoveTargetId)
+		if (flow.Id != FirstBattleTutorial.Id)
+			return;
+
+		if (step.TargetId == FirstBattleTutorial.ShieldApproachTargetId)
 			_refocusCamera();
 
-		UpdateGhostForActiveStep();
-	}
-
-	private void OnStepAccepted()
-	{
-		if (_controller.ActiveStep?.TargetId == FirstBattleTutorial.CameraControlsTargetId)
-		{
-			while (_battleAgent.Sim.Actions.Count > 0)
-			{
-				if (!_battleAgent.Undo())
-					break;
-			}
-
-		}
-	}
-
-	private void TryStartBattleTutorial()
-	{
-		if (_controller.IsActive || _controller.State.IsFlowCompleted(FirstBattleTutorial.Id))
-			return;
-
-		var player = _battleAgent.Sim.StateOf<ActorState>(_battle.PlayerId);
-		var initialBasis = GridBasis.From(player.Fore, player.Dorsal, player.Starboard);
-
-		var turn1Result = BattleTutorialObjectives.ResolveTurn1(_battle, initialBasis);
-		if (turn1Result is BattleTutorialObjectiveResult.Unreachable unreachable)
-		{
-			GD.PushWarning($"First battle tutorial setup failed: {unreachable.Reason}");
-			return;
-		}
-
-		_turn1Objective = ((BattleTutorialObjectiveResult.Resolved)turn1Result).Objective;
-		if (_controller.TryStartFlow(FirstBattleTutorial.Create()))
-			_presentation?.Attach();
-	}
-
-	private void RestoreObjectives()
-	{
-		switch (_controller.ActiveStep?.TargetId)
-		{
-			case FirstBattleTutorial.Turn1MoveTargetId:
-				var player = _battleAgent.Sim.StateOf<ActorState>(_battle.PlayerId);
-				var basis = GridBasis.From(player.Fore, player.Dorsal, player.Starboard);
-				if (BattleTutorialObjectives.ResolveTurn1(_battle, basis)
-					is BattleTutorialObjectiveResult.Resolved turn1)
-					_turn1Objective = turn1.Objective;
-				break;
-			case FirstBattleTutorial.Turn2MoveTargetId:
-			case FirstBattleTutorial.Turn2VoidBombTargetId:
-				if (BattleTutorialObjectives.ResolveTurn2(_battle)
-					is BattleTutorialObjectiveResult.Resolved turn2)
-					_turn2Objective = turn2.Objective;
-				break;
-		}
-	}
-
-	private void OnBattlePlanningChanged()
-	{
-		if (_battleAgent.Sim.Actions.Count == 0
-			&& _controller.ActiveStep?.TargetId is FirstBattleTutorial.Turn1MoveTargetId
-				or FirstBattleTutorial.Turn2MoveTargetId)
-			RestoreGhost();
-
-		AdvanceBattleStepIfReady();
-	}
-
-	private void AdvanceBattleStepIfReady()
-	{
-		if (_controller.ActiveFlow is not { Id: FirstBattleTutorial.Id })
-			return;
-
-		switch (_controller.ActiveStep?.TargetId)
-		{
-			case FirstBattleTutorial.Turn1MoveTargetId:
-				AdvanceBattleMoveIfReady(_turn1Objective, TutorialCopy.MoveToMarkedGhostAssistance);
-				break;
-			case FirstBattleTutorial.Turn2MoveTargetId:
-				AdvanceBattleMoveIfReady(_turn2Objective, TutorialCopy.MatchGhostPoseAssistance);
-				break;
-			case FirstBattleTutorial.Turn2VoidBombTargetId:
-				AdvanceBattleVoidBombIfReady();
-				break;
-		}
-	}
-
-	private void AdvanceBattleMoveIfReady(BattleTutorialObjective? objective, string mismatchMessage)
-	{
-		if (objective is null)
-			return;
-
-		if (_battleAgent.Sim.Actions.Count == 0)
-		{
-			_controller.ClearAssistance();
-			return;
-		}
-
-		if (QueuedMovementMatchesObjective(objective))
-		{
-			_controller.ClearAssistance();
-			_controller.AdvanceActive();
-			return;
-		}
-
-		_controller.ShowAssistance(new TutorialAssistanceContent(
-			mismatchMessage,
-			TutorialCopy.UndoAndRetryAssistance));
-	}
-
-	private void AdvanceBattleVoidBombIfReady()
-	{
-		if (_turn2Objective is null || !QueuedMovementMatchesObjective(_turn2Objective))
-		{
-			_controller.ShowAssistance(new TutorialAssistanceContent(
-				TutorialCopy.MatchGhostPoseAssistance,
-				TutorialCopy.UndoAndRetryAssistance));
-			return;
-		}
-
-		if (!_battleAgent.Sim.Actions.Any(action =>
-				action is VoidBombAction { MountedOn: ESpatialOrientation.Ventral }))
-		{
-			if (_battleAgent.Sim.Actions.Any(action => action is VoidBombAction))
-			{
-				_controller.ShowAssistance(new TutorialAssistanceContent(
-					TutorialCopy.QueueVentralVoidBombAssistance,
-					TutorialCopy.UndoAndRetryAssistance));
-			}
-			else
-				_controller.ClearAssistance();
-
-			return;
-		}
-
-		_controller.ClearAssistance();
-		_controller.AdvanceActive();
-	}
-
-	private bool QueuedMovementMatchesObjective(BattleTutorialObjective objective) =>
-		BattleTutorialObjectives.MatchesQueuedMovement(
-			_battleAgent.Sim,
-			_battle.PlayerId,
-			_battleAgent.Sim.Actions,
-			objective);
-
-	private void OnAssistanceRequested()
-	{
-		if (_controller.ActiveFlow is not { Id: FirstBattleTutorial.Id })
-			return;
-
-		switch (_controller.ActiveStep?.TargetId)
-		{
-			case FirstBattleTutorial.Turn1MoveTargetId:
-			case FirstBattleTutorial.Turn2MoveTargetId:
-			case FirstBattleTutorial.Turn2VoidBombTargetId:
-				if (!_battleAgent.Undo())
-					GD.PushWarning("Tutorial could not undo the invalid battle plan.");
-				break;
-		}
-	}
-
-	public void NotifyMoveSelectionStarted()
-	{
-		_ghostSuppressed = true;
-		ApplyGhost();
-	}
-
-	public void NotifyMoveSelectionCanceled() => RestoreGhost();
-
-	public void NotifyBattlePhaseChanged(EBattlePhase phase)
-	{
-		if (_controller.ActiveFlow is not { Id: FirstBattleTutorial.Id })
-			return;
-
-		switch (phase)
-		{
-			case EBattlePhase.Resolving
-				when _controller.ActiveStep?.TargetId == FirstBattleTutorial.Turn1EndTargetId:
-				_controller.AdvanceActiveSilently();
-				break;
-			case EBattlePhase.PlayerTurn:
-				TryPresentTurn2();
-				break;
-		}
-	}
-
-	public void NotifyBattleTurnResolved(int completedTurn)
-	{
-		if (_controller.ActiveFlow is not { Id: FirstBattleTutorial.Id })
-			return;
-
-		switch (completedTurn)
-		{
-			case TutorialTurn1
-				when _controller.ActiveStep?.TargetId == FirstBattleTutorial.Turn2MoveTargetId:
-				_turn2AwaitingPlayerTurn = PrepareTurn2Objective();
-				break;
-			case TutorialTurn2
-				when _controller.ActiveStep?.TargetId == FirstBattleTutorial.Turn2EndTargetId:
-				_controller.AdvanceActive();
-				break;
-		}
-	}
-
-	private void TryPresentTurn2()
-	{
-		if (!_turn2AwaitingPlayerTurn
-			|| _controller.ActiveStep?.TargetId != FirstBattleTutorial.Turn2MoveTargetId
-			|| _turn2Objective is not { } objective)
-			return;
-
-		if (!BattleTutorialObjectives.IsReachable(_battle, objective))
-		{
-			AbortBattleTutorial("First battle tutorial turn 2 setup failed: Turn 2 objective is unreachable.");
-			return;
-		}
-
-		_turn2AwaitingPlayerTurn = false;
-		_controller.RepresentActiveStep();
-	}
-
-	private bool PrepareTurn2Objective()
-	{
-		var turn2Result = BattleTutorialObjectives.ResolveTurn2(_battle);
-		if (turn2Result is BattleTutorialObjectiveResult.Unreachable unreachable)
-		{
-			AbortBattleTutorial($"First battle tutorial turn 2 setup failed: {unreachable.Reason}");
-			return false;
-		}
-
-		_turn2Objective = ((BattleTutorialObjectiveResult.Resolved)turn2Result).Objective;
-		UpdateGhostForActiveStep();
-		return true;
-	}
-
-	private void AbortBattleTutorial(string reason)
-	{
-		GD.PushWarning(reason);
-		_turn2AwaitingPlayerTurn = false;
-		SetGhostSpec(null);
-		_controller.CancelActive();
-	}
-
-	private void UpdateGhostForActiveStep()
-	{
-		var objective = _controller.ActiveStep?.TargetId switch
-		{
-			FirstBattleTutorial.Turn1MoveTargetId => _turn1Objective,
-			FirstBattleTutorial.Turn2MoveTargetId => _turn2Objective,
-			_ => null,
-		};
-		if (objective is null)
+		var showGhost = step.TargetId is FirstBattleTutorial.ShieldApproachTargetId
+			or FirstBattleTutorial.ShieldShotTargetId;
+		if (!showGhost || _objective is not { } objective)
 		{
 			SetGhostSpec(null);
 			return;
@@ -347,6 +134,95 @@ public sealed class BattleTutorialAdapter : IDisposable
 			objective.RequiredBasis.Forward,
 			objective.RequiredBasis.Up,
 			Colors.Cyan));
+	}
+
+	private void OnBattlePlanningChanged()
+	{
+		if (!IsActive || !_battleAgent.IsPlanning)
+			return;
+
+		if (_battleAgent.Sim.Actions.Count == 0)
+			RestoreGhost();
+
+		AdvanceBattleStepIfReady();
+	}
+
+	private void AdvanceBattleStepIfReady()
+	{
+		if (!IsActive || _objective is not { } objective)
+			return;
+
+		var sim = _battleAgent.Sim;
+		var ready = _controller.ActiveStep?.TargetId switch
+		{
+			FirstBattleTutorial.ShieldApproachTargetId =>
+				BattleTutorialObjectives.MatchesQueuedMovement(sim, _battle.PlayerId, sim.Actions, objective),
+			FirstBattleTutorial.ShieldShotTargetId =>
+				BattleTutorialObjectives.HasQueuedShieldShot(sim, _battle.PlayerId, objective),
+			FirstBattleTutorial.UndoTargetId => sim.Actions.Count == 0,
+			FirstBattleTutorial.FindKillTargetId =>
+				BattleTutorialObjectives.HasQueuedKill(sim, _battle.PlayerId, objective.TargetId),
+			_ => false,
+		};
+		if (ready)
+		{
+			_controller.ClearAssistance();
+			_controller.AdvanceActive();
+			AdvanceBattleStepIfReady();
+			return;
+		}
+
+		var assistance = _controller.ActiveStep?.TargetId switch
+		{
+			FirstBattleTutorial.ShieldApproachTargetId when sim.Actions.Count > 0 =>
+				TutorialCopy.MoveToMarkedGhostAssistance,
+			FirstBattleTutorial.ShieldShotTargetId when sim.Actions.Count > 0
+				&& !BattleTutorialObjectives.MatchesQueuedMovement(sim, _battle.PlayerId, sim.Actions, objective) =>
+				TutorialCopy.QueueShieldShotAssistance,
+			FirstBattleTutorial.ExecuteTargetId
+				when !BattleTutorialObjectives.HasQueuedKill(sim, _battle.PlayerId, objective.TargetId) =>
+				TutorialCopy.QueueKillShotAssistance,
+			_ => null,
+		};
+		if (assistance is null)
+			_controller.ClearAssistance();
+		else
+			_controller.ShowAssistance(new TutorialAssistanceContent(assistance, TutorialCopy.UndoAndRetryAssistance));
+	}
+
+	private void OnAssistanceRequested()
+	{
+		if (IsActive && !_battleAgent.Undo())
+			GD.PushWarning("Tutorial could not undo the invalid battle plan.");
+	}
+
+	public void NotifyMoveSelectionStarted()
+	{
+		_ghostSuppressed = true;
+		ApplyGhost();
+	}
+
+	public void NotifyMoveSelectionCanceled() => RestoreGhost();
+
+	public void NotifyBattlePhaseChanged(EBattlePhase phase)
+	{
+		if (!IsActive || _controller.ActiveStep?.TargetId != FirstBattleTutorial.ExecuteTargetId)
+			return;
+
+		if (phase == EBattlePhase.Resolving)
+			_controller.RepresentActiveStep(openDialog: false);
+		else if (phase is EBattlePhase.PlayerTurn or EBattlePhase.BattleOver)
+		{
+			if (TargetDestroyed)
+				_controller.AdvanceActive();
+			else
+			{
+				GD.PushWarning("The tutorial target survived the predicted killing shot; ending the scripted guidance.");
+				_controller.CancelActive();
+				_presentation?.Detach();
+				SetGhostSpec(null);
+			}
+		}
 	}
 
 	private void SetGhostSpec(PosedUnitGhostSpec? spec)
@@ -369,9 +245,8 @@ public sealed class BattleTutorialAdapter : IDisposable
 		_battleAgent.PlanningChanged -= OnBattlePlanningChanged;
 		_controller.AssistanceRequested -= OnAssistanceRequested;
 		_controller.StepPresented -= OnStepPresented;
-		_controller.StepAccepted -= OnStepAccepted;
+		Detach();
 		if (GodotObject.IsInstanceValid(_ghostView))
 			_ghostView.QueueFree();
-		Detach();
 	}
 }

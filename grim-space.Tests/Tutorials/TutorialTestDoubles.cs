@@ -11,7 +11,7 @@ internal static class TutorialTestFlows
 			FirstBattleTutorial.Id,
 			[
 				new TutorialStep(
-					FirstBattleTutorial.Turn1MoveTargetId,
+					FirstBattleTutorial.ShieldApproachTargetId,
 					new TutorialDialogContent("Test", "Test body", AcceptText: null),
 					ShowIndicator: false,
 					FocusTarget: false,

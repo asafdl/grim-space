@@ -381,6 +381,7 @@ public partial class BattleController : Node3D
 				() => _agent.Sim.StateOf<ActorState>(_battle.PlayerId)),
 			worldIndicators);
 		tutorials.FlowCompleted += OnTutorialFlowCompleted;
+		tutorials.StepPresented += OnTutorialStepPresented;
 		RefreshPresentation();
 	}
 
@@ -537,8 +538,6 @@ public partial class BattleController : Node3D
 		RebuildTurnFlowTimeline();
 		_frames.Interaction.ResetAfterTurn();
 		_frames.AppendTurn(_battle, completedTurn, replay.History);
-		if (_replayCompletesRound)
-			_battleTutorial?.NotifyBattleTurnResolved(completedTurn);
 		RefreshPresentation();
 	}
 
@@ -646,7 +645,16 @@ public partial class BattleController : Node3D
 	{
 		_frames.Interaction.ClearHovers();
 		_frames.Interaction.ClearPoseHitOpportunities();
+		var resetPlan = _battleTutorial?.ResetsPlanOnUndo == true;
 		var undone = _agent.Undo();
+		while (undone && resetPlan && _agent.CanUndo)
+		{
+			if (!_agent.Undo())
+			{
+				GD.PushWarning("Tutorial could not clear the remaining battle plan.");
+				break;
+			}
+		}
 		if (!undone)
 			RefreshPresentation();
 		return undone;
@@ -928,7 +936,8 @@ public partial class BattleController : Node3D
 			frame,
 			_battle.Phase,
 			allowEndTurn: CanEndTurn,
-			victorySummary: BuildVictorySummary(frame));
+			victorySummary: BuildVictorySummary(frame),
+			highlights: _battleTutorial?.Highlights ?? default);
 		ApplyMountSelector(frame);
 		ReportIssueSystemContext.SetBattleSnapshot(
 			$"Battle turn: {frame.TurnNumber}, sim tick: {frame.SimulationTick}, mode: {frame.Mode}");
@@ -1092,6 +1101,8 @@ public partial class BattleController : Node3D
 	}
 
 	private void OnTutorialFlowCompleted(TutorialFlow _) => RefreshPresentation();
+
+	private void OnTutorialStepPresented(TutorialFlow _, TutorialStep __, bool ___) => RefreshPresentation();
 
 	private void PlayImpactReaction(
 		ImpactFacts impact, ETeam targetTeam, IReadOnlyList<string> livingShipIds, Action completed)
@@ -1362,7 +1373,10 @@ public partial class BattleController : Node3D
 		_battle.PhaseChanged -= OnPhaseChanged;
 		_battle.TurnResolved -= OnTurnResolved;
 		if (Session.Instance.Run.Tutorials is { } tutorials)
+		{
 			tutorials.FlowCompleted -= OnTutorialFlowCompleted;
+			tutorials.StepPresented -= OnTutorialStepPresented;
+		}
 		_battleTutorial?.Dispose();
 		_battleTutorial = null;
 		Session.Instance.DevMenu.ClearBattleActions();

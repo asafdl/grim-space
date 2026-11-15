@@ -15,6 +15,9 @@ public static class TutorialBeatContracts
 {
 	internal const int BeatAHuntRewardCredits = 100;
 	internal const int BeatBDeliveryRewardCredits = 75;
+	internal const int BeatAHuntMemberCount = 3;
+	internal static readonly (GrimSpace.Units.Enums.EType Chassis, GrimSpace.Units.Enums.EShipGearTier GearTier)
+		BeatAHuntMember = (GrimSpace.Units.Enums.EType.RepurposedMiner, GrimSpace.Units.Enums.EShipGearTier.T0);
 
 	public static string? OfferBeatA(StarMap map)
 	{
@@ -43,7 +46,8 @@ public static class TutorialBeatContracts
 			areaArgs,
 			EDangerLevel.VeryLow,
 			FleetType.PirateFleet,
-			EFaction.Pirates);
+			EFaction.Pirates,
+			Enumerable.Repeat(BeatAHuntMember, BeatAHuntMemberCount).ToArray());
 		var contract = new Contract(
 			contractId,
 			objective,

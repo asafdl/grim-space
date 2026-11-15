@@ -45,6 +45,8 @@ public sealed partial class BattleCommandHud : Control
 	private readonly Button _undoButton;
 	private readonly Label _undoHotkey;
 	private readonly Button _executeButton;
+	private readonly CommandTrail _undoTrail = new();
+	private readonly CommandTrail _executeTrail = new();
 	private readonly Label _executeHotkey;
 	private readonly BattleResourceBar _apBar;
 	private readonly BattleResourceBar _mpBar;
@@ -305,6 +307,7 @@ public sealed partial class BattleCommandHud : Control
 			BattleHudCopy.UndoTooltip,
 			toggleMode: false);
 		_undoButton.Pressed += () => UndoRequested?.Invoke();
+		_undoButton.AddChild(_undoTrail);
 		_undoHotkey = TacticalActionButtonStyle.AddHotkey(
 			_undoButton,
 			GameInputBindings.PrimaryLabel("battle_undo"));
@@ -322,6 +325,7 @@ public sealed partial class BattleCommandHud : Control
 		};
 		ApplyExecuteStyles(_executeButton);
 		_executeButton.Pressed += () => ExecuteRequested?.Invoke();
+		_executeButton.AddChild(_executeTrail);
 		_executeHotkey = TacticalActionButtonStyle.AddHotkey(
 			_executeButton,
 			GameInputBindings.PrimaryLabel("battle_end_turn"));
@@ -388,7 +392,8 @@ public sealed partial class BattleCommandHud : Control
 		bool canAct,
 		UnitDisplayState focusState,
 		AbilityLegality abilities,
-		TargetPickFrame? targetPick = null)
+		TargetPickFrame? targetPick = null,
+		EPlayerMode? highlightedAbility = null)
 	{
 		var specs = AbilityHudCatalog.ForDisplayState(focusState);
 		var layoutKey = string.Join('\0', specs.Select(spec => spec.Mode.ToString()));
@@ -406,7 +411,7 @@ public sealed partial class BattleCommandHud : Control
 			SetPressed(card.Button, mode == card.Spec.Mode);
 			card.Button.SelfModulate = Colors.White;
 			ApplyIconDim(card.Button, isActivePick, onCooldown);
-			card.CommitTrail.SetActive(isActivePick);
+			card.CommitTrail.SetActive(isActivePick || highlightedAbility == card.Spec.Mode);
 			ApplyCooldownOverlay(card, onCooldown ? state.CooldownRemaining : 0);
 			ApplyPickBadge(card, isActivePick ? targetPick : null);
 		}
@@ -420,7 +425,9 @@ public sealed partial class BattleCommandHud : Control
 		bool cameraFocusAvailable,
 		bool canCycleTarget,
 		bool undoAvailable,
-		bool allowExecute)
+		bool allowExecute,
+		bool highlightUndo = false,
+		bool highlightExecute = false)
 	{
 		_utilityHost.Visible = !isInspecting;
 		ExecuteAction.Visible = !isInspecting;
@@ -432,6 +439,8 @@ public sealed partial class BattleCommandHud : Control
 		_executeButton.Disabled = !canAct || !allowExecute;
 		_executeButton.Text = ExecuteTurnText;
 		_executeButton.TooltipText = BattleHudCopy.EndTurnTooltip;
+		_undoTrail.SetActive(highlightUndo && !_undoButton.Disabled);
+		_executeTrail.SetActive(highlightExecute && !_executeButton.Disabled);
 		_inspectBackButton.Disabled = !isInspecting;
 		RefreshCommandWingWidth();
 	}
@@ -515,7 +524,7 @@ public sealed partial class BattleCommandHud : Control
 				GameInputBindings.PrimaryLabel(GameInputBindings.AbilityAction(i + 1)));
 			var cooldownOverlay = CreateCooldownOverlay(button);
 			var pickBadge = CreatePickBadge(button);
-			var commitTrail = new AbilityCommitTrail();
+			var commitTrail = new CommandTrail();
 			button.AddChild(commitTrail);
 			button.Pressed += () => AbilityModeRequested?.Invoke(spec);
 			MainActions.AddChild(button);
@@ -830,6 +839,6 @@ public sealed partial class BattleCommandHud : Control
 		Control CooldownOverlay,
 		Label CooldownTurns,
 		Label PickBadge,
-		AbilityCommitTrail CommitTrail,
+		CommandTrail CommitTrail,
 		AbilityHudCatalog.Spec Spec);
 }

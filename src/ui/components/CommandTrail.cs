@@ -1,9 +1,8 @@
 using Godot;
 
-namespace GrimSpace.Battle.Presentation.Ui;
+namespace GrimSpace.Ui.Components;
 
-/// <summary>Chase trail around an ability slot border — ready-to-commit affordance.</summary>
-public sealed partial class AbilityCommitTrail : Control
+public sealed partial class CommandTrail : Control
 {
 	private const float PeriodSeconds = 1.15f;
 	private const float TrailFraction = 0.28f;
@@ -17,7 +16,7 @@ public sealed partial class AbilityCommitTrail : Control
 	private float _phase;
 	private bool _active;
 
-	public AbilityCommitTrail()
+	public CommandTrail()
 	{
 		Name = "CommitTrail";
 		MouseFilter = MouseFilterEnum.Ignore;
