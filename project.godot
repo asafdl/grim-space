@@ -27,6 +27,8 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+mouse_cursor/custom_image="res://assets/ui/components/runtime/cursor_paper_plane_crimson.png"
+mouse_cursor/custom_image_hotspot=Vector2(2, 4)
 
 [dotnet]
 
