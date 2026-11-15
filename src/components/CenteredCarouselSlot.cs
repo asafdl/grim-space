@@ -9,6 +9,8 @@ internal sealed partial class CenteredCarouselSlot : Button
 	private const string HighlightCursorPath = "res://assets/ui/turn_flow/active_cursor.svg";
 
 	private string? _itemId;
+	private string? _itemVisualId;
+	private Control? _itemVisual;
 	private readonly TextureRect _highlightCursor;
 
 	public event Action<string>? ItemClicked;
@@ -43,11 +45,26 @@ internal sealed partial class CenteredCarouselSlot : Button
 		Texture2D? icon,
 		Color iconTint,
 		bool highlighted,
-		float opacity)
+		float opacity,
+		Func<string, Control?>? itemVisualFor)
 	{
 		_itemId = item.Id;
-		Icon = icon;
-		Text = icon is null ? item.Label : string.Empty;
+		if (_itemVisualId != item.Id)
+		{
+			ClearItemVisual();
+			_itemVisualId = item.Id;
+			_itemVisual = itemVisualFor?.Invoke(item.Id);
+			if (_itemVisual is not null)
+			{
+				_itemVisual.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+				_itemVisual.MouseFilter = MouseFilterEnum.Ignore;
+				AddChild(_itemVisual);
+				MoveChild(_highlightCursor, GetChildCount() - 1);
+			}
+		}
+
+		Icon = _itemVisual is null ? icon : null;
+		Text = _itemVisual is null && icon is null ? item.Label : string.Empty;
 		Disabled = false;
 		AddThemeStyleboxOverride("normal", MakeBoxStyle(highlighted));
 		_highlightCursor.Visible = highlighted;
@@ -58,6 +75,7 @@ internal sealed partial class CenteredCarouselSlot : Button
 	public void ShowEmpty()
 	{
 		_itemId = null;
+		ClearItemVisual();
 		Icon = null;
 		Text = string.Empty;
 		Disabled = true;
@@ -65,6 +83,19 @@ internal sealed partial class CenteredCarouselSlot : Button
 		_highlightCursor.Visible = false;
 		ApplyIconTint(Colors.White);
 		Modulate = Colors.White;
+	}
+
+	public void InvalidateItemVisual() => ClearItemVisual();
+
+	private void ClearItemVisual()
+	{
+		_itemVisualId = null;
+		if (_itemVisual is null)
+			return;
+
+		RemoveChild(_itemVisual);
+		_itemVisual.QueueFree();
+		_itemVisual = null;
 	}
 
 	private void ApplyIconTint(Color tint)

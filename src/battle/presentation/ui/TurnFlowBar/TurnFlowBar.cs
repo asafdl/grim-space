@@ -47,6 +47,9 @@ public sealed partial class TurnFlowBar : Control
 	public void SetPortraitTintResolver(Func<string, Color> portraitTintFor) =>
 		_carousel.SetIconTintResolver(portraitTintFor);
 
+	public void SetUnitVisualResolver(Func<string, Control?> visualFor) =>
+		_carousel.SetItemVisualResolver(visualFor);
+
 	public void SetIndex(int index, bool changeActive = true)
 	{
 		_carousel.SetIndex(index, changeActive);

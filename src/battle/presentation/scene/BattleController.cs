@@ -27,6 +27,7 @@ using GrimSpace.Pilots;
 using GrimSpace.Presentation.Support;
 using GrimSpace.Tutorials;
 using GrimSpace.Ui.Components;
+using GrimSpace.Ui.Portraits;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem.Presentation.Scene;
@@ -81,6 +82,7 @@ public partial class BattleController : Node3D
 	private bool _strategicBattle;
 	private IReadOnlyList<BattleSpawn> _encounterSpawns = [];
 	private readonly Dictionary<string, Pilot> _encounterPilots = new(StringComparer.Ordinal);
+	private readonly Dictionary<string, string> _playerPilotPortraitIdsByShipId = new(StringComparer.Ordinal);
 	private PilotSpeechHost _pilotSpeech = null!;
 	private readonly Dictionary<string, string> _pilotShipIds = new(StringComparer.Ordinal);
 	private bool _exiting;
@@ -262,9 +264,16 @@ public partial class BattleController : Node3D
 		_targetOpportunityOverlay = new TargetOpportunityOverlay { Name = "TargetOpportunityOverlay" };
 		_targetOpportunityOverlay.Configure(_camera);
 		opportunityLayer.AddChild(_targetOpportunityOverlay);
-		_hazardProximityOverlay = new HazardProximityOverlay { Name = "HazardProximityOverlay" };
-		opportunityLayer.AddChild(_hazardProximityOverlay);
 		AddChild(opportunityLayer);
+
+		var hazardLayer = new CanvasLayer
+		{
+			Name = "HazardProximityLayer",
+			Layer = 4,
+		};
+		_hazardProximityOverlay = new HazardProximityOverlay { Name = "HazardProximityOverlay" };
+		hazardLayer.AddChild(_hazardProximityOverlay);
+		AddChild(hazardLayer);
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
@@ -272,12 +281,18 @@ public partial class BattleController : Node3D
 		_battleHud.SetStrategicBattle(_strategicBattle);
 		_battleHud.TurnFlowBar.SetPortraitResolver(PortraitForUnit);
 		_battleHud.TurnFlowBar.SetPortraitTintResolver(PortraitTintForUnit);
+		_battleHud.TurnFlowBar.SetUnitVisualResolver(TurnFlowVisualForUnit);
 		AddChild(_battleHud);
 		_pilotSpeech = new PilotSpeechHost(ResolvePilotSpeechAnchor, 12);
 		AddChild(_pilotSpeech);
 		foreach (var spawn in _encounterSpawns)
 		{
-			if (spawn.Team != ETeam.Player || spawn.PilotId is not { } pilotId)
+			if (spawn.Team != ETeam.Player)
+				continue;
+
+			_playerPilotPortraitIdsByShipId[spawn.Ship.Id] =
+				spawn.Pilot?.PortraitId ?? PilotPortraitId.Default;
+			if (spawn.PilotId is not { } pilotId)
 				continue;
 
 			_pilotShipIds.Add(pilotId, spawn.Ship.Id);
@@ -881,6 +896,74 @@ public partial class BattleController : Node3D
 
 		return ShipGearTierTint.ModulateFor(
 			ShipLoadoutGearTier.FromLoadout(unit.State.Loadout, unit.State.Type));
+	}
+
+	private Control? TurnFlowVisualForUnit(string unitId)
+	{
+		if (!_playerPilotPortraitIdsByShipId.TryGetValue(unitId, out var portraitId))
+			return null;
+
+		var registry = UnitRegistry.For(_battle.Engine.World);
+		if (!registry.TryGet(unitId, out var unit))
+			return null;
+
+		const float portraitInset = 4f;
+		const float portraitSize = CenteredCarousel.SlotSize - (portraitInset * 2f);
+		const float badgeSize = 30f;
+		const float reticleSize = CenteredCarousel.SlotSize;
+		var shipTint = ShipGearTierTint.ModulateFor(
+			ShipLoadoutGearTier.FromLoadout(unit.State.Loadout, unit.State.Type));
+		var visual = new Control
+		{
+			CustomMinimumSize = Vector2.One * reticleSize,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		visual.AddChild(new PilotPortrait(portraitId)
+		{
+			Position = Vector2.One * portraitInset,
+			Size = Vector2.One * portraitSize,
+		});
+		var badge = new Control
+		{
+			Position = Vector2.One * (reticleSize - badgeSize),
+			Size = Vector2.One * badgeSize,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		var shipIcon = UnitPortraitCatalog.For(unit.State.Type)
+			?? throw new InvalidOperationException(
+				$"Missing ship portrait for turn-flow unit '{unitId}' ({unit.State.Type}).");
+		var badgeBacking = new Panel
+		{
+			Position = Vector2.One * 7f,
+			Size = Vector2.One * 16f,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		badgeBacking.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+		{
+			BgColor = HudPalettes.BlueCyan.DeepSurface,
+			CornerRadiusTopLeft = 8,
+			CornerRadiusTopRight = 8,
+			CornerRadiusBottomLeft = 8,
+			CornerRadiusBottomRight = 8,
+		});
+		badge.AddChild(badgeBacking);
+		badge.AddChild(new TextureRect
+		{
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			Texture = shipIcon,
+			Modulate = shipTint,
+			Position = Vector2.One * 5f,
+			Size = Vector2.One * 20f,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		});
+		badge.AddChild(new UiReticle(UiReticleVisual.Cyan)
+		{
+			SizeOverride = new UiSizeOverride(badgeSize, badgeSize),
+			Size = Vector2.One * badgeSize,
+		});
+		visual.AddChild(badge);
+		return visual;
 	}
 
 	private void ReturnToPlayer()

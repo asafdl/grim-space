@@ -5,5 +5,4 @@ void fragment() {
 	if (dot(centered, centered) > 1.0) {
 		discard;
 	}
-	COLOR = texture(TEXTURE, UV) * COLOR;
 }
