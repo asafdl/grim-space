@@ -13,6 +13,7 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 	private int _previousManeuverPoints;
 	private int _previousHeat;
 	private int _previousReactiveShieldsStacks;
+	private string[] _previousCooledPlumes = [];
 	private Dictionary<AbilityMount, MountRuntimeCounters>? _previousMountRuntime;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -22,10 +23,12 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		_previousManeuverPoints = actor.CurrentManeuverPoints;
 		_previousHeat = actor.Heat;
 		_previousReactiveShieldsStacks = actor.ReactiveShieldsStacks;
+		_previousCooledPlumes = [.. actor.CryoPlumesCooledThisTurn];
 		_previousMountRuntime = actor.MountRuntime.ToDictionary(
 			entry => entry.Key,
 			entry => entry.Value.Clone());
 
+		actor.CryoPlumesCooledThisTurn.Clear();
 		actor.CurrentActionPoints = actor.Maneuverability.BaseActionPoints;
 		actor.CurrentManeuverPoints = actor.Maneuverability.BaseManeuverPoints;
 		actor.ReactiveShieldsStacks = 0;
@@ -42,7 +45,9 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 			&& !actor.Overdrive
 			&& !BattleStatuses.HasOverheat(actor))
 		{
-			var cleared = System.Math.Max(0, actor.Heat - actor.HeatProfile.ClearPerTurn);
+			var clearPerTurn = actor.HeatProfile.ClearPerTurn
+				+ (world.CryoPlumeAt(actor.Position) is null ? 0 : CryoPlume.HeatCleared);
+			var cleared = System.Math.Max(0, actor.Heat - clearPerTurn);
 			if (cleared != actor.Heat)
 			{
 				actor.Heat = cleared;
@@ -67,6 +72,8 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.CurrentManeuverPoints = _previousManeuverPoints;
 		actor.Heat = _previousHeat;
 		actor.ReactiveShieldsStacks = _previousReactiveShieldsStacks;
+		actor.CryoPlumesCooledThisTurn.Clear();
+		actor.CryoPlumesCooledThisTurn.UnionWith(_previousCooledPlumes);
 		if (_previousMountRuntime is null)
 			return;
 

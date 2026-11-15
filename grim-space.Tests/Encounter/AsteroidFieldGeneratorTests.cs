@@ -85,7 +85,7 @@ public sealed class AsteroidFieldGeneratorTests
 			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
 			var player = encounter.Spawns[0];
 			var reserved = AsteroidFieldReservations.PlayerCorridor(player);
-			Assert.All(encounter.WorldHazards, hazard =>
+			Assert.All(encounter.WorldHazards.Where(hazard => hazard.Kind == EBattleHazardKind.Asteroid), hazard =>
 				Assert.DoesNotContain(hazard.Cells, cell => reserved.Contains(cell)));
 		}
 	}

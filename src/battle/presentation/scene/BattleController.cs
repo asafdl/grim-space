@@ -66,6 +66,7 @@ public partial class BattleController : Node3D
 	private SimulationModeTransitionView _simulationTransition = null!;
 	private CellVolumeMeshStore _cellVolumeMeshes = null!;
 	private Controller _camera = null!;
+	private HazardProximityOverlay _hazardProximityOverlay = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private MoveGhostView _moveGhost = null!;
 	private TargetOpportunityOverlay _targetOpportunityOverlay = null!;
@@ -206,6 +207,9 @@ public partial class BattleController : Node3D
 		_asteroidView = new BoardAsteroidView();
 		_asteroidView.Build(_camera, layout.Asteroids);
 		hazardsRoot.AddChild(_asteroidView);
+		var cryoPlumeView = new CryoPlumeView { Name = "CryoPlumes" };
+		cryoPlumeView.Build(_battle.Engine.World.NonUnits.Values.OfType<CryoPlume>());
+		hazardsRoot.AddChild(cryoPlumeView);
 		_goopHazardView = new GoopHazardView { Name = "GoopHazards" };
 		hazardsRoot.AddChild(_goopHazardView);
 		SyncAuthoritativeHazardViews();
@@ -258,10 +262,13 @@ public partial class BattleController : Node3D
 		_targetOpportunityOverlay = new TargetOpportunityOverlay { Name = "TargetOpportunityOverlay" };
 		_targetOpportunityOverlay.Configure(_camera);
 		opportunityLayer.AddChild(_targetOpportunityOverlay);
+		_hazardProximityOverlay = new HazardProximityOverlay { Name = "HazardProximityOverlay" };
+		opportunityLayer.AddChild(_hazardProximityOverlay);
 		AddChild(opportunityLayer);
 
 		_battleHud = new BattleHud { Name = "BattleHud" };
 		_battleHud.Build();
+		_hazardProximityOverlay.Configure(_camera, _battleHud);
 		_battleHud.SetStrategicBattle(_strategicBattle);
 		_battleHud.TurnFlowBar.SetPortraitResolver(PortraitForUnit);
 		_battleHud.TurnFlowBar.SetPortraitTintResolver(PortraitTintForUnit);
@@ -923,6 +930,9 @@ public partial class BattleController : Node3D
 				TargetOpportunityOverlay.LethalIconPath,
 				TargetOpportunityOverlay.LethalIconTint))
 			.ToArray();
+		_hazardProximityOverlay.Apply(
+			frame.FocusState.Position,
+			_battle.Engine.World.NonUnits.Values.OfType<Hazard>());
 		_targetOpportunityOverlay.Apply(
 			frame.PreviewUnits,
 			frame.PoseHitOpportunities.Concat(lethalTargets).ToArray());

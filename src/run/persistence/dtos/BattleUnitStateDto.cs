@@ -35,4 +35,5 @@ public sealed record BattleUnitStateDto(
 	bool Overheat,
 	int ThirstForScrapStacks,
 	int? HullHandoffBasePoints = null,
-	FaceShieldDto? ShieldHandoffBasePoints = null);
+	FaceShieldDto? ShieldHandoffBasePoints = null,
+	IReadOnlyList<string>? CryoPlumesCooledThisTurn = null);

@@ -99,12 +99,8 @@ public sealed class BattleOrchestrator : IDisposable
 		var nonUnits = new Dictionary<string, NonUnit>();
 		foreach (var spawn in encounter.WorldHazards)
 		{
-			var asteroid = Asteroid.Create(
-				TypedIdGenerator.NextId(NonUnitTypeSlug.Asteroid),
-				spawn.Origin,
-				grid,
-				spawn.Cells);
-			nonUnits[asteroid.Id] = asteroid;
+			var hazard = spawn.CreateNonUnit(grid);
+			nonUnits[hazard.Id] = hazard;
 		}
 
 		var asteroids = nonUnits.Values.OfType<Asteroid>().ToList();

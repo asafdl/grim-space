@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Player;
@@ -249,6 +250,16 @@ internal static class BattleHudCopy
 			$"When reaching max [icon: {Icon.Heat}] enter [icon: {Icon.Overdrive}] for this turn then [icon: {Icon.Overheat}] next turn.",
 			$"[icon: {Icon.Heat}, text: -{profile.ClearPerTurn} / turn ]\n[icon: {Icon.Overdrive}][icon: {Icon.Damage}, text: +{HeatChangeEffect.OverdriveDamageBonusPercent}%]\n[icon: {Icon.Overheat}, text: All abilities go on][icon: {Icon.Cooldown}]");
 	}
+
+	public static BattleHudTooltipContent HazardTooltipFor(Hazard hazard) => hazard switch
+	{
+		CryoPlume => new(
+			"Cryo-Plume",
+			"Vented coolant from a ruptured station line.",
+			$"[icon: {Icon.Heat}, text: -{CryoPlume.HeatCleared} when moving through ]\n[icon: {Icon.Heat}, text: -{CryoPlume.HeatCleared} more when starting a turn inside ]"),
+		GoopHazard => new("Goop", "Blocks ability fire. Ships can move through it."),
+		_ => BattleHudTooltipContent.Plain(hazard.GetType().Name),
+	};
 
 	public static BattleHudTooltipContent ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
 		new(

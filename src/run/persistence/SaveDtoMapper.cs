@@ -122,6 +122,7 @@ public static class SaveDtoMapper
 			Hazards = encounter.WorldHazards.Select(hazard =>
 				ReflectionJson.Map<BattleEncounterHazardDto>(new
 				{
+					hazard.Kind,
 					hazard.Origin,
 					Cells = hazard.Cells.ToArray(),
 				})).ToArray(),
@@ -140,6 +141,7 @@ public static class SaveDtoMapper
 			Spawns = dto.Spawns.Select(RestoreBattleSpawn).ToArray(),
 			WorldHazards = dto.Hazards.Select(hazard => new BattleHazardSpawn
 			{
+				Kind = hazard.Kind,
 				Origin = hazard.Origin,
 				Cells = hazard.Cells.ToHashSet(),
 			}).ToArray(),
@@ -246,6 +248,7 @@ public static class SaveDtoMapper
 			state.MarkWeakspotCooldownRemaining,
 			state.ShieldBraceUsedThisTurn,
 			state.HeatVentsUsedThisTurn,
+			CryoPlumesCooledThisTurn = state.CryoPlumesCooledThisTurn.ToArray(),
 			state.DefensiveManeuversMpUsed,
 			state.ShieldDynamoGrantedPerFace,
 			state.ThirstForScrapStacks,
@@ -295,6 +298,7 @@ public static class SaveDtoMapper
 		state.MarkWeakspotCooldownRemaining = dto.MarkWeakspotCooldownRemaining;
 		state.ShieldBraceUsedThisTurn = dto.ShieldBraceUsedThisTurn;
 		state.HeatVentsUsedThisTurn = dto.HeatVentsUsedThisTurn;
+		state.CryoPlumesCooledThisTurn.UnionWith(dto.CryoPlumesCooledThisTurn ?? []);
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.ShieldDynamoGrantedPerFace = dto.ShieldDynamoGrantedPerFace;
 		state.ThirstForScrapStacks = dto.ThirstForScrapStacks;
@@ -379,6 +383,7 @@ public static class SaveDtoMapper
 				state.MarkWeakspotCooldownRemaining,
 				state.ShieldBraceUsedThisTurn,
 				state.HeatVentsUsedThisTurn,
+				CryoPlumesCooledThisTurn = state.CryoPlumesCooledThisTurn.ToArray(),
 				state.DefensiveManeuversMpUsed,
 				state.ShieldDynamoGrantedPerFace,
 				state.ThirstForScrapStacks,
@@ -868,6 +873,14 @@ public static class SaveDtoMapper
 				Frame = dto.Frame,
 				Cells = dto.Cells.ToFrozenSet(),
 			},
+			NonUnitTypeSlug.CryoPlume => new CryoPlume
+			{
+				Id = dto.Id,
+				ActorId = dto.ActorId,
+				Center = dto.Center,
+				Frame = dto.Frame,
+				Cells = dto.Cells.ToFrozenSet(),
+			},
 			var slug => throw new InvalidDataException($"Unsupported non-unit type slug '{slug}'."),
 		};
 
@@ -899,6 +912,7 @@ public static class SaveDtoMapper
 			state.MarkWeakspotCooldownRemaining = unitDto.MarkWeakspotCooldownRemaining;
 			state.ShieldBraceUsedThisTurn = unitDto.ShieldBraceUsedThisTurn;
 			state.HeatVentsUsedThisTurn = unitDto.HeatVentsUsedThisTurn;
+			state.CryoPlumesCooledThisTurn.UnionWith(unitDto.CryoPlumesCooledThisTurn ?? []);
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.ShieldDynamoGrantedPerFace = unitDto.ShieldDynamoGrantedPerFace;
 			state.ThirstForScrapStacks = unitDto.ThirstForScrapStacks;

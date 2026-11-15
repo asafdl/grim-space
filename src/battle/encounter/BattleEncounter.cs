@@ -54,8 +54,6 @@ public sealed class BattleEncounter
 		var playerSpawns = DevClassFormation(seed, playerSide: true, playerAnchor, DevPlayerChassis, pilots);
 		var enemySpawns = DevClassFormation(seed, playerSide: false, enemyAnchor, DevEnemyChassis);
 		var spawns = playerSpawns.Concat(enemySpawns).ToArray();
-		var fieldMargin = 2;
-		var fieldCenter = new Coord(gridSize / 2, gridSize / 2, gridSize / 2);
 
 		return new BattleEncounter
 		{
@@ -64,16 +62,7 @@ public sealed class BattleEncounter
 			Spawns = spawns,
 			DevPilots = pilots.All.ToArray(),
 			Objective = EObjective.EliminateOpponents,
-			WorldHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
-			{
-				Seed = seed,
-				GridSize = gridSize,
-				UnitPositions = spawns.Select(spawn => spawn.Position).ToArray(),
-				RegionCenter = fieldCenter,
-				RegionHalfExtent = gridSize / 2 - fieldMargin,
-				RegionMargin = fieldMargin,
-				ReservedCells = AsteroidFieldReservations.PlayerCorridors(spawns),
-			}),
+			WorldHazards = HazardPlacement.Generate(seed, gridSize, spawns),
 		};
 	}
 

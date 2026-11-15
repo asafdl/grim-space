@@ -36,6 +36,7 @@ public sealed class State
 	public bool ShieldsUpUsedThisTurn { get; set; }
 	public bool HeatVentsUsedThisTurn { get; set; }
 	public bool ShieldBraceUsedThisTurn { get; set; }
+	public HashSet<string> CryoPlumesCooledThisTurn { get; } = new(StringComparer.Ordinal);
 	public int OverchargeEnginesCooldownRemaining { get; set; }
 	public int MarkWeakspotCooldownRemaining { get; set; }
 	public int DefensiveManeuversMpUsed { get; set; }
@@ -157,6 +158,7 @@ public sealed class State
 		};
 		foreach (var (mount, runtime) in MountRuntime)
 			copy.MountRuntime[mount] = runtime.Clone();
+		copy.CryoPlumesCooledThisTurn.UnionWith(CryoPlumesCooledThisTurn);
 		BattleStatuses.CopyInto(Statuses, copy.Statuses);
 		return copy;
 	}

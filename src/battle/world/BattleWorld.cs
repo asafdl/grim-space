@@ -123,6 +123,17 @@ public sealed class BattleWorld
 
 	public IEnumerable<Hazard> Hazards => _nonUnits.Values.OfType<Hazard>();
 
+	public CryoPlume? CryoPlumeAt(Coord cell)
+	{
+		foreach (var nonUnit in _nonUnits.Values)
+		{
+			if (nonUnit is CryoPlume plume && plume.Cells.Contains(cell))
+				return plume;
+		}
+
+		return null;
+	}
+
 	public static HashSet<Coord> TerrainBlockedCells(IEnumerable<NonUnit> terrain)
 	{
 		var cells = new HashSet<Coord>();

@@ -123,7 +123,7 @@ public static class AsteroidFieldGenerator
 		{
 			foreach (var unit in config.UnitPositions)
 			{
-				if (ChebyshevDistance(cell, unit) <= config.UnitClearance)
+				if (cell.ChebyshevDistanceTo(unit) <= config.UnitClearance)
 					return false;
 			}
 		}
@@ -147,9 +147,4 @@ public static class AsteroidFieldGenerator
 
 		return true;
 	}
-
-	private static int ChebyshevDistance(Coord a, Coord b) =>
-		System.Math.Max(
-			System.Math.Max(System.Math.Abs(a.X - b.X), System.Math.Abs(a.Y - b.Y)),
-			System.Math.Abs(a.Z - b.Z));
 }

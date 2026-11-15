@@ -50,13 +50,14 @@ internal static class BattleTestFixture
 		IReadOnlyList<Unit> enemies,
 		BoundedGrid? grid = null,
 		IReadOnlySet<Coord>? blocked = null,
-		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null)
+		IReadOnlyDictionary<string, PilotBattleSnapshot?>? pilotsByActorId = null,
+		IEnumerable<NonUnit>? hazards = null)
 	{
 		grid ??= Grid();
 		blocked ??= enemies.Select(enemy => enemy.State.Position).ToHashSet();
 
 		var timeline = new Timeline();
-		var nonUnits = new Dictionary<string, NonUnit>();
+		var nonUnits = (hazards ?? []).ToDictionary(hazard => hazard.Id, hazard => (NonUnit)hazard);
 		var units = new List<Unit> { player };
 		units.AddRange(enemies);
 		var engagedShipIds = units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);

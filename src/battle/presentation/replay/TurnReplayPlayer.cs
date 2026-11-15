@@ -272,6 +272,10 @@ public partial class TurnReplayPlayer : Node3D
 				case Record<HeatChangedFacts> { Value: var heat }:
 					ApplyHeatChanged(heat);
 					break;
+				case Record<CryoPlumeCooledFacts> { Value: var cooled }:
+					if (_unitViews.TryGetValue(cooled.ActorId, out var cooledView) && IsInstanceValid(cooledView))
+						cooledView.PlayHeatVentFumes();
+					break;
 				case Record<CooldownResetOnKillFacts> { Value: var reset }:
 					_clipContext.ReplayState.ApplyCooldownResetOnKill(reset);
 					break;
