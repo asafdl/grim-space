@@ -11,8 +11,8 @@ public sealed class CryoPlume : Hazard
 {
 	public const int HeatCleared = 20;
 
-	public override bool Passable => true;
-	public override bool BlocksAbilities => false;
+	public override IEnumerable<Coord> MovementBlockingCells => [];
+	public override IEnumerable<Coord> AbilityBlockingCells => [];
 
 	public static CryoPlume Create(string id, Coord cell, BoundedGrid grid)
 	{

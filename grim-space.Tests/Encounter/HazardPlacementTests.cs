@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
 
@@ -14,6 +15,17 @@ public sealed class HazardPlacementTests
 		for (var seed = 0; seed < 32; seed++)
 		{
 			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
+			var well = Assert.Single(encounter.WorldHazards, hazard => hazard.Kind == EBattleHazardKind.GravityWell);
+			Assert.Equal(BodyFrame.WorldAligned(well.Origin), well.Frame);
+			Assert.Equal(27, well.Cells.Count);
+			Assert.True(well.Cells.SetEquals(Coord.OffsetsInCube(1).Select(offset => well.Origin + offset)));
+			Assert.DoesNotContain(encounter.Spawns, spawn => well.Cells.Contains(spawn.Position));
+			var claimedCells = new HashSet<Coord>();
+			foreach (var hazard in encounter.WorldHazards)
+			{
+				Assert.DoesNotContain(hazard.Cells, claimedCells.Contains);
+				claimedCells.UnionWith(hazard.Cells);
+			}
 			var plumes = encounter.WorldHazards
 				.Where(hazard => hazard.Kind == EBattleHazardKind.CryoPlume)
 				.Select(hazard => Assert.Single(hazard.Cells))
@@ -43,5 +55,38 @@ public sealed class HazardPlacementTests
 				encounter.WorldHazards.Where(hazard => hazard.Kind == EBattleHazardKind.Asteroid),
 				asteroid => Assert.DoesNotContain(asteroid.Cells, plumeCells.Contains));
 		}
+	}
+
+	[Fact]
+	public void GravityWellPlacement_SkipsOccupiedMidpointAndAlreadyClaimedCells()
+	{
+		var encounter = BattleEncounter.DevDefault(seed: 7, gridSize: 64);
+		var playerCenter = CryoPlumePlacement.Centroid(encounter.Spawns
+			.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray());
+		var enemyCenter = CryoPlumePlacement.Centroid(encounter.Spawns
+			.Where(spawn => spawn.Team == ETeam.Enemy).Select(spawn => spawn.Position).ToArray());
+		var midpoint = new Coord(
+			(playerCenter.X + enemyCenter.X) / 2,
+			(playerCenter.Y + enemyCenter.Y) / 2,
+			(playerCenter.Z + enemyCenter.Z) / 2);
+		var context = new HazardPlacementContext
+		{
+			Rng = new Random(7),
+			GridSize = 64,
+			Spawns = encounter.Spawns,
+		};
+		context.ClaimedCells.Add(midpoint);
+
+		new GravityWellPlacement().Place(context);
+
+		var well = Assert.Single(context.Placed);
+		Assert.DoesNotContain(midpoint, well.Cells);
+		Assert.DoesNotContain(encounter.Spawns, spawn => well.Cells.Contains(spawn.Position));
+		Assert.All(well.Cells, cell =>
+		{
+			Assert.InRange(cell.X, 0, 63);
+			Assert.InRange(cell.Y, 0, 63);
+			Assert.InRange(cell.Z, 0, 63);
+		});
 	}
 }

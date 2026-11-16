@@ -11,6 +11,6 @@ public abstract class NonUnit
 	public required FrozenSet<Coord> Cells { get; init; }
 	public required BodyFrame Frame { get; init; }
 
-	public abstract bool Passable { get; }
-	public abstract bool BlocksAbilities { get; }
+	public abstract IEnumerable<Coord> MovementBlockingCells { get; }
+	public abstract IEnumerable<Coord> AbilityBlockingCells { get; }
 }

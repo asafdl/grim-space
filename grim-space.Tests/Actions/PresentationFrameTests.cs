@@ -14,6 +14,8 @@ using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Objectives;
+using GrimSpace.Battle.NonUnits;
+using GrimSpace.Run.Persistence;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
@@ -23,6 +25,48 @@ namespace GrimSpace.Tests.Actions;
 [BattleTestSuite]
 public sealed class PresentationFrameTests
 {
+	[Fact]
+	public void FrameProjectsWellFacesThroughPlanningAndLoadedWorlds()
+	{
+		var grid = BattleTestFixture.Grid(16);
+		var center = new Coord(6, 6, 6);
+		var secondCenter = new Coord(10, 6, 6);
+		var well = GravityWell.Create("gravitywell-a", center, BodyFrame.WorldAligned(center), grid);
+		var rotated = GravityWell.Create(
+			"gravitywell-b", secondCenter,
+			new BodyFrame(secondCenter, new Coord(1, 0, 0), Coord.Up, -Coord.Forward),
+			grid);
+		using var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(center + new Coord(1, 0, 0), actionPoints: 0),
+			[BattleTestFixture.Enemy(Coord.Zero)],
+			grid,
+			BattleWorld.TerrainBlockedCells([well, rotated]),
+			hazards: [well, rotated]);
+
+		var frame = BattleTestCommands.Frame(battle);
+		Assert.Equal(new[] { well.Id, rotated.Id }, frame.GravityWells.Select(item => item.Id));
+		Assert.Equal(well.Center, frame.GravityWells[0].Center);
+		Assert.Equal(well.Frame, frame.GravityWells[0].Frame);
+		Assert.True(well.Faces.SetEquals(frame.GravityWells[0].Faces));
+		Assert.Equal(rotated.Center, frame.GravityWells[1].Center);
+		Assert.Equal(rotated.Frame, frame.GravityWells[1].Frame);
+		Assert.True(rotated.Faces.SetEquals(frame.GravityWells[1].Faces));
+
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId)));
+		Assert.Equal(frame.GravityWells.ToArray(), BattleTestCommands.Frame(battle).GravityWells.ToArray());
+
+		var registry = new PersistenceRegistry();
+		var restored = SaveDtoMapper.RestoreBattleWorld(
+			SaveDtoMapper.CaptureBattleWorld(battle.Engine.World, registry), registry);
+		using var loaded = BattleOrchestrator.FromSavedWorld(restored, battle.PlayerId);
+		loaded.Start("test");
+		var loadedWells = BattleTestCommands.Frame(loaded).GravityWells;
+		Assert.Equal(frame.GravityWells.Select(item => item.Id), loadedWells.Select(item => item.Id));
+		Assert.Equal(frame.GravityWells[1].Center, loadedWells[1].Center);
+		Assert.Equal(frame.GravityWells[1].Frame, loadedWells[1].Frame);
+		Assert.True(frame.GravityWells[1].Faces.SetEquals(loadedWells[1].Faces));
+	}
+
 	[Fact]
 	public void FrameAfterQueuedMoveShowsReachableExtensions()
 	{
@@ -145,6 +189,7 @@ public sealed class PresentationFrameTests
 
 		var frame = BattleTestCommands.Frame(battle);
 
+		Assert.Empty(frame.GravityWells);
 		Assert.Equal(battle.PlayerId, frame.FocusId);
 		Assert.False(frame.IsInspecting);
 		Assert.True(frame.CanAct);

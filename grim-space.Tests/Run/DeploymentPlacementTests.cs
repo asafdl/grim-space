@@ -262,7 +262,9 @@ public sealed class DeploymentPlacementTests
 			playerFleet.State.Id,
 			tutorialScriptedSpawn: true);
 		var targetId = encounter.Spawns.Single(spawn => spawn.Position == target).Ship.Id;
+		Assert.Single(encounter.WorldHazards, hazard => hazard.Kind == EBattleHazardKind.GravityWell);
 		var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
+		Assert.IsType<BattleTutorialObjectiveResult.Resolved>(BattleTutorialObjectives.ResolveShieldApproach(battle));
 		var sim = battle.PlayerAgent.Sim;
 		var paths = MovePathEndpoints.DiscoverExtensions(sim, battle.PlayerId);
 

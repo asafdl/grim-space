@@ -82,7 +82,7 @@ public sealed class BattleWorldRehydrationTests
 			asteroid.Id,
 			asteroid.ActorId,
 			asteroid.Center,
-			asteroid.Passable,
-			asteroid.BlocksAbilities,
+			asteroid.MovementBlockingCells.OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z),
+			asteroid.AbilityBlockingCells.OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z),
 			asteroid.Cells.OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z));
 }

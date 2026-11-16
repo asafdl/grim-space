@@ -843,7 +843,7 @@ public sealed class SaveGamePersistenceTests
 
 		var restored = SaveDtoMapper.RestoreBattleWorld(worldDto, new PersistenceRegistry());
 		var asteroid = Assert.Single(restored.Asteroids);
-		Assert.True(asteroid.BlocksAbilities);
+		Assert.Contains(cell, asteroid.AbilityBlockingCells);
 	}
 
 	[Fact]

@@ -104,7 +104,7 @@ public sealed class BattleOrchestrator : IDisposable
 		}
 
 		var asteroids = nonUnits.Values.OfType<Asteroid>().ToList();
-		var blockedCells = BattleWorld.TerrainBlockedCells(asteroids);
+		var blockedCells = BattleWorld.TerrainBlockedCells(nonUnits.Values);
 
 		var units = encounter.Spawns
 			.Select(Factory.Create)

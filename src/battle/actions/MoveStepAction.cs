@@ -2,6 +2,7 @@ using GrimSpace.Battle.World;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -72,7 +73,7 @@ public sealed class MoveDef
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		return actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost)
+		return TryGetTranslationCost(actor, action.Direction, world, out var cost)
 			&& actor.CurrentActionPoints >= cost;
 	}
 
@@ -82,7 +83,7 @@ public sealed class MoveDef
 		ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (!actor.Maneuverability.TryGetTranslationApCost(action.Direction, out var cost))
+		if (!TryGetTranslationCost(actor, action.Direction, world, out var cost))
 		{
 			throw new InvalidOperationException(
 				$"Actor '{actor.Id}' does not support translation '{action.Direction}'.");
@@ -95,6 +96,21 @@ public sealed class MoveDef
 			new MoveEffect(destination),
 			new ApChangeEffect(-cost),
 		];
+	}
+
+	private static bool TryGetTranslationCost(
+		State actor,
+		ESpatialOrientation direction,
+		BattleWorld world,
+		out int cost)
+	{
+		if (!actor.Maneuverability.TryGetTranslationApCost(direction, out cost))
+			return false;
+
+		var heading = BodyFrame.From(actor).Step(direction);
+		if (world.IsTranslationAssisted(actor.Position, heading))
+			cost = 0;
+		return true;
 	}
 
 	private static MoveStepAction Cast(IAction action) =>

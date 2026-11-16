@@ -10,6 +10,7 @@ public sealed partial class SimulationModeTransitionView : Node
 	private bool _isCapturing;
 	private bool _isTransitioning;
 	private TextureRect _overlay = null!;
+	private BackBufferCopy _screenCopy = null!;
 	private ShaderMaterial _transitionMaterial = null!;
 	private AudioStreamPlayer _transitionSound = null!;
 	private Tween? _transitionTween;
@@ -66,6 +67,8 @@ public sealed partial class SimulationModeTransitionView : Node
 		};
 		var transitionLayer = new CanvasLayer { Name = "SimulationTransition", Layer = 90 };
 		AddChild(transitionLayer);
+		_screenCopy = new BackBufferCopy { CopyMode = BackBufferCopy.CopyModeEnum.Viewport, Visible = false };
+		transitionLayer.AddChild(_screenCopy);
 		_transitionSound = new AudioStreamPlayer
 		{
 			Name = "SimulationGlitchSound",
@@ -105,6 +108,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		_transitionTween = null;
 		_transitionSound.Stop();
 		_overlay.Hide();
+		_screenCopy.Hide();
 		_overlay.Texture = null;
 		_isCapturing = false;
 		_isTransitioning = false;
@@ -139,6 +143,7 @@ public sealed partial class SimulationModeTransitionView : Node
 
 		_overlay.Texture = snapshot;
 		_transitionMaterial.SetShaderParameter("progress", 0f);
+		_screenCopy.Show();
 		_overlay.Show();
 		_transitionSound.Play();
 		_isCapturing = false;
@@ -157,6 +162,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		if (generation != _generation)
 			return;
 		_overlay.Hide();
+		_screenCopy.Hide();
 		_overlay.Texture = null;
 		_transitionTween = null;
 		_isTransitioning = false;

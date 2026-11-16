@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using GrimSpace.Battle;
 using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Ids;
@@ -25,6 +26,7 @@ public sealed class BattleWorld
 		IResolvedEffectPass<BattleWorld, ActorRuntime>
 {
 	private readonly Dictionary<string, NonUnit> _nonUnits;
+	private FrozenDictionary<Coord, ImmutableArray<NonUnit>> _nonUnitsByCell;
 	private FrozenSet<Coord> _abilityBlockingCells;
 
 	public UnitRegistry UnitRegistry { get; }
@@ -61,6 +63,7 @@ public sealed class BattleWorld
 		if (!_nonUnits.TryAdd(nonUnit.Id, nonUnit))
 			throw new InvalidOperationException($"Non-unit '{nonUnit.Id}' already exists.");
 
+		_nonUnitsByCell = IndexNonUnitsByCell(_nonUnits.Values);
 		_abilityBlockingCells = CollectAbilityBlockingCells(_nonUnits.Values);
 	}
 
@@ -69,6 +72,7 @@ public sealed class BattleWorld
 		if (!_nonUnits.Remove(id))
 			return false;
 
+		_nonUnitsByCell = IndexNonUnitsByCell(_nonUnits.Values);
 		_abilityBlockingCells = CollectAbilityBlockingCells(_nonUnits.Values);
 		return true;
 	}
@@ -125,23 +129,39 @@ public sealed class BattleWorld
 
 	public CryoPlume? CryoPlumeAt(Coord cell)
 	{
-		foreach (var nonUnit in _nonUnits.Values)
+		if (!_nonUnitsByCell.TryGetValue(cell, out var nonUnits))
+			return null;
+
+		foreach (var nonUnit in nonUnits)
 		{
-			if (nonUnit is CryoPlume plume && plume.Cells.Contains(cell))
+			if (nonUnit is CryoPlume plume)
 				return plume;
 		}
 
 		return null;
 	}
 
+	public bool IsTranslationAssisted(Coord source, Coord heading)
+	{
+		if (!_nonUnitsByCell.TryGetValue(source, out var nonUnits))
+			return false;
+
+		foreach (var nonUnit in nonUnits)
+		{
+			if (nonUnit is GravityWell well
+				&& well.AssistedDirectionsByCell.TryGetValue(source, out var directions)
+				&& directions.Contains(heading))
+				return true;
+		}
+
+		return false;
+	}
+
 	public static HashSet<Coord> TerrainBlockedCells(IEnumerable<NonUnit> terrain)
 	{
 		var cells = new HashSet<Coord>();
 		foreach (var nonUnit in terrain)
-		{
-			if (!nonUnit.Passable)
-				cells.UnionWith(nonUnit.Cells);
-		}
+			cells.UnionWith(nonUnit.MovementBlockingCells);
 
 		return cells;
 	}
@@ -167,6 +187,7 @@ public sealed class BattleWorld
 		UnitRegistry unitRegistry,
 		Dictionary<string, NonUnit> nonUnits,
 		PerUnitActivationRoundLists activationRoundLists,
+		FrozenDictionary<Coord, ImmutableArray<NonUnit>> nonUnitsByCell,
 		FrozenSet<Coord> abilityBlockingCells,
 		BoundedGrid grid,
 		IReadOnlySet<Coord> blockedCells,
@@ -178,6 +199,7 @@ public sealed class BattleWorld
 		UnitRegistry = unitRegistry;
 		_nonUnits = nonUnits;
 		ActivationRoundLists = activationRoundLists;
+		_nonUnitsByCell = nonUnitsByCell;
 		_abilityBlockingCells = abilityBlockingCells;
 		Grid = grid;
 		BlockedCells = blockedCells;
@@ -243,6 +265,7 @@ public sealed class BattleWorld
 			units,
 			nonUnits,
 			new PerUnitActivationRoundLists(),
+			IndexNonUnitsByCell(nonUnits.Values),
 			CollectAbilityBlockingCells(nonUnits.Values),
 			grid,
 			blockedCells,
@@ -264,6 +287,7 @@ public sealed class BattleWorld
 			UnitRegistry.CloneForFork(),
 			_nonUnits.ToDictionary(),
 			ActivationRoundLists.CloneForFork(),
+			_nonUnitsByCell,
 			_abilityBlockingCells,
 			Grid,
 			BlockedCells,
@@ -272,14 +296,30 @@ public sealed class BattleWorld
 			Objective,
 			EngagedShipIds);
 
+	private static FrozenDictionary<Coord, ImmutableArray<NonUnit>> IndexNonUnitsByCell(
+		IEnumerable<NonUnit> nonUnits)
+	{
+		var cells = new Dictionary<Coord, List<NonUnit>>();
+		foreach (var nonUnit in nonUnits)
+		foreach (var cell in nonUnit.Cells)
+		{
+			if (!cells.TryGetValue(cell, out var occupants))
+			{
+				occupants = [];
+				cells.Add(cell, occupants);
+			}
+
+			occupants.Add(nonUnit);
+		}
+
+		return cells.ToFrozenDictionary(entry => entry.Key, entry => entry.Value.ToImmutableArray());
+	}
+
 	private static FrozenSet<Coord> CollectAbilityBlockingCells(IEnumerable<NonUnit> nonUnits)
 	{
 		var cells = new HashSet<Coord>();
 		foreach (var nonUnit in nonUnits)
-		{
-			if (nonUnit.BlocksAbilities)
-				cells.UnionWith(nonUnit.Cells);
-		}
+			cells.UnionWith(nonUnit.AbilityBlockingCells);
 
 		return cells.ToFrozenSet();
 	}

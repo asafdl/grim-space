@@ -54,6 +54,7 @@ public partial class BattleController : Node3D
 	private EnemyRangeTetherView _enemyRangeTether = null!;
 	private PickedTargetMarksView _pickedTargetMarks = null!;
 	private GoopHazardView _goopHazardView = null!;
+	private GravityWellsView _gravityWellsView = null!;
 	private BattleHud _battleHud = null!;
 	private BattleTutorialAdapter? _battleTutorial;
 	private Node3D _unitsRoot = null!;
@@ -97,6 +98,7 @@ public partial class BattleController : Node3D
 	private bool _simulationVisualsEnabled;
 	private bool _requestedSimulationVisuals;
 	private bool _openingVisualTransitionPending = true;
+	public BattleEncounter? DevEncounter { get; set; }
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
 	private bool CanEndTurn =>
@@ -108,7 +110,7 @@ public partial class BattleController : Node3D
 
 	public override void _Ready()
 	{
-		_strategicBattle = Session.Instance.Run.ActiveBattle is not null;
+		_strategicBattle = DevEncounter is null && Session.Instance.Run.ActiveBattle is not null;
 		int backdropSeed;
 		if (_strategicBattle)
 		{
@@ -130,7 +132,7 @@ public partial class BattleController : Node3D
 		else
 		{
 			var seed = Random.Shared.Next();
-			var devEncounter = BattleEncounter.DevDefault(seed);
+			var devEncounter = DevEncounter ?? BattleEncounter.DevDefault(seed);
 			foreach (var pilot in devEncounter.DevPilots)
 				_encounterPilots[pilot.Id] = pilot;
 
@@ -173,6 +175,7 @@ public partial class BattleController : Node3D
 		_cellVolumeMeshes = new CellVolumeMeshStore();
 		_gridView = GetNode<GridView>("GridView");
 		_gridView.Build(_camera, _cellVolumeMeshes);
+		_gridView.Visible = false;
 
 		_areaActionPreview = new AreaActionPreviewView { Name = "AreaActionPreview" };
 		_areaActionPreview.Build(_cellVolumeMeshes);
@@ -206,6 +209,9 @@ public partial class BattleController : Node3D
 
 		var hazardsRoot = new Node3D { Name = "WorldHazards" };
 		AddChild(hazardsRoot);
+		_gravityWellsView = new GravityWellsView { Name = "GravityWells" };
+		_gravityWellsView.Configure(_camera);
+		hazardsRoot.AddChild(_gravityWellsView);
 		_asteroidView = new BoardAsteroidView();
 		_asteroidView.Build(_camera, layout.Asteroids);
 		hazardsRoot.AddChild(_asteroidView);
@@ -372,7 +378,7 @@ public partial class BattleController : Node3D
 
 	private void ConfigureTutorial()
 	{
-		if (!IsInsideTree())
+		if (!IsInsideTree() || DevEncounter is not null)
 			return;
 
 		var run = Session.Instance.Run;
@@ -995,6 +1001,7 @@ public partial class BattleController : Node3D
 
 	private void ApplyFrame(PresentationFrame frame)
 	{
+		_gravityWellsView.Apply(frame.GravityWells);
 		if (ShouldApplyFrameUnitStates(_battle.Phase))
 			ApplyUnitStates(frame);
 		ApplyEnemyRangeTether(frame);
@@ -1062,6 +1069,8 @@ public partial class BattleController : Node3D
 	private void ApplySimulationVisuals(bool enabled)
 	{
 		_simulationVisualsEnabled = enabled;
+		_gridView.Visible = enabled;
+		_gravityWellsView.SetSimulationEnabled(enabled);
 		_simulationPresentation.Apply(
 			enabled,
 			_battleView.UnitViews,

@@ -1,10 +1,14 @@
+using System.Collections.Frozen;
+using System.Collections.Immutable;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Movement;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Interaction;
 using GrimSpace.Battle.Presentation.Picking;
+using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -23,6 +27,7 @@ public sealed class PresentationFrame
 	public Func<Coord, MovementPickPreference>? MovementPickPreference { get; init; }
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
 	public required IReadOnlyDictionary<string, ETeam> PreviewUnitTeams { get; init; }
+	public required ImmutableArray<GravityWellPresentation> GravityWells { get; init; }
 	public EnemyRangeTarget? RangeEnemy { get; init; }
 	public TargetPickFrame? TargetPick { get; init; }
 	public string? FacePickTargetId { get; init; }
@@ -58,6 +63,12 @@ public sealed class PresentationFrame
 	public required IReadOnlyList<PoseHitOpportunity> PoseHitOpportunities { get; init; }
 	public Coord? ReopenMoveCell { get; init; }
 }
+
+public readonly record struct GravityWellPresentation(
+	string Id,
+	Coord Center,
+	BodyFrame Frame,
+	FrozenSet<GravityWellFace> Faces);
 
 public readonly record struct EnemyRangeTarget(string EnemyId, float SeparationMeters);
 

@@ -10,8 +10,8 @@ public sealed class Asteroid : NonUnit
 {
 	public required Coord Center { get; init; }
 
-	public override bool Passable => false;
-	public override bool BlocksAbilities => true;
+	public override IEnumerable<Coord> MovementBlockingCells => Cells;
+	public override IEnumerable<Coord> AbilityBlockingCells => Cells;
 
 	public static Asteroid Create(
 		string id,

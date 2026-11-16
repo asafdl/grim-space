@@ -4,6 +4,6 @@ namespace GrimSpace.Battle.NonUnits;
 
 public sealed class GoopHazard : Hazard
 {
-	public override bool Passable => true;
-	public override bool BlocksAbilities => true;
+	public override IEnumerable<Coord> MovementBlockingCells => [];
+	public override IEnumerable<Coord> AbilityBlockingCells => Cells;
 }

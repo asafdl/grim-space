@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Runtime;
@@ -6,6 +7,7 @@ using GrimSpace.Battle.Targeting;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Abilities;
@@ -258,6 +260,10 @@ public sealed class PresentationFrameBuilder
 					: null,
 			PreviewUnits = previewUnits,
 			PreviewUnitTeams = previewUnitTeams,
+			GravityWells = battle.Engine.World.NonUnits.Values.OfType<GravityWell>()
+				.OrderBy(well => well.Id, StringComparer.Ordinal)
+				.Select(well => new GravityWellPresentation(well.Id, well.Center, well.Frame, well.Faces))
+				.ToImmutableArray(),
 			RangeEnemy = rangeEnemy,
 			TargetPick = targetPick,
 			FacePickTargetId = facePickTargetId,

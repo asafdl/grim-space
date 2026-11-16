@@ -5,6 +5,7 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Encounter;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Pilots;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Spatial;
@@ -125,6 +126,7 @@ public static class SaveDtoMapper
 					hazard.Kind,
 					hazard.Origin,
 					Cells = hazard.Cells.ToArray(),
+					hazard.Frame,
 				})).ToArray(),
 		});
 	}
@@ -144,6 +146,7 @@ public static class SaveDtoMapper
 				Kind = hazard.Kind,
 				Origin = hazard.Origin,
 				Cells = hazard.Cells.ToHashSet(),
+				Frame = hazard.Frame,
 			}).ToArray(),
 		};
 	}
@@ -854,7 +857,7 @@ public static class SaveDtoMapper
 		});
 	}
 
-	private static NonUnit RestoreNonUnit(HazardSaveDto dto) =>
+	private static NonUnit RestoreNonUnit(HazardSaveDto dto, Grid grid) =>
 		NonUnitTypeSlug.ParseTypeSlug(dto.Id) switch
 		{
 			NonUnitTypeSlug.Asteroid => new Asteroid
@@ -881,8 +884,16 @@ public static class SaveDtoMapper
 				Frame = dto.Frame,
 				Cells = dto.Cells.ToFrozenSet(),
 			},
+			NonUnitTypeSlug.GravityWell => RestoreGravityWell(dto, grid),
 			var slug => throw new InvalidDataException($"Unsupported non-unit type slug '{slug}'."),
 		};
+
+	private static GravityWell RestoreGravityWell(HazardSaveDto dto, Grid grid)
+	{
+		if (dto.ActorId != BattleActorIds.Terrain)
+			throw new InvalidDataException("Gravity wells must be owned by terrain.");
+		return GravityWell.Create(dto.Id, dto.Center, dto.Frame, grid, dto.Cells);
+	}
 
 	public static BattleWorld RestoreBattleWorld(
 		BattleWorldSaveDto dto,
@@ -944,7 +955,12 @@ public static class SaveDtoMapper
 		}).ToArray();
 		var nonUnits = dto.Hazards.ToDictionary(
 			hazard => hazard.Id,
-			RestoreNonUnit);
+			hazard => RestoreNonUnit(hazard, grid));
+		foreach (var well in nonUnits.Values.OfType<GravityWell>())
+		{
+			if (!dto.BlockedCells.Contains(well.Center))
+				throw new InvalidDataException("Saved gravity well core is missing from movement blockers.");
+		}
 		var world = BattleWorld.FromLive(
 			units,
 			nonUnits,

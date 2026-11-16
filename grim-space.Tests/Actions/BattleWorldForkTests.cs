@@ -22,7 +22,7 @@ public sealed class BattleWorldForkTests
 			new HashSet<Coord> { rock });
 		var world = battle.Engine.World;
 		var asteroid = Asteroid.Create("asteroid", rock, grid, [rock]);
-		Assert.True(asteroid.BlocksAbilities);
+		Assert.Contains(rock, asteroid.AbilityBlockingCells);
 		BattleTestWorld.InjectNonUnit(world, asteroid);
 
 		var branch = world.Fork();
@@ -76,8 +76,46 @@ public sealed class BattleWorldForkTests
 
 		var fork = world.Fork();
 		var copy = Assert.IsType<GoopHazard>(fork.NonUnits[hazard.Id]);
-		Assert.True(copy.BlocksAbilities);
+		Assert.Contains(origin, copy.AbilityBlockingCells);
 		Assert.Same(hazard, copy);
 		Assert.Same(world.AbilityBlockingCells, fork.AbilityBlockingCells);
+	}
+
+	[Fact]
+	public void SpatialQueriesTrackOverlappingHazardsAcrossForkMutations()
+	{
+		var center = new Coord(5, 5, 5);
+		var cell = center + new Coord(1, 0, 0);
+		using var battle = BattleTestFixture.BeginSimulation(center);
+		var world = battle.Engine.World;
+		var well = GravityWell.Create("gravitywell-test", center, BodyFrame.WorldAligned(center), world.Grid);
+		var firstPlume = CryoPlume.Create("cryoplume-first", cell, world.Grid);
+		var secondPlume = CryoPlume.Create("cryoplume-second", cell, world.Grid);
+
+		Assert.Null(world.CryoPlumeAt(cell));
+		Assert.False(world.IsTranslationAssisted(cell, Coord.Forward));
+		world.AddNonUnit(well);
+		world.AddNonUnit(firstPlume);
+		world.AddNonUnit(secondPlume);
+		var branch = world.Fork();
+
+		Assert.Same(firstPlume, branch.CryoPlumeAt(cell));
+		Assert.True(branch.IsTranslationAssisted(cell, Coord.Forward));
+		Assert.False(branch.IsTranslationAssisted(center, Coord.Forward));
+		Assert.False(branch.IsTranslationAssisted(cell, -Coord.Forward));
+
+		Assert.True(branch.RemoveNonUnit(firstPlume.Id));
+		Assert.Same(secondPlume, branch.CryoPlumeAt(cell));
+		Assert.True(branch.IsTranslationAssisted(cell, Coord.Forward));
+		Assert.True(branch.RemoveNonUnit(well.Id));
+		Assert.False(branch.IsTranslationAssisted(cell, Coord.Forward));
+		Assert.Same(secondPlume, branch.CryoPlumeAt(cell));
+		Assert.Same(firstPlume, world.CryoPlumeAt(cell));
+		Assert.True(world.IsTranslationAssisted(cell, Coord.Forward));
+
+		branch.AddNonUnit(well);
+		Assert.True(branch.IsTranslationAssisted(cell, Coord.Forward));
+		Assert.True(world.RemoveNonUnit(secondPlume.Id));
+		Assert.Same(secondPlume, branch.CryoPlumeAt(cell));
 	}
 }
