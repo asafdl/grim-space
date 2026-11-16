@@ -277,7 +277,11 @@ public partial class BattleController : Node3D
 			Name = "HazardProximityLayer",
 			Layer = 4,
 		};
-		_hazardProximityOverlay = new HazardProximityOverlay { Name = "HazardProximityOverlay" };
+		_hazardProximityOverlay = new HazardProximityOverlay
+		{
+			Name = "HazardProximityOverlay",
+			Visible = false,
+		};
 		hazardLayer.AddChild(_hazardProximityOverlay);
 		AddChild(hazardLayer);
 
@@ -1070,6 +1074,7 @@ public partial class BattleController : Node3D
 	{
 		_simulationVisualsEnabled = enabled;
 		_gridView.Visible = enabled;
+		_hazardProximityOverlay.Visible = enabled;
 		_gravityWellsView.SetSimulationEnabled(enabled);
 		_simulationPresentation.Apply(
 			enabled,

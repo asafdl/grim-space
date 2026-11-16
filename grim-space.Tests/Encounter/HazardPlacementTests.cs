@@ -12,14 +12,23 @@ public sealed class HazardPlacementTests
 	[Fact]
 	public void DevEncounters_ScatterSpacedRoughlyBalancedPlumesAroundTheFightAndKeepAsteroidsOffThem()
 	{
+		var counts = new HashSet<int>();
 		for (var seed = 0; seed < 32; seed++)
 		{
 			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
-			var well = Assert.Single(encounter.WorldHazards, hazard => hazard.Kind == EBattleHazardKind.GravityWell);
-			Assert.Equal(BodyFrame.WorldAligned(well.Origin), well.Frame);
-			Assert.Equal(27, well.Cells.Count);
-			Assert.True(well.Cells.SetEquals(Coord.OffsetsInCube(1).Select(offset => well.Origin + offset)));
-			Assert.DoesNotContain(encounter.Spawns, spawn => well.Cells.Contains(spawn.Position));
+			var wells = encounter.WorldHazards.Where(hazard => hazard.Kind == EBattleHazardKind.GravityWell).ToArray();
+			Assert.Equal(new Random(seed).Next(3), wells.Length);
+			counts.Add(wells.Length);
+			var repeated = BattleEncounter.DevDefault(seed, gridSize: 64);
+			Assert.Equal(wells.Select(well => well.Origin), repeated.WorldHazards
+				.Where(hazard => hazard.Kind == EBattleHazardKind.GravityWell).Select(well => well.Origin));
+			foreach (var well in wells)
+			{
+				Assert.Equal(BodyFrame.WorldAligned(well.Origin), well.Frame);
+				Assert.Equal(27, well.Cells.Count);
+				Assert.True(well.Cells.SetEquals(Coord.OffsetsInCube(1).Select(offset => well.Origin + offset)));
+				Assert.DoesNotContain(encounter.Spawns, spawn => well.Cells.Contains(spawn.Position));
+			}
 			var claimedCells = new HashSet<Coord>();
 			foreach (var hazard in encounter.WorldHazards)
 			{
@@ -48,6 +57,12 @@ public sealed class HazardPlacementTests
 				encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray());
 			var enemyCenter = CryoPlumePlacement.Centroid(
 				encounter.Spawns.Where(spawn => spawn.Team != ETeam.Player).Select(spawn => spawn.Position).ToArray());
+			Assert.All(wells, well =>
+			{
+				Assert.InRange(well.Origin.X, System.Math.Min(playerCenter.X, enemyCenter.X), System.Math.Max(playerCenter.X, enemyCenter.X));
+				Assert.InRange(well.Origin.Y, System.Math.Min(playerCenter.Y, enemyCenter.Y), System.Math.Max(playerCenter.Y, enemyCenter.Y));
+				Assert.InRange(well.Origin.Z, System.Math.Min(playerCenter.Z, enemyCenter.Z), System.Math.Max(playerCenter.Z, enemyCenter.Z));
+			});
 			Assert.True(CryoPlumePlacement.SideImbalance(plumes, playerCenter, enemyCenter) <= CryoPlumePlacement.MaxSideImbalance);
 
 			var plumeCells = plumes.ToHashSet();
@@ -55,6 +70,7 @@ public sealed class HazardPlacementTests
 				encounter.WorldHazards.Where(hazard => hazard.Kind == EBattleHazardKind.Asteroid),
 				asteroid => Assert.DoesNotContain(asteroid.Cells, plumeCells.Contains));
 		}
+		Assert.True(counts.SetEquals([0, 1, 2]));
 	}
 
 	[Fact]
@@ -71,7 +87,7 @@ public sealed class HazardPlacementTests
 			(playerCenter.Z + enemyCenter.Z) / 2);
 		var context = new HazardPlacementContext
 		{
-			Rng = new Random(7),
+			Rng = new Random(0),
 			GridSize = 64,
 			Spawns = encounter.Spawns,
 		};
@@ -79,14 +95,17 @@ public sealed class HazardPlacementTests
 
 		new GravityWellPlacement().Place(context);
 
-		var well = Assert.Single(context.Placed);
-		Assert.DoesNotContain(midpoint, well.Cells);
-		Assert.DoesNotContain(encounter.Spawns, spawn => well.Cells.Contains(spawn.Position));
-		Assert.All(well.Cells, cell =>
+		Assert.Equal(2, context.Placed.Count);
+		foreach (var well in context.Placed)
 		{
-			Assert.InRange(cell.X, 0, 63);
-			Assert.InRange(cell.Y, 0, 63);
-			Assert.InRange(cell.Z, 0, 63);
-		});
+			Assert.DoesNotContain(midpoint, well.Cells);
+			Assert.DoesNotContain(encounter.Spawns, spawn => well.Cells.Contains(spawn.Position));
+			Assert.All(well.Cells, cell =>
+			{
+				Assert.InRange(cell.X, 0, 63);
+				Assert.InRange(cell.Y, 0, 63);
+				Assert.InRange(cell.Z, 0, 63);
+			});
+		}
 	}
 }

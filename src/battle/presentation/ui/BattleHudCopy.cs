@@ -258,6 +258,10 @@ internal static class BattleHudCopy
 			"Vented coolant from a ruptured station line.",
 			$"[icon: {Icon.Heat}, text: -{CryoPlume.HeatCleared} when moving through ]\n[icon: {Icon.Heat}, text: -{CryoPlume.HeatCleared} more when starting a turn inside ]"),
 		GoopHazard => new("Goop", "Blocks ability fire. Ships can move through it."),
+		GravityWell => new(
+			"Gravity Well",
+			"Distortions of space-time allow for free movement around the well, provided you follow the gravity curves.",
+			$"[icon: {Icon.CurrentActionPoints}, text:  Free in specified directionsaround the well]"),
 		_ => BattleHudTooltipContent.Plain(hazard.GetType().Name),
 	};
 

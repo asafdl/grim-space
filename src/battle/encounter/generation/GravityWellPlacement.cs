@@ -18,24 +18,29 @@ public sealed class GravityWellPlacement : IHazardPlacementPass
 
 		var playerCenter = CryoPlumePlacement.Centroid(players);
 		var opponentCenter = CryoPlumePlacement.Centroid(opponents);
-		var middle = new Coord(
-			System.Math.Clamp((playerCenter.X + opponentCenter.X) / 2, 1, context.GridSize - 2),
-			System.Math.Clamp((playerCenter.Y + opponentCenter.Y) / 2, 1, context.GridSize - 2),
-			System.Math.Clamp((playerCenter.Z + opponentCenter.Z) / 2, 1, context.GridSize - 2));
+		var count = context.Rng.Next(3);
+		if (count == 0)
+			return;
+		var min = new Coord(
+			System.Math.Clamp(System.Math.Min(playerCenter.X, opponentCenter.X), 1, context.GridSize - 2),
+			System.Math.Clamp(System.Math.Min(playerCenter.Y, opponentCenter.Y), 1, context.GridSize - 2),
+			System.Math.Clamp(System.Math.Min(playerCenter.Z, opponentCenter.Z), 1, context.GridSize - 2));
+		var max = new Coord(
+			System.Math.Clamp(System.Math.Max(playerCenter.X, opponentCenter.X), 1, context.GridSize - 2),
+			System.Math.Clamp(System.Math.Max(playerCenter.Y, opponentCenter.Y), 1, context.GridSize - 2),
+			System.Math.Clamp(System.Math.Max(playerCenter.Z, opponentCenter.Z), 1, context.GridSize - 2));
 		var occupied = context.Spawns.Select(spawn => spawn.Position).ToHashSet();
-		for (var radius = 0; radius < context.GridSize; radius++)
-		for (var x = -radius; x <= radius; x++)
-		for (var y = -radius; y <= radius; y++)
-		for (var z = -radius; z <= radius; z++)
+		var candidates = new List<Coord>();
+		for (var x = min.X; x <= max.X; x++)
+		for (var y = min.Y; y <= max.Y; y++)
+		for (var z = min.Z; z <= max.Z; z++)
+			candidates.Add(new Coord(x, y, z));
+		var shuffled = candidates.ToArray();
+		context.Rng.Shuffle(shuffled);
+		foreach (var center in shuffled)
 		{
-			if (System.Math.Max(System.Math.Abs(x), System.Math.Max(System.Math.Abs(y), System.Math.Abs(z))) != radius)
-				continue;
-			var center = middle + new Coord(x, y, z);
-			if (center.X < 1 || center.Y < 1 || center.Z < 1
-				|| center.X >= context.GridSize - 1
-				|| center.Y >= context.GridSize - 1
-				|| center.Z >= context.GridSize - 1)
-				continue;
+			if (count == 0)
+				return;
 			var cells = Coord.OffsetsInCube(1).Select(offset => center + offset).ToHashSet();
 			if (cells.Overlaps(occupied) || cells.Overlaps(context.ClaimedCells))
 				continue;
@@ -47,9 +52,10 @@ public sealed class GravityWellPlacement : IHazardPlacementPass
 				Frame = BodyFrame.WorldAligned(center),
 				Cells = cells,
 			});
-			return;
+			count--;
 		}
 
-		throw new InvalidOperationException("No unoccupied volume is available for a gravity well.");
+		if (count > 0)
+			throw new InvalidOperationException("Insufficient unoccupied volume between teams for gravity wells.");
 	}
 }

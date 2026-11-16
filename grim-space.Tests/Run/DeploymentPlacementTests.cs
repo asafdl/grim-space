@@ -247,8 +247,11 @@ public sealed class DeploymentPlacementTests
 		Assert.Equal(spawns.Count, spawns.Select(spawn => spawn.Position).Distinct().Count());
 	}
 
-	[Fact]
-	public void ForEngagement_TutorialScriptedLayout_HeadOnShotIsAbsorbedAndAKillShotIsReachable()
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(7)]
+	public void ForEngagement_TutorialScriptedLayout_HeadOnShotIsAbsorbedAndAKillShotIsReachable(int seed)
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -257,12 +260,13 @@ public sealed class DeploymentPlacementTests
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, enemyFleet],
 			run.ItemInventory,
-			seed: 7,
+			seed: seed,
 			"tutorial-scripted",
 			playerFleet.State.Id,
 			tutorialScriptedSpawn: true);
 		var targetId = encounter.Spawns.Single(spawn => spawn.Position == target).Ship.Id;
-		Assert.Single(encounter.WorldHazards, hazard => hazard.Kind == EBattleHazardKind.GravityWell);
+		Assert.Equal(new Random(seed).Next(3),
+			encounter.WorldHazards.Count(hazard => hazard.Kind == EBattleHazardKind.GravityWell));
 		var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
 		Assert.IsType<BattleTutorialObjectiveResult.Resolved>(BattleTutorialObjectives.ResolveShieldApproach(battle));
 		var sim = battle.PlayerAgent.Sim;
