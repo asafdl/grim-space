@@ -146,6 +146,14 @@ public partial class Session : Node
 	{
 		_instance = this;
 		ConfigureLogging();
+		var cursorTexture = GD.Load<Texture2D>(
+			ProjectSettings.GetSetting("display/mouse_cursor/custom_image").AsString());
+		using var hoverCursorImage = cursorTexture.GetImage();
+		hoverCursorImage.AdjustBcs(1.25f, 1f, 1f);
+		Input.SetCustomMouseCursor(
+			ImageTexture.CreateFromImage(hoverCursorImage),
+			Input.CursorShape.PointingHand,
+			ProjectSettings.GetSetting("display/mouse_cursor/custom_image_hotspot").AsVector2());
 		GameSettings.ApplySavedVideoConfig();
 		GameSettings.ApplySavedAudioConfig();
 		GameSettings.ApplyMouseCameraPan(GameSettings.ReadMouseCameraPan());
