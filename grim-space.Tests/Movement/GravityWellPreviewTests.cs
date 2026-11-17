@@ -80,16 +80,11 @@ public sealed class GravityWellPreviewTests
 	{
 		var firstCenter = new Coord(4, 6, 6);
 		var secondCenter = new Coord(7, 6, 6);
-		var origin = firstCenter + Right + Coord.Forward;
+		// Adjacent spin rings chain into a figure-8 of free steps that returns to the origin.
+		var origin = firstCenter + Right - Coord.Forward;
 		var neighbor = origin + Right;
 		using var battle = CreateBattle(origin, 0, firstCenter, secondCenter);
 		var sim = battle.Engine.CreateSimulation();
-		Assert.True(sim.TryEnqueue(
-			new MoveStepAction(PlayerId, ESpatialOrientation.Starboard),
-			new MoveStepAction(PlayerId, ESpatialOrientation.Port)));
-		Assert.Equal(origin, sim.World.StateOf(PlayerId).Position);
-		Assert.Equal(0, sim.World.StateOf(PlayerId).CurrentActionPoints);
-		sim.Dequeue(0);
 
 		var paths = MovePathEndpoints.DiscoverExtensions(sim, PlayerId);
 		var basis = GridBasis.From(Coord.Forward, Coord.Up, Right);
@@ -103,7 +98,7 @@ public sealed class GravityWellPreviewTests
 	[Fact]
 	public void SingleWellZeroApReachabilityFitsWithinSearchDepth()
 	{
-		foreach (var offset in Coord.OffsetsInCube(1).Where(offset => offset != Coord.Zero))
+		foreach (var offset in Coord.OffsetsInCube(1).Where(offset => offset.X != 0 || offset.Z != 0))
 			AssertZeroCostReachable(Center + offset);
 	}
 

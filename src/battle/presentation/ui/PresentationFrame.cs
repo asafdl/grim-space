@@ -48,6 +48,7 @@ public sealed class PresentationFrame
 	public MovePathOption? HoveredMove { get; init; }
 	public MovePathOption? SelectedMove { get; init; }
 	public Coord? MoveDestination { get; init; }
+	public IReadOnlySet<Coord>? IsolatedMoveCells { get; init; }
 	public UnitDisplayState? MoveGhostState { get; init; }
 	public required IReadOnlySet<Coord> ReachableMoveHeadings { get; init; }
 	public bool IsMovePoseSelectionActive { get; init; }

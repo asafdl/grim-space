@@ -35,6 +35,9 @@ public sealed partial class UserIntentTranslator : Node
 	private EPlayerMode _mode = EPlayerMode.Move;
 	private IReadOnlyList<MovePathOption> _moveOptions = [];
 	private Func<Coord, MovementPickPreference>? _movePickPreference;
+	private IReadOnlySet<Coord>? _isolatedMoveCells;
+	private bool _isolateHeld;
+	private bool _movementIsolationEnabled;
 	private IReadOnlyList<AbilityActivationChoice> _abilityChoices = [];
 	private int? _abilityHoveredIndex;
 	private TargetPickFrame? _targetPick;
@@ -86,6 +89,7 @@ public sealed partial class UserIntentTranslator : Node
 
 	public event Action<EPlayerMode>? ModeRequested;
 	public event Action<Coord?>? MoveHoverChanged;
+	public event Action<IReadOnlyList<MovementPickCandidate>?>? MoveIsolationRequested;
 	public event Action<Coord, GridBasis>? MoveSelectionStarted;
 	public event Action<GridBasis>? MovePoseRequested;
 	public event Action? MoveSelectionCanceled;
@@ -125,7 +129,8 @@ public sealed partial class UserIntentTranslator : Node
 		Coord? reopenMoveCell,
 		bool requiresFacePickAfterTargets = false,
 		bool facePickActive = false,
-		Func<Coord, MovementPickPreference>? movementPickPreference = null)
+		Func<Coord, MovementPickPreference>? movementPickPreference = null,
+		IReadOnlySet<Coord>? isolatedMoveCells = null)
 	{
 		_enabled = enabled;
 		_canIssueActions = canIssueActions;
@@ -134,6 +139,7 @@ public sealed partial class UserIntentTranslator : Node
 		_reopenMoveCell = reopenMoveCell;
 		_moveOptions = moveOptions;
 		_movePickPreference = movementPickPreference;
+		_isolatedMoveCells = isolatedMoveCells;
 		_abilityChoices = abilityChoices;
 		_abilityHoveredIndex = abilityHoveredIndex;
 		_targetPick = targetPick;
@@ -184,6 +190,7 @@ public sealed partial class UserIntentTranslator : Node
 
 	public override void _Process(double delta)
 	{
+		UpdateMovementIsolation();
 		if(_rollScrollButtonCooldownMs > 0) {
 			_rollScrollButtonCooldownMs -= delta * 1000;
 		}
@@ -227,6 +234,15 @@ public sealed partial class UserIntentTranslator : Node
 	{
 		if (!_enabled)
 			return;
+
+		UpdateMovementIsolation();
+		if (_movementIsolationEnabled && @event.IsAction("battle_isolate_movement"))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+		if (_isolatedMoveCells is not null)
+			@event = GameInputBindings.WithoutHeldActionModifiers(@event, "battle_isolate_movement");
 
 		if (!_hud.IsPauseMenuOpen
 			&& @event is InputEventKey { Pressed: true, Echo: false } cycleEnemy
@@ -318,6 +334,9 @@ public sealed partial class UserIntentTranslator : Node
 			GetViewport().SetInputAsHandled();
 			return;
 		}
+
+		if (_isolatedMoveCells is not null)
+			@event = GameInputBindings.WithoutHeldActionModifiers(@event, "battle_isolate_movement");
 
 		if (@event is InputEventKey { Pressed: true, Echo: false } key)
 		{
@@ -618,7 +637,9 @@ public sealed partial class UserIntentTranslator : Node
 		var viewport = GetViewport();
 		var viewportSize = viewport.GetVisibleRect().Size;
 		var cameraTransform = _camera.GlobalTransform;
-		if (MovementHoverReuse.CanReuseDisplayedHover(
+		if ((_isolatedMoveCells is null
+				|| _displayedHoveredMove is { } displayed && _isolatedMoveCells.Contains(displayed.EndPosition))
+			&& MovementHoverReuse.CanReuseDisplayedHover(
 			_displayedHoverSnapshot,
 			screenPosition,
 			cameraTransform,
@@ -645,7 +666,33 @@ public sealed partial class UserIntentTranslator : Node
 			screenPosition,
 			_moveOptions,
 			currentHovered,
-			_movePickPreference);
+			_movePickPreference,
+			_isolatedMoveCells);
+
+	public void SetMovementIsolationEnabled(bool enabled)
+	{
+		_movementIsolationEnabled = enabled;
+		_camera.HeldGestureModifierAction = enabled ? "battle_isolate_movement" : "";
+		if (!enabled && _isolatedMoveCells is not null)
+			MoveIsolationRequested?.Invoke(null);
+	}
+
+	private void UpdateMovementIsolation()
+	{
+		var held = Input.IsActionPressed("battle_isolate_movement") && GetWindow().HasFocus();
+		var canIsolate = _movementIsolationEnabled && _enabled && _canIssueActions
+			&& _mode == EPlayerMode.Move && !_hud.IsPauseMenuOpen && GetWindow().HasFocus();
+		if ((!held || !canIsolate) && _isolatedMoveCells is not null)
+			MoveIsolationRequested?.Invoke(null);
+		if (held && !_isolateHeld && canIsolate
+			&& !_moveInput.IsPoseSelectionActive && !_camera.IsManualGestureActive && !IsPointerOverHud())
+		{
+			_displayedHoverSnapshot = null;
+			MoveIsolationRequested?.Invoke(MovementSelection.BuildCandidates(
+				_camera, GetViewport(), GetViewport().GetMousePosition(), _moveOptions));
+		}
+		_isolateHeld = held;
+	}
 
 	private void CancelMoveSelection() => MoveSelectionCanceled?.Invoke();
 

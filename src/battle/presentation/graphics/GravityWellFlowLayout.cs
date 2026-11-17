@@ -18,8 +18,7 @@ internal static class GravityWellFlowLayout
 		foreach (var face in faces)
 		{
 			surface.Add((face.Cell, face.Normal));
-			flow.Add((face.Cell, face.Normal, face.FirstHeading));
-			flow.Add((face.Cell, face.Normal, face.SecondHeading));
+			flow.Add((face.Cell, face.Normal, face.Heading));
 		}
 
 		var runs = new List<GravityWellFlowRun>();

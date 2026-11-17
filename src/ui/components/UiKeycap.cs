@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Components;
 
 namespace GrimSpace.Ui.Components;
@@ -26,6 +27,40 @@ public sealed partial class UiKeycap : Button, IUiSized
 		AddThemeFontSizeOverride("font_size", 13);
 		SetPalette(_palette);
 	}
+
+	public static Control ForBinding(KeyBinding binding)
+	{
+		var iconPath = binding.Device == BindingDevice.Mouse ? MouseIconPath(binding.MouseButton) : null;
+		if (iconPath is not null)
+		{
+			return new TextureRect
+			{
+				Texture = GD.Load<Texture2D>(iconPath)
+					?? throw new InvalidOperationException($"Could not load input glyph '{iconPath}'."),
+				CustomMinimumSize = new Vector2(26f, 30f),
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+				MouseFilter = MouseFilterEnum.Ignore,
+			};
+		}
+
+		return new UiKeycap(GameInputBindings.LabelForBinding(binding))
+		{
+			SizeOverride = new UiSizeOverride(Width: 26f, Height: 26f),
+			SizeFlagsVertical = SizeFlags.ShrinkCenter,
+			MouseFilter = MouseFilterEnum.Ignore,
+			FocusMode = FocusModeEnum.None,
+		};
+	}
+
+	public static string? MouseIconPath(MouseButton button) => button switch
+	{
+		MouseButton.Left => "res://assets/ui/input/mouse_left.svg",
+		MouseButton.Right => "res://assets/ui/input/mouse_right.svg",
+		MouseButton.Middle => "res://assets/ui/input/mouse_middle.svg",
+		MouseButton.WheelUp or MouseButton.WheelDown => "res://assets/ui/input/mouse_scroll.svg",
+		_ => null,
+	};
 
 	public void SetPalette(HudPalette palette)
 	{

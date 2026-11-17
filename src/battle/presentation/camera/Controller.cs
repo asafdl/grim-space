@@ -8,6 +8,7 @@ namespace GrimSpace.Battle.Presentation.Camera;
 public partial class Controller : Camera3D, ICameraRig
 {
 	public event Action? ManualInputStarted;
+	public StringName HeldGestureModifierAction { get; set; } = "";
 
 	private static readonly OrbitLimits Limits = new(
 		MinDistance: 8f,
@@ -468,6 +469,7 @@ public partial class Controller : Camera3D, ICameraRig
 			return;
 		}
 
+		@event = GameInputBindings.WithoutHeldActionModifiers(@event, HeldGestureModifierAction);
 		switch (@event)
 		{
 			case InputEventMouseButton { Pressed: true } orbitStart

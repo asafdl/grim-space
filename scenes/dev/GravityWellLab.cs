@@ -51,7 +51,7 @@ public partial class GravityWellLab : Node3D
 			Text = $"GRAVITY WELL LAB — SURFACE FLOW (Y IS UP)\n"
 				+ $"Hold {GameInputBindings.Label("battle_camera_orbit")} and drag to orbit  ·  "
 				+ $"{GameInputBindings.Label("battle_zoom_in")} / {GameInputBindings.Label("battle_zoom_out")} to zoom  ·  R to reset\n"
-				+ "Mirrored flow on both sides, using the standard heading colors.",
+				+ "Flow spins around the well's dorsal axis, using the standard heading colors.",
 		});
 		_simulationStatus = new Label
 		{

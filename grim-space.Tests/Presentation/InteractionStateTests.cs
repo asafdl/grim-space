@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Interaction;
+using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 
@@ -9,6 +10,65 @@ namespace GrimSpace.Tests.Presentation;
 [BattleTestSuite]
 public sealed class InteractionStateTests
 {
+	[Fact]
+	public void IsolationFreezesEligibleCellsAndRestrictsHoverUntilReleased()
+	{
+		var state = new InteractionState();
+		var first = new Coord(1, 0, 0);
+		var second = new Coord(2, 0, 0);
+		var other = new Coord(3, 0, 0);
+		var options = new[] { CreateOption(first), CreateOption(second), CreateOption(other) };
+		state.SetMoveHover(other, options);
+		state.IsolateMoveCells([
+			new(first, 10f, 24f, 10f),
+			new(second, 24f, 24f, 20f),
+			new(other, 25f, 24f, 5f),
+		]);
+
+		Assert.True(state.IsolatedMoveCells!.SetEquals([first, second]));
+		Assert.Null(state.MoveHoveredCell);
+		state.IsolateMoveCells([new(other, 0f, 24f, 1f)]);
+		Assert.True(state.IsolatedMoveCells.SetEquals([first, second]));
+		state.SetMoveHover(first, options);
+		Assert.Equal(first, state.MoveHoveredCell);
+		state.SetMoveHover(other, options);
+		Assert.Null(state.MoveHoveredCell);
+
+		state.ReleaseMoveIsolation();
+		state.SetMoveHover(other, options);
+		Assert.Equal(other, state.MoveHoveredCell);
+	}
+
+	[Fact]
+	public void EmptyIsolationDoesNotFallBackToNormalPicking()
+	{
+		var state = new InteractionState();
+		var cell = new Coord(1, 0, 0);
+		state.IsolateMoveCells([]);
+		state.SetMoveHover(cell, [CreateOption(cell)]);
+		Assert.NotNull(state.IsolatedMoveCells);
+		Assert.Empty(state.IsolatedMoveCells);
+		Assert.Null(state.MoveHoveredCell);
+	}
+
+	[Fact]
+	public void IsolationSurvivesPinningButClearsWhenMoveCompletesOrModeChanges()
+	{
+		var state = new InteractionState();
+		var cell = new Coord(1, 0, 0);
+		state.IsolateMoveCells([new(cell, 0f, 24f, 1f)]);
+		state.BeginMoveSelection(cell, MovePose.For(Coord.Forward, 0));
+		Assert.Contains(cell, state.IsolatedMoveCells!);
+		state.CompleteMoveSelection();
+		Assert.Null(state.IsolatedMoveCells);
+
+		state.IsolateMoveCells([new(cell, 0f, 24f, 1f)]);
+		state.SetMode(EPlayerMode.LightningCannon);
+		Assert.Null(state.IsolatedMoveCells);
+		state.IsolateMoveCells([new(cell, 0f, 24f, 1f)]);
+		Assert.Null(state.IsolatedMoveCells);
+	}
+
 	[Fact]
 	public void ClearHoversClearsAbilityHover()
 	{

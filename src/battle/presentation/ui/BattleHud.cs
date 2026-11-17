@@ -42,6 +42,8 @@ public partial class BattleHud : Node
 	private bool _planningVignetteTargetVisible;
 	private CanvasLayer _topHud = null!;
 	private CanvasLayer _bottomHud = null!;
+	private BattleControlHints _controlHints = null!;
+	private bool _simulationVisualsEnabled;
 	private CanvasLayer _actionLogLayer = null!;
 	private MarginContainer _actionLogHost = null!;
 	private ActionLogPanel _actionLogPanel = null!;
@@ -117,6 +119,8 @@ public partial class BattleHud : Node
 		};
 		_turnBadge.AddChild(_turnLabel);
 		turnRow.AddChild(_turnBadge);
+		_controlHints = new BattleControlHints();
+		turnRow.AddChild(_controlHints);
 
 		var flowCenter = new CenterContainer
 		{
@@ -187,6 +191,13 @@ public partial class BattleHud : Node
 		_actionLogHost.Theme = battleTheme;
 		PauseMenu.ApplyTheme(MenuUi.Theme);
 		CommandHud.Theme = battleTheme;
+		_controlHints.Theme = battleTheme;
+	}
+
+	public void SetSimulationVisualsEnabled(bool enabled)
+	{
+		_simulationVisualsEnabled = enabled;
+		_controlHints.Visible = enabled && _bottomHud.Visible;
 	}
 
 	private void BuildMountSelector()
@@ -329,6 +340,8 @@ public partial class BattleHud : Node
 		}
 
 		_bottomHud.Visible = !hideHud;
+		_controlHints.Apply(frame);
+		_controlHints.Visible = _simulationVisualsEnabled && !hideHud;
 		if (hideHud)
 			return;
 

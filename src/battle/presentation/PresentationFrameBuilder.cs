@@ -284,6 +284,7 @@ public sealed class PresentationFrameBuilder
 			HoveredMove = hoveredMove,
 			SelectedMove = selectedMove,
 			MoveDestination = state.MoveDestination,
+			IsolatedMoveCells = state.IsolatedMoveCells,
 			MoveGhostState = activeMovePreview?.ResultState,
 			ReachableMoveHeadings = reachableMoveHeadings,
 			IsMovePoseSelectionActive = state.IsMovePoseSelectionActive,

@@ -4,6 +4,8 @@ using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Math.Grid;
+using System.Collections.Frozen;
+using GrimSpace.Battle.Presentation.Picking;
 
 namespace GrimSpace.Battle.Presentation.Interaction;
 
@@ -26,6 +28,7 @@ public sealed class InteractionState
 	public AbilityHudCatalog.Spec? ActiveAbilitySpec { get; private set; }
 	public int? AbilityHoveredIndex { get; private set; }
 	public Coord? MoveHoveredCell { get; private set; }
+	public IReadOnlySet<Coord>? IsolatedMoveCells { get; private set; }
 	public Coord? MoveDestination { get; private set; }
 	public GridBasis? RequestedMoveBasis { get; private set; }
 	public int MoveRollQuarters { get; private set; }
@@ -162,6 +165,7 @@ public sealed class InteractionState
 
 	public void CompleteMoveSelection()
 	{
+		IsolatedMoveCells = null;
 		MoveDestination = null;
 		RequestedMoveBasis = null;
 		MoveRollQuarters = 0;
@@ -189,8 +193,23 @@ public sealed class InteractionState
 		ActionError = BattleHudCopy.ActionUnavailable;
 	}
 
+	public void IsolateMoveCells(IEnumerable<MovementPickCandidate> candidates)
+	{
+		if (IsolatedMoveCells is not null || Mode != EPlayerMode.Move || MoveDestination is not null)
+			return;
+
+		IsolatedMoveCells = candidates.Where(MovementPick.IsEligible)
+			.Select(candidate => candidate.Coordinate).ToFrozenSet();
+		if (MoveHoveredCell is Coord hovered && !IsolatedMoveCells.Contains(hovered))
+			MoveHoveredCell = null;
+	}
+
+	public void ReleaseMoveIsolation() => IsolatedMoveCells = null;
+
 	public void SetMoveHover(Coord? cell, IReadOnlyList<MovePathOption> options) =>
-		MoveHoveredCell = ValidateMoveHover(cell, options);
+		MoveHoveredCell = cell is Coord coordinate && IsolatedMoveCells is { } isolated && !isolated.Contains(coordinate)
+			? null
+			: ValidateMoveHover(cell, options);
 
 	public void ValidateMoveHover(IReadOnlyList<MovePathOption> options) =>
 		MoveHoveredCell = ValidateMoveHover(MoveHoveredCell, options);

@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Application;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Encounter;
@@ -8,7 +9,6 @@ using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Domains.Move;
 using GrimSpace.Battle.Presentation.Graphics;
-using GrimSpace.Battle.Presentation.Picking;
 using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
@@ -21,41 +21,30 @@ public partial class MovementPickLab : Node3D
 {
 	private static readonly Color PlayerColor = new(0.32f, 0.78f, 0.56f);
 	private static readonly Color EnemyColor = new(0.9f, 0.25f, 0.3f);
+	private static readonly Coord EnemyPosition = new(19, 17, 22);
 
 	private PresentationFrameBuilder _frames = new();
-	private PlanningPreview _preview = new();
-	private readonly Dictionary<Coord, MovementPickPreference> _preferences = [];
-	private readonly Dictionary<MovePathOption, bool> _firingOpportunities = [];
-	private Dictionary<Coord, MovePathOption[]> _optionsByDestination = [];
-	private Func<Coord, MovementPickPreference> _destinationPreference = null!;
-	private string _referenceEnemyId = null!;
-	private Coord _referenceEnemyPosition;
-	private bool _assistedPicking = true;
-	private Coord? _lastLoggedSnap;
 	private BattleOrchestrator _battle = null!;
 	private Controller _camera = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private BattleView _units = null!;
-	private Label3D _targetMarker = null!;
 	private Button _moveButton = null!;
-	private bool _showCellColors;
 	private RelationshipGuideView _relationshipGuide = null!;
-	private Label _relationshipReadout = null!;
-	private int _referencePlane;
 	private GridView _grid = null!;
 	private MoveGhostView _ghost = null!;
 	private CellVolumeMeshStore _meshes = null!;
 	private PresentationFrame _frame = null!;
 	private Label _readout = null!;
-	private readonly Dictionary<Coord, (Color Color, StandardMaterial3D Fill, StandardMaterial3D Outline)> _cellColors = [];
-	private Node3D _coloredCells = null!;
-	private Coord? _highlightedCell;
-	private int _destinationCount;
-	private string _message = "Hover to preview; click to pin a destination.";
+	private string _message = "Hover to preview; click to pin.";
+	private MoveRouteRibbonView _routeRibbon = null!;
+	private bool _showRouteRibbon = true;
+	private bool _ctrlHeld;
+	private MoveCandidateOutlineView _candidateHighlights = null!;
+	private Label _candidateReadout = null!;
 
 	public override void _Ready()
 	{
-		CreateEncounter(new Coord(16, 16, 16), Coord.Forward, Coord.Up, new Coord(19, 17, 22));
+		CreateEncounter(new Coord(16, 16, 16), Coord.Forward, Coord.Up);
 
 		AddChild(new WorldEnvironment
 		{
@@ -73,7 +62,11 @@ public partial class MovementPickLab : Node3D
 			RotationDegrees = new Vector3(-48, -28, 0),
 			LightEnergy = 1.8f,
 		});
-		_camera = new Controller { Name = "Camera3D", Current = true };
+		_camera = new Controller
+		{
+			Name = "Camera3D", Current = true,
+			HeldGestureModifierAction = "battle_isolate_movement",
+		};
 		AddChild(_camera);
 		_cameraDirector = new BattleCameraDirector(_camera);
 		_camera.ManualInputStarted += _cameraDirector.OnManualInputStarted;
@@ -83,7 +76,7 @@ public partial class MovementPickLab : Node3D
 		_grid = new GridView { Name = "MovementGrid" };
 		AddChild(_grid);
 		_grid.Build(_camera, _meshes);
-		_ghost = new MoveGhostView { Name = "MoveGhost" };
+		_ghost = new MoveGhostView { Name = "MoveGhost", ShowAxisGuides = false };
 		_ghost.Configure(_camera);
 		AddChild(_ghost);
 		_ghost.RollButton.GuiInput += @event =>
@@ -105,39 +98,33 @@ public partial class MovementPickLab : Node3D
 			_ghost.RollButton.AcceptEvent();
 		};
 
-		_targetMarker = new Label3D
-		{
-			Text = "ASSIST TARGET",
-			Position = WorldMapping.ToWorld(_referenceEnemyPosition) + Vector3.Up,
-			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			Modulate = Colors.Gold,
-			NoDepthTest = true,
-			PixelSize = 0.01f,
-			FontSize = 36,
-		};
-		PresentationLayers.MarkUx(_targetMarker);
-		AddChild(_targetMarker);
-
 		_units = new BattleView { Name = "Ships" };
 		AddChild(_units);
-		_relationshipGuide = new RelationshipGuideView { Name = "RelationshipGuide" };
+		_relationshipGuide = new RelationshipGuideView
+		{
+			Name = "RelationshipGuide",
+			ShowReticle = false,
+			AnimateAlignment = true,
+		};
 		AddChild(_relationshipGuide);
+		_routeRibbon = new MoveRouteRibbonView { Name = "MoveRouteRibbon" };
+		AddChild(_routeRibbon);
+		_candidateHighlights = new MoveCandidateOutlineView { Name = "LockedCandidateCells" };
+		AddChild(_candidateHighlights);
 		BuildHud();
 		RebuildLab();
 	}
 
 	public override void _Process(double delta)
 	{
+		UpdateCandidateLock(Input.IsActionPressed("battle_isolate_movement") && GetWindow().HasFocus());
 		if (_cameraDirector.NeedsTick)
 			_cameraDirector.Tick((float)delta, WorldMapping.ToWorld(_frame.FocusState.Position));
 		var updates = _meshes.Pump(_frame.SimulationTick);
 		foreach (var failure in updates.Failures)
 			GD.PushError($"Movement pick lab mesh generation failed for {failure.Key}: {failure.Error}");
 		if (updates.ProcessedCount > 0)
-		{
 			_grid.ApplyFrame(_frame);
-			_grid.GetNode<Node3D>("MovementRangeShell").Hide();
-		}
 
 		if (_frames.Interaction.MoveDestination is not null)
 			return;
@@ -148,13 +135,9 @@ public partial class MovementPickLab : Node3D
 		var hovered = canPick
 			? MovementSelection.PickCoordinate(
 				_camera, GetViewport(), mouse,
-				_frame.MovePaths, previous,
-				_assistedPicking ? PreferenceFor : null)
+				_frame.MovePaths, previous, _frame.MovementPickPreference,
+				_frames.Interaction.IsolatedMoveCells)
 			: null;
-		var baseline = canPick && _assistedPicking
-			? MovementSelection.PickCoordinate(_camera, GetViewport(), mouse, _frame.MovePaths, previous)
-			: hovered;
-		LogPick(hovered, baseline);
 		if (hovered == _frames.Interaction.MoveHoveredCell)
 			return;
 
@@ -162,8 +145,32 @@ public partial class MovementPickLab : Node3D
 		RefreshFrame();
 	}
 
+	public override void _Input(InputEvent @event)
+	{
+		if (@event.IsAction("battle_isolate_movement"))
+		{
+			UpdateCandidateLock(Input.IsActionPressed("battle_isolate_movement") && GetWindow().HasFocus());
+			GetViewport().SetInputAsHandled();
+		}
+	}
+
+	private void UpdateCandidateLock(bool held)
+	{
+		if (held == _ctrlHeld)
+			return;
+		_ctrlHeld = held;
+		if (!held)
+			_frames.Interaction.ReleaseMoveIsolation();
+		else if (CanPick() && _frame.SelectedMove is null)
+			_frames.Interaction.IsolateMoveCells(MovementSelection.BuildCandidates(
+				_camera, GetViewport(), GetViewport().GetMousePosition(), _frame.MovePaths));
+		RefreshFrame();
+	}
+
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (_frames.Interaction.IsolatedMoveCells is not null)
+			@event = GameInputBindings.WithoutHeldActionModifiers(@event, "battle_isolate_movement");
 		if (@event is InputEventKey { Pressed: true, Echo: false } key)
 		{
 			if (key.Keycode == Key.Escape)
@@ -198,10 +205,10 @@ public partial class MovementPickLab : Node3D
 				if (option is not null)
 				{
 					_frames.Interaction.BeginMoveSelection(option.EndPosition, option.EndBasis);
-					_message = "Pinned. Choose a heading, then Enter / Move here.";
+					_message = "Pinned. Choose heading, then Enter.";
 				}
 				else
-					_message = "No preview under cursor. Hover a reachable destination first.";
+					_message = "Hover a reachable destination first.";
 			}
 			RefreshFrame();
 		}
@@ -227,7 +234,7 @@ public partial class MovementPickLab : Node3D
 	{
 		_frames.Interaction.ClearMoveSelection();
 		_frames.Interaction.ClearHovers();
-		_message = "Hover to preview; click to pin a destination.";
+		_message = "Hover to preview; click to pin.";
 		RefreshFrame();
 	}
 
@@ -238,7 +245,7 @@ public partial class MovementPickLab : Node3D
 		_camera.SetFocus(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch);
 	}
 
-	private void CreateEncounter(Coord playerPosition, Coord fore, Coord dorsal, Coord enemyPosition)
+	private void CreateEncounter(Coord playerPosition, Coord fore, Coord dorsal)
 	{
 		_battle?.Dispose();
 		_battle = BattleOrchestrator.FromEncounter(new BattleEncounter
@@ -263,7 +270,7 @@ public partial class MovementPickLab : Node3D
 					Ship = ShipInstance.FromCatalog("lab-enemy", EType.IndustrialGooper),
 					Team = ETeam.Enemy,
 			Faction = EFaction.TheOptimality,
-					Position = enemyPosition,
+					Position = EnemyPosition,
 					Fore = -Coord.Forward,
 					ExecutionAgent = new AiController(),
 				},
@@ -274,38 +281,13 @@ public partial class MovementPickLab : Node3D
 
 	private void RebuildLab()
 	{
-		_lastLoggedSnap = null;
+		UpdateCandidateLock(false);
 		_frames = new PresentationFrameBuilder();
-		_preview = new PlanningPreview();
-		_preferences.Clear();
-		_firingOpportunities.Clear();
 		_frame = _frames.BuildFrame(_battle, _battle.PlayerAgent, acceptsCommands: true);
-		_referenceEnemyId = "lab-enemy";
-		_referenceEnemyPosition = _frame.PreviewUnits[_referenceEnemyId].Position;
-		_optionsByDestination = _frame.MovePaths.Where(path => path.Steps.Count > 0)
-			.GroupBy(path => path.EndPosition)
-			.ToDictionary(group => group.Key, group => group.ToArray());
-		_destinationCount = _optionsByDestination.Count;
-		_destinationPreference = _preview.MovementPickPreferences(
-			_battle.PlayerAgent.Sim, _battle.PlayerId, _referenceEnemyId, _frame.MovePaths);
-		foreach (var coordinate in _optionsByDestination.Keys)
-			PreferenceFor(coordinate);
-		_highlightedCell = null;
-		_cellColors.Clear();
-		if (_coloredCells is not null)
-		{
-			RemoveChild(_coloredCells);
-			_coloredCells.QueueFree();
-		}
-		BuildColoredCells();
 		_units.ApplyUnitStates(_frame.PreviewUnits.ToDictionary(pair => pair.Key, pair => pair.Value.ToState()),
 			id => _frame.PreviewUnitTeams[id] == ETeam.Player ? PlayerColor : EnemyColor);
-		_targetMarker.Position = WorldMapping.ToWorld(_referenceEnemyPosition) + Vector3.Up;
 		_camera.SetOrbitFocus(WorldMapping.ToWorld(_frame.FocusState.Position));
 		ApplyFrame();
-		GD.Print($"Movement pick lab ready: player {_frame.FocusState.Position}, enemy {_referenceEnemyPosition}, "
-			+ $"{_destinationCount} destinations; {_preferences.Values.Count(preference => preference.CanHit)} firing destinations, "
-			+ $"{_preferences.Values.Count(preference => preference.CanHit && preference.AlignedAxes == 2)} on enemy axis lines.");
 	}
 
 	public void MoveHere()
@@ -319,7 +301,7 @@ public partial class MovementPickLab : Node3D
 		if (!_battle.PlayerAgent.TryEnqueue(selected.Steps))
 		{
 			GD.PushError("Movement pick lab could not enqueue the selected movement path.");
-			_message = "Move rejected by the simulation. Clear the selection and try again.";
+			_message = "Move rejected. Esc to clear and retry.";
 			ApplyFrame();
 			return;
 		}
@@ -328,33 +310,16 @@ public partial class MovementPickLab : Node3D
 		var fore = result.Fore;
 		var dorsal = result.Dorsal;
 		// Each move starts a fresh sandbox encounter, restoring resources without changing live battle rules.
-		CreateEncounter(position, fore, dorsal, _referenceEnemyPosition);
-		_message = "Moved. Movement resources refreshed; pick the next destination.";
+		CreateEncounter(position, fore, dorsal);
+		_message = "Moved. Resources refreshed.";
 		RebuildLab();
 		_cameraDirector.ReturnControl(WorldMapping.ToWorld(position));
 	}
 
-	public void RandomizeEnemy()
-	{
-		var player = _frame.FocusState;
-		var candidates = Coord.OffsetsInCube(7)
-			.Where(offset => offset.ManhattanDistanceTo(Coord.Zero) is >= 4 and <= 12)
-			.Select(offset => player.Position + offset)
-			.Where(cell => cell.X is >= 1 and < 31 && cell.Y is >= 1 and < 31 && cell.Z is >= 1 and < 31
-				&& cell != _referenceEnemyPosition)
-			.ToArray();
-		if (candidates.Length == 0)
-			throw new InvalidOperationException("No valid randomized enemy position in the lab grid.");
-		var enemy = candidates[Random.Shared.Next(candidates.Length)];
-		CreateEncounter(player.Position, player.Fore, player.Dorsal, enemy);
-		_message = "Enemy randomized; ship and camera preserved.";
-		RebuildLab();
-	}
-
 	public void ResetLab()
 	{
-		CreateEncounter(new Coord(16, 16, 16), Coord.Forward, Coord.Up, new Coord(19, 17, 22));
-		_message = "Lab reset. Hover to preview; click to select.";
+		CreateEncounter(new Coord(16, 16, 16), Coord.Forward, Coord.Up);
+		_message = "Lab reset. Hover to preview.";
 		RebuildLab();
 		ResetCamera();
 	}
@@ -365,77 +330,45 @@ public partial class MovementPickLab : Node3D
 		ApplyFrame();
 	}
 
-	private MovementPickPreference PreferenceFor(Coord coordinate)
-	{
-		if (_preferences.TryGetValue(coordinate, out var cached))
-			return cached;
-
-		var preference = _destinationPreference(coordinate);
-		_preferences.Add(coordinate, preference);
-		return preference;
-	}
-
-	private void LogPick(Coord? picked, Coord? baseline)
-	{
-		var snapped = _assistedPicking && picked != baseline && picked is Coord cell
-			&& (PreferenceFor(cell).CanHit || PreferenceFor(cell).AlignedAxes == 2)
-				? picked : null;
-		if (_lastLoggedSnap == snapped)
-			return;
-		_lastLoggedSnap = snapped;
-		GD.Print(snapped is Coord target
-			? $"[movement-pick] SNAP {Format(target)} - "
-				+ (PreferenceFor(target).CanHit ? "firing position (heading manual)" : "enemy axis line")
-			: "[movement-pick] snap released");
-	}
-
 	private void ApplyFrame()
 	{
 		_moveButton.Disabled = _frame.SelectedMove is null;
 		_grid.ApplyFrame(_frame);
-		_grid.GetNode<Node3D>("MovementRangeShell").Hide();
-		UpdateCellHighlight();
 		_ghost.Apply(_frame.MoveGhostState, _frame.MoveCheckpoints, _frame.FocusState,
 			_frame.ReachableMoveHeadings, PlayerColor, selected: _frame.SelectedMove is not null);
-		_ghost.GetNode<Node3D>("DottedAxisGuides").Hide();
 		var option = _frame.SelectedMove ?? _frame.HoveredMove;
-		ApplyRelationshipGuide(option?.EndPosition ?? _frame.FocusState.Position, option is not null);
+		_candidateHighlights.Apply(_frame.IsolatedMoveCells, enabled: true);
+		_candidateReadout.Text = _frame.IsolatedMoveCells is not { } cells
+			? $"Hold {GameInputBindings.Label("battle_isolate_movement")}: isolate choices, then orbit."
+			: cells.Count == 0
+				? "No choices locked. Release and retry."
+				: $"{cells.Count} cells locked. Orbit to separate.";
+		_routeRibbon.ApplyFrame(_frame, _showRouteRibbon);
+		ApplyRelationshipGuide();
 		_readout.Text =
-			$"Picker: {(_assistedPicking ? "firing-position assist" : "current battle algorithm")}"
-			+ $" | {_destinationCount} destinations\n"
-			+ $"Assist target: {_referenceEnemyId} {Format(_referenceEnemyPosition)}\n"
-			+ $"Source: {Format(_frame.FocusState.Position)}\n"
-			+ $"Hover: {Format(_frames.Interaction.MoveHoveredCell)}"
-			+ $" | Pinned: {Format(_frames.Interaction.MoveDestination)}\n"
+			$"Destination: {Format(option?.EndPosition)}{(_frame.SelectedMove is not null ? " (pinned)" : "")}\n"
 			+ (option is null
-				? "Path: --\n"
-				: $"Path: {option.Steps.Count} steps | AP: {option.ExtensionApCost}"
-					+ $" | MP: {option.ExtensionMpCost} | Heading: {Format(option.EndBasis.Forward)}\n")
-			+ (option is not null && _assistedPicking
-				? $"Enemy axis line: {(PreferenceFor(option.EndPosition).AlignedAxes == 2 ? "yes" : "no")}"
-					+ $" | Reachable firing heading: {(PreferenceFor(option.EndPosition).CanHit ? "yes" : "no")}\n"
-					+ $"Current heading can hit: {(CanHitReference(option) ? "yes" : "no - choose heading manually")}\n"
-				: "")
+				? ""
+				: $"AP: {option.ExtensionApCost} | MP: {option.ExtensionMpCost}\n")
 			+ _message;
 	}
 
-	private void ApplyRelationshipGuide(Coord sourceCell, bool previewing)
+	private void ApplyRelationshipGuide()
 	{
-		var plane = (RelationshipGuideView.ReferencePlane)_referencePlane;
-		var aligned = _relationshipGuide.Apply(sourceCell, _referenceEnemyPosition, plane);
-		_relationshipReadout.Text = $"{(previewing ? "Destination" : "Player")} relative to target's {plane} plane: "
-			+ (aligned ? "ALIGNED (not necessarily a firing position)" : "off-plane");
-	}
+		if (_frame.RangeEnemy is not { } target
+			|| !_frame.PreviewUnits.TryGetValue(target.EnemyId, out var enemy))
+		{
+			_relationshipGuide.Visible = false;
+			return;
+		}
 
-	private bool CanHitReference(MovePathOption option)
-	{
-		if (_firingOpportunities.TryGetValue(option, out var cached))
-			return cached;
-
-		var canHit = _preview.PoseHitOpportunities(_battle.PlayerAgent.Sim, _battle.PlayerId, option)
-			.Any(opportunity => opportunity.TargetId == _referenceEnemyId);
-		_firingOpportunities.Add(option, canHit);
-		return canHit;
+		_relationshipGuide.Visible = true;
+		_relationshipGuide.Apply(
+			(_frame.MoveGhostState ?? _frame.FocusState).Position,
+			enemy.Position,
+			RelationshipGuideView.ReferencePlane.XZ,
+			showAlignment: BattleDistance.SeparationMeters(_frame.FocusState.Position, enemy.Position)
+				< RelationshipGuideView.AlignmentDistanceMeters);
 	}
 
 	private void BuildHud()
@@ -453,80 +386,32 @@ public partial class MovementPickLab : Node3D
 		margin.AddChild(column);
 		column.AddChild(new Label
 		{
-			Text = "Movement picking lab\n"
-				+ "Immediate movement; resources refresh after each move. Enemy stays still.\n"
-				+ "Use your battle camera bindings to orbit / pan / zoom.\n"
-				+ "Left click: select / heading | Enter: move | Esc: clear | R: reset camera",
+			Text = "Movement lab\n"
+				+ "Click: pin / orient | Enter: move\n"
+				+ "Esc: clear | R: reset camera\n"
+				+ "Movement resources refresh after moving.",
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		});
 		_readout = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
 		column.AddChild(_readout);
-		var assist = new CheckButton
+		_candidateReadout = new Label
 		{
-			Text = "Firing-position assist (heading stays manual)",
-			TooltipText = "Firing destinations / enemy axis lines attract within 18 pixels of the closest cell "
-				+ "and release beyond 24 pixels. Other alignment uses a weak 6-pixel tie-break.\n"
-				+ "Direct aim within 1 pixel selects the closest centre. No automatic heading changes.",
-			ButtonPressed = _assistedPicking,
-		};
-		assist.Toggled += enabled =>
-		{
-			_assistedPicking = enabled;
-			ClearSelection();
-		};
-		column.AddChild(assist);
-		var planePicker = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-		planePicker.AddItem("Target plane: XZ (match height)");
-		planePicker.AddItem("Target plane: YZ (match X)");
-		planePicker.AddItem("Target plane: XY (match Z)");
-		planePicker.ItemSelected += index =>
-		{
-			_referencePlane = checked((int)index);
-			ApplyFrame();
-		};
-		column.AddChild(planePicker);
-		var relationship = new CheckButton
-		{
-			Text = "Relationship guide",
-			ButtonPressed = true,
-		};
-		relationship.Toggled += enabled =>
-		{
-			_relationshipGuide.Visible = enabled;
-		};
-		column.AddChild(relationship);
-		_relationshipReadout = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
-		column.AddChild(_relationshipReadout);
-		column.AddChild(new Label
-		{
-			Text = "Gold stem = off-plane | pale line = separation on plane\n"
-				+ "Ring + cross = plane aligned. Guide follows preview, otherwise player.",
 			MouseFilter = Control.MouseFilterEnum.Ignore,
-		});
-		var colors = new CheckButton
-		{
-			Text = "Per-cell colors (bright cell = hovered / pinned)",
-			ButtonPressed = _showCellColors,
 		};
-		colors.Toggled += enabled =>
+		column.AddChild(_candidateReadout);
+		var route = new CheckButton
 		{
-			_showCellColors = enabled;
-			_coloredCells.Visible = enabled;
+			Text = "Experiment: route ribbon",
+			TooltipText = "Off: current battle preview. On: add the heading-colored route ribbon.",
+			ButtonPressed = _showRouteRibbon,
+			FocusMode = Control.FocusModeEnum.None,
 		};
-		column.AddChild(colors);
-		column.AddChild(new Label
+		route.Toggled += enabled =>
 		{
-			Text = "Axis-line cells: green = firing heading available | gold = alignment only",
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-		});
-		var buttons = new HBoxContainer();
-		column.AddChild(buttons);
-		var clear = new Button { Text = "Clear selection", FocusMode = Control.FocusModeEnum.None };
-		clear.Pressed += ClearSelection;
-		buttons.AddChild(clear);
-		var reset = new Button { Text = "Reset camera", FocusMode = Control.FocusModeEnum.None };
-		reset.Pressed += ResetCamera;
-		buttons.AddChild(reset);
+			_showRouteRibbon = enabled;
+			_routeRibbon.ApplyFrame(_frame, _showRouteRibbon);
+		};
+		column.AddChild(route);
 		var actions = new HBoxContainer();
 		column.AddChild(actions);
 		_moveButton = new Button
@@ -535,83 +420,9 @@ public partial class MovementPickLab : Node3D
 		};
 		_moveButton.Pressed += MoveHere;
 		actions.AddChild(_moveButton);
-		var randomize = new Button { Text = "Randomize enemy", FocusMode = Control.FocusModeEnum.None };
-		randomize.Pressed += RandomizeEnemy;
-		actions.AddChild(randomize);
 		var resetLab = new Button { Text = "Reset lab", FocusMode = Control.FocusModeEnum.None };
 		resetLab.Pressed += ResetLab;
 		actions.AddChild(resetLab);
-	}
-
-	private void BuildColoredCells()
-	{
-		_coloredCells = new Node3D { Name = "ColoredDestinations", Visible = _showCellColors };
-		AddChild(_coloredCells);
-		// Inset the cubes so adjacent cells do not share overlapping colored faces.
-		var box = new BoxMesh { Size = Vector3.One * WorldMapping.CellSize * 0.94f };
-		var outline = CellGridGeometry.CreateMesh(
-			Vector3.One.Normalized(), [Vector3.Zero], includeHatches: false,
-			new CellGridGeometry.LineAppearance(1f, 1f, 1f));
-		var coordinates = _frame.MovePaths.Select(path => path.EndPosition)
-			.Distinct().OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z)
-			.ToArray();
-		for (var i = 0; i < coordinates.Length; i++)
-		{
-			var coordinate = coordinates[i];
-			var preference = PreferenceFor(coordinate);
-			var color = preference.AlignedAxes == 2
-				? preference.CanHit ? new Color(0.3f, 1f, 0.45f) : Colors.Gold
-				: Color.FromHsv(Mathf.PosMod(i * 0.618034f, 1f), 0.55f, 0.85f);
-			var fillMaterial = CellGridGeometry.CreateMaterial(new Color(color, 0.045f));
-			var outlineMaterial = CellGridGeometry.CreateMaterial(
-				new Color(color, preference.AlignedAxes == 2 ? 0.85f : 0.3f));
-			var cell = new Node3D
-			{
-				Name = $"Cell_{coordinate.X}_{coordinate.Y}_{coordinate.Z}",
-				Position = WorldMapping.ToWorld(coordinate),
-			};
-			_coloredCells.AddChild(cell);
-			var fill = new MeshInstance3D
-			{
-				Mesh = box,
-				MaterialOverride = fillMaterial,
-				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			};
-			var edges = new MeshInstance3D
-			{
-				Mesh = outline,
-				MaterialOverride = outlineMaterial,
-				Scale = Vector3.One * 0.94f,
-				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-			};
-			PresentationLayers.MarkUx(fill);
-			PresentationLayers.MarkUx(edges);
-			cell.AddChild(fill);
-			cell.AddChild(edges);
-			_cellColors.Add(coordinate, (color, fillMaterial, outlineMaterial));
-		}
-	}
-
-	private void UpdateCellHighlight()
-	{
-		var highlighted = _frame.SelectedMove?.EndPosition ?? _frame.HoveredMove?.EndPosition;
-		if (highlighted == _highlightedCell)
-			return;
-
-		if (_highlightedCell is Coord previous)
-		{
-			var old = _cellColors[previous];
-			old.Fill.AlbedoColor = new Color(old.Color, 0.045f);
-			old.Outline.AlbedoColor = new Color(old.Color,
-				PreferenceFor(previous).AlignedAxes == 2 ? 0.85f : 0.3f);
-		}
-		if (highlighted is Coord current)
-		{
-			var active = _cellColors[current];
-			active.Fill.AlbedoColor = new Color(active.Color, 0.24f);
-			active.Outline.AlbedoColor = new Color(active.Color.Lerp(Colors.White, 0.7f), 1f);
-		}
-		_highlightedCell = highlighted;
 	}
 
 	private static string Format(Coord? coordinate) =>

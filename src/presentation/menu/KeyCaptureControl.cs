@@ -29,18 +29,18 @@ public partial class KeyCaptureControl : Control
 
 	public override void _GuiInput(InputEvent @event)
 	{
-		if (@event is InputEventKey { Pressed: true, Echo: false } keyEvent)
+		if (@event is InputEventKey { Echo: false } keyEvent)
 		{
 			AcceptEvent();
 
-			if (keyEvent.Keycode == Key.Escape)
+			if (keyEvent.Pressed && keyEvent.Keycode == Key.Escape)
 			{
 				CaptureCancelled?.Invoke();
 				EndCapture();
 				return;
 			}
 
-			if (_secondarySlot
+			if (keyEvent.Pressed && _secondarySlot
 				&& keyEvent.Keycode is Key.Backspace or Key.Delete)
 			{
 				BindingCaptured?.Invoke(KeyBinding.Empty, _secondarySlot);
@@ -50,7 +50,7 @@ public partial class KeyCaptureControl : Control
 
 			if (!GameInputBindings.TryFindSpec(_action, out var spec)
 				|| spec.CapturePolicy == BindingCapturePolicy.MouseOnly
-				|| !GameInputBindings.TryCaptureKeyboard(keyEvent, out var binding)
+				|| !GameInputBindings.TryCaptureKeyboard(keyEvent, out var binding, spec.AllowModifierOnly)
 				|| GameInputBindings.IsReserved(spec.Context, binding))
 				return;
 

@@ -30,6 +30,7 @@ public partial class KeyBindingsTab : Control
 		new(
 			"Move placement",
 			[
+				"battle_isolate_movement",
 				"battle_roll_clockwise",
 				"battle_roll_counterclockwise",
 			]),
@@ -332,7 +333,9 @@ public partial class KeyBindingsTab : Control
 		if (!GameInputBindings.TryFindSpec(action, out var spec))
 			return;
 
-		ShowStatus(CaptureHint(spec.CapturePolicy, secondary));
+		ShowStatus(spec.AllowModifierOnly
+			? "Press a key or press and release a modifier. Escape cancels."
+			: CaptureHint(spec.CapturePolicy, secondary));
 		_capture.BeginCapture(action, secondary, button);
 	}
 

@@ -14,9 +14,9 @@ public sealed class GravityWellFlowLayoutTests
 		var right = new Coord(1, 0, 0);
 		var faces = new[]
 		{
-			new GravityWellFace(-right, Coord.Up, right, Coord.Forward),
-			new GravityWellFace(Coord.Zero, Coord.Up, right, Coord.Forward),
-			new GravityWellFace(right, Coord.Up, -right, Coord.Forward),
+			new GravityWellFace(-right, Coord.Up, right),
+			new GravityWellFace(Coord.Zero, Coord.Up, right),
+			new GravityWellFace(right, Coord.Up, -right),
 		};
 
 		var runs = GravityWellFlowLayout.Build(faces, Coord.Zero);

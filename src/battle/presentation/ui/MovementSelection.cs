@@ -28,10 +28,14 @@ public static class MovementSelection
 		Vector2 screenPos,
 		IReadOnlyList<MovePathOption> paths,
 		Coord? currentHovered = null,
-		Func<Coord, MovementPickPreference>? preference = null)
+		Func<Coord, MovementPickPreference>? preference = null,
+		IReadOnlySet<Coord>? isolatedCells = null)
 	{
 		var candidates = BuildCandidates(camera, viewport, screenPos, paths);
-		return MovementPick.Resolve(candidates, currentHovered, preference);
+		return MovementPick.Resolve(
+			isolatedCells is null ? candidates : candidates.Where(candidate => isolatedCells.Contains(candidate.Coordinate)).ToArray(),
+			currentHovered,
+			isolatedCells is null ? preference : null);
 	}
 
 	public static MovePathOption? ResolveOption(
@@ -142,7 +146,7 @@ public static class MovementSelection
 			: HeadingHandleKind.AwayFromCamera;
 	}
 
-	private static List<MovementPickCandidate> BuildCandidates(
+	internal static List<MovementPickCandidate> BuildCandidates(
 		Camera3D camera,
 		Viewport viewport,
 		Vector2 screenPos,

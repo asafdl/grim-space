@@ -71,6 +71,8 @@ public partial class BattleController : Node3D
 	private HazardProximityOverlay _hazardProximityOverlay = null!;
 	private BattleCameraDirector _cameraDirector = null!;
 	private MoveGhostView _moveGhost = null!;
+	private MoveRouteRibbonView _moveRouteRibbon = null!;
+	private MoveCandidateOutlineView _moveCandidateOutlines = null!;
 	private TargetOpportunityOverlay _targetOpportunityOverlay = null!;
 	private RelationshipGuideView _targetingGuide = null!;
 	private Node3D _movementAfterimages = null!;
@@ -257,6 +259,10 @@ public partial class BattleController : Node3D
 		};
 		_moveGhost.Configure(_camera);
 		_unitsRoot.AddChild(_moveGhost);
+		_moveRouteRibbon = new MoveRouteRibbonView { Name = "MoveRouteRibbon" };
+		_unitsRoot.AddChild(_moveRouteRibbon);
+		_moveCandidateOutlines = new MoveCandidateOutlineView { Name = "MoveCandidateOutlines" };
+		_unitsRoot.AddChild(_moveCandidateOutlines);
 		_movementAfterimages = new Node3D { Name = "MovementAfterimages" };
 		_unitsRoot.AddChild(_movementAfterimages);
 		_abilityOrigins = new MovementAfterimageView { Name = "AbilityOrigins" };
@@ -479,6 +485,14 @@ public partial class BattleController : Node3D
 	{
 		_translator.ModeRequested += OnModeRequested;
 		_translator.MoveHoverChanged += OnMoveHoverChanged;
+		_translator.MoveIsolationRequested += candidates =>
+		{
+			if (candidates is null)
+				_frames.Interaction.ReleaseMoveIsolation();
+			else
+				_frames.Interaction.IsolateMoveCells(candidates);
+			RefreshPresentation();
+		};
 		_translator.MoveSelectionStarted += OnMoveSelectionStarted;
 		_translator.MoveReopenRequested += OnMoveReopenRequested;
 		_translator.MovePoseRequested += basis =>
@@ -724,7 +738,8 @@ public partial class BattleController : Node3D
 			requiresFacePickAfterTargets:
 				_frames.Interaction.ActiveAbilitySpec?.RequiresFacePickAfterTargets == true,
 			facePickActive: frame.FacePickTargetId is not null,
-			movementPickPreference: frame.MovementPickPreference);
+			movementPickPreference: frame.MovementPickPreference,
+			isolatedMoveCells: frame.IsolatedMoveCells);
 		ApplyFrame(frame);
 		if (frame.TargetingFocusId is { } targetId
 			&& (previousFrame?.TargetingFocusId != targetId
@@ -1010,6 +1025,9 @@ public partial class BattleController : Node3D
 			ApplyUnitStates(frame);
 		ApplyEnemyRangeTether(frame);
 		_gridView.ApplyFrame(frame);
+		_moveRouteRibbon.ApplyFrame(frame, _simulationVisualsEnabled);
+		_moveCandidateOutlines.Apply(frame.IsolatedMoveCells,
+			_simulationVisualsEnabled && frame.ShowMovePreview && !frame.ShowOutcomeOverlay);
 		_moveGhost.Apply(
 			frame.MoveGhostState,
 			frame.MoveCheckpoints,
@@ -1073,7 +1091,12 @@ public partial class BattleController : Node3D
 	private void ApplySimulationVisuals(bool enabled)
 	{
 		_simulationVisualsEnabled = enabled;
+		_battleHud.SetSimulationVisualsEnabled(enabled);
+		_translator.SetMovementIsolationEnabled(enabled);
+		_moveCandidateOutlines.Apply(_currentFrame.IsolatedMoveCells, enabled && _currentFrame.ShowMovePreview
+			&& !_currentFrame.ShowOutcomeOverlay);
 		_gridView.Visible = enabled;
+		_moveRouteRibbon.ApplyFrame(_currentFrame, enabled);
 		_hazardProximityOverlay.Visible = enabled;
 		_gravityWellsView.SetSimulationEnabled(enabled);
 		_simulationPresentation.Apply(

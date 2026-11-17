@@ -66,7 +66,8 @@ public sealed record BindingSpec(
 	KeyBinding Primary,
 	KeyBinding? Secondary = null,
 	BindingCapturePolicy CapturePolicy = BindingCapturePolicy.KeyboardOnly,
-	string? ConflictGroup = null);
+	string? ConflictGroup = null,
+	bool AllowModifierOnly = false);
 
 public readonly record struct BindingPair(
 	KeyBinding Primary,
@@ -235,9 +236,17 @@ public static class GameInputBindings
 
 	public static bool TryCaptureKeyboard(
 		InputEventKey keyEvent,
-		out KeyBinding binding)
+		out KeyBinding binding,
+		bool allowModifierOnly = false)
 	{
 		binding = default;
+
+		var key = keyEvent.Keycode != Key.None ? keyEvent.Keycode : keyEvent.PhysicalKeycode;
+		if (allowModifierOnly && IsHoldModifier(key) && !keyEvent.Pressed && !keyEvent.Echo)
+		{
+			binding = new KeyBinding(KeyKind.Logical, key);
+			return true;
+		}
 
 		if (!keyEvent.Pressed || keyEvent.Echo)
 			return false;
@@ -246,7 +255,6 @@ public static class GameInputBindings
 			return false;
 
 		var modifier = ReadModifier(keyEvent);
-		var key = keyEvent.Keycode != Key.None ? keyEvent.Keycode : keyEvent.PhysicalKeycode;
 		if (key == Key.None || IsModifierOnlyKey(key))
 			return false;
 
@@ -286,6 +294,9 @@ public static class GameInputBindings
 			return false;
 
 		if (!newBinding.IsEmpty && !AllowsDevice(targetSpec.CapturePolicy, newBinding.Device))
+			return false;
+		if (newBinding.Device == BindingDevice.Keyboard && IsModifierOnlyKey(newBinding.Key)
+			&& (!targetSpec.AllowModifierOnly || !IsHoldModifier(newBinding.Key) || newBinding.Modifier != ModifierKind.None))
 			return false;
 
 		if (IsReserved(targetSpec.Context, newBinding))
@@ -357,10 +368,12 @@ public static class GameInputBindings
 		var key = (Key)keyCode;
 		if (!Enum.IsDefined(typeof(Key), key))
 			return false;
-		if (key == Key.None || IsModifierOnlyKey(key))
+		if (key == Key.None || IsModifierOnlyKey(key) && !IsHoldModifier(key))
 			return false;
 
 		if (!TryParseModifier(parts[2], out var modifier))
+			return false;
+		if (IsHoldModifier(key) && modifier != ModifierKind.None)
 			return false;
 
 		binding = new KeyBinding(kind, key, modifier);
@@ -401,17 +414,49 @@ public static class GameInputBindings
 			var primaryKey = $"{spec.Action}.primary";
 			if (config.HasSectionKey("bindings", primaryKey)
 				&& TryParseSlot(config.GetValue("bindings", primaryKey).AsString(), out var primary)
-				&& AllowsDevice(spec.CapturePolicy, primary.Device))
+				&& AllowsDevice(spec.CapturePolicy, primary.Device)
+				&& (spec.AllowModifierOnly || !IsModifierOnlyKey(primary.Key)))
 				result[spec.Action] = result[spec.Action] with { Primary = primary };
 
 			var secondaryKey = $"{spec.Action}.secondary";
 			if (config.HasSectionKey("bindings", secondaryKey)
 				&& TryParseSlot(config.GetValue("bindings", secondaryKey).AsString(), out var secondary)
-				&& AllowsDevice(spec.CapturePolicy, secondary.Device))
+				&& AllowsDevice(spec.CapturePolicy, secondary.Device)
+				&& (spec.AllowModifierOnly || !IsModifierOnlyKey(secondary.Key)))
 				result[spec.Action] = result[spec.Action] with { Secondary = secondary };
 		}
 
 		return result;
+	}
+
+	public static InputEvent WithoutHeldActionModifiers(InputEvent input, StringName action)
+	{
+		if (input is not InputEventWithModifiers modifiers || action.IsEmpty
+			|| !Input.IsActionPressed(action) || !_current.TryGetValue(action, out var bindings))
+			return input;
+
+		var copy = (InputEventWithModifiers)modifiers.Duplicate();
+		RemoveModifiers(bindings.Primary);
+		if (bindings.Secondary is { } secondary)
+			RemoveModifiers(secondary);
+		return copy;
+
+		void RemoveModifiers(KeyBinding binding)
+		{
+			if (binding.Device != BindingDevice.Keyboard || binding.IsEmpty)
+				return;
+			// Only strip modifiers belonging to a binding that is currently held.
+			var keyHeld = binding.Kind == KeyKind.Physical
+				? Input.IsPhysicalKeyPressed(binding.Key)
+				: Input.IsKeyPressed(binding.Key);
+			if (!keyHeld)
+				return;
+			var modifier = EffectiveModifier(binding.Modifier);
+			if (binding.Key == Key.Ctrl || modifier == ModifierKind.Ctrl) copy.CtrlPressed = false;
+			if (binding.Key == Key.Shift || modifier == ModifierKind.Shift) copy.ShiftPressed = false;
+			if (binding.Key == Key.Alt || modifier == ModifierKind.Alt) copy.AltPressed = false;
+			if (binding.Key == Key.Meta || modifier == ModifierKind.Meta) copy.MetaPressed = false;
+		}
 	}
 
 	internal static InputEvent ToInputEvent(KeyBinding binding)
@@ -482,6 +527,9 @@ public static class GameInputBindings
 				Phy(AbilitySlotKeys[slot - 1]))),
 		BattleKey("battle_end_turn", "End turn", Log(Key.Space)),
 		BattleKey("battle_focus", "Focus camera", Log(Key.F)),
+		new BindingSpec(
+			"battle_isolate_movement", BindingContext.Battle, "Isolate movement choices (hold)",
+			Log(Key.Ctrl), AllowModifierOnly: true),
 		BattleKey("battle_cycle_enemy", "Cycle enemy", Log(Key.Tab)),
 		BattleKey("battle_undo", "Undo", new(KeyKind.Logical, Key.Z, ModifierKind.Primary)),
 
@@ -707,6 +755,9 @@ public static class GameInputBindings
 			or Key.Meta
 			or Key.Capslock
 			or Key.Numlock;
+
+	private static bool IsHoldModifier(Key key) =>
+		key is Key.Ctrl or Key.Shift or Key.Alt or Key.Meta;
 
 	private static bool TryParseKind(string token, out KeyKind kind)
 	{

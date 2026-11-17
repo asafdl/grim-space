@@ -9,8 +9,7 @@ namespace GrimSpace.Battle.NonUnits;
 public readonly record struct GravityWellFace(
 	Coord Cell,
 	Coord Normal,
-	Coord FirstHeading,
-	Coord SecondHeading);
+	Coord Heading);
 
 public sealed class GravityWell : Hazard
 {
@@ -19,6 +18,9 @@ public sealed class GravityWell : Hazard
 	public required FrozenDictionary<Coord, FrozenSet<Coord>> AssistedDirectionsByCell { get; init; }
 
 	public Coord CoreCell => Center;
+
+	private static readonly (int Starboard, int Fore)[] RingOffsets =
+		[(1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1)];
 
 	public override IEnumerable<Coord> MovementBlockingCells => [Center];
 	public override IEnumerable<Coord> AbilityBlockingCells => [Center];
@@ -37,39 +39,32 @@ public sealed class GravityWell : Hazard
 
 		var axes = new[] { frame.Starboard, frame.Dorsal, frame.Fore };
 		var cells = new HashSet<Coord>();
-		var assistCells = new HashSet<Coord>();
-		var faces = new HashSet<GravityWellFace>();
-		var assistedDirections = new Dictionary<Coord, HashSet<Coord>>();
-
 		for (var x = -1; x <= 1; x++)
 		for (var y = -1; y <= 1; y++)
 		for (var z = -1; z <= 1; z++)
+			cells.Add(center + axes[0] * x + axes[1] * y + axes[2] * z);
+
+		// Each dorsal layer's 8 cells around the core form a loop (counter-clockwise seen from dorsal).
+		// Cells assist their outgoing heading; corners also keep their incoming heading.
+		var ring = RingOffsets.Select(offset => frame.Starboard * offset.Starboard + frame.Fore * offset.Fore).ToArray();
+		var faces = new HashSet<GravityWellFace>();
+		var assistedDirections = new Dictionary<Coord, FrozenSet<Coord>>();
+		for (var layer = -1; layer <= 1; layer++)
+		for (var i = 0; i < ring.Length; i++)
 		{
-			var cell = center + axes[0] * x + axes[1] * y + axes[2] * z;
-			cells.Add(cell);
-			if (cell != center)
+			var offset = frame.Dorsal * layer + ring[i];
+			var headings = new[]
 			{
-				assistCells.Add(cell);
-				assistedDirections.Add(cell, []);
-			}
-
-			var coordinates = new[] { x, y, z };
-			var side = SideOf(x, y, z);
-			for (var faceAxis = 0; faceAxis < axes.Length; faceAxis++)
+				ring[(i + 1) % ring.Length] - ring[i],
+				ring[i] - ring[(i + ring.Length - 1) % ring.Length],
+			}.ToFrozenSet();
+			assistedDirections.Add(center + offset, headings);
+			foreach (var heading in headings)
+			foreach (var axis in axes)
 			{
-				if (System.Math.Abs(coordinates[faceAxis]) != 1)
-					continue;
-
-				var tangents = Enumerable.Range(0, axes.Length)
-					.Where(axis => axis != faceAxis)
-					.Select(axis => axes[axis] * side)
-					.ToArray();
-				faces.Add(new GravityWellFace(
-					cell,
-					axes[faceAxis] * coordinates[faceAxis],
-					tangents[0],
-					tangents[1]));
-				assistedDirections[cell].UnionWith(tangents);
+				var side = Coord.Dot(offset, axis);
+				if (side != 0 && Coord.Dot(axis, heading) == 0)
+					faces.Add(new GravityWellFace(center + offset, axis * side, heading));
 			}
 		}
 
@@ -85,16 +80,11 @@ public sealed class GravityWell : Hazard
 			Center = center,
 			Frame = frame,
 			Cells = cells.ToFrozenSet(),
-			AssistCells = assistCells.ToFrozenSet(),
+			AssistCells = assistedDirections.Keys.ToFrozenSet(),
 			Faces = faces.ToFrozenSet(),
-			AssistedDirectionsByCell = assistedDirections.ToFrozenDictionary(
-				entry => entry.Key,
-				entry => entry.Value.ToFrozenSet()),
+			AssistedDirectionsByCell = assistedDirections.ToFrozenDictionary(),
 		};
 	}
-
-	private static int SideOf(int x, int y, int z) =>
-		System.Math.Sign(x != 0 ? x : z != 0 ? z : y);
 
 	private static bool IsValidFrame(BodyFrame frame) =>
 		IsCardinalUnit(frame.Fore)

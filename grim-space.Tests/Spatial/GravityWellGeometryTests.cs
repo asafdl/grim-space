@@ -16,54 +16,40 @@ public sealed class GravityWellGeometryTests
 	private static readonly Coord Right = new(1, 0, 0);
 
 	[Fact]
-	public void DefinesFullVolumeWithMirroredThirteenCellSides()
+	public void AssistsThreeEightCellRingsAroundTheDorsalAxis()
 	{
 		var well = CreateWell();
 
 		Assert.Equal(27, well.Cells.Count);
-		Assert.Equal(26, well.AssistCells.Count);
-		Assert.Equal(54, well.Faces.Count);
+		Assert.Equal(24, well.AssistCells.Count);
 		Assert.Equal(Center, well.CoreCell);
-		Assert.DoesNotContain(well.CoreCell, well.AssistCells.ToArray());
-		Assert.DoesNotContain(well.CoreCell, well.AssistedDirectionsByCell.Keys);
-
-		var sides = well.AssistCells
-			.Select(cell => cell - Center)
-			.Select(offset => System.Math.Sign(
-				offset.X != 0 ? offset.X : offset.Z != 0 ? offset.Z : offset.Y))
-			.GroupBy(side => side)
-			.ToDictionary(group => group.Key, group => group.Count());
-		Assert.Equal(13, sides[1]);
-		Assert.Equal(13, sides[-1]);
+		Assert.True(well.AssistCells.SetEquals(well.AssistedDirectionsByCell.Keys));
+		foreach (var unassisted in new[] { Center, Center + Coord.Up, Center - Coord.Up })
+			Assert.DoesNotContain(unassisted, well.AssistCells.ToArray());
+		Assert.All(new[] { -1, 0, 1 }, layer =>
+			Assert.Equal(8, well.AssistCells.Count(cell => cell.Y - Center.Y == layer)));
 	}
 
 	[Fact]
-	public void AssistedDirectionsAreTheUnionOfExposedFaceTangents()
+	public void RingCellsAssistTheSpinHeadingAndCornersKeepTheirIncomingHeading()
 	{
 		var well = CreateWell();
-		var faceCenter = Center + Right;
-		var edge = Center + Right + Coord.Up;
-		var corner = Center + Right + Coord.Up + Coord.Forward;
+		var side = Center + Right;
+		var corner = Center + Right + Coord.Forward;
 
-		Assert.Equal(1, well.Faces.Count(face => face.Cell == faceCenter));
-		Assert.True(new[] { Coord.Up, Coord.Forward }.ToHashSet()
-			.SetEquals(well.AssistedDirectionsByCell[faceCenter]));
-		Assert.DoesNotContain(Right, well.AssistedDirectionsByCell[faceCenter].ToArray());
+		Assert.True(new[] { Coord.Forward }.ToHashSet().SetEquals(well.AssistedDirectionsByCell[side]));
+		Assert.True(new[] { Coord.Forward }.ToHashSet().SetEquals(well.AssistedDirectionsByCell[side + Coord.Up]));
+		Assert.True(new[] { Coord.Forward, -Right }.ToHashSet().SetEquals(well.AssistedDirectionsByCell[corner]));
 
-		Assert.Equal(2, well.Faces.Count(face => face.Cell == edge));
-		Assert.True(new[] { Right, Coord.Up, Coord.Forward }.ToHashSet()
-			.SetEquals(well.AssistedDirectionsByCell[edge]));
-		Assert.Equal(3, well.Faces.Count(face => face.Cell == corner));
-		Assert.True(new[] { Right, Coord.Up, Coord.Forward }.ToHashSet()
-			.SetEquals(well.AssistedDirectionsByCell[corner]));
-
-		foreach (var face in well.Faces)
+		Assert.Equal(
+			new[] { new GravityWellFace(side, Right, Coord.Forward) },
+			well.Faces.Where(face => face.Cell == side));
+		Assert.True(new[]
 		{
-			Assert.NotEqual(face.Normal, face.FirstHeading);
-			Assert.NotEqual(-face.Normal, face.FirstHeading);
-			Assert.NotEqual(face.Normal, face.SecondHeading);
-			Assert.NotEqual(-face.Normal, face.SecondHeading);
-		}
+			new GravityWellFace(corner, Right, Coord.Forward),
+			new GravityWellFace(corner, Coord.Forward, -Right),
+		}.ToHashSet().SetEquals(well.Faces.Where(face => face.Cell == corner)));
+		Assert.All(well.Faces, face => Assert.Equal(0, Coord.Dot(face.Normal, face.Heading)));
 	}
 
 	[Fact]
