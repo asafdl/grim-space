@@ -29,6 +29,9 @@ public sealed record HudTooltipContent(
 
 	public HudTooltipComparison? Comparison { get; init; }
 
+	/// <summary>Hover shows only the title; holding Alt pins the full content.</summary>
+	public bool Extendable { get; init; }
+
 	public static HudTooltipContent Plain(string text) =>
 		new(null, text);
 

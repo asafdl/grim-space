@@ -28,10 +28,12 @@ public sealed record BattleHudTooltipContent(
 	public static BattleHudTooltipContent Plain(string text) =>
 		new(null, text);
 
+	public bool Extendable { get; init; }
+
 	public string TriggerText => Title ?? Body;
 
 	public HudTooltipContent ToShared() =>
-		new(Title, Body, Details);
+		new(Title, Body, Details) { Extendable = Extendable };
 
 	public static implicit operator HudTooltipContent(BattleHudTooltipContent content) =>
 		content.ToShared();

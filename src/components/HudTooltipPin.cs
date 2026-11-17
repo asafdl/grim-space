@@ -24,7 +24,7 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 		var pinHeld = comparing || (canInspect && Input.IsKeyPressed(Key.Alt));
 		if (_pinned)
 		{
-			if (!pinHeld || GetParent() is not Control source || !source.IsVisibleInTree())
+			if (!pinHeld || GetParent() is not CanvasItem source || !source.IsVisibleInTree())
 			{
 				QueueFree();
 				return;
@@ -46,22 +46,31 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 			return;
 		}
 
-		if (!pinHeld || GetTree().GetNodesInGroup(PinnedGroup).Count > 0)
+		if (!pinHeld || IsAnyPinned(GetTree()))
 			return;
 
 		var original = (Control)GetParent();
 		var popup = original.GetWindow();
-		if (popup.GetParent() is not Control owner)
+		if (popup.GetParent() is Control owner)
+		{
+			_anchor = PinnedPosition(
+				popup.Position,
+				popup.IsEmbedded(),
+				owner.GetWindow().Position,
+				owner.GetViewport().GetFinalTransform());
+			Reparent(owner, false);
+			popup.QueueFree();
+		}
+		else if (original.GetParent() is CanvasItem host)
+		{
+			// Card was placed directly in a canvas (not a GUI tooltip popup).
+			_anchor = original.GetGlobalTransformWithCanvas().Origin;
+			Reparent(host, false);
+			original.QueueFree();
+		}
+		else
 			return;
 
-		var viewport = owner.GetViewport();
-		_anchor = PinnedPosition(
-			popup.Position,
-			popup.IsEmbedded(),
-			owner.GetWindow().Position,
-			viewport.GetFinalTransform());
-
-		Reparent(owner, false);
 		AddToGroup(PinnedGroup);
 		_pinned = true;
 
@@ -74,8 +83,10 @@ internal sealed partial class HudTooltipPin(HudTooltipContent content, HudPalett
 		_layer.AddChild(backdrop);
 		backdrop.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 		ShowParent(comparing);
-		popup.QueueFree();
 	}
+
+	internal static bool IsAnyPinned(SceneTree tree) =>
+		tree.GetNodesInGroup(PinnedGroup).Count > 0;
 
 	private void ShowParent(bool comparing)
 	{

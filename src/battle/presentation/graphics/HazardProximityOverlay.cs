@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Presentation.Ui;
+using GrimSpace.Components;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
@@ -75,12 +76,22 @@ public sealed partial class HazardProximityOverlay : Node2D
 
 	private void UpdateTooltip()
 	{
+		if (_tooltip is not null && !IsInstanceValid(_tooltip))
+			_tooltip = null;
+		if (HudTooltipPin.IsAnyPinned(GetTree()))
+		{
+			_tooltip?.QueueFree();
+			_tooltip = null;
+			_tooltipHazardId = null;
+			return;
+		}
+
 		var viewport = GetViewport();
 		var pointer = viewport.GetMousePosition();
 		var overHud = viewport.GuiGetHoveredControl() is { } control && _hud.IsAncestorOf(control);
 		var hovered = overHud ? null : _marks.FirstOrDefault(mark => mark.Rect.HasPoint(pointer)).Hazard;
 
-		if (hovered?.Id != _tooltipHazardId)
+		if (hovered?.Id != _tooltipHazardId || (hovered is not null && _tooltip is null))
 		{
 			_tooltip?.QueueFree();
 			_tooltip = null;

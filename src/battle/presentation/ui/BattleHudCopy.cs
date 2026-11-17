@@ -251,7 +251,7 @@ internal static class BattleHudCopy
 			$"[icon: {Icon.Heat}, text: -{profile.ClearPerTurn} / turn ]\n[icon: {Icon.Overdrive}][icon: {Icon.Damage}, text: +{HeatChangeEffect.OverdriveDamageBonusPercent}%]\n[icon: {Icon.Overheat}, text: All abilities go on][icon: {Icon.Cooldown}]");
 	}
 
-	public static BattleHudTooltipContent HazardTooltipFor(Hazard hazard) => hazard switch
+	public static BattleHudTooltipContent HazardTooltipFor(Hazard hazard) => (hazard switch
 	{
 		CryoPlume => new(
 			"Cryo-Plume",
@@ -261,9 +261,9 @@ internal static class BattleHudCopy
 		GravityWell => new(
 			"Gravity Well",
 			"Distortions of space-time allow for free movement around the well, provided you follow the gravity curves.",
-			$"[icon: {Icon.CurrentActionPoints}, text:  Free in specified directionsaround the well]"),
+			$"[icon: {Icon.CurrentActionPoints}, text:  Free in specified directions around the well]"),
 		_ => BattleHudTooltipContent.Plain(hazard.GetType().Name),
-	};
+	}) with { Extendable = true };
 
 	public static BattleHudTooltipContent ScrapDroneSwarmTooltipFor(ScrapDroneSwarmSpec swarm) =>
 		new(

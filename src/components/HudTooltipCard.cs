@@ -83,15 +83,17 @@ public sealed partial class HudTooltipCard : PanelContainer
 			card.MouseFilter = MouseFilterEnum.Stop;
 			card._content.MouseFilter = MouseFilterEnum.Pass;
 		}
-		card.BuildContent(tooltip, headerIcon);
+		var collapsed = !pinned && tooltip.Extendable && !string.IsNullOrWhiteSpace(tooltip.Title);
+		card.BuildContent(collapsed ? new HudTooltipContent(tooltip.Title, string.Empty) : tooltip, headerIcon);
 		if (!pinned)
 		{
+			var canInspect = collapsed || card._hasInspectableIcons;
 			if (tooltip.Comparison is not null)
 				card.AddSections("Hold Shift to compare.");
-			if (card._hasInspectableIcons)
+			if (canInspect)
 				card.AddSections("Hold Alt to inspect.");
-			if (card._hasInspectableIcons || tooltip.Comparison is not null)
-				card.AddChild(new HudTooltipPin(tooltip, palette, card._hasInspectableIcons));
+			if (canInspect || tooltip.Comparison is not null)
+				card.AddChild(new HudTooltipPin(tooltip, palette, canInspect));
 		}
 		card.Visible = true;
 		card.ResetSize();
