@@ -21,6 +21,7 @@ internal static class EnemySearchInput
 {
 	internal const int UnusedApPenalty = 100;
 	internal const int DamageHitBonus = 2_000;
+	internal const int VoidBombAlignBonus = DamageHitBonus;
 	internal const int GoopThreatBlockBonus = 2_500;
 	internal const int FacingWeight = 800;
 	internal const int ApproachWeight = 150;
@@ -116,6 +117,7 @@ internal static class EnemySearchInput
 		var ramReach = 0;
 		var weaponReach = OptimisticWeaponReach(state);
 		var canSpawn = false;
+		var voidBombBonus = 0;
 		foreach (var installed in state.Loadout.InstalledAbilities)
 		{
 			if (installed.Spec.Kind is EAbilityKind.LightningCannon or EAbilityKind.ScrapDroneSwarm or EAbilityKind.Ram)
@@ -138,7 +140,11 @@ internal static class EnemySearchInput
 			}
 			if (installed.Spec is RoadsWeDontNeedRoadsSpec jump)
 				movement += jump.Range;
-			canSpawn |= installed.Spec.Kind == EAbilityKind.VoidBombLauncher;
+			if (installed.Spec.Kind != EAbilityKind.VoidBombLauncher)
+				continue;
+			canSpawn = true;
+			if (VoidBombPointsAtOpponent(world, actorId, installed.MountedOn))
+				voidBombBonus += VoidBombAlignBonus;
 		}
 		IReadOnlyList<Coord>? Reach(int budget) => reach is not null
 			? reach(state.Position, budget)
@@ -182,7 +188,7 @@ internal static class EnemySearchInput
 		var threats = PotentialThreats(world, actorId, areas, threatMovement, canSpawn, remainingDepth);
 		var goopBound = System.Math.Min(goopShots, remainingDepth) * threats * GoopThreatBlockBonus;
 		// Taking an offensive shot disables engagement scoring; descendants cannot earn both.
-		return System.Math.Max(engagementBound, damageBound) + goopBound;
+		return System.Math.Max(engagementBound, damageBound) + goopBound + voidBombBonus;
 	}
 
 	private static bool CanReachWell(BattleWorld world, Coord position, int budget) =>
@@ -232,9 +238,14 @@ internal static class EnemySearchInput
 	public static bool ShouldExploreAction(
 		BattleSimulation simulation,
 		string actorId,
-		IAction action) =>
-		action is not GoopGunAction goop
-		|| CountThreatsBlockedByGoop(simulation.World, actorId, goop) > 0;
+		IAction action)
+	{
+		if (action is GoopGunAction goop)
+			return CountThreatsBlockedByGoop(simulation.World, actorId, goop) > 0;
+		if (action is VoidBombAction bomb)
+			return VoidBombPointsAtOpponent(simulation.World, actorId, bomb.MountedOn);
+		return true;
+	}
 
 	public static ProtectionDroneAction? BestProtectionDroneAction(
 		BattleWorld world,
@@ -413,11 +424,45 @@ internal static class EnemySearchInput
 						: -DamageHitBonus,
 				GoopGunAction goop =>
 					GoopThreatBlockAdjustment(anchor, actions, actorId, searchStartDepth, i, goop),
+				VoidBombAction { ActorId: var bombActorId, MountedOn: var mountedOn } when bombActorId == actorId =>
+					VoidBombPointsAtOpponent(WorldAtAction(anchor, actions, searchStartDepth, i), actorId, mountedOn)
+						? VoidBombAlignBonus
+						: -VoidBombAlignBonus,
 				_ => 0,
 			};
 		}
 
 		return adjustment;
+	}
+
+	internal static bool VoidBombPointsAtOpponent(
+		BattleWorld world,
+		string actorId,
+		ESpatialOrientation mountedOn)
+	{
+		var state = world.StateOf(actorId);
+		if (state.FindInstalled(EAbilityKind.VoidBombLauncher, mountedOn)?.Spec is not VoidBombLauncherSpec launcher)
+			return false;
+
+		var (origin, fore, _) = VoidBombMount.LaunchPose(state, mountedOn);
+		var reach = launcher.FuelTurns * (launcher.MovementActionPoints / launcher.ForwardMoveApCost)
+			+ launcher.BlastRadius;
+		var units = UnitRegistry.For(world);
+		var actor = units.UnitOf(actorId);
+		foreach (var unit in units.Except(actorId))
+		{
+			if (!unit.State.IsAlive || actor.RelationTo(unit) != EUnitRelation.Opponent)
+				continue;
+
+			var offset = unit.State.Position - origin;
+			var along = Coord.Dot(offset, fore);
+			if (along <= 0 || along > reach)
+				continue;
+			if (offset.ManhattanDistanceTo(Coord.Zero) - along <= launcher.BlastRadius)
+				return true;
+		}
+
+		return false;
 	}
 
 	private static int GoopThreatBlockAdjustment(

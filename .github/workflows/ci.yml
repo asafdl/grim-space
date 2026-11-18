@@ -33,5 +33,55 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release
 
+      - name: Enable native crash dumps
+        run: |
+          mkdir -p "$RUNNER_TEMP/grim-space-ci"
+          sudo sysctl -w "kernel.core_pattern=$RUNNER_TEMP/grim-space-ci/core.%p.%E"
+          dotnet --info
+          go version
+
       - name: Test
-        run: dotnet test --configuration Release --no-build
+        id: test
+        shell: bash
+        run: |
+          ulimit -c unlimited
+          dotnet test --configuration Release --no-build --output Detailed --show-stdout All \
+            2>&1 | tee "$RUNNER_TEMP/grim-space-ci/tests.log"
+
+      - name: Print native crash stacks
+        if: ${{ failure() && steps.test.outcome == 'failure' }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          cores=("$RUNNER_TEMP"/grim-space-ci/core.*)
+          if [ "${#cores[@]}" -eq 0 ]; then
+            echo "::warning::No native core dump was produced; inspect the detailed test log."
+            exit 0
+          fi
+          if ! command -v gdb; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends gdb
+          fi
+          for core in "${cores[@]}"; do
+            name="${core##*/}"
+            name="${name#core.}"
+            executable="${name#*.}"
+            executable="${executable//!//}"
+            echo "::group::Native crash stack: $executable"
+            gdb --batch --quiet "$executable" "$core" \
+              -ex "set pagination off" \
+              -ex "info threads" \
+              -ex "thread apply all bt 40" \
+              2>&1 | tee "$core.backtrace.txt"
+            echo "::endgroup::"
+          done
+
+      - name: Upload failure diagnostics
+        if: ${{ failure() && steps.test.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-test-diagnostics
+          path: |
+            ${{ runner.temp }}/grim-space-ci/tests.log
+            ${{ runner.temp }}/grim-space-ci/*.backtrace.txt
+          retention-days: 7
