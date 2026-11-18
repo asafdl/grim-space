@@ -235,6 +235,34 @@ public sealed class VoidBombScoringTests
 	}
 
 	[Fact]
+	public void Plan_PreservesQueuedMovementAndReturnsOnlyNewActions()
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		var torpedo = UnitRegistry.For(battle.Engine.World).UnitOf(torpedoId);
+		torpedo.State.Position = new Coord(5, 5, 5);
+		torpedo.State.Fore = Coord.Forward;
+		torpedo.State.Dorsal = Coord.Up;
+		torpedo.State.Starboard = Coord.Cross(Coord.Up, Coord.Forward);
+		battle.Engine.World.StateOf(PlayerId).Position = Coord.Zero;
+		var enemy = UnitRegistry.For(battle.Engine.World).All.First(unit => unit.Team == ETeam.Enemy);
+		enemy.State.Position = new Coord(5, 5, 0);
+		var session = battle.Engine.CreateSimulation();
+		var queuedMove = new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Starboard);
+		Assert.True(session.TryEnqueue(queuedMove));
+		var prefix = session.Actions.ToArray();
+		var remainingAp = session.World.StateOf(torpedoId).CurrentActionPoints;
+
+		var actions = ((VoidBombExecutionAgent)torpedo.ExecutionAgent).Plan(torpedo, session);
+
+		Assert.Equal(prefix, session.Actions.Take(prefix.Length));
+		Assert.Equal(actions, session.Actions.Skip(prefix.Length));
+		var moves = actions.OfType<VoidBombMoveStepAction>().ToArray();
+		Assert.Equal(remainingAp, moves.Length);
+		Assert.All(moves, move => Assert.Equal(ESpatialOrientation.Forward, move.Direction));
+		Assert.Contains(actions, action => action is FuelBurnAction);
+	}
+
+	[Fact]
 	public void Plan_UsesLateralMovementToReachBlastRange()
 	{
 		var battle = BattleWithTorpedo(out var torpedoId);

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
@@ -10,6 +11,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 
@@ -20,7 +22,6 @@ internal static class EnemySearchInput
 	internal const int UnusedApPenalty = 100;
 	internal const int DamageHitBonus = 2_000;
 	internal const int GoopThreatBlockBonus = 2_500;
-	internal const int TimelineRefinementSlack = UnusedApPenalty;
 	internal const int FacingWeight = 800;
 	internal const int ApproachWeight = 150;
 
@@ -30,7 +31,7 @@ internal static class EnemySearchInput
 		string actorId,
 		int searchStartDepth)
 	{
-		var world = frame.World.Fork();
+		var world = frame.World;
 
 		var state = world.StateOf(actorId);
 		if (!state.IsAlive)
@@ -42,43 +43,191 @@ internal static class EnemySearchInput
 		return score;
 	}
 
-	public static int UpperBound(BattleWorld world, string actorId)
+	// Bounds every descendant's ScoreHeuristic: what the path already earned plus what the
+	// remaining turn could add.
+	public static int UpperBound(
+		SearchFrame<BattleWorld, ActorRuntime> frame,
+		BattleSimulation anchor,
+		string actorId,
+		int searchStartDepth)
 	{
-		var state = world.StateOf(actorId);
-		var score = FacingWeight
-			+ System.Math.Max(state.CurrentActionPoints, state.Maneuverability.BaseActionPoints) * ApproachWeight;
-		var hasOffensiveCharges = HasOffensiveCharges(state);
-		var goopUpperBound = state.ReadyMounts(EAbilityKind.GoopGun) > 0
-			? CountBlockableOpponentThreats(world, actorId, FrozenSet<Coord>.Empty) * GoopThreatBlockBonus
-			: 0;
-		if (!hasOffensiveCharges && goopUpperBound == 0)
-			return 0;
-
-		if (hasOffensiveCharges)
-		{
-			var opponent = NearestOpponent(world, actorId);
-			var weaponReach = OptimisticWeaponReach(state);
-			if (weaponReach > 0
-				&& opponent is not null
-				&& OffensiveReach.CouldPossiblyDamage(
-					state.Position,
-					state.CurrentActionPoints,
-					opponent.State.Position,
-					weaponReach))
-				score += DamageHitBonus;
-		}
-
-		score += goopUpperBound;
-
-		return score;
+		var earned = DamageAdjustment(anchor, frame.Actions, actorId, searchStartDepth);
+		return earned + RemainingUpperBound(
+			frame.World, anchor, actorId, frame.Actions, searchStartDepth);
 	}
 
-	public static bool HasDamageHit(
+	internal static Func<Simulation<BattleWorld, ActorRuntime>, SearchEvaluation> CreateEvaluator(
 		BattleSimulation anchor,
-		IReadOnlyList<IAction> actions,
+		string actorId)
+	{
+		var threats = ThreatAreas(anchor.World, actorId);
+		var reachCache = new ConcurrentDictionary<(Coord Position, int Budget), Coord[]>();
+		IReadOnlyList<Coord>? Reach(Coord position, int budget) =>
+			CanReachWell(anchor.World, position, budget)
+				? reachCache.GetOrAdd((position, budget),
+					key => OffensiveReach.RelaxedReach(anchor.World, key.Position, key.Budget))
+				: null;
+		return simulation => Evaluate(simulation, anchor, actorId, threats, Reach);
+	}
+
+	internal static SearchEvaluation Evaluate(
+		Simulation<BattleWorld, ActorRuntime> simulation,
+		BattleSimulation anchor,
 		string actorId,
-		int searchStartDepth) =>
-		DamageAdjustment(anchor, actions, actorId, searchStartDepth) == DamageHitBonus;
+		IReadOnlyList<FrozenSet<Coord>>? threats = null,
+		Func<Coord, int, IReadOnlyList<Coord>?>? reach = null)
+	{
+		var world = simulation.World;
+		var state = world.StateOf(actorId);
+		if (!state.IsAlive)
+			return new SearchEvaluation(int.MinValue, int.MinValue);
+
+		var start = anchor.Actions.Count;
+		var earned = DamageAdjustment(anchor, simulation.Actions, actorId, start);
+		var score = earned - state.CurrentActionPoints * UnusedApPenalty
+			+ EngagementAdjustment(world, actorId, anchor, simulation.Actions, start);
+		return new SearchEvaluation(score, earned + RemainingUpperBound(
+			world, anchor, actorId, simulation.Actions, start, threats, reach));
+	}
+
+	private static int RemainingUpperBound(
+		BattleWorld world,
+		BattleSimulation anchor,
+		string actorId,
+		IReadOnlyList<IAction> actions,
+		int start,
+		IReadOnlyList<FrozenSet<Coord>>? threatAreas = null,
+		Func<Coord, int, IReadOnlyList<Coord>?>? reach = null)
+	{
+		var state = world.StateOf(actorId);
+		var remainingDepth = System.Math.Max(0, SearchBridge.MaxSearchDepth - (actions.Count - start));
+		if (remainingDepth == 0)
+			return -state.CurrentActionPoints * UnusedApPenalty
+				+ EngagementAdjustment(world, actorId, anchor, actions, start);
+
+		var movement = state.CurrentActionPoints;
+		if (state.OverchargeEnginesCooldownRemaining == 0
+			&& anchor.RuntimeFor(actorId).PilotCapabilities.Contains(EPilotCapabilityId.OverchargeEngines))
+			movement += PilotSkillPercents.OverchargeEngines.RefreshedAp;
+		var shots = 0;
+		var goopShots = 0;
+		var recoil = 0;
+		var ramMovement = 0;
+		var ramReach = 0;
+		var weaponReach = OptimisticWeaponReach(state);
+		var canSpawn = false;
+		foreach (var installed in state.Loadout.InstalledAbilities)
+		{
+			if (installed.Spec.Kind is EAbilityKind.LightningCannon or EAbilityKind.ScrapDroneSwarm or EAbilityKind.Ram)
+				shots += state.UsesRemaining(installed.Mount);
+			if (installed.Spec is RamSpec ram)
+			{
+				ramMovement += ram.Range * state.UsesRemaining(installed.Mount);
+				if (state.UsesRemaining(installed.Mount) > 0)
+					ramReach = System.Math.Max(ramReach, ram.Range);
+			}
+			if (installed.Spec is RoadsWeDontNeedRoadsSpec repeatJump
+				&& ((ICooldownAbility)repeatJump).ResetsCooldownOnKill)
+				movement += remainingDepth * repeatJump.Range;
+			if (!MountCanFireNow(state, installed))
+				continue;
+			if (installed.Spec is GoopGunSpec goop)
+			{
+				recoil += goop.RecoilCells;
+				goopShots++;
+			}
+			if (installed.Spec is RoadsWeDontNeedRoadsSpec jump)
+				movement += jump.Range;
+			canSpawn |= installed.Spec.Kind == EAbilityKind.VoidBombLauncher;
+		}
+		IReadOnlyList<Coord>? Reach(int budget) => reach is not null
+			? reach(state.Position, budget)
+			: CanReachWell(world, state.Position, budget)
+				? OffensiveReach.RelaxedReach(world, state.Position, budget)
+				: null;
+		var cells = Reach(movement);
+		var radius = cells?.Max(cell => state.Position.ManhattanDistanceTo(cell)) ?? movement;
+
+		var actor = world.UnitRegistry.UnitOf(actorId);
+		var areas = goopShots > 0 ? threatAreas ?? ThreatAreas(world, actorId) : [];
+		var ramPossible = ramReach > 0 && world.UnitRegistry.All.Any(opponent =>
+			opponent.State.IsAlive && actor.RelationTo(opponent) == EUnitRelation.Opponent
+			&& state.Position.ManhattanDistanceTo(opponent.State.Position) <= radius + ramReach);
+		var threatMovement = radius + (ramPossible ? ramMovement : 0);
+		if (goopShots > 0 && PotentialThreats(world, actorId, areas, threatMovement, canSpawn, remainingDepth) > 0)
+		{
+			movement += recoil;
+			cells = Reach(movement);
+			radius = cells?.Max(cell => state.Position.ManhattanDistanceTo(cell)) ?? movement;
+			threatMovement = radius + ramMovement;
+		}
+		var engagement = 0;
+		var canHit = false;
+		var startPosition = anchor.World.StateOf(actorId).Position;
+		foreach (var opponent in world.UnitRegistry.All)
+		{
+			if (!opponent.State.IsAlive || actor.RelationTo(opponent) != EUnitRelation.Opponent)
+				continue;
+			var distance = cells?.Min(cell => cell.ManhattanDistanceTo(opponent.State.Position))
+				?? System.Math.Max(0, state.Position.ManhattanDistanceTo(opponent.State.Position) - movement);
+			canHit |= distance <= weaponReach;
+			engagement = System.Math.Max(engagement,
+				startPosition.ManhattanDistanceTo(opponent.State.Position) - distance);
+		}
+
+		var engagementBound = HasOffensiveCharges(state) && !OffensiveFired(actions, actorId, start)
+			? FacingWeight + System.Math.Max(0, engagement) * ApproachWeight
+			: 0;
+		var damageBound = canHit ? System.Math.Min(shots, remainingDepth) * DamageHitBonus : 0;
+		var threats = PotentialThreats(world, actorId, areas, threatMovement, canSpawn, remainingDepth);
+		var goopBound = System.Math.Min(goopShots, remainingDepth) * threats * GoopThreatBlockBonus;
+		// Taking an offensive shot disables engagement scoring; descendants cannot earn both.
+		return System.Math.Max(engagementBound, damageBound) + goopBound;
+	}
+
+	private static bool CanReachWell(BattleWorld world, Coord position, int budget) =>
+		world.Hazards.OfType<GravityWell>().Any(well =>
+			well.AssistCells.Any(cell => position.ManhattanDistanceTo(cell) <= budget));
+
+	private static int PotentialThreats(
+		BattleWorld world, string actorId, IReadOnlyList<FrozenSet<Coord>> areas,
+		int movement, bool canSpawn, int remainingDepth)
+	{
+		var actor = world.UnitRegistry.UnitOf(actorId);
+		var threats = 0;
+		foreach (var area in areas)
+		{
+			threats += world.UnitRegistry.All.Count(unit =>
+				unit.State.Id != actorId && unit.State.IsAlive
+				&& actor.RelationTo(unit) != EUnitRelation.Opponent
+				&& area.Contains(unit.State.Position));
+			if (area.Any(cell => actor.State.Position.ManhattanDistanceTo(cell) <= movement))
+				threats++;
+			if (canSpawn && area.Any(cell => actor.State.Position.ManhattanDistanceTo(cell) <= movement + 1))
+				threats += remainingDepth;
+		}
+		return threats;
+	}
+
+	private static IReadOnlyList<FrozenSet<Coord>> ThreatAreas(BattleWorld world, string actorId)
+	{
+		var areas = new List<FrozenSet<Coord>>();
+		var actor = world.UnitRegistry.UnitOf(actorId);
+		foreach (var opponent in world.UnitRegistry.All)
+		{
+			if (!opponent.State.IsAlive || actor.RelationTo(opponent) != EUnitRelation.Opponent)
+				continue;
+			foreach (var installed in opponent.State.Loadout.InstalledAbilities)
+			{
+				if (MountCanFireNow(opponent.State, installed)
+					&& IsBlockableKind(installed.Spec.Kind)
+					&& installed.Spec is IAreaDamage { Damage: > 0 })
+					areas.Add(BlockableWeaponCells(
+						world, opponent.State.Id, installed.MountedOn, installed.Spec, FrozenSet<Coord>.Empty));
+			}
+		}
+		return areas;
+	}
 
 	public static bool ShouldExploreAction(
 		BattleSimulation simulation,
@@ -153,7 +302,7 @@ internal static class EnemySearchInput
 		if (IsFacing(state, opponent.State.Position))
 			bonus += FacingWeight;
 
-		var startPosition = anchor.ReplayWorld(searchStartDepth).StateOf(actorId).Position;
+		var startPosition = anchor.World.StateOf(actorId).Position;
 		var distanceClosed = startPosition.ManhattanDistanceTo(opponent.State.Position)
 			- state.Position.ManhattanDistanceTo(opponent.State.Position);
 		if (distanceClosed > 0)

@@ -89,12 +89,14 @@ public sealed class VoidBombReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> lay
 				var sim = new BattleSimulation(world, runtimes);
 				sim.Begin(session.AnchorTick, session.WorldVersion);
 
-				foreach (var frame in ActionSearch.Run(
+				var search = SearchBridge.Run(
 					sim,
 					actorId,
 					capabilities,
-					BattleSearchVisit.ForMove))
+					new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForMove));
+				for (var index = 0; index < search.Count; index++)
 				{
+					var frame = search.FrameAt(index);
 					var state = frame.World.StateOf(actorId);
 					positions.Add(state.Position);
 

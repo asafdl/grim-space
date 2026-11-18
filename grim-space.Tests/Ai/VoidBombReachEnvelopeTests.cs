@@ -3,6 +3,7 @@ using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Math.Grid;
 using GrimSpace.Tests.Actions;
+using GrimSpace.Tests.Dfs;
 using GrimSpace.Units.Enums;
 using GrimSpace.Battle.Units;
 
@@ -41,6 +42,34 @@ public sealed class VoidBombReachEnvelopeTests
 
 		Assert.Contains(start, envelope.Layers[0]);
 		Assert.True(envelope.Layers[0].Count > 1);
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Build_FirstLayerMatchesExhaustiveReachWithoutChangingQueuedPrefix(bool queuedMove)
+	{
+		var battle = BattleWithTorpedo(out var torpedoId);
+		FaceForward(battle, torpedoId);
+		var state = battle.Engine.World.StateOf(torpedoId);
+		state.FuelRemaining = 1;
+		state.CurrentActionPoints = 2;
+		var session = battle.Engine.CreateSimulation();
+		if (queuedMove)
+			Assert.True(session.TryEnqueue(new VoidBombMoveStepAction(torpedoId, ESpatialOrientation.Forward)));
+		var prefix = session.Actions.ToArray();
+		var start = session.World.StateOf(torpedoId).Position;
+		var ap = session.World.StateOf(torpedoId).CurrentActionPoints;
+		var expected = ActionSearchExhaustive.Run(session, torpedoId, new[] { VoidBombMoveDef.Instance })
+			.Select(frame => frame.World.StateOf(torpedoId).Position)
+			.ToHashSet();
+
+		var envelope = VoidBombReachEnvelope.Build(session, torpedoId);
+
+		Assert.True(Assert.Single(envelope.Layers).SetEquals(expected));
+		Assert.Equal(prefix, session.Actions);
+		Assert.Equal(start, session.World.StateOf(torpedoId).Position);
+		Assert.Equal(ap, session.World.StateOf(torpedoId).CurrentActionPoints);
 	}
 
 	[Fact]

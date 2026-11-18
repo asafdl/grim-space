@@ -12,9 +12,38 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Tests.Dfs;
 
 [BattleTestSuite]
-public sealed class ActionSearchBehaviorTests
+public sealed class SearchBridgeBehaviorTests
 {
 	private const string PlayerId = "player";
+
+	public static TheoryData<int[][], int[]> VisitBudgets => new()
+	{
+		{ [[3, 1], [3, 1]], [0] },
+		{ [[4, 2], [3, 1]], [0] },
+		{ [[4, 1], [1, 4]], [0, 1] },
+		{ [[2, 1], [1, 2], [3, 3]], [0, 1, 2] },
+		{ [[4, 1], [1, 4], [3, 3]], [0, 1, 2] },
+	};
+
+	[Theory]
+	[MemberData(nameof(VisitBudgets))]
+	public void GoDominancePreservesIncomparableBudgets(int[][] budgets, int[] expectedPositions)
+	{
+		var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(Coord.Zero, actionPoints: budgets.Length),
+			BattleTestFixture.Enemy(new Coord(0, 0, budgets.Length)),
+			new GrimSpace.Math.Grid.Grid(1, 1, budgets.Length + 1));
+		var input = new SearchInput<BattleWorld, ActorRuntime>(
+			(simulation, actorId) => new SearchVisitState("shared-key",
+				budgets[simulation.World.StateOf(actorId).Position.Z]));
+
+		var positions = SearchBridge.Enumerate(battle.Engine.CreateSimulation(), PlayerId,
+				new[] { MoveDef.Instance }, input, TestContext.Current.CancellationToken)
+			.Select(frame => frame.World.StateOf(PlayerId).Position.Z)
+			.ToArray();
+
+		Assert.Equal(expectedPositions, positions);
+	}
 
 	[Fact]
 	public void PruneChildrenOnRootStopsAllDescendants()
@@ -22,11 +51,12 @@ public sealed class ActionSearchBehaviorTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var depths = new List<int>();
 
-		foreach (var frame in ActionSearch.Run(
+		foreach (var frame in SearchBridge.Enumerate(
 			battle.PlayerAgent.Sim,
 			PlayerId,
 			Capabilities.Movement,
-			BattleSearchVisit.ForCapabilities))
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken))
 		{
 			depths.Add(frame.Depth);
 			if (frame.Depth == 0)
@@ -45,11 +75,12 @@ public sealed class ActionSearchBehaviorTests
 		IAction? prunedFirstAction = null;
 		var startDepth = battle.PlayerAgent.Sim.Actions.Count;
 
-		foreach (var frame in ActionSearch.Run(
+		foreach (var frame in SearchBridge.Enumerate(
 			battle.PlayerAgent.Sim,
 			PlayerId,
 			Capabilities.Movement,
-			BattleSearchVisit.ForCapabilities))
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken))
 		{
 			if (frame.Depth == 1 && prunedFirstAction is null)
 			{
@@ -78,11 +109,12 @@ public sealed class ActionSearchBehaviorTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var count = 0;
 
-		foreach (var _ in ActionSearch.Run(
+		foreach (var _ in SearchBridge.Enumerate(
 			battle.PlayerAgent.Sim,
 			PlayerId,
 			Capabilities.Movement,
-			BattleSearchVisit.ForCapabilities))
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken))
 		{
 			count++;
 			if (count == 3)
@@ -96,11 +128,12 @@ public sealed class ActionSearchBehaviorTests
 	public void LeavingPruneChildrenFalsePreservesDescendants()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var maxDepth = ActionSearch.Run(
+		var maxDepth = SearchBridge.Enumerate(
 			battle.PlayerAgent.Sim,
 			PlayerId,
 			Capabilities.Movement,
-			BattleSearchVisit.ForCapabilities).Max(frame => frame.Depth);
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken).Max(frame => frame.Depth);
 
 		Assert.True(maxDepth > 1);
 	}
@@ -109,14 +142,15 @@ public sealed class ActionSearchBehaviorTests
 	public void ActionFilterRejectsCandidatesBeforeTheyAreEnqueued()
 	{
 		var battle = OneApBattle();
-		var frames = ActionSearch.Run(
+		var frames = SearchBridge.Enumerate(
 				battle.PlayerAgent.Sim,
 				PlayerId,
 				[MoveDef.Instance],
 				new SearchInput<BattleWorld, ActorRuntime>(
 					BattleSearchVisit.ForCapabilities,
 					ShouldExploreAction: (_, _, action) =>
-						action is MoveStepAction { Direction: ESpatialOrientation.Forward }))
+						action is MoveStepAction { Direction: ESpatialOrientation.Forward }),
+				TestContext.Current.CancellationToken)
 			.ToList();
 
 		Assert.Equal(2, frames.Count);
@@ -136,13 +170,14 @@ public sealed class ActionSearchBehaviorTests
 			LightningCannonDef.Instance,
 		];
 
-		var frames = ActionSearch.Run(
+		var frames = SearchBridge.Enumerate(
 			battle.PlayerAgent.Sim,
 			PlayerId,
 			allDefs,
 			new SearchInput<BattleWorld, ActorRuntime>(
 				BattleSearchVisit.ForCapabilities,
-				IsMovementBranch)).ToList();
+				IsMovementBranch),
+			TestContext.Current.CancellationToken).ToList();
 		var firstRemaining = frames.FindIndex(frame => frame.Phase == SearchFramePhase.Remaining);
 
 		Assert.True(firstRemaining > 0);
@@ -168,21 +203,23 @@ public sealed class ActionSearchBehaviorTests
 			..Capabilities.Movement,
 			LightningCannonDef.Instance,
 		];
-		var expected = ActionSearch.Run(
+		var expected = SearchBridge.Enumerate(
 				battle.PlayerAgent.Sim,
 				PlayerId,
 				allDefs,
-				BattleSearchVisit.ForCapabilities)
+				new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+				TestContext.Current.CancellationToken)
 			.Select(FrameKey)
 			.ToHashSet();
 
-		var actual = ActionSearch.Run(
+		var actual = SearchBridge.Enumerate(
 				battle.PlayerAgent.Sim,
 				PlayerId,
 				allDefs,
 				new SearchInput<BattleWorld, ActorRuntime>(
 					BattleSearchVisit.ForCapabilities,
-					IsMovementBranch))
+					IsMovementBranch),
+				TestContext.Current.CancellationToken)
 			.Select(FrameKey)
 			.ToHashSet();
 
@@ -198,18 +235,20 @@ public sealed class ActionSearchBehaviorTests
 			..Capabilities.Movement,
 			LightningCannonDef.Instance,
 		];
-		var priorityCount = ActionSearch.Run(
+		var priorityCount = SearchBridge.Enumerate(
 			battle.PlayerAgent.Sim,
 			PlayerId,
 			Capabilities.Movement,
-			BattleSearchVisit.ForCapabilities).Count();
-		using var frames = ActionSearch.Run(
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken).Count();
+		using var frames = SearchBridge.Enumerate(
 				battle.PlayerAgent.Sim,
 				PlayerId,
 				allDefs,
 				new SearchInput<BattleWorld, ActorRuntime>(
 					BattleSearchVisit.ForCapabilities,
-					IsMovementBranch)).GetEnumerator();
+					IsMovementBranch),
+				TestContext.Current.CancellationToken).GetEnumerator();
 
 		for (var i = 0; i < priorityCount; i++)
 		{
@@ -232,13 +271,14 @@ public sealed class ActionSearchBehaviorTests
 		];
 		var frames = new List<SearchFrame<BattleWorld, ActorRuntime>>();
 
-		foreach (var frame in ActionSearch.Run(
+		foreach (var frame in SearchBridge.Enumerate(
 			battle.PlayerAgent.Sim,
 			PlayerId,
 			allDefs,
 			new SearchInput<BattleWorld, ActorRuntime>(
 				BattleSearchVisit.ForCapabilities,
-				IsMovementBranch)))
+				IsMovementBranch),
+			TestContext.Current.CancellationToken))
 		{
 			frames.Add(frame);
 			frame.PruneChildren = true;
@@ -269,18 +309,20 @@ public sealed class ActionSearchBehaviorTests
 			LightningCannonDef.Instance,
 		];
 
-		_ = ActionSearch.Run(
+		_ = SearchBridge.Enumerate(
 			OneApBattle().PlayerAgent.Sim,
 			PlayerId,
 			normalDefs,
-			BattleSearchVisit.ForCapabilities).Count();
-		_ = ActionSearch.Run(
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken).Count();
+		_ = SearchBridge.Enumerate(
 			OneApBattle().PlayerAgent.Sim,
 			PlayerId,
 			prioritizedDefs,
 			new SearchInput<BattleWorld, ActorRuntime>(
 				BattleSearchVisit.ForCapabilities,
-				IsMovementBranch)).Count();
+				IsMovementBranch),
+			TestContext.Current.CancellationToken).Count();
 
 		Assert.Equal(normalMove.DiscoverCalls, prioritizedMove.DiscoverCalls);
 	}
@@ -325,55 +367,3 @@ public sealed class ActionSearchBehaviorTests
 	}
 }
 
-[BattleTestSuite]
-public sealed class BudgetFrontierTests
-{
-	[Fact]
-	public void ExactDuplicateBudgetIsPruned()
-	{
-		var frontier = new List<int[]> { new[] { 3, 1 } };
-
-		Assert.True(BudgetFrontier.ShouldPrune(frontier, [3, 1]));
-		Assert.Single(frontier);
-	}
-
-	[Fact]
-	public void DominatingBudgetPrunesInferiorVisit()
-	{
-		var frontier = new List<int[]> { new[] { 4, 2 } };
-
-		Assert.True(BudgetFrontier.ShouldPrune(frontier, [3, 1]));
-		Assert.Equal(new[] { 4, 2 }, frontier.Single());
-	}
-
-	[Fact]
-	public void IncomparableBudgetsBothSurvive()
-	{
-		var frontier = new List<int[]> { new[] { 4, 1 } };
-
-		Assert.False(BudgetFrontier.ShouldPrune(frontier, [1, 4]));
-		Assert.Equal(2, frontier.Count);
-		Assert.Contains(frontier, vector => vector.SequenceEqual(new[] { 4, 1 }));
-		Assert.Contains(frontier, vector => vector.SequenceEqual(new[] { 1, 4 }));
-	}
-
-	[Fact]
-	public void NewDominantVectorRemovesDominatedEntries()
-	{
-		var frontier = new List<int[]> { new[] { 2, 1 }, new[] { 1, 2 } };
-
-		Assert.False(BudgetFrontier.ShouldPrune(frontier, [3, 3]));
-		Assert.Single(frontier);
-		Assert.Equal(new[] { 3, 3 }, frontier[0]);
-	}
-
-	[Fact]
-	public void DoesNotCreateSyntheticComponentWiseMaximum()
-	{
-		var frontier = new List<int[]> { new[] { 4, 1 } };
-		Assert.False(BudgetFrontier.ShouldPrune(frontier, [1, 4]));
-
-		Assert.DoesNotContain(frontier, vector => vector.SequenceEqual(new[] { 4, 4 }));
-		Assert.Equal(2, frontier.Count);
-	}
-}

@@ -33,6 +33,12 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/core/dfs/native/go.mod
+          cache-dependency-path: src/core/dfs/native/go.mod
+
       - name: Build
         run: dotnet build --configuration Release
 
@@ -88,7 +94,7 @@ jobs:
   export:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') && needs.resolve-version.outputs.version != '' }}
     needs: [test, resolve-version]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     env:
       GRIM_SPACE_VERSION: ${{ needs.resolve-version.outputs.version }}
       DISCORD_ISSUE_WEBHOOK_URL: ${{ secrets.DISCORD_ISSUE_WEBHOOK_URL }}
@@ -97,12 +103,16 @@ jobs:
       matrix:
         include:
           - preset: Windows Desktop
+            os: ubuntu-latest
             artifact: windows
             output_path: builds/windows/grim-space.exe
           - preset: Linux/X11
+            os: ubuntu-latest
             artifact: linux
             output_path: builds/linux/grim-space.x86_64
+          # The Go search library is cgo, which needs the Apple toolchain for darwin targets.
           - preset: macOS
+            os: macos-latest
             artifact: macos
             output_path: builds/macos/grim-space.zip
     defaults:
@@ -116,6 +126,16 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/core/dfs/native/go.mod
+          cache-dependency-path: src/core/dfs/native/go.mod
+
+      - name: Install MinGW
+        if: matrix.artifact == 'windows'
+        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64
 
       - name: Setup Godot
         uses: chickensoft-games/setup-godot@v2

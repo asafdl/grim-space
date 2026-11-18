@@ -49,7 +49,7 @@ public sealed class MovePreviewSearchTests
 	public void PriorityPhaseContainsOnlyDirectMovementRoutes()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
+		using var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
 
 		index.CompletePriority();
 		var priorityPaths = index.GetExtensions([]);
@@ -65,7 +65,7 @@ public sealed class MovePreviewSearchTests
 	public void RemainingPhaseResumesAndRetainsPriorityRoutes()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
+		using var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
 		index.CompletePriority();
 		var priorityPoses = index.GetExtensions([]).Select(Key).ToHashSet();
 
@@ -77,6 +77,31 @@ public sealed class MovePreviewSearchTests
 		Assert.Contains(allPaths, path =>
 			path.Steps.Any(action => action is GrimSpace.Battle.Actions.HeadingTurnAction
 				or GrimSpace.Battle.Actions.RollAction));
+	}
+
+	[Fact]
+	public void RemainingPhaseAdvancesOneResultAtATime()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		using var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
+		index.CompletePriority();
+		var priorityCount = index.GetExtensions([]).Count;
+
+		Assert.True(index.AdvanceRemaining());
+		Assert.False(index.IsComplete);
+		Assert.Equal(priorityCount + 1, index.GetExtensions([]).Count);
+	}
+
+	[Fact]
+	public void DisposingPartialIndexStopsFurtherSearch()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		using var index = MovePathIndex.Start(battle.PlayerAgent.Sim, PlayerId);
+		index.CompletePriority();
+		index.Dispose();
+
+		Assert.Throws<ObjectDisposedException>(() => index.AdvanceRemaining());
+		Assert.Empty(battle.PlayerAgent.Sim.Actions);
 	}
 
 	[Fact]

@@ -28,4 +28,83 @@
   <ItemGroup>
     <InternalsVisibleTo Include="grim-space.Tests" />
   </ItemGroup>
+
+  <!-- Go action search (src/core/dfs/native) built as a cgo shared library next to the assembly. Targets the
+       publish RuntimeIdentifier (Godot exports publish once per architecture), else the SDK host. Requires
+       Go and a C compiler; cross-building Windows on Linux/macOS uses x86_64-w64-mingw32-gcc unless CC is set. -->
+  <ItemGroup>
+    <GoSearchSource Include="src/core/dfs/native/*.go;src/core/dfs/native/*.h;src/core/dfs/native/go.mod" />
+  </ItemGroup>
+
+  <Target Name="ResolveGoSearchLibrary">
+    <PropertyGroup>
+      <GoSearchRid>$(RuntimeIdentifier)</GoSearchRid>
+      <GoSearchRid Condition="'$(GoSearchRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</GoSearchRid>
+      <GoSearchOS Condition="$(GoSearchRid.StartsWith('osx'))">darwin</GoSearchOS>
+      <GoSearchOS Condition="$(GoSearchRid.StartsWith('linux'))">linux</GoSearchOS>
+      <GoSearchOS Condition="$(GoSearchRid.StartsWith('win'))">windows</GoSearchOS>
+      <GoSearchArch Condition="$(GoSearchRid.EndsWith('-x64'))">amd64</GoSearchArch>
+      <GoSearchArch Condition="$(GoSearchRid.EndsWith('-arm64'))">arm64</GoSearchArch>
+      <GoSearchLibraryName Condition="'$(GoSearchOS)' == 'darwin'">libgrim_space_search.dylib</GoSearchLibraryName>
+      <GoSearchLibraryName Condition="'$(GoSearchOS)' == 'linux'">libgrim_space_search.so</GoSearchLibraryName>
+      <GoSearchLibraryName Condition="'$(GoSearchOS)' == 'windows'">grim_space_search.dll</GoSearchLibraryName>
+      <GoSearchVariant Condition="$(GOFLAGS.Contains('-race'))">-race</GoSearchVariant>
+      <GoSearchLibrary>$([System.IO.Path]::GetFullPath($([MSBuild]::NormalizePath($(MSBuildProjectDirectory), $(BaseIntermediateOutputPath)))))native/$(GoSearchRid)$(GoSearchVariant)/$(GoSearchLibraryName)</GoSearchLibrary>
+      <GoSearchCC>$(CC)</GoSearchCC>
+      <GoSearchCC Condition="'$(GoSearchCC)' == '' and '$(GoSearchOS)' == 'windows' and !$([MSBuild]::IsOSPlatform('Windows'))">x86_64-w64-mingw32-gcc</GoSearchCC>
+      <!-- GUI-launched editors on macOS do not inherit the shell PATH. -->
+      <GoExecutable Condition="'$(GoExecutable)' == '' and $([MSBuild]::IsOSPlatform('OSX')) and Exists('/opt/homebrew/bin/go')">/opt/homebrew/bin/go</GoExecutable>
+      <GoExecutable Condition="'$(GoExecutable)' == '' and $([MSBuild]::IsOSPlatform('OSX')) and Exists('/usr/local/go/bin/go')">/usr/local/go/bin/go</GoExecutable>
+      <GoExecutable Condition="'$(GoExecutable)' == ''">go</GoExecutable>
+    </PropertyGroup>
+    <Error Condition="'$(GoSearchOS)' == '' or '$(GoSearchArch)' == ''" Text="Go search library: unsupported runtime identifier '$(GoSearchRid)'." />
+  </Target>
+
+  <Target Name="BuildGoSearchLibrary" DependsOnTargets="ResolveGoSearchLibrary" Inputs="@(GoSearchSource)" Outputs="$(GoSearchLibrary)">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)/src/core/dfs/native"
+          EnvironmentVariables="GOOS=$(GoSearchOS);GOARCH=$(GoSearchArch);CGO_ENABLED=1;CC=$(GoSearchCC)"
+          Command="&quot;$(GoExecutable)&quot; build -buildmode=c-shared -trimpath -o &quot;$(GoSearchLibrary)&quot; ." />
+  </Target>
+
+  <Target Name="IncludeGoSearchLibrary" BeforeTargets="AssignTargetPaths" DependsOnTargets="BuildGoSearchLibrary">
+    <ItemGroup>
+      <!-- Always: the race and normal variants share the destination file name. -->
+      <None Include="$(GoSearchLibrary)" Link="$(GoSearchLibraryName)" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Godot loads the game through AssemblyDependencyResolver, which resolves P/Invoke libraries only from
+       native assets listed in deps.json; it does not probe the assembly directory. -->
+  <Target Name="ListGoSearchLibraryInBuildDeps" AfterTargets="GenerateBuildDependencyFile" DependsOnTargets="ResolveGoSearchLibrary" Condition="Exists('$(ProjectDepsFilePath)')">
+    <AddNativeDepsAsset DepsFile="$(ProjectDepsFilePath)" Assembly="$(TargetFileName)" Library="$(GoSearchLibraryName)" />
+  </Target>
+
+  <Target Name="ListGoSearchLibraryInPublishDeps" AfterTargets="GeneratePublishDependencyFile" DependsOnTargets="ResolveGoSearchLibrary" Condition="Exists('$(IntermediateDepsFilePath)')">
+    <AddNativeDepsAsset DepsFile="$(IntermediateDepsFilePath)" Assembly="$(TargetFileName)" Library="$(GoSearchLibraryName)" />
+  </Target>
+
+  <UsingTask TaskName="AddNativeDepsAsset" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <DepsFile ParameterType="System.String" Required="true" />
+      <Assembly ParameterType="System.String" Required="true" />
+      <Library ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+// Adds the library to the project's own entry: "runtime": { "<assembly>": {} }, "native": { "<library>": {} }
+var text = System.IO.File.ReadAllText(DepsFile);
+if (!text.Contains("\"" + Library + "\""))
+{
+  var runtime = new System.Text.RegularExpressions.Regex("(\"runtime\": \\{\\s*\"" + System.Text.RegularExpressions.Regex.Escape(Assembly) + "\": \\{\\}\\s*\\})");
+  var patched = runtime.Replace(text, "$1,\n        \"native\": {\n          \"" + Library + "\": {}\n        }");
+  if (patched == text)
+  {
+    Log.LogError("Could not list " + Library + " in " + DepsFile + ".");
+    return false;
+  }
+  System.IO.File.WriteAllText(DepsFile, patched);
+}
+]]></Code>
+    </Task>
+  </UsingTask>
 </Project>

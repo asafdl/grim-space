@@ -39,7 +39,8 @@ public sealed class ActionSearchCorrectnessTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 
-		foreach (var frame in ActionSearch.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities))
+		foreach (var frame in SearchBridge.Enumerate(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs,
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities), TestContext.Current.CancellationToken))
 			Assert.True(ReplayPrefix(battle, frame.Actions), $"Failed to replay: {string.Join(", ", frame.Actions)}");
 	}
 
@@ -47,7 +48,8 @@ public sealed class ActionSearchCorrectnessTests
 	public void ExhaustiveSearchFindsAtLeastAsManyPrefixesAsPrunedSearch()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var prunedCount = ActionSearch.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities).Count();
+		var prunedCount = SearchBridge.Enumerate(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs,
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities), TestContext.Current.CancellationToken).Count();
 		var exhaustiveCount = ActionSearchExhaustive.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs).Count();
 
 		Assert.True(exhaustiveCount >= prunedCount);
@@ -57,7 +59,8 @@ public sealed class ActionSearchCorrectnessTests
 	public void PrunedAndExhaustiveAgreeOnRootFrame()
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
-		var prunedRoot = ActionSearch.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs, BattleSearchVisit.ForCapabilities).First();
+		var prunedRoot = SearchBridge.Enumerate(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs,
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities), TestContext.Current.CancellationToken).First();
 		var exhaustiveRoot = ActionSearchExhaustive.Run(battle.PlayerAgent.Sim, PlayerId, MovementActionDefs).First();
 
 		Assert.Equal(prunedRoot.Actions, exhaustiveRoot.Actions);
@@ -65,10 +68,87 @@ public sealed class ActionSearchCorrectnessTests
 		Assert.Equal(0, exhaustiveRoot.Depth);
 	}
 
+	[Theory]
+	[InlineData(false, 0)]
+	[InlineData(true, 0)]
+	[InlineData(false, 1_000)]
+	[InlineData(true, 1_000)]
+	public void CapabilityPruningPreservesDamagingPlanRegardlessOfDiscoveryOrder(bool attackFirst, int shields)
+	{
+		const string actorId = "enemy";
+		var source = BattleTestFixture.LightningCannonDuel(stepsBeyondReach: 1, actionPoints: 1, targetShieldPoints: shields);
+		IAction[] expected = [new MoveStepAction(actorId), new LightningCannonAction(actorId)];
+		var hit = source.Fork();
+		foreach (var action in expected)
+			Assert.True(hit.TryEnqueue(action));
+		var miss = source.Fork();
+		foreach (var action in expected.Reverse())
+			Assert.True(miss.TryEnqueue(action));
+		var hitVisit = BattleSearchVisit.ForCapabilities(hit, actorId);
+		var missVisit = BattleSearchVisit.ForCapabilities(miss, actorId);
+		Assert.NotEqual(hitVisit.State, missVisit.State);
+		Assert.Equal(hitVisit.Budget, missVisit.Budget);
+		Assert.Equal(1_000, miss.World.StateOf(PlayerId).CurrentHullPoints);
+		if (shields == 0)
+			Assert.True(hit.World.StateOf(PlayerId).CurrentHullPoints < 1_000);
+		else
+		{
+			Assert.Equal(1_000, hit.World.StateOf(PlayerId).CurrentHullPoints);
+			Assert.False(hit.World.StateOf(PlayerId).CurrentShieldPoints
+				.Matches(miss.World.StateOf(PlayerId).CurrentShieldPoints));
+		}
+
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] definitions =
+			attackFirst ? [LightningCannonDef.Instance, MoveDef.Instance] : [MoveDef.Instance, LightningCannonDef.Instance];
+		var frames = SearchBridge.Enumerate(source, actorId, definitions,
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities), TestContext.Current.CancellationToken).ToArray();
+		Assert.Contains(frames, frame => frame.Actions.SequenceEqual(expected));
+		var best = frames.Select(frame => (Frame: frame,
+				Score: EnemySearchInput.ScoreHeuristic(frame, source, actorId, source.Actions.Count)))
+			.OrderByDescending(candidate => candidate.Score).First();
+		Assert.Equal(EnemySearchInput.DamageHitBonus, best.Score);
+		Assert.Equal(expected, best.Frame.Actions.ToArray());
+	}
+
+	[Fact]
+	public void CapabilityPruningKeepsHotterStateThatReachesOverdrive()
+	{
+		const string actorId = "enemy";
+		var source = BattleTestFixture.LightningCannonDuel(stepsBeyondReach: 0, actionPoints: 2, heatBelowCapacity: 35);
+		var fire = new LightningCannonAction(actorId);
+		IAction[] expected =
+		[
+			new MoveStepAction(actorId, ESpatialOrientation.Port),
+			new MoveStepAction(actorId, ESpatialOrientation.Starboard),
+			fire,
+		];
+		var hot = source.Fork();
+		foreach (var action in expected)
+			Assert.True(hot.TryEnqueue(action));
+		var cool = source.Fork();
+		Assert.True(cool.TryEnqueue(fire));
+		var sidestepped = source.Fork();
+		Assert.True(sidestepped.TryEnqueue(new MoveStepAction(actorId, ESpatialOrientation.Port), fire));
+		Assert.True(hot.World.StateOf(actorId).Overdrive);
+		Assert.False(cool.World.StateOf(actorId).Overdrive);
+		Assert.False(sidestepped.World.StateOf(actorId).Overdrive);
+		var overdriveHull = hot.World.StateOf(PlayerId).CurrentHullPoints;
+		Assert.True(overdriveHull < cool.World.StateOf(PlayerId).CurrentHullPoints);
+
+		var origin = source.World.StateOf(actorId).Position;
+		IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>[] definitions =
+			[MoveDef.Instance, LightningCannonDef.Instance];
+		var frames = SearchBridge.Enumerate(source, actorId, definitions,
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities), TestContext.Current.CancellationToken).ToArray();
+		Assert.Contains(frames, frame => frame.World.StateOf(actorId).Position == origin
+			&& frame.World.StateOf(PlayerId).CurrentHullPoints == overdriveHull);
+	}
+
 	private static HashSet<string> PrefixKeys(
 		BattleSimulation sim,
 		IReadOnlyList<IActionDef<IAction, BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>>> actionDefs) =>
-		ActionSearch.Run(sim, PlayerId, actionDefs, BattleSearchVisit.ForCapabilities)
+		SearchBridge.Enumerate(sim, PlayerId, actionDefs,
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities), TestContext.Current.CancellationToken)
 			.Select(frame => PrefixKey(frame.Actions))
 			.ToHashSet();
 

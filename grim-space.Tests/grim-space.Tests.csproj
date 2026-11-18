@@ -27,4 +27,8 @@
     <ProjectReference Include="..\grim-space.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(RunGoSearchBenchmark)' != 'true'">
+    <Compile Remove="Benchmarks/SearchBenchmarkTests.cs" />
+  </ItemGroup>
+
 </Project>

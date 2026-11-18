@@ -247,7 +247,7 @@ These APIs are generic capabilities. Their current consumers do not limit where 
 - **MUST** keep action definitions deterministic for the supplied world/runtime.
 - **MUST NOT** mutate live domain objects directly from an action, record, presentation listener, or orchestrator.
 - **MUST** keep every effect's mutations inside the supplied world/runtime.
-- **MUST** implement complete `Undo` for effects reachable from undoable planning or [`ActionSearch`](src/core/dfs/ActionSearch.cs). A no-op `Undo` is valid only when that effect can never be dequeued.
+- **MUST** implement complete `Undo` for effects reachable from undoable planning or [`SearchBridge`](src/core/dfs/SearchBridge.cs). A no-op `Undo` is valid only when that effect can never be dequeued.
 - **MUST** treat listener callbacks as post-commit notifications. Queue follow-up actions for the orchestrator instead of committing recursively.
 - **MUST** notify simulation-backed agents after live state changes so they refork before producing another batch.
 - **MUST NOT** assume `Engine.Commit` revalidates legality or rejects stale simulations. The orchestrator must consume only the expected actor's current batch.
@@ -255,7 +255,9 @@ These APIs are generic capabilities. Their current consumers do not limit where 
 
 The base `ExecutionAgent` may support deterministic producers that read live state instead of using a simulation. They still publish an `ActionBatch` and have no commit authority.
 
-`ActionSearch` forks the supplied simulation, explores by enqueueing and undoing on that fork, and returns copied search frames. It must never mutate the caller's simulation or the live engine.
+`SearchBridge` gives Go ownership of traversal and visit dominance while C# owns forked simulations, discovery, legality, effects, and undo. Search must never mutate the caller's simulation or the live engine. All production action search uses this boundary; there is no C# traversal fallback.
+Enemy AI uses `SearchBridge.FindBest`: a bounded goroutine pool evaluates worker-local simulations, shares an incumbent score for branch-and-bound pruning, and returns only the winning action path. Scoring and rules remain in C#; the bridge does not commit or mutate the caller's simulation.
+Void-bomb planning and fuel-layer reachability use ordered serial Go traversal through `SearchBridge.Run`, retaining their C# ranking and upkeep rules. Player movement previews use `SearchBridge.Enumerate` for lazy, priority-first results. Dispose a partially consumed enumerator or `MovePathIndex`; completion releases its native cursor automatically.
 
 ## Tactical battle (current intent)
 
@@ -381,6 +383,7 @@ Strategic reward passives use the same runtime pipeline. Wreckage investigation 
 
 - [.NET SDK 10+](https://dotnet.microsoft.com/download)
 - [Godot 4.7 .NET build](https://godotengine.org/download) — pick the **.NET** download for your OS (not the standard build; C# requires the .NET edition)
+- [Go](https://go.dev/dl/) (version in `src/core/dfs/native/go.mod`) plus a cgo C compiler: Xcode command-line tools on macOS, `gcc` on Linux, MinGW-w64 on Windows. Every build compiles the native action-search library.
 
 `dotnet build` and the test suite work on all platforms without launching Godot.
 

@@ -5,11 +5,20 @@ using GrimSpace.Core.Engine;
 namespace GrimSpace.Tests.Dfs;
 
 /// <summary>
-/// Unpruned action search used to verify pruned <see cref="ActionSearch"/> results.
+/// Test-only unpruned action search used to verify Go search results.
 /// </summary>
 internal static class ActionSearchExhaustive
 {
 	public const int DefaultMaxDepth = 12;
+
+	internal static int[][] NonDominatedBudgets(IEnumerable<int[]> budgets)
+	{
+		var unique = budgets.DistinctBy(budget => string.Join(',', budget)).ToArray();
+		return unique.Where(candidate => !unique.Any(other =>
+			!ReferenceEquals(other, candidate)
+			&& other.Length == candidate.Length
+			&& other.Zip(candidate).All(pair => pair.First >= pair.Second))).ToArray();
+	}
 
 	public static IEnumerable<SearchFrame<TWorld, TRuntime>> Run<TEffect, TWorld, TRuntime>(
 		Simulation<TWorld, TRuntime> sim,

@@ -2,6 +2,7 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Battle.Abilities;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Dfs;
@@ -88,7 +89,10 @@ public sealed class SimulationSearchTests
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var maxDepth = 0;
 
-		foreach (var frame in ActionSearch.Run(battle.PlayerAgent.Sim, PlayerId, [MoveDef.Instance], BattleSearchVisit.ForCapabilities))
+		foreach (var frame in SearchBridge.Enumerate(
+			battle.PlayerAgent.Sim, PlayerId, new[] { MoveDef.Instance },
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken))
 			maxDepth = System.Math.Max(maxDepth, frame.Depth);
 
 		Assert.True(maxDepth <= expectedMaxDepth, maxDepth.ToString());
@@ -109,11 +113,12 @@ public sealed class SimulationSearchTests
 		var apBefore = session.StateOf<ActorState>(PlayerId).CurrentActionPoints;
 
 		var foundExtension = false;
-		foreach (var frame in ActionSearch.Run(
+		foreach (var frame in SearchBridge.Enumerate(
 			session,
 			PlayerId,
 			Capabilities.Movement,
-			BattleSearchVisit.ForCapabilities))
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForCapabilities),
+			TestContext.Current.CancellationToken))
 		{
 			if (frame.Actions.Count > actionsBefore.Count)
 			{

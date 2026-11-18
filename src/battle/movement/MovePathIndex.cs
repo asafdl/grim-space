@@ -10,7 +10,7 @@ using GrimSpace.Units.Maneuvering;
 
 namespace GrimSpace.Battle.Movement;
 
-public sealed class MovePathIndex
+public sealed class MovePathIndex : IDisposable
 {
 	private readonly BattleSimulation _sim;
 	private readonly string _actorId;
@@ -19,6 +19,7 @@ public sealed class MovePathIndex
 	private readonly List<MovePathSession> _paths = [];
 	private readonly List<(IAction[] Prefix, IReadOnlyList<MovePathSession> Paths)> _extensions = [];
 	private SearchFrame<BattleWorld, ActorRuntime>? _pendingRemaining;
+	private bool _disposed;
 
 	private MovePathIndex(
 		BattleSimulation sim,
@@ -42,7 +43,7 @@ public sealed class MovePathIndex
 	public static MovePathIndex Start(BattleSimulation sim, string actorId)
 	{
 		var startDepth = sim.Actions.Count;
-		var frames = ActionSearch.Run(
+		var frames = SearchBridge.Enumerate(
 			sim,
 			actorId,
 			Capabilities.Movement,
@@ -57,6 +58,7 @@ public sealed class MovePathIndex
 
 	public void CompletePriority()
 	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
 		if (IsPriorityComplete)
 			return;
 
@@ -103,8 +105,24 @@ public sealed class MovePathIndex
 
 	public void Complete()
 	{
-		CompletePriority();
-		while (AdvanceRemaining()) { }
+		try
+		{
+			CompletePriority();
+			while (AdvanceRemaining()) { }
+		}
+		finally
+		{
+			if (!IsComplete)
+				Dispose();
+		}
+	}
+
+	public void Dispose()
+	{
+		if (_disposed)
+			return;
+		_frames.Dispose();
+		_disposed = true;
 	}
 
 	public IReadOnlyList<MovePathSession> GetExtensions(IReadOnlyList<IAction> prefix)

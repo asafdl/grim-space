@@ -48,12 +48,18 @@ public sealed class VoidBombExecutionAgent : SimulationExecutionAgent<BattleWorl
 
 		var target = VoidBombSearchInput.BestReachableOpponent(session, actorId);
 
-		Runner.CalcActions(
+		var search = SearchBridge.Run(
 			session,
-			actor,
-			[VoidBombMoveDef.Instance],
-			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForMove),
-			frames => SelectBest(session, actorId, target, frames));
+			actorId,
+			new[] { VoidBombMoveDef.Instance },
+			new SearchInput<BattleWorld, ActorRuntime>(BattleSearchVisit.ForMove));
+		var chosen = SelectBest(session, actorId, target,
+			Enumerable.Range(0, search.Count).Select(search.FrameAt));
+		foreach (var action in chosen.Actions.Skip(start))
+		{
+			if (!session.TryEnqueue(action))
+				throw new InvalidOperationException($"Void-bomb search selected an illegal action: {action}.");
+		}
 
 		session.TryEnqueue(new FuelBurnAction(actorId));
 		TryEnqueueLegalAbilities(session, actorId);

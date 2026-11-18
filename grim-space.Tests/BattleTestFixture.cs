@@ -18,6 +18,7 @@ using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Units.Loadouts.Abilities;
 using GrimSpace.Units.Specs;
 using BoundedGrid = GrimSpace.Math.Grid.Grid;
 using System.Runtime.CompilerServices;
@@ -169,6 +170,33 @@ internal static class BattleTestFixture
 
 	public static BattleOrchestrator BeginScrapSimulation(Coord origin) =>
 		BeginSimulation(ScrapPlayer(origin), Enemy(origin + Coord.Forward * 6));
+
+	public static Simulation<BattleWorld, ActorRuntime> LightningCannonDuel(
+		int stepsBeyondReach, int actionPoints, int heatBelowCapacity = -1, int targetShieldPoints = 0)
+	{
+		var origin = new Coord(5, 5, 5);
+		var actor = Enemy(origin);
+		var cannon = actor.State.Loadout.InstalledAbilities.Single(installed =>
+			installed.Spec.Kind == EAbilityKind.LightningCannon
+			&& installed.MountedOn == ESpatialOrientation.Forward);
+		var spec = Assert.IsType<LightningCannonSpec>(cannon.Spec);
+		var reach = spec.GetArea(origin, actor.State.Fore, actor.State.Fore, actor.State.Dorsal)
+			.Max(cell => origin.ManhattanDistanceTo(cell));
+		var targetPosition = origin + actor.State.Fore * (reach + stepsBeyondReach);
+		var battle = BeginSimulation(Player(targetPosition), actor,
+			Grid(System.Math.Max(24, reach + 12)), new HashSet<Coord>());
+		var state = battle.Engine.World.StateOf("enemy");
+		state.CurrentActionPoints = actionPoints;
+		state.CurrentManeuverPoints = 0;
+		if (heatBelowCapacity >= 0)
+			state.Heat = state.HeatProfile.EffectiveCapacity - heatBelowCapacity;
+		foreach (var installed in state.Loadout.InstalledAbilities)
+			state.MountRuntimeFor(installed.Mount).UsesRemaining = installed.Mount == cannon.Mount ? 1 : 0;
+		var target = battle.Engine.World.StateOf("player");
+		target.CurrentHullPoints = 1_000;
+		target.CurrentShieldPoints.Fill(targetShieldPoints);
+		return battle.Engine.CreateSimulation();
+	}
 
 	public static Unit Enemy(Coord position) =>
 		Create(ETeam.Enemy, "enemy", position);

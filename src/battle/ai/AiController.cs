@@ -13,9 +13,6 @@ namespace GrimSpace.Battle.Ai;
 
 public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRuntime>
 {
-	private const int TimelineRefinementLimit = 8;
-	private const int TimelineRefinementSlack = EnemySearchInput.TimelineRefinementSlack;
-
 	protected override bool PublishOnActivate => false;
 
 	protected override void ProduceActionsJob(Simulation<BattleWorld, ActorRuntime> simulation)
@@ -29,21 +26,18 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			{
 				var start = session.Actions.Count;
 				TryEnqueueProtectionDrone(session, actor);
-				var capabilities = SearchCapabilities(actor.State, session.RuntimeFor(actor.State.Id));
-				var actions = Runner.CalcActions(
-					session,
-					actor,
-					capabilities,
-					new SearchInput<BattleWorld, ActorRuntime>(
-						BattleSearchVisit.ForCapabilities,
-						ShouldExploreAction: EnemySearchInput.ShouldExploreAction),
-					frames => SelectBest(session, actor.State.Id, frames));
-				if (actor.State.Type == EType.Carrier && TryAppendRepurposedMinerDeploy(session, actor))
-					actions = session.Actions.Skip(start).ToList();
-				else if (start < session.Actions.Count)
-					actions = session.Actions.Skip(start).ToList();
-
-				Publish(actions, jobCanWorkGeneration);
+				var search = Search(session, actor.State.Id);
+				if (search.Count > 0)
+				{
+					foreach (var action in search.Frames[0].Path)
+					{
+						if (!session.TryEnqueue(action))
+							throw new InvalidOperationException($"Enemy search selected an illegal action: {action}.");
+					}
+				}
+				if (actor.State.Type == EType.Carrier)
+					TryAppendRepurposedMinerDeploy(session, actor);
+				Publish(session.Actions.Skip(start).ToList(), jobCanWorkGeneration);
 			}
 			catch (Exception ex)
 			{
@@ -62,123 +56,31 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 				&& (actor.Type != EType.IndustrialGooper || def is not RollDef))
 			.ToArray();
 
-	private static SearchFrame<BattleWorld, ActorRuntime> SelectBest(
+	internal static SearchBridge<IEffect<BattleWorld, ActorRuntime>, BattleWorld, ActorRuntime> Search(
 		BattleSimulation session,
 		string actorId,
-		IEnumerable<SearchFrame<BattleWorld, ActorRuntime>> frames)
+		CancellationToken cancellationToken = default)
 	{
-		var searchStartDepth = session.Actions.Count;
-		var finalists = new List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)>();
-		var bestHeuristic = int.MinValue;
-		var bestScore = int.MinValue;
-		var visitedFrames = 0;
-		var scoredFrames = 0;
-		IReadOnlyList<IAction>? hitBranchPrefix = null;
 		var dfsTimer = Stopwatch.StartNew();
-
-		foreach (var frame in frames)
-		{
-			if (hitBranchPrefix is not null && !IsActionPrefixExtension(frame.Actions, hitBranchPrefix))
-				break;
-
-			visitedFrames++;
-
-			var upperBound = EnemySearchInput.UpperBound(frame.World, actorId);
-			if (bestScore != int.MinValue && upperBound < bestScore - TimelineRefinementSlack)
-				frame.PruneChildren = true;
-
-			if (!frame.World.StateOf(actorId).IsAlive)
-				continue;
-
-			var heuristicScore = EnemySearchInput.ScoreHeuristic(frame, session, actorId, searchStartDepth);
-			if (heuristicScore == int.MinValue)
-				continue;
-
-			scoredFrames++;
-			if (heuristicScore > bestScore)
-				bestScore = heuristicScore;
-
-			TryAddFinalist(finalists, frame, heuristicScore);
-			if (heuristicScore > bestHeuristic)
-				bestHeuristic = heuristicScore;
-
-			if (hitBranchPrefix is null
-				&& EnemySearchInput.HasDamageHit(session, frame.Actions, actorId, searchStartDepth))
-				hitBranchPrefix = frame.Actions;
-		}
-
+		var actor = session.World.StateOf(actorId);
+		var workers = System.Math.Clamp(Environment.ProcessorCount, 1, 8);
+		var search = SearchBridge.FindBest(
+			session,
+			actorId,
+			SearchCapabilities(actor, session.RuntimeFor(actorId)),
+			new SearchInput<BattleWorld, ActorRuntime>(
+				BattleSearchVisit.ForCapabilities,
+				ShouldExploreAction: EnemySearchInput.ShouldExploreAction),
+			EnemySearchInput.CreateEvaluator(session, actorId),
+			workers,
+			cancellationToken);
 		dfsTimer.Stop();
-
-		if (finalists.Count == 0)
-		{
-			GameLog.Log(
-				$"Enemy DFS ({actorId}): visited={visitedFrames} scored={scoredFrames} finalists=0 "
-				+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
-			return new SearchFrame<BattleWorld, ActorRuntime>(
-				session.World.Fork(),
-				session.Runtimes.Fork(),
-				session.Actions.ToList(),
-				0);
-		}
-
-		SearchFrame<BattleWorld, ActorRuntime>? best = null;
-		var bestTotal = int.MinValue;
-
-		foreach (var (frame, heuristicScore) in SelectTimelineFinalists(finalists, bestHeuristic))
-		{
-			if (heuristicScore <= bestTotal)
-				continue;
-
-			bestTotal = heuristicScore;
-			best = frame;
-		}
-
 		GameLog.Log(
-			$"Enemy DFS ({actorId}): visited={visitedFrames} scored={scoredFrames} finalists={finalists.Count} "
+			$"Enemy DFS ({actorId}): backend=Go workers={search.WorkersUsed}/{workers} "
+			+ $"scored={search.EvaluatedFrames} dominancePruned={search.DominancePrunedFrames} "
+			+ $"boundPruned={search.BoundPrunedFrames} best={search.BestScore} "
 			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
-
-		var selected = best ?? finalists.OrderByDescending(candidate => candidate.HeuristicScore).First().Frame;
-		return selected;
-	}
-
-	private static bool IsActionPrefixExtension(
-		IReadOnlyList<IAction> actions,
-		IReadOnlyList<IAction> prefix)
-	{
-		if (actions.Count < prefix.Count)
-			return false;
-
-		for (var i = 0; i < prefix.Count; i++)
-		{
-			if (!ReferenceEquals(actions[i], prefix[i]))
-				return false;
-		}
-
-		return true;
-	}
-
-	private static void TryAddFinalist(
-		List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> finalists,
-		SearchFrame<BattleWorld, ActorRuntime> frame,
-		int heuristicScore)
-	{
-		if (finalists.Count < TimelineRefinementLimit)
-		{
-			finalists.Add((frame, heuristicScore));
-			return;
-		}
-
-		var worstIndex = 0;
-		for (var i = 1; i < finalists.Count; i++)
-		{
-			if (finalists[i].HeuristicScore < finalists[worstIndex].HeuristicScore)
-				worstIndex = i;
-		}
-
-		if (heuristicScore <= finalists[worstIndex].HeuristicScore)
-			return;
-
-		finalists[worstIndex] = (frame, heuristicScore);
+		return search;
 	}
 
 	private static bool TryEnqueueProtectionDrone(BattleSimulation session, Unit actor)
@@ -199,16 +101,5 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			return false;
 
 		return session.TryEnqueue(action);
-	}
-
-	private static IEnumerable<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> SelectTimelineFinalists(
-		List<(SearchFrame<BattleWorld, ActorRuntime> Frame, int HeuristicScore)> finalists,
-		int bestHeuristic)
-	{
-		var cutoff = bestHeuristic - TimelineRefinementSlack;
-		return finalists
-			.Where(candidate => candidate.HeuristicScore >= cutoff)
-			.OrderByDescending(candidate => candidate.HeuristicScore)
-			.Take(TimelineRefinementLimit);
 	}
 }

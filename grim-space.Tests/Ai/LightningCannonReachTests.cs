@@ -54,7 +54,7 @@ public sealed class LightningCannonReachTests
 	}
 
 	[Fact]
-	public void UpperBound_IncludesMaximumEngagementScore_WhenOpponentOutOfOptimisticReach()
+	public void UpperBound_OnlyAllowsFacing_WhenOutOfReachWithNoAp()
 	{
 		var ap = 0;
 		var enemy = CreateUnit(ETeam.Enemy, "enemy", new Coord(0, 5, 5), EType.Carrier);
@@ -63,11 +63,11 @@ public sealed class LightningCannonReachTests
 		var player = CreateUnit(ETeam.Player, "player", new Coord(gap, 5, 5), EType.Fighter);
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, BattleTestFixture.Grid(size: 32));
-		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
+		var simulation = (BattleSimulation)battle.Engine.CreateSimulation();
+		var bound = EnemySearchInput.Evaluate(simulation, simulation, enemy.State.Id).UpperBound;
 
 		Assert.Equal(
-			EnemySearchInput.FacingWeight
-				+ enemy.State.Maneuverability.BaseActionPoints * EnemySearchInput.ApproachWeight,
+			EnemySearchInput.FacingWeight,
 			bound);
 	}
 
@@ -79,29 +79,27 @@ public sealed class LightningCannonReachTests
 		enemy.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		var bound = EnemySearchInput.UpperBound(battle.Engine.World, enemy.State.Id);
+		var simulation = (BattleSimulation)battle.Engine.CreateSimulation();
+		var bound = EnemySearchInput.Evaluate(simulation, simulation, enemy.State.Id).UpperBound;
 
 		Assert.Equal(
-			EnemySearchInput.DamageHitBonus
-				+ EnemySearchInput.FacingWeight
-				+ enemy.State.Maneuverability.BaseActionPoints * EnemySearchInput.ApproachWeight,
+			EnemySearchInput.DamageHitBonus,
 			bound);
 	}
 
 	[Fact]
-	public void UpperBound_IncludesDamageBonus_WhenRepurposedMinerCanReachPlayerWithScrapDroneSwarm()
+	public void UpperBound_IncludesBothScrapDroneSwarmUses()
 	{
 		var player = CreateUnit(ETeam.Player, "player", new Coord(4, 5, 5), EType.Fighter);
 		var repurposedMiner = CreateUnit(ETeam.Enemy, "repurposedMiner", new Coord(0, 5, 5), EType.RepurposedMiner);
 		repurposedMiner.State.CurrentActionPoints = 0;
 
 		var battle = BattleTestFixture.BeginSimulation(player, repurposedMiner);
-		var bound = EnemySearchInput.UpperBound(battle.Engine.World, repurposedMiner.State.Id);
+		var simulation = (BattleSimulation)battle.Engine.CreateSimulation();
+		var bound = EnemySearchInput.Evaluate(simulation, simulation, repurposedMiner.State.Id).UpperBound;
 
 		Assert.Equal(
-			EnemySearchInput.DamageHitBonus
-				+ EnemySearchInput.FacingWeight
-				+ repurposedMiner.State.Maneuverability.BaseActionPoints * EnemySearchInput.ApproachWeight,
+			2 * EnemySearchInput.DamageHitBonus,
 			bound);
 	}
 

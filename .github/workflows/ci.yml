@@ -24,6 +24,12 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/core/dfs/native/go.mod
+          cache-dependency-path: src/core/dfs/native/go.mod
+
       - name: Build
         run: dotnet build --configuration Release
 
