@@ -48,9 +48,24 @@ jobs:
           dotnet test --configuration Release --no-build --output Detailed --show-stdout All \
             2>&1 | tee "$RUNNER_TEMP/grim-space-ci/tests.log"
 
+      - name: Download .NET native symbols
+        if: ${{ failure() && steps.test.outcome == 'failure' }}
+        shell: bash
+        run: |
+          if ! command -v dotnet-symbol; then
+            dotnet tool install --tool-path "$RUNNER_TEMP/grim-space-ci/tools" \
+              --allow-roll-forward dotnet-symbol
+            export PATH="$RUNNER_TEMP/grim-space-ci/tools:$PATH"
+          fi
+          sudo env DOTNET_ROOT="$DOTNET_ROOT" "$(command -v dotnet-symbol)" --symbols \
+            "$DOTNET_ROOT"/shared/Microsoft.NETCore.App/10.0.*/libcoreclr.so \
+            "$DOTNET_ROOT"/shared/Microsoft.NETCore.App/10.0.*/libclrjit.so
+
       - name: Print native crash stacks
         if: ${{ failure() && steps.test.outcome == 'failure' }}
         shell: bash
+        env:
+          DEBUGINFOD_URLS: https://debuginfod.ubuntu.com
         run: |
           shopt -s nullglob
           cores=("$RUNNER_TEMP"/grim-space-ci/core.*)
@@ -69,7 +84,11 @@ jobs:
             executable="${executable//!//}"
             echo "::group::Native crash stack: $executable"
             gdb --batch --quiet "$executable" "$core" \
+              -iex "set debuginfod enabled on" \
               -ex "set pagination off" \
+              -ex "info registers" \
+              -ex 'p $_siginfo' \
+              -ex "info proc mappings" \
               -ex "info threads" \
               -ex "thread apply all bt 40" \
               2>&1 | tee "$core.backtrace.txt"
