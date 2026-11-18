@@ -54,10 +54,11 @@ jobs:
         run: |
           if ! command -v dotnet-symbol; then
             dotnet tool install --tool-path "$RUNNER_TEMP/grim-space-ci/tools" \
-              --allow-roll-forward dotnet-symbol
+              dotnet-symbol
             export PATH="$RUNNER_TEMP/grim-space-ci/tools:$PATH"
           fi
-          sudo env DOTNET_ROOT="$DOTNET_ROOT" "$(command -v dotnet-symbol)" --symbols \
+          sudo env DOTNET_ROOT="$DOTNET_ROOT" DOTNET_ROLL_FORWARD=Major \
+            "$(command -v dotnet-symbol)" --symbols \
             "$DOTNET_ROOT"/shared/Microsoft.NETCore.App/10.0.*/libcoreclr.so \
             "$DOTNET_ROOT"/shared/Microsoft.NETCore.App/10.0.*/libclrjit.so
 
