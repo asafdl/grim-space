@@ -27,7 +27,7 @@ internal static class TutorialCopy
 		$"Press Undo ({GameInputBindings.Label("battle_undo")}).";
 
 	public static string FindKillShot =>
-		"Find your own firing position and queue a killing shot with the Lightning Cannon.\n\n" +
+		$"Find your own firing position and queue a killing shot with the Lightning Cannon.\nYou can hold {GameInputBindings.Label("battle_isolate_movement")} while hovering a cell to see exactly where the move ends.\n" +
 		CameraControls;
 
 	public static string ExecuteKillShot =>

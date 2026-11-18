@@ -61,7 +61,7 @@ public sealed partial class BattleControlHints : PanelContainer
 		else
 			AddHint("Zoom / Roll", false, "battle_zoom_in", "battle_zoom_out");
 		if (context.CanPlace && (!context.Pose || context.Isolated))
-			AddHint("Hover picker helper", true, "battle_isolate_movement");
+			AddHint("Move Pick Hints", true, "battle_isolate_movement");
 	}
 
 	public override void _Process(double delta)
