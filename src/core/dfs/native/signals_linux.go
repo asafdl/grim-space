@@ -30,9 +30,9 @@ import (
 
 func init() {
 	switch value := os.Getenv("GRIM_SPACE_GO_SIGNAL_WORKAROUND"); value {
-	case "", "0":
+	case "0":
 		return
-	case "1":
+	case "", "1":
 	default:
 		panic("GRIM_SPACE_GO_SIGNAL_WORKAROUND must be 0 or 1")
 	}

@@ -43,8 +43,6 @@ jobs:
       - name: Test
         id: test
         shell: bash
-        env:
-          GRIM_SPACE_GO_SIGNAL_WORKAROUND: "1"
         run: |
           ulimit -c unlimited
           dotnet test --configuration Release --no-build --output Detailed --show-stdout All \
@@ -107,3 +105,53 @@ jobs:
             ${{ runner.temp }}/grim-space-ci/tests.log
             ${{ runner.temp }}/grim-space-ci/*.backtrace.txt
           retention-days: 7
+
+  native-smoke:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    name: Native smoke (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            runner: windows-latest
+          - platform: macos-arm64
+            runner: macos-latest
+          - platform: macos-x64
+            runner: macos-15-intel
+    defaults:
+      run:
+        shell: bash
+    env:
+      CC: gcc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/core/dfs/native/go.mod
+          cache-dependency-path: src/core/dfs/native/go.mod
+
+      - name: Check native compiler
+        run: gcc --version
+
+      - name: Build smoke tests
+        run: dotnet build grim-space.Tests/grim-space.Tests.csproj --configuration Release
+
+      - name: Run native smoke tests
+        run: |
+          dotnet test --project grim-space.Tests/grim-space.Tests.csproj \
+            --configuration Release --no-build --minimum-expected-tests 7 \
+            --filter-method 'GrimSpace.Tests.Dfs.SearchBridgeTests.MovementMatchesOrderedPathsAndCompleteWorlds' \
+            --filter-method 'GrimSpace.Tests.Dfs.SearchBridgeTests.BoundedSearchMatchesBestExhaustiveScoreAndReturnsOnlyWinner' \
+            --filter-method 'GrimSpace.Tests.Ai.EnemySearchPerformanceTests.PlainFourApAdvanceDoesNotEnumerateMillionsOfFrames' \
+            --output Detailed --show-stdout All
