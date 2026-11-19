@@ -41,7 +41,7 @@ public sealed class GoopGunActionClip : IReplayClip
 		{
 			state.Position = moved.To;
 			var distance = moved.From.ManhattanDistanceTo(moved.To);
-			var moveSeconds = ReplayTiming.MoveStepSeconds * System.Math.Max(1, distance);
+			var moveSeconds = context.Seconds(ReplayTiming.MoveStepSeconds) * System.Math.Max(1, distance);
 			context.UnitViews[goopGun.ActorId].AnimateMoveTo(state, moveSeconds);
 			if (state.IsAlive)
 				context.UnitViews[goopGun.ActorId].PlayMovementSound(moveSeconds);

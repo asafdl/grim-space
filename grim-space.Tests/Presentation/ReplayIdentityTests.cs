@@ -74,6 +74,53 @@ public sealed class ReplayIdentityTests
 	}
 
 	[Fact]
+	public void EnemyOverviewActors_IncludePlayersAndOnlyTheUpcomingEnemySequence()
+	{
+		var participants = new Dictionary<string, ETeam>
+		{
+			["player-a"] = ETeam.Player,
+			["player-b"] = ETeam.Player,
+			["enemy-a"] = ETeam.Enemy,
+			["enemy-b"] = ETeam.Enemy,
+			["enemy-later"] = ETeam.Enemy,
+		};
+		string[] order = ["player-a", "player-b", "enemy-a", "enemy-b", "player-a", "enemy-later"];
+
+		var actors = ReplayActorPhase.EnemyOverviewActors(order, 2, "enemy-a", participants);
+
+		Assert.Equal(["player-a", "player-b", "enemy-a", "enemy-b"], actors);
+	}
+
+	[Fact]
+	public void EnemyOverviewActorsForReplay_SkipsOverviewForPlayerOnlyReplay()
+	{
+		var participants = new Dictionary<string, ETeam>
+		{
+			["player"] = ETeam.Player,
+			["enemy"] = ETeam.Enemy,
+		};
+
+		Assert.Empty(ReplayActorPhase.EnemyOverviewActorsForReplay(["player"], participants));
+	}
+
+	[Fact]
+	public void EnemyOverviewActorsForReplay_FramesTheFirstEnemySequence()
+	{
+		var participants = new Dictionary<string, ETeam>
+		{
+			["player"] = ETeam.Player,
+			["enemy-a"] = ETeam.Enemy,
+			["enemy-b"] = ETeam.Enemy,
+			["enemy-later"] = ETeam.Enemy,
+		};
+
+		var actors = ReplayActorPhase.EnemyOverviewActorsForReplay(
+			["player", "enemy-a", "enemy-b", "player", "enemy-later"], participants);
+
+		Assert.Equal(["player", "enemy-a", "enemy-b"], actors);
+	}
+
+	[Fact]
 	public void ImpactInterestUsesTargetWhenSourceIsNotAUnit()
 	{
 		var target = State.FromShipInstance(

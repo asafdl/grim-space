@@ -217,6 +217,7 @@ public partial class BattleController : Node3D
 		_asteroidView = new BoardAsteroidView();
 		_asteroidView.Build(_camera, layout.Asteroids);
 		hazardsRoot.AddChild(_asteroidView);
+		_camera.OverviewOcclusion = _asteroidView.CountOccludedTargets;
 		var cryoPlumeView = new CryoPlumeView { Name = "CryoPlumes" };
 		cryoPlumeView.Build(_battle.Engine.World.NonUnits.Values.OfType<CryoPlume>());
 		hazardsRoot.AddChild(cryoPlumeView);
@@ -358,7 +359,6 @@ public partial class BattleController : Node3D
 			_replayPlayer,
 			_battleView,
 			_cameraDirector,
-			GetPlayerRenderedPosition,
 			ColorForActor,
 			() => !_simulationTransition.IsTransitioning);
 		AddChild(_replayDirector);
@@ -1078,10 +1078,21 @@ public partial class BattleController : Node3D
 
 		var desired = ShouldUseSimulationVisuals(phase);
 		if (desired == _requestedSimulationVisuals)
+		{
+			if (desired && !_simulationTransition.IsCapturing)
+				_cameraDirector.CompleteReturnControl(GetPlayerRenderedPosition());
 			return;
+		}
 
 		_requestedSimulationVisuals = desired;
-		void ApplyMode() => ApplySimulationVisuals(desired);
+		void ApplyMode()
+		{
+			ApplySimulationVisuals(desired);
+			if (desired)
+				_cameraDirector.CompleteReturnControl(GetPlayerRenderedPosition());
+			else if (phase == EBattlePhase.Replaying)
+				_replayDirector.ApplyReplayEntry();
+		}
 		if (desired == _simulationVisualsEnabled)
 			_simulationTransition.ApplyImmediately(ApplyMode);
 		else
@@ -1212,6 +1223,10 @@ public partial class BattleController : Node3D
 	private void UpdateAsteroidOcclusionTargets(PresentationFrame frame)
 	{
 		var targets = new List<Vector3> { GetPlayerRenderedPosition() };
+		if (_replayDirector.IsShowingReplay)
+			targets.AddRange(_battleView.UnitViews.Values
+				.Where(IsInstanceValid)
+				.Select(view => view.GlobalPosition));
 
 		if (frame.MoveGhostState is { } moveGhost)
 			targets.Add(WorldMapping.ToWorld(moveGhost.Position));

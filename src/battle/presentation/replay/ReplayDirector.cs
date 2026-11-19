@@ -17,21 +17,25 @@ public sealed partial class ReplayDirector : Node
 	private TurnReplayPlayer _replayPlayer = null!;
 	private BattleView _battleView = null!;
 	private BattleCameraDirector _cameraDirector = null!;
-	private Func<Vector3> _playerPosition = () => Vector3.Zero;
 	private Func<string, Color> _colorForActor = _ => Colors.White;
 	private Func<bool> _playbackReady = () => true;
 
 	private TurnReplay? _pendingReplay;
+	private TurnReplay? _entryReplay;
+	private Action? _entryCut;
+	private bool _entryApplied;
 	private int _pendingCompletedTurn;
 	private IReadOnlyDictionary<string, State>? _playbackEndStates;
 	private EBattlePhase? _lastPhase;
+	private string _lastPlayerId = "";
+
+	public bool IsShowingReplay => _entryApplied;
 
 	public void Configure(
 		BattleOrchestrator battle,
 		TurnReplayPlayer replayPlayer,
 		BattleView battleView,
 		BattleCameraDirector cameraDirector,
-		Func<Vector3> playerPosition,
 		Func<string, Color> colorForActor,
 		Func<bool>? playbackReady = null)
 	{
@@ -39,9 +43,9 @@ public sealed partial class ReplayDirector : Node
 		_replayPlayer = replayPlayer;
 		_battleView = battleView;
 		_cameraDirector = cameraDirector;
-		_playerPosition = playerPosition;
 		_colorForActor = colorForActor;
 		_playbackReady = playbackReady ?? (() => true);
+		_lastPlayerId = battle.ActivePlayerId;
 
 		_battle.PhaseChanged += OnPhaseChanged;
 		_battle.TurnResolved += OnTurnResolved;
@@ -73,25 +77,71 @@ public sealed partial class ReplayDirector : Node
 
 		switch (phase)
 		{
-			case EBattlePhase.PlayerTurn when previous == EBattlePhase.Replaying:
-				_cameraDirector.ReturnControl(_playerPosition());
+			case EBattlePhase.PlayerTurn:
+				if (previous == EBattlePhase.Replaying)
+					_cameraDirector.PrepareReturnControl(
+						!string.Equals(_lastPlayerId, _battle.ActivePlayerId, StringComparison.Ordinal));
+				_lastPlayerId = _battle.ActivePlayerId;
 				break;
 
 			case EBattlePhase.Replaying:
 				_cameraDirector.BeginPlayback();
+				PrepareReplayEntry(_battle.PendingReplay
+					?? throw new InvalidOperationException("Replay phase started without a pending replay."));
 				break;
 		}
+	}
+
+	private void PrepareReplayEntry(TurnReplay replay)
+	{
+		_entryReplay = replay;
+		_entryApplied = false;
+		var participants = ParticipantTeams();
+		var actors = ReplayActorPhase.EnemyOverviewActorsForReplay(replay.ActivationOrder, participants);
+		var points = new List<Vector3>();
+		var priorityPoints = new List<Vector3>();
+		var hasPriorityEnemy = false;
+		foreach (var id in actors)
+		{
+			if (replay.StartStates.TryGetValue(id, out var state))
+			{
+				if (!state.IsAlive)
+					continue;
+			}
+			else if (!replay.EndStates.TryGetValue(id, out state))
+				continue;
+
+			var position = WorldMapping.ToWorld(state.Position);
+			points.Add(position);
+			if (id == _battle.ActivePlayerId || (!hasPriorityEnemy && participants[id] == ETeam.Enemy))
+			{
+				priorityPoints.Add(position);
+				hasPriorityEnemy |= participants[id] == ETeam.Enemy;
+			}
+		}
+		_entryCut = hasPriorityEnemy ? _cameraDirector.PrepareEnemyOverview(points, priorityPoints) : null;
+	}
+
+	public void ApplyReplayEntry()
+	{
+		if (_entryReplay is not { } replay || _entryApplied)
+			return;
+
+		_replayPlayer.ResetToLive(
+			replay.StartStates,
+			replay.EndStates,
+			interest => _cameraDirector.ReportInterest(interest),
+			scale => _cameraDirector.PlayImpactShake(scale));
+		_entryCut?.Invoke();
+		_entryCut = null;
+		_entryApplied = true;
 	}
 
 	private void StartPlayback(TurnReplay replay, int completedTurn)
 	{
 		_playbackEndStates = replay.EndStates;
 		var start = Stopwatch.GetTimestamp();
-		_replayPlayer.ResetToLive(
-			replay.StartStates,
-			replay.EndStates,
-			interest => _cameraDirector.ReportInterest(interest),
-			scale => _cameraDirector.PlayImpactShake(scale));
+		ApplyReplayEntry();
 		var resetMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 		var participants = ParticipantTeams();
 		var participantsMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds - resetMs;
@@ -113,6 +163,9 @@ public sealed partial class ReplayDirector : Node
 
 		var syncMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 		_playbackEndStates = null;
+		_entryReplay = null;
+		_entryCut = null;
+		_entryApplied = false;
 		_battle.NotifyReplayComplete();
 		GameLog.Log(
 			$"Turn {_pendingCompletedTurn} replay teardown: "

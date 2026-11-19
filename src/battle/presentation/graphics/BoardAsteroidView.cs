@@ -50,6 +50,9 @@ public partial class BoardAsteroidView : Node3D
 	public void SetOcclusionTargets(IReadOnlyList<Vector3> targets) =>
 		_occlusionTargets = targets;
 
+	public int CountOccludedTargets(Vector3 cameraPosition, IReadOnlyList<Vector3> targets) =>
+		targets.Count(target => _asteroidVisuals.Any(visual => IntersectsVisual(visual, cameraPosition, target)));
+
 	public override void _Process(double delta)
 	{
 		if (!IsInstanceValid(_camera))

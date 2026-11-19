@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Math.Camera;
 
 namespace GrimSpace.Battle.Presentation.Camera;
 
@@ -18,6 +19,13 @@ public sealed class BattleCameraDirector
 	private CameraMode _mode = CameraMode.Manual;
 	private float _manualInputGraceRemaining;
 	private bool _barkFocus;
+	private bool _enemyHold;
+	private OrbitPose? _preOverviewPose;
+	private bool _manualAfterOverview;
+	private bool _manualDuringPlayback;
+	private bool _returnPending;
+	private bool _focusNewPlayer;
+	private int _overviewGeneration;
 
 	public void BeginBark(Vector3 position)
 	{
@@ -36,18 +44,87 @@ public sealed class BattleCameraDirector
 
 	public void EnterManual()
 	{
+		_overviewGeneration++;
 		_mode = CameraMode.Manual;
+		ClearEnemyFraming();
+		_preOverviewPose = null;
+		_manualAfterOverview = false;
+		_manualDuringPlayback = false;
+		_returnPending = false;
+		_focusNewPlayer = false;
 		_rig.CancelAutomation();
 	}
 
 	public void BeginPlayback()
 	{
+		_overviewGeneration++;
 		_mode = CameraMode.Playback;
 		_manualInputGraceRemaining = 0f;
+		_preOverviewPose = null;
+		_manualAfterOverview = false;
+		_manualDuringPlayback = false;
+		_returnPending = false;
+		_focusNewPlayer = false;
+		ClearEnemyFraming();
+	}
+
+	public Action? PrepareEnemyOverview(
+		IReadOnlyList<Vector3> points,
+		IReadOnlyList<Vector3>? priorityPoints = null)
+	{
+		if (_mode != CameraMode.Playback)
+			return null;
+
+		_enemyHold = true;
+		var target = _rig.CalculateOverview(points, priorityPoints ?? points);
+		if (target is not { } pose)
+			return null;
+
+		_rig.CancelAutomation();
+		var generation = ++_overviewGeneration;
+		return () =>
+		{
+			if (generation != _overviewGeneration || _mode != CameraMode.Playback)
+				return;
+			if (!_manualAfterOverview)
+				_preOverviewPose ??= _rig.CurrentPose;
+			_rig.SetFocus(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch);
+		};
+	}
+
+	public void PrepareReturnControl(bool focusNewPlayer = false)
+	{
+		_overviewGeneration++;
+		_returnPending = true;
+		_focusNewPlayer = focusNewPlayer;
+		_mode = CameraMode.Manual;
+		ClearEnemyFraming();
+		_rig.CancelAutomation();
+	}
+
+	public void CompleteReturnControl(Vector3 playerWorldPos)
+	{
+		if (!_returnPending)
+			return;
+		_returnPending = false;
+		if (_preOverviewPose is { } pose && !_manualAfterOverview)
+			_rig.SetFocus(playerWorldPos, pose.Distance, pose.Yaw, pose.Pitch);
+		else if (_focusNewPlayer && !_manualDuringPlayback && !_manualAfterOverview)
+		{
+			var current = _rig.CurrentPose;
+			_rig.SetFocus(playerWorldPos, current.Distance, current.Yaw, current.Pitch);
+		}
+		else if (!_focusNewPlayer && !_manualAfterOverview)
+			ReturnControl(playerWorldPos);
+		_preOverviewPose = null;
+		_manualAfterOverview = false;
+		_manualDuringPlayback = false;
+		_focusNewPlayer = false;
 	}
 
 	public void ReturnControl(Vector3 playerWorldPos)
 	{
+		ClearEnemyFraming();
 		_mode = CameraMode.Manual;
 
 		if (_rig.AreVisible([playerWorldPos], SafeMargin))
@@ -64,6 +141,9 @@ public sealed class BattleCameraDirector
 	public void ReportInterest(CameraInterest interest)
 	{
 		if (_mode != CameraMode.Playback)
+			return;
+
+		if (_enemyHold)
 			return;
 
 		if (_rig.AreVisible(interest.Points, SafeMargin))
@@ -86,7 +166,7 @@ public sealed class BattleCameraDirector
 		if (_mode == CameraMode.Returning && !_rig.IsAutomationActive)
 			_mode = CameraMode.Manual;
 
-		if (_mode != CameraMode.Playback)
+		if (_mode != CameraMode.Playback || _enemyHold)
 			return;
 
 		if (_manualInputGraceRemaining > 0f)
@@ -110,9 +190,16 @@ public sealed class BattleCameraDirector
 
 	public void OnManualInputStarted()
 	{
+		_overviewGeneration++;
 		_rig.CancelAutomation();
+		if (_mode == CameraMode.Playback || _returnPending)
+			_manualDuringPlayback = true;
+		if (_preOverviewPose is not null || _enemyHold)
+		{
+			_preOverviewPose = null;
+			_manualAfterOverview = true;
+		}
 		_manualInputGraceRemaining = ManualInputGrace;
-
 		if (_mode == CameraMode.Returning)
 			_mode = CameraMode.Manual;
 	}
@@ -121,6 +208,11 @@ public sealed class BattleCameraDirector
 	{
 		_rig.CancelAutomation();
 		_rig.TweenPivotTo(playerWorldPos);
+	}
+
+	private void ClearEnemyFraming()
+	{
+		_enemyHold = false;
 	}
 
 	private static float ReturnTweenDuration(Vector3 from, Vector3 to) =>

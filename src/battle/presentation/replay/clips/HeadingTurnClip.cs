@@ -16,10 +16,11 @@ public sealed class HeadingTurnClip : IReplayClip
 			return ClipPlayback.Instant;
 
 		var state = context.ReplayState.StateOf(heading.ActorId);
+		var seconds = context.Seconds(ReplayTiming.OrientationSeconds);
 		context.UnitViews[heading.ActorId].AnimateOrientationTo(
 			state,
-			ReplayTiming.OrientationSeconds,
+			seconds,
 			emitTrail: false);
-		return ClipPlayback.Pause(ReplayTiming.OrientationSeconds);
+		return ClipPlayback.Pause(seconds);
 	}
 }

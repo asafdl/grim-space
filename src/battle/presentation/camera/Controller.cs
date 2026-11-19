@@ -9,6 +9,7 @@ public partial class Controller : Camera3D, ICameraRig
 {
 	public event Action? ManualInputStarted;
 	public StringName HeldGestureModifierAction { get; set; } = "";
+	public Func<Vector3, IReadOnlyList<Vector3>, int>? OverviewOcclusion { get; set; }
 
 	private static readonly OrbitLimits Limits = new(
 		MinDistance: 8f,
@@ -138,6 +139,25 @@ public partial class Controller : Camera3D, ICameraRig
 
 	public void TweenFocusOn(Vector3 targetPivot, float targetDistance) =>
 		TweenFocusOn(targetPivot, targetDistance, _pose.Yaw, _pose.Pitch);
+
+	public OrbitPose? CalculateOverview(IReadOnlyList<Vector3> points, IReadOnlyList<Vector3> priorityPoints)
+	{
+		if (_trailerActive)
+			return null;
+
+		var viewport = GetViewport().GetVisibleRect().Size;
+		if (viewport.X <= 0f || viewport.Y <= 0f)
+			throw new InvalidOperationException("Cannot frame battle overview with an empty viewport.");
+		var target = BattleCameraPoses.Overview(
+			points, _pose, Fov, viewport.X / viewport.Y, Limits, priorityPoints, OverviewOcclusion);
+		if (_pose.Pivot.DistanceSquaredTo(target.Pivot) <= PivotEpsilon * PivotEpsilon
+			&& Mathf.Abs(_pose.Distance - target.Distance) <= PivotEpsilon
+			&& Mathf.Abs(Mathf.AngleDifference(_pose.Yaw, target.Yaw)) <= 0.001f
+			&& Mathf.Abs(_pose.Pitch - target.Pitch) <= 0.001f)
+			return null;
+
+		return target;
+	}
 
 	public void TweenFocusOn(
 		Vector3 targetPivot,

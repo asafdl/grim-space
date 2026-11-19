@@ -13,10 +13,11 @@ public sealed class VoidBombMoveStepClip : IReplayClip
 		context.ReplayState.ApplyVoidBombMove(move);
 		var state = context.ReplayState.StateOf(move.ActorId);
 
+		var seconds = context.Seconds(ReplayTiming.MoveStepSeconds);
 		context.UnitViews[move.ActorId].AnimateMoveTo(
 			state,
-			ReplayTiming.MoveStepSeconds,
+			seconds,
 			context.NextMovePosition(move.ActorId));
-		return ClipPlayback.Pause(ReplayTiming.MoveStepSeconds);
+		return ClipPlayback.Pause(seconds);
 	}
 }

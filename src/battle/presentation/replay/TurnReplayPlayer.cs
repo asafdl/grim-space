@@ -37,7 +37,6 @@ public partial class TurnReplayPlayer : Node3D
 	private Action<string> _removeGoop = _ => { };
 	private Action<ImpactFacts, ETeam, IReadOnlyList<string>, Action> _playImpactReaction =
 		(_, _, _, completed) => completed();
-
 	private HazardBurstView _hazardBursts = null!;
 	private ReplayClipContext _clipContext = null!;
 	private IReadOnlyList<ITimelineEntry> _history = [];
@@ -200,22 +199,31 @@ public partial class TurnReplayPlayer : Node3D
 			var entryStart = Stopwatch.GetTimestamp();
 			switch (entry)
 			{
-				case Record<UnitActivationRoundPhase> { Value.Phase: EUnitActivationPhase.End }:
+				case Record<UnitActivationRoundPhase> { Value: var round }:
+					if (round.Phase == EUnitActivationPhase.Start)
+						break;
 					_flowCompletedCount++;
 					EmitTurnFlowIndexChanged();
-					break;
-				case Record<UnitActivationRoundPhase>:
+					if (_participants.GetValueOrDefault(round.UnitId) == ETeam.Enemy)
+					{
+						ContinueAfter(ReplayTiming.EnemyActivationHoldSeconds, PlayNext);
+						return;
+					}
+
 					break;
 				case IAction action:
 				{
 					_currentAction = action;
-					if (_activeActorId != action.ActorId)
+					var actorChanged = _activeActorId != action.ActorId;
+					if (actorChanged)
 					{
 						if (_activeActorId is not null && _unitViews.TryGetValue(_activeActorId, out var previous))
 							previous.SetReplayActive(false);
 						_activeActorId = action.ActorId;
 						if (_unitViews.TryGetValue(action.ActorId, out var active))
-							active.SetReplayActive(true);
+							active.SetReplayActive(
+								true,
+								halo: _participants.GetValueOrDefault(action.ActorId) == ETeam.Enemy);
 					}
 					BeginPhase(ReplayActorPhase.Classify(action.ActorId, _participants));
 					ReportActionInterest(action);
@@ -367,7 +375,7 @@ public partial class TurnReplayPlayer : Node3D
 			UnitInterestPoints(_clipContext.ReplayState, heal.SourceId, heal.TargetId),
 			CameraImportance.Combat));
 
-		ContinueAfter(ReplayTiming.ImpactPauseSeconds, PlayNext);
+		ContinueAfter(_clipContext.Seconds(ReplayTiming.ImpactPauseSeconds), PlayNext);
 		return true;
 	}
 
@@ -467,9 +475,9 @@ public partial class TurnReplayPlayer : Node3D
 		if (died)
 			view.PlayDeathExplosion();
 
-		var pause = died
+		var pause = _clipContext.Seconds(died
 			? ReplayTiming.ImpactPauseSeconds + ReplayTiming.DeathExplosionSeconds
-			: ReplayTiming.ImpactPauseSeconds;
+			: ReplayTiming.ImpactPauseSeconds);
 
 		ContinueAfter(pause, () =>
 		{
@@ -532,6 +540,8 @@ public partial class TurnReplayPlayer : Node3D
 			_timeToEnemyAnimMs = _playbackTimer.Elapsed.TotalMilliseconds;
 			_loggedEnemyAnimStart = true;
 		}
+
+		_clipContext.Pace = phase == EReplayPlaybackPhase.Enemy ? ReplayTiming.EnemyPace : 1;
 	}
 
 	private void FlushPhase()

@@ -16,7 +16,8 @@ public sealed class RollClip : IReplayClip
 			return ClipPlayback.Instant;
 
 		var state = context.ReplayState.StateOf(roll.ActorId);
-		context.UnitViews[roll.ActorId].AnimateOrientationTo(state, ReplayTiming.OrientationSeconds);
-		return ClipPlayback.Pause(ReplayTiming.OrientationSeconds);
+		var seconds = context.Seconds(ReplayTiming.OrientationSeconds);
+		context.UnitViews[roll.ActorId].AnimateOrientationTo(state, seconds);
+		return ClipPlayback.Pause(seconds);
 	}
 }

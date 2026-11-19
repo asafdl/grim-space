@@ -15,12 +15,13 @@ public sealed class MoveStepClip : IReplayClip
 		context.ReplayState.ApplyMove(move);
 		var state = context.ReplayState.StateOf(move.ActorId);
 
+		var seconds = context.Seconds(ReplayTiming.MoveStepSeconds);
 		context.UnitViews[move.ActorId].AnimatePoseTo(
 			state,
-			ReplayTiming.MoveStepSeconds,
+			seconds,
 			context.NextMovePosition(move.ActorId));
 		if (state.IsAlive)
-			context.UnitViews[move.ActorId].PlayMovementSound(ReplayTiming.MoveStepSeconds);
-		return ClipPlayback.Pause(ReplayTiming.MoveStepSeconds);
+			context.UnitViews[move.ActorId].PlayMovementSound(seconds);
+		return ClipPlayback.Pause(seconds);
 	}
 }

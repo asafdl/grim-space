@@ -43,6 +43,10 @@ public sealed class ReplayClipContext(
 	public Action<GoopSpawnedFacts>? ShowGoop { get; } = showGoop;
 	public Action<string>? RemoveGoop { get; } = removeGoop;
 	public ESpatialOrientation? PendingVoidBombMountedOn { get; set; }
+	public double Pace { get; set; } = 1;
+
+	public double Seconds(double seconds) => seconds * Pace;
+
 	public IReadOnlyList<IAction> FollowingActions { private get; set; } = [];
 	public IReadOnlyList<IRecord> FollowingRecords { get; set; } = [];
 

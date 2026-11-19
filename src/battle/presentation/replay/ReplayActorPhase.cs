@@ -12,6 +12,37 @@ public enum EReplayPlaybackPhase
 
 public static class ReplayActorPhase
 {
+	public static IReadOnlyList<string> EnemyOverviewActorsForReplay(
+		IReadOnlyList<string> activationOrder,
+		IReadOnlyDictionary<string, ETeam> participants)
+	{
+		for (var i = 0; i < activationOrder.Count; i++)
+		{
+			if (Classify(activationOrder[i], participants) == EReplayPlaybackPhase.Enemy)
+				return EnemyOverviewActors(activationOrder, i, activationOrder[i], participants);
+		}
+
+		return [];
+	}
+
+	public static IReadOnlyList<string> EnemyOverviewActors(
+		IReadOnlyList<string> activationOrder,
+		int completedCount,
+		string currentEnemy,
+		IReadOnlyDictionary<string, ETeam> participants)
+	{
+		if (Classify(currentEnemy, participants) != EReplayPlaybackPhase.Enemy)
+			throw new ArgumentException("Overview requires an enemy actor.", nameof(currentEnemy));
+
+		return participants.Where(pair => pair.Value == ETeam.Player)
+			.Select(pair => pair.Key)
+			.Concat(activationOrder.Skip(completedCount)
+				.TakeWhile(id => Classify(id, participants) == EReplayPlaybackPhase.Enemy)
+				.Prepend(currentEnemy))
+			.Distinct(StringComparer.Ordinal)
+			.ToArray();
+	}
+
 	public static EReplayPlaybackPhase Classify(string actorId, IReadOnlyDictionary<string, ETeam> participants)
 	{
 		if (string.Equals(actorId, BattleActorIds.Rules, StringComparison.Ordinal)
