@@ -4,6 +4,7 @@ using GrimSpace.Battle.World;
 using Godot;
 using GrimSpace.Core.Log;
 using GrimSpace.Education;
+using GrimSpace.Presentation;
 using GrimSpace.Presentation.Dev;
 using GrimSpace.Run;
 using GrimSpace.Run.Persistence;
@@ -200,6 +201,10 @@ public partial class Session : Node
 
 		_tutorialDialogHost = new TutorialDialogHost();
 		AddChild(_tutorialDialogHost);
+
+		var clickFeedbackLayer = new CanvasLayer { Layer = 128 };
+		AddChild(clickFeedbackLayer);
+		clickFeedbackLayer.AddChild(new ClickFeedback());
 	}
 
 	public override void _Process(double delta)
