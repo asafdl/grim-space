@@ -43,6 +43,8 @@ jobs:
       - name: Test
         id: test
         shell: bash
+        env:
+          GRIM_SPACE_GO_SIGNAL_WORKAROUND: "1"
         run: |
           ulimit -c unlimited
           dotnet test --configuration Release --no-build --output Detailed --show-stdout All \

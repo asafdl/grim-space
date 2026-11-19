@@ -125,6 +125,19 @@ project's entry in the build and publish deps files. This was verified in an
 editor run and an arm64 macOS export; the x86_64 slice and Windows/Linux exports
 were checked only for file placement, or not at all.
 
+Linux has a known Go/CoreCLR signal-stack incompatibility
+([dotnet/runtime#127320](https://github.com/dotnet/runtime/issues/127320)).
+The experimental `GRIM_SPACE_GO_SIGNAL_WORKAROUND=1` process environment flag
+clears `SA_ONSTACK` only for `SIGRTMIN` and `SIGTRAP` during Go package initialization,
+after Go installs its signal flags. Existing handlers and other flags are preserved;
+setup failures abort initialization, and activation is logged to stderr.
+This changes signal handling for the current process only and needs no elevated
+permissions. It deliberately violates Go's documented alternate-stack requirement:
+it is a mitigation experiment, not supported in-process interoperability or a
+production-safety guarantee. The CI test step opts in; the flag is otherwise off
+(`0` or unset), and Windows/macOS do not compile this Linux-only code. Release
+workflows and exported games are not opted in.
+
 The search and parallel correctness checks are ordinary tests:
 
 ```sh
