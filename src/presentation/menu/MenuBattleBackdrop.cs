@@ -125,7 +125,7 @@ public partial class MenuBattleBackdrop : Node3D
 	private SceneTreeTimer? _beatTimer;
 	private Action? _onBeatTimeout;
 
-	// Building takes ~0.4s, so the menu UI paints first over a black cover, then the battle fades in.
+	// Sky + menu haze first so the UI is usable; ship recording/meshes and the ruined carrier load after.
 	public override async void _Ready()
 	{
 		var cover = new ColorRect { Color = Colors.Black, AnchorRight = 1f, AnchorBottom = 1f, MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -138,19 +138,29 @@ public partial class MenuBattleBackdrop : Node3D
 			return;
 
 		_teams = Script.Ships.ToDictionary(ship => ship.Id, ship => ship.Team);
-		var grid = RecordBeats(out var asteroids);
-
+		var grid = new Math.Grid.Grid(Script.GridSize, Script.GridSize, Script.GridSize);
 		var center = WorldMapping.GridCenter(grid);
-		var camera = _camera = new Camera3D { Fov = Script.CameraFov, Current = true };
-		AddChild(camera);
-		camera.Position = center + Script.CameraOffset;
-		camera.LookAt(center + Script.CameraLookOffset);
+		_camera = new Camera3D { Fov = Script.CameraFov, Current = true };
+		AddChild(_camera);
+		_camera.Position = center + Script.CameraOffset;
+		_camera.LookAt(center + Script.CameraLookOffset);
 
 		AddChild(SpaceBackdrop.CreateWorldEnvironment());
-		AddSky(center, camera);
+		AddSunSky(center);
+		AddChild(CreateEdgeFade());
+		GetViewport().SizeChanged += UpdateEdgeFade;
+		UpdateEdgeFade();
+		CreateTween().TweenProperty(cover, ColorRect.PropertyName.Modulate.ToString(), Colors.Transparent, 1.2);
+
+		await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		if (!IsInsideTree())
+			return;
+
+		RecordBeats(out var asteroids);
+		AddCarrier(center);
 
 		var asteroidView = new BoardAsteroidView { Name = "Asteroids" };
-		asteroidView.Build(camera, asteroids);
+		asteroidView.Build(_camera, asteroids);
 		AddChild(asteroidView);
 
 		_battleView = new BattleView { Name = "BattleView" };
@@ -175,10 +185,7 @@ public partial class MenuBattleBackdrop : Node3D
 			_players.Add(player);
 		}
 
-		AddChild(CreateEdgeFade());
-		GetViewport().SizeChanged += UpdateEdgeFade;
 		UpdateEdgeFade();
-		CreateTween().TweenProperty(cover, ColorRect.PropertyName.Modulate.ToString(), Colors.Transparent, 1.2);
 		PlayBeat(0);
 	}
 
@@ -201,29 +208,38 @@ public partial class MenuBattleBackdrop : Node3D
 		}
 	}
 
-	// The battle sun direction is fixed, so the sky (sun, carrier, light) is rotated around the grid instead to frame the sun.
-	private void AddSky(Vector3 center, Camera3D camera)
+	// The battle sun direction is fixed, so the sky is rotated around the grid instead to frame the sun.
+	private Transform3D SkyFraming(Vector3 center)
 	{
-		var basis = new Basis(camera.GlobalBasis.X, Mathf.DegToRad(Script.SunPitchDegrees))
+		var basis = new Basis(_camera.GlobalBasis.X, Mathf.DegToRad(Script.SunPitchDegrees))
 			* new Basis(Vector3.Up, Mathf.DegToRad(Script.SunYawDegrees));
-		var yaw = new Transform3D(basis, center - basis * center);
+		return new Transform3D(basis, center - basis * center);
+	}
 
-		var skyCamera = new Camera3D();
-		AddChild(skyCamera);
-		skyCamera.GlobalTransform = yaw.AffineInverse() * camera.GlobalTransform;
-		var carrier = RuinedCarrierBackdrop.Create(center, Script.BackdropRadius, skyCamera);
-		RemoveChild(skyCamera);
-		skyCamera.Free();
-
+	private void AddSunSky(Vector3 center)
+	{
+		var yaw = SkyFraming(center);
 		var light = new DirectionalLight3D();
 		AddChild(light);
 		RedDwarfSun.Configure(light, center, Script.BackdropRadius);
-		AddChild(carrier);
 		var sun = RedDwarfSun.CreateVisual(center, Script.BackdropRadius);
 		AddChild(sun);
 		_sunPosition = yaw * sun.GlobalPosition;
-		foreach (var node in new[] { light, carrier, sun })
+		foreach (var node in new Node3D[] { light, sun })
 			node.GlobalTransform = yaw * node.GlobalTransform;
+	}
+
+	private void AddCarrier(Vector3 center)
+	{
+		var yaw = SkyFraming(center);
+		var skyCamera = new Camera3D();
+		AddChild(skyCamera);
+		skyCamera.GlobalTransform = yaw.AffineInverse() * _camera.GlobalTransform;
+		var carrier = RuinedCarrierBackdrop.Create(center, Script.BackdropRadius, skyCamera);
+		RemoveChild(skyCamera);
+		skyCamera.Free();
+		AddChild(carrier);
+		carrier.GlobalTransform = yaw * carrier.GlobalTransform;
 	}
 
 	private CanvasLayer CreateEdgeFade()
@@ -244,8 +260,11 @@ public partial class MenuBattleBackdrop : Node3D
 					uniform vec3 haze_dark = vec3(0.05, 0.04, 0.065);
 					uniform vec3 haze_light = vec3(0.29, 0.23, 0.33);
 
+					// sin-based hashes go blocky/flat on many Windows GPUs (NVIDIA sin precision).
 					float hash(vec2 p) {
-						return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+						vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+						p3 += dot(p3, p3.yzx + 33.33);
+						return fract((p3.x + p3.y) * p3.z);
 					}
 
 					float noise(vec2 p) {
@@ -329,14 +348,23 @@ public partial class MenuBattleBackdrop : Node3D
 		var height = 2f * _camera.Near * Mathf.Tan(Mathf.DegToRad(Script.CameraFov) / 2f);
 		_camera.SetFrustum(height, Vector2.Zero, _camera.Near, _camera.Far);
 		float ScreenX(Coord cell) => _camera.UnprojectPosition(WorldMapping.ToWorld(cell)).X / size.X;
-		var shift = Script.RightSpawnScreenX - _beats[0].StartStates.Values.Max(state => ScreenX(state.Position));
+
+		// Before beats are recorded, script spawns + a mid-lane hold keep the haze framed.
+		var spawnXs = _beats.Count > 0
+			? _beats[0].StartStates.Values.Select(state => ScreenX(state.Position))
+			: Script.Ships.Select(ship => ScreenX(ship.Position));
+		var shift = Script.RightSpawnScreenX - spawnXs.Max();
 		_camera.SetFrustum(height, new Vector2(-shift * height * aspect, 0f), _camera.Near, _camera.Far);
 
-		var leftSpawn = _beats[0].StartStates.Values.Min(state => ScreenX(state.Position));
-		var leftHold = _beats
-			.SelectMany(beat => beat.EndStates.Values)
-			.Where(state => state.Position.X > 0 && state.Position.X < Script.GridSize - 1)
-			.Min(state => ScreenX(state.Position));
+		var leftSpawn = (_beats.Count > 0
+			? _beats[0].StartStates.Values.Select(state => ScreenX(state.Position))
+			: Script.Ships.Select(ship => ScreenX(ship.Position))).Min();
+		var leftHold = _beats.Count > 0
+			? _beats
+				.SelectMany(beat => beat.EndStates.Values)
+				.Where(state => state.Position.X > 0 && state.Position.X < Script.GridSize - 1)
+				.Min(state => ScreenX(state.Position))
+			: ScreenX(new Coord(Script.GridSize / 3, Script.GridSize / 2, Script.GridSize / 2));
 		const float shipMargin = 0.06f;
 		var black = leftSpawn + shipMargin;
 		_edgeFade.SetShaderParameter("lane", new Vector2(black, Mathf.Lerp(black, leftHold, 0.7f)));
