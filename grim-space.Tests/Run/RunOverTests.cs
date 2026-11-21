@@ -117,7 +117,7 @@ public sealed class RunOverTests
 			Assert.True(row.IsScrapped);
 			Assert.Equal(0, row.ExperienceEarned);
 			Assert.Contains(pilots.Values, pilot =>
-				pilot.Name == row.DisplayName
+				pilot.DisplayLabel == row.DisplayName
 				&& pilot.PortraitId == row.PortraitId
 				&& pilot.ExperiencePoints == row.ExperiencePointsBefore);
 		});

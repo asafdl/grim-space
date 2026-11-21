@@ -252,7 +252,6 @@ public sealed class Pilot
 
 	internal static Pilot FromPersistence(PilotPersistenceDto dto, PilotIdentityAllocator? identity = null)
 	{
-		var name = NormalizeFirstName(dto.Name);
 		var nickname = dto.Nickname;
 		if (string.IsNullOrEmpty(nickname))
 		{
@@ -262,12 +261,12 @@ public sealed class Pilot
 				quirks,
 				Random.Shared,
 				identity?.UsedNicknames);
-			identity?.Claim(name, nickname);
+			identity?.Claim(dto.Name, nickname);
 		}
 
 		return new(
 			dto.Id,
-			name,
+			dto.Name,
 			nickname,
 			dto.PortraitId,
 			dto.BackgroundId,
@@ -336,13 +335,6 @@ public sealed class Pilot
 		Random rng) =>
 		identity?.Roll(backgroundId, quirks, rng)
 		?? (RobotNameCatalog.Roll(rng), PilotNicknameCatalog.Roll(backgroundId, quirks, rng));
-
-	private static string NormalizeFirstName(string name)
-	{
-		ArgumentException.ThrowIfNullOrEmpty(name);
-		var space = name.IndexOf(' ');
-		return space < 0 ? name : name[..space];
-	}
 
 	private static void ValidateClassId(EOperatorClassId classId)
 	{

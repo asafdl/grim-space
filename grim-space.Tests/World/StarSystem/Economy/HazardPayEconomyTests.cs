@@ -22,8 +22,8 @@ public sealed class HazardPayEconomyTests
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
 		run.PilotRegistry.Update(pilot.WithHazardMissedPeriods(2));
-		var hazardDue =
-			StrategicEconomyConfig.HazardPayCreditsPerPilot * run.PilotRegistry.Assigned.Count;
+		var hazardDue = HazardPayrollAccounting.EstimateCredits(
+			HazardPayrollAccounting.CandidatesFrom(run.PilotRegistry));
 		var creditsBefore = run.StarSystem.Map.PlayerResources.GetBalance(ResourceId.Credits);
 
 		AddPirate(run);
