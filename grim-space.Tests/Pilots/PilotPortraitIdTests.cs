@@ -51,7 +51,7 @@ public sealed class PilotPortraitIdTests
 	public void RecruitHireAndSaveLoad_PreserveAvatarIdentityAndAppearance()
 	{
 		var id = PilotPortraitId.Roll(new Random(42));
-		var profile = new PilotRecruitProfile("Test Robot", id, EPilotBackgroundId.ScrapDrone);
+		var profile = new PilotRecruitProfile("Test Robot", id, EPilotBackgroundId.ScrapDrone, nickname: "Bolt");
 		var pilot = Pilot.FromRecruitProfile("ship-1", profile);
 		var serialized = ReflectionJson.Write(pilot.ToPersistence());
 		var restored = Pilot.FromPersistence(ReflectionJson.Read<PilotPersistenceDto>(serialized));
@@ -61,9 +61,36 @@ public sealed class PilotPortraitIdTests
 		foreach (var copy in new[] { pilot, restored, clone, reassigned })
 		{
 			Assert.Equal(id, copy.PortraitId);
+			Assert.Equal("Bolt", copy.Nickname);
 			Assert.Equal(
-				RobotPortraitGenerator.Generate(PilotPortraitId.SeedFor(id)),
-				RobotPortraitGenerator.Generate(PilotPortraitId.SeedFor(copy.PortraitId)));
+				PilotPortraitId.GenerateAppearance(id),
+				PilotPortraitId.GenerateAppearance(copy.PortraitId));
 		}
+	}
+
+	[Fact]
+	public void WithRandomOtherPalette_KeepsSeedAndChangesOnlyColors()
+	{
+		var baseId = PilotPortraitId.Roll(new Random(99));
+		var original = PilotPortraitId.GenerateAppearance(baseId);
+		var nextId = PilotPortraitId.WithRandomOtherPalette(baseId, new Random(5));
+		var next = PilotPortraitId.GenerateAppearance(nextId);
+
+		Assert.Equal(PilotPortraitId.SeedFor(baseId), PilotPortraitId.SeedFor(nextId));
+		Assert.Equal(original.Parts, next.Parts);
+		Assert.NotEqual(original.Colors, next.Colors);
+		Assert.True(PilotPortraitId.TryGetPaletteIndex(nextId, out var paletteIndex));
+		Assert.InRange(paletteIndex, 0, RobotPortraitGenerator.Palettes.Count - 1);
+	}
+
+	[Fact]
+	public void GenerateAppearance_PaletteOverrideReplacesColorsOnly()
+	{
+		var seedId = "robot_v1:42";
+		var baseline = RobotPortraitGenerator.Generate(42);
+		var overridden = PilotPortraitId.GenerateAppearance(PilotPortraitId.WithPalette(seedId, 0));
+
+		Assert.Equal(baseline.Parts, overridden.Parts);
+		Assert.Equal(RobotPortraitGenerator.Palettes[0].Colors, overridden.Colors);
 	}
 }

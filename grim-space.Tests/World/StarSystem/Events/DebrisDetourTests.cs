@@ -58,7 +58,7 @@ public sealed class DebrisDetourTests
 		Assert.Equal(
 			ResourceBundle.Of(ResourceId.Fuel, -WorldEventCatalog.DebrisDetour.FuelCost),
 			pending.Reward);
-		Assert.Equal(WorldEventCatalog.DebrisDetour.Announce(navigator.Name), pending.Presentation);
+		Assert.Equal(WorldEventCatalog.DebrisDetour.Announce(navigator.DisplayLabel), pending.Presentation);
 		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
 	}
 
@@ -191,7 +191,7 @@ public sealed class DebrisDetourTests
 			pilot.Id,
 			pilot.AssignedShipId!,
 			0,
-			WorldEventCatalog.DebrisDetour.Announce(pilot.Name),
+			WorldEventCatalog.DebrisDetour.Announce(pilot.DisplayLabel),
 			ResourceBundle.Of(ResourceId.Fuel, -WorldEventCatalog.DebrisDetour.FuelCost));
 		run.StarSystem.CommitSetup(new DebrisDetourReportedAction(StarSystemActorIds.WorldEvents, pending));
 		return pending;

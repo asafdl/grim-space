@@ -54,7 +54,7 @@ public static class BattleVictorySummaryBuilder
 			var experienceAfter = experienceBefore + xp;
 			var isScrapped = handoff is { CurrentHullPoints: <= 0 };
 			pilotRows.Add(new BattleVictoryPilotRow(
-				pilot?.Name ?? spawn.PilotId,
+				pilot?.DisplayLabel ?? spawn.PilotId,
 				pilot?.PortraitId ?? spawn.Pilot?.PortraitId ?? PilotPortraitId.Default,
 				PilotHireDisplay.ShipPackageLine(spawn.Ship.Spec.Chassis, gearTier),
 				totals.Dealt,

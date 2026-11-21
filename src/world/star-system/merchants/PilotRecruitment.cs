@@ -57,10 +57,11 @@ public static class PilotRecruitment
 		if (CandidatesPerLead < RecruitableOperatorClasses.Length)
 			throw new InvalidOperationException("Pilot recruitment requires enough slots to offer every operator class.");
 
+		var batchNames = new HashSet<string>(StringComparer.Ordinal);
+		var batchNicknames = new HashSet<string>(StringComparer.Ordinal);
 		var candidates = new PilotHireCandidate[CandidatesPerLead];
 		for (var slot = 0; slot < CandidatesPerLead; slot++)
 		{
-			var name = Pilot.RollRecruitDisplayName(SlotRng(map.Seed, contractId, slot, "name"));
 			var portraitId = Pilot.RollRecruitPortraitId(SlotRng(map.Seed, contractId, slot, "portrait"));
 			var backgroundId = RecruitableBackgrounds[
 				SlotRng(map.Seed, contractId, slot, "background").Next(RecruitableBackgrounds.Length)];
@@ -72,18 +73,30 @@ public static class PilotRecruitment
 				SlotRng(map.Seed, contractId, slot, "salary"));
 			var quirks = PilotQuirkCatalog.RollQuirks(
 				SlotRng(map.Seed, contractId, slot, "quirks"));
+			var positive = quirks.Where(id =>
+				PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Positive).ToArray();
+			var negative = quirks.Where(id =>
+				PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Negative).ToArray();
+			var allQuirks = positive.Concat(negative).ToArray();
+			var identityRng = SlotRng(map.Seed, contractId, slot, "identity");
+			var (name, nickname) = map.PilotIdentity is { } allocator
+				? allocator.Suggest(backgroundId, allQuirks, identityRng, batchNames, batchNicknames)
+				: (
+					RobotNameCatalog.Roll(identityRng, batchNames),
+					PilotNicknameCatalog.Roll(backgroundId, allQuirks, identityRng, batchNicknames));
+			batchNames.Add(name);
+			batchNicknames.Add(nickname);
 			var profile = new PilotRecruitProfile(
 				name,
 				portraitId,
 				backgroundId,
-				positiveQuirkIds: quirks.Where(id =>
-					PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Positive).ToArray(),
-				negativeQuirkIds: quirks.Where(id =>
-					PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Negative).ToArray(),
+				positiveQuirkIds: positive,
+				negativeQuirkIds: negative,
 				experiencePoints: 0,
 				claimedLevel: PilotProgression.LevelFor(0),
 				baseSalaryCredits: baseSalary,
-				classId: classId);
+				classId: classId,
+				nickname: nickname);
 
 			candidates[slot] = new PilotHireCandidate(slot, profile);
 		}

@@ -55,6 +55,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 	public StarMarket Market { get; }
 	public Inventory? ItemInventory { get; }
 	public RunPilotRegistry? PilotRegistry { get; set; }
+	public GrimSpace.Run.PilotIdentityAllocator? PilotIdentity { get; set; }
 	public PathfindingTerrain PathfindingTerrain { get; }
 
 	public bool WaitingForPlayerInput { get; internal set; }
@@ -161,6 +162,7 @@ public sealed class StarMap : IWorld<StarMap>, IActorWorld, IActorStateWorld<Sta
 		{
 			DebugAdditionalCompletedContracts = DebugAdditionalCompletedContracts,
 			PilotRegistry = PilotRegistry,
+			PilotIdentity = PilotIdentity,
 		};
 
 	public static bool PoisOverlap(PointOfInterest a, PointOfInterest b)

@@ -113,7 +113,7 @@ public sealed class DriftSalvageTests
 		Assert.Equal(EWorldEventId.DriftSalvage, pending.EventId);
 		Assert.Equal(finder.Id, pending.PilotId);
 		Assert.Equal(reward, pending.Reward);
-		Assert.Equal(WorldEventCatalog.Drift.Announce(finder.Name), pending.Presentation);
+		Assert.Equal(WorldEventCatalog.Drift.Announce(finder.DisplayLabel), pending.Presentation);
 		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
 	}
 
@@ -327,7 +327,7 @@ public sealed class DriftSalvageTests
 			pilot.Id,
 			pilot.AssignedShipId!,
 			0,
-			WorldEventCatalog.Drift.Announce(pilot.Name),
+			WorldEventCatalog.Drift.Announce(pilot.DisplayLabel),
 			reward);
 		run.StarSystem.CommitSetup(new DriftSalvageFoundAction(StarSystemActorIds.WorldEvents, pending));
 		Assert.Equal(pending, run.StarSystem.Map.PendingWorldEvent);

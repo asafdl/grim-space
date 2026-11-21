@@ -65,6 +65,31 @@ public sealed class TurnReplayActivationOrderTests
 	}
 
 	[Fact]
+	public void TurnFlowTimeline_KeepsResolvedAlliesBeforeUpcomingAllies()
+	{
+		var timeline = TurnFlowTimeline.Build(
+			[(IReadOnlyList<string>)["previous"]],
+			["ally-a", "enemy"],
+			["ally-a", "enemy", "ally-b", "enemy-b"]);
+
+		Assert.Equal(["previous", "ally-a", "enemy", "ally-b", "enemy-b"],
+			timeline.Select(entry => entry.UnitId));
+		Assert.Equal(3, TurnFlowTimeline.IndexOfUnit(timeline, "ally-b"));
+		Assert.True(TurnFlowTimeline.HasDividerAfter(timeline, 0));
+	}
+
+	[Fact]
+	public void TurnFlowTimeline_ReplayStartFollowsEarlierSegmentsOfSameRound()
+	{
+		var timeline = TurnFlowTimeline.Build(
+			[(IReadOnlyList<string>)["previous"]],
+			["ally-a", "enemy-a", "ally-b"],
+			["ally-c"]);
+
+		Assert.Equal(2, TurnFlowTimeline.StartOfReplaySegment(timeline, 3, 2));
+	}
+
+	[Fact]
 	public void CenteredCarouselWindow_ClampsAndMapsVisibleItems()
 	{
 		var timeline = TurnFlowTimeline.Build([], ["A", "B", "C", "D", "E", "F", "G"]);

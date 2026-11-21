@@ -43,7 +43,7 @@ public sealed partial class PilotPortrait : TextureRect
 		if (string.Equals(_portraitId, portraitId, StringComparison.Ordinal))
 			return;
 
-		var avatar = RobotPortraitGenerator.Generate(PilotPortraitId.SeedFor(portraitId));
+		var avatar = PilotPortraitId.GenerateAppearance(portraitId);
 		_robot.Parts = avatar.Parts;
 		_robot.Palette = RobotPortraitPalette.FromColors(avatar.Colors);
 		_portraitId = portraitId;

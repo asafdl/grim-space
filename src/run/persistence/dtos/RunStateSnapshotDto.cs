@@ -17,4 +17,5 @@ public sealed record RunStateSnapshotDto(
 	IReadOnlyList<string> LaunchedEngagementIds,
 	BattleWorldSaveDto? BattleWorld,
 	IReadOnlyList<StarSystemRuntimeDto> StarSystemRuntimes,
-	RunStatisticsDto Statistics);
+	RunStatisticsDto Statistics,
+	PilotIdentityAllocatorDto? PilotIdentity = null);

@@ -52,7 +52,7 @@ public sealed class RollForDebrisDetourDef
 			navigator.Id,
 			navigator.AssignedShipId,
 			0,
-			WorldEventCatalog.DebrisDetour.Announce(navigator.Name),
+			WorldEventCatalog.DebrisDetour.Announce(navigator.DisplayLabel),
 			cost);
 		return
 		[

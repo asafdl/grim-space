@@ -96,10 +96,12 @@ public partial class BattleController : Node3D
 	private readonly Dictionary<string, EType> _unitTypes = new(StringComparer.Ordinal);
 	private IReadOnlyList<string> _currentTurnActivations = [];
 	private IReadOnlyList<TurnFlowEntry> _turnFlowTimeline = [];
+	private GradientTexture2D? _enemyTurnFlowHalo;
 	private bool _replayCompletesRound;
 	private bool _simulationVisualsEnabled;
 	private bool _requestedSimulationVisuals;
 	private bool _openingVisualTransitionPending = true;
+	private bool _animateTurnFlowForPhaseTransition;
 	public BattleEncounter? DevEncounter { get; set; }
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
@@ -349,9 +351,16 @@ public partial class BattleController : Node3D
 			_goopHazardView.Remove,
 			PlayImpactReaction);
 		_replayPlayer.TurnFlowIndexChanged += OnTurnFlowIndexChanged;
+		_replayPlayer.TurnFlowHandoffRequested = OnTurnFlowHandoffRequested;
 		AddChild(_replayPlayer);
 
-		_simulationTransition = new SimulationModeTransitionView { Name = "SimulationModeTransition" };
+		_simulationTransition = new SimulationModeTransitionView
+		{
+			Name = "SimulationModeTransition",
+			SnapshotExclusion = () => _battleHud.TurnFlowTransitionRect,
+		};
+		_simulationTransition.TransitionStateChanged += _battleHud.SetTurnFlowTransitionActive;
+		_simulationTransition.VisualStarted += AnimateTurnFlowForPhaseTransition;
 		AddChild(_simulationTransition);
 		_replayDirector = new ReplayDirector { Name = "ReplayDirector" };
 		_replayDirector.Configure(
@@ -360,7 +369,7 @@ public partial class BattleController : Node3D
 			_battleView,
 			_cameraDirector,
 			ColorForActor,
-			() => !_simulationTransition.IsTransitioning);
+			() => !_simulationTransition.IsTransitioning && !_battleHud.TurnFlowBar.IsAnimating);
 		AddChild(_replayDirector);
 
 		_agent.PlanningChanged += RefreshPresentation;
@@ -534,6 +543,8 @@ public partial class BattleController : Node3D
 	{
 		var previous = _lastPhase;
 		_lastPhase = phase;
+		_animateTurnFlowForPhaseTransition =
+			phase == EBattlePhase.PlayerTurn && previous == EBattlePhase.Replaying;
 		if (phase == EBattlePhase.PlayerTurn)
 		{
 			BindActivePlayer();
@@ -547,12 +558,14 @@ public partial class BattleController : Node3D
 				_completedTurnOrders.Add(_resolvedRoundActivations.ToArray());
 				_resolvedRoundActivations.Clear();
 			}
+			_replayCompletesRound = false;
 			_currentTurnActivations = [];
-			RebuildTurnFlowTimeline();
 		}
 
 		RefreshPresentation();
 		TransitionSimulationVisualsForPhase(phase);
+		if (phase == EBattlePhase.PlayerTurn && !_simulationTransition.IsTransitioning)
+			AnimateTurnFlowForPhaseTransition();
 		_battleTutorial?.NotifyBattlePhaseChanged(phase);
 	}
 
@@ -710,10 +723,10 @@ public partial class BattleController : Node3D
 	{
 		if (_battle.Phase == EBattlePhase.PlayerTurn && !_replayPlayer.IsPlaying)
 		{
-			_currentTurnActivations = CurrentTurnActivations();
 			RebuildTurnFlowTimeline();
-			_battleHud.SetTurnFlowIndex(
-				TurnFlowTimeline.StartOfCurrentSegment(_turnFlowTimeline));
+			var activeIndex = TurnFlowTimeline.IndexOfUnit(_turnFlowTimeline, _battle.ActivePlayerId);
+			if (activeIndex >= 0 && !_animateTurnFlowForPhaseTransition && !_battleHud.TurnFlowBar.IsAnimating)
+				_battleHud.SetTurnFlowIndex(activeIndex);
 		}
 
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
@@ -877,16 +890,39 @@ public partial class BattleController : Node3D
 
 	private void RebuildTurnFlowTimeline()
 	{
+		var upcoming = _replayCompletesRound && _battle.Phase == EBattlePhase.Replaying
+			? []
+			: CurrentTurnActivations();
 		_turnFlowTimeline = TurnFlowTimeline.Build(
 			_completedTurnOrders,
-			_currentTurnActivations);
+			_resolvedRoundActivations,
+			upcoming);
 		_battleHud.SetTurnFlowTimeline(_turnFlowTimeline);
 	}
 
 	private void OnTurnFlowIndexChanged(int indexInTurn)
 	{
-		var globalIndex = TurnFlowTimeline.StartOfCurrentSegment(_turnFlowTimeline) + indexInTurn;
+		var globalIndex = TurnFlowTimeline.StartOfReplaySegment(
+			_turnFlowTimeline, _resolvedRoundActivations.Count, _currentTurnActivations.Count) + indexInTurn;
 		_battleHud.SetTurnFlowIndex(globalIndex);
+	}
+
+	private void OnTurnFlowHandoffRequested(int indexInTurn, Action completed)
+	{
+		var globalIndex = TurnFlowTimeline.StartOfReplaySegment(
+			_turnFlowTimeline, _resolvedRoundActivations.Count, _currentTurnActivations.Count) + indexInTurn;
+		_battleHud.TurnFlowBar.AnimateHandoff(globalIndex, completed);
+	}
+
+	private void AnimateTurnFlowForPhaseTransition()
+	{
+		if (!_animateTurnFlowForPhaseTransition)
+			return;
+
+		_animateTurnFlowForPhaseTransition = false;
+		var index = TurnFlowTimeline.IndexOfUnit(_turnFlowTimeline, _battle.ActivePlayerId);
+		if (index >= 0 && index < _turnFlowTimeline.Count)
+			_battleHud.TurnFlowBar.AnimateHandoff(index);
 	}
 
 	private IReadOnlyList<string> CurrentTurnActivations()
@@ -925,6 +961,51 @@ public partial class BattleController : Node3D
 
 	private Control? TurnFlowVisualForUnit(string unitId)
 	{
+		if (TeamForActor(unitId) == ETeam.Enemy)
+		{
+			var icon = PortraitForUnit(unitId);
+			if (icon is null)
+				return null;
+
+			_enemyTurnFlowHalo ??= new GradientTexture2D
+			{
+				Width = CenteredCarousel.SlotSize,
+				Height = CenteredCarousel.SlotSize,
+				Fill = GradientTexture2D.FillEnum.Radial,
+				FillFrom = new Vector2(0.5f, 0.5f),
+				FillTo = new Vector2(1f, 0.5f),
+				Gradient = new Gradient
+				{
+					Offsets = [0f, 0.45f, 1f],
+					Colors =
+					[
+						new Color(0.9f, 0.16f, 0.24f, 0.6f),
+						new Color(0.8f, 0.1f, 0.19f, 0.35f),
+						new Color(0.8f, 0.1f, 0.19f, 0f),
+					],
+				},
+			};
+			var enemyVisual = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
+			enemyVisual.AddChild(new TextureRect
+			{
+				Texture = _enemyTurnFlowHalo,
+				Position = Vector2.One * -6f,
+				Size = Vector2.One * (CenteredCarousel.SlotSize + 12f),
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			});
+			enemyVisual.AddChild(new TextureRect
+			{
+				Texture = icon,
+				Modulate = PortraitTintForUnit(unitId),
+				Position = Vector2.One * 6f,
+				Size = Vector2.One * (CenteredCarousel.SlotSize - 12f),
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+			});
+			return enemyVisual;
+		}
+
 		if (!_playerPilotPortraitIdsByShipId.TryGetValue(unitId, out var portraitId))
 			return null;
 

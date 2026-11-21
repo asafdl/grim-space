@@ -32,6 +32,7 @@ public sealed class State : IDisposable
 	public const string PlayerFleetUnitId = StarSystemActorIds.PlayerFleet;
 	public Inventory ItemInventory { get; } = new();
 	public RunPilotRegistry PilotRegistry { get; } = new();
+	public PilotIdentityAllocator PilotIdentity { get; } = new();
 	private TutorialState? _tutorialState;
 
 	public TutorialState? TutorialState => _tutorialState;
@@ -99,7 +100,8 @@ public sealed class State : IDisposable
 			_launchedEngagementIds.ToArray(),
 			battleWorld is null ? null : SaveDtoMapper.CaptureBattleWorld(battleWorld, registry),
 			StarSystem.CaptureRuntimeSnapshots(registry),
-			Statistics.CaptureSnapshot());
+			Statistics.CaptureSnapshot(),
+			PilotIdentity.CaptureSnapshot());
 	}
 
 	public static State FromSnapshot(
@@ -117,7 +119,8 @@ public sealed class State : IDisposable
 
 			return new InventorySnapshotEntry(SaveDtoMapper.RestoreShip(dto), dto.OwnerId);
 		}));
-		run.PilotRegistry.RestoreSnapshot(snapshot.Pilots);
+		run.PilotIdentity.RestoreSnapshot(snapshot.PilotIdentity);
+		run.PilotRegistry.RestoreSnapshot(snapshot.Pilots, run.PilotIdentity);
 		run.ValidatePilotAssignments();
 
 		var map = SaveDtoMapper.RestoreStarMap(
@@ -471,13 +474,52 @@ public sealed class State : IDisposable
 		ArgumentException.ThrowIfNullOrEmpty(pilotId);
 		if (ActiveBattle is not null)
 			return false;
-		if (!PilotRegistry.TryGet(pilotId, out _))
+		if (!PilotRegistry.TryGet(pilotId, out var pilot))
 			return false;
 		if (PilotRegistry.All.Count <= 1)
 			return false;
 
 		PilotRegistry.Remove(pilotId);
+		PilotIdentity.RebuildFrom(PilotRegistry.All);
 		RefreshPilotAssignments();
+		return true;
+	}
+
+	public bool TryUpdatePilotIdentity(string pilotId, string? name = null, string? nickname = null)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		if (!PilotRegistry.TryGet(pilotId, out var pilot))
+			return false;
+
+		var nextName = string.IsNullOrWhiteSpace(name) ? pilot.Name : name.Trim();
+		var nextNickname = string.IsNullOrWhiteSpace(nickname) ? pilot.Nickname : nickname.Trim();
+		if (string.Equals(nextName, pilot.Name, StringComparison.Ordinal)
+			&& string.Equals(nextNickname, pilot.Nickname, StringComparison.Ordinal))
+			return false;
+
+		var updated = pilot.WithIdentity(nextName, nextNickname);
+		PilotIdentity.Reassign(
+			pilot.Name,
+			pilot.Nickname,
+			updated.Name,
+			updated.Nickname,
+			PilotRegistry.All.Where(other => other.Id != pilotId));
+		PilotRegistry.Update(updated);
+		return true;
+	}
+
+	public bool TryRandomizePilotPortraitPalette(string pilotId, Random? rng = null)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(pilotId);
+		if (!PilotRegistry.TryGet(pilotId, out var pilot))
+			return false;
+
+		rng ??= Random.Shared;
+		var nextPortraitId = PilotPortraitId.WithRandomOtherPalette(pilot.PortraitId, rng);
+		if (string.Equals(nextPortraitId, pilot.PortraitId, StringComparison.Ordinal))
+			return false;
+
+		PilotRegistry.Update(pilot.WithIdentity(pilot.Name, pilot.Nickname, nextPortraitId));
 		return true;
 	}
 
@@ -714,6 +756,7 @@ public sealed class State : IDisposable
 		StarSystem.BindSalaryPayrollRoster(SnapshotSalaryPayrollRoster);
 		StarSystem.BindFleetSalaryDiscountStacks(SnapshotFleetSalaryDiscountStacks);
 		StarSystem.Map.PilotRegistry = PilotRegistry;
+		StarSystem.Map.PilotIdentity = PilotIdentity;
 		_barks?.BindStarSystem();
 	}
 
@@ -836,7 +879,9 @@ public sealed class State : IDisposable
 		if (!PilotRegistry.CanRegister)
 			return false;
 
-		PilotRegistry.Register(Pilot.FromRecruitProfile(null, hire.Profile));
+		var pilot = Pilot.FromRecruitProfile(null, hire.Profile);
+		PilotIdentity.Claim(pilot.Name, pilot.Nickname);
+		PilotRegistry.Register(pilot);
 		return true;
 	}
 
@@ -861,8 +906,8 @@ public sealed class State : IDisposable
 			return;
 
 		var pilot = createStarterPilot
-			? Pilot.CreateStarterForShip(declaration.ShipId, rng, shipClass)
-			: Pilot.CreateForShip(declaration.ShipId, shipClass, rng);
+			? Pilot.CreateStarterForShip(declaration.ShipId, rng, shipClass, PilotIdentity)
+			: Pilot.CreateForShip(declaration.ShipId, shipClass, rng, PilotIdentity);
 		PilotRegistry.Register(pilot);
 	}
 
@@ -1009,6 +1054,7 @@ public sealed class State : IDisposable
 			if (miss.Departed)
 			{
 				PilotRegistry.Remove(miss.PilotId);
+				PilotIdentity.RebuildFrom(PilotRegistry.All);
 				rosterChanged = true;
 				GameLog.Log(
 					$"Pilot '{pilot.Name}' departed after unpaid salary "
@@ -1031,6 +1077,7 @@ public sealed class State : IDisposable
 			return;
 
 		PilotRegistry.Remove(pilot.Id);
+		PilotIdentity.RebuildFrom(PilotRegistry.All);
 		GameLog.Log($"Pilot '{pilot.Name}' walked after the fleet refused their stake.");
 		RefreshFieldedRoster();
 	}
@@ -1052,6 +1099,7 @@ public sealed class State : IDisposable
 			if (shipDamage.After.CurrentHullPoints <= 0)
 			{
 				PilotRegistry.RemoveForShip(shipDamage.ShipId);
+				PilotIdentity.RebuildFrom(PilotRegistry.All);
 				ItemInventory.Remove(shipDamage.ShipId);
 				rosterChanged = true;
 				continue;

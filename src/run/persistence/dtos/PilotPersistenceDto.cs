@@ -20,4 +20,5 @@ public sealed record PilotPersistenceDto(
 	int MissedSalaryPeriods,
 	int MissedHazardPeriods,
 	EOperatorClassId ClassId,
-	PilotPersonality Personality);
+	PilotPersonality Personality,
+	string? Nickname = null);

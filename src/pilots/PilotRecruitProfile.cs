@@ -8,6 +8,8 @@ public sealed class PilotRecruitProfile : IEquatable<PilotRecruitProfile>
 	private static readonly EPilotSkillId[] EmptySkills = [];
 
 	public string Name { get; }
+	public string Nickname { get; }
+	public string DisplayLabel => $"{Name} \"{Nickname}\"";
 	public string PortraitId { get; }
 	public EPilotBackgroundId BackgroundId { get; }
 	public EOperatorClassId ClassId { get; }
@@ -30,9 +32,11 @@ public sealed class PilotRecruitProfile : IEquatable<PilotRecruitProfile>
 		IReadOnlyList<EPilotSkillId>? learnedSkills = null,
 		int baseSalaryCredits = 10,
 		EOperatorClassId classId = EOperatorClassId.SpaceRanger,
-		PilotPersonality personality = default)
+		PilotPersonality personality = default,
+		string nickname = "Rookie")
 	{
 		ArgumentException.ThrowIfNullOrEmpty(name);
+		ArgumentException.ThrowIfNullOrEmpty(nickname);
 		ArgumentException.ThrowIfNullOrEmpty(portraitId);
 		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
@@ -47,6 +51,7 @@ public sealed class PilotRecruitProfile : IEquatable<PilotRecruitProfile>
 		PilotBackgroundCatalog.Get(backgroundId);
 
 		Name = name;
+		Nickname = nickname;
 		PortraitId = portraitId;
 		BackgroundId = backgroundId;
 		ClassId = classId;
@@ -62,6 +67,7 @@ public sealed class PilotRecruitProfile : IEquatable<PilotRecruitProfile>
 	public bool Equals(PilotRecruitProfile? other) =>
 		other is not null
 		&& Name == other.Name
+		&& Nickname == other.Nickname
 		&& PortraitId == other.PortraitId
 		&& BackgroundId == other.BackgroundId
 		&& ClassId == other.ClassId
@@ -79,6 +85,7 @@ public sealed class PilotRecruitProfile : IEquatable<PilotRecruitProfile>
 	{
 		var hash = new HashCode();
 		hash.Add(Name);
+		hash.Add(Nickname);
 		hash.Add(PortraitId);
 		hash.Add(BackgroundId);
 		hash.Add(ClassId);

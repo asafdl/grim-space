@@ -82,7 +82,7 @@ public sealed class CompulsiveStakeTests
 		Assert.Equal(demander.Id, pending.PilotId);
 		Assert.Equal(ResourceBundle.Of(ResourceId.Credits, -stake), pending.Reward);
 		Assert.Equal(
-			WorldEventCatalog.Stake.Announce(demander.Name, stake),
+			WorldEventCatalog.Stake.Announce(demander.DisplayLabel, stake),
 			pending.Presentation);
 		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
 	}
@@ -262,7 +262,7 @@ public sealed class CompulsiveStakeTests
 			pilot.Id,
 			pilot.AssignedShipId!,
 			0,
-			WorldEventCatalog.Stake.Announce(pilot.Name, credits),
+			WorldEventCatalog.Stake.Announce(pilot.DisplayLabel, credits),
 			ResourceBundle.Of(ResourceId.Credits, -credits));
 		run.StarSystem.CommitSetup(new CompulsiveStakeDemandedAction(StarSystemActorIds.WorldEvents, pending));
 		return pending;

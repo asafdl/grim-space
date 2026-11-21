@@ -101,12 +101,17 @@ public sealed class BattleEncounter
 			var pilotSnapshot = DevFullySkilledPilot(ship.Id, ship.Spec.ClassId);
 			if (pilots is not null && ship.Spec.ClassId != EOperatorClassId.Unclassified)
 			{
+				var backgroundId = PilotBackgroundCatalog.Roll(rng).Id;
+				var (name, nickname) = (
+					RobotNameCatalog.Roll(rng),
+					PilotNicknameCatalog.Roll(backgroundId, [], rng));
 				var profile = new PilotRecruitProfile(
-					Pilot.RollRecruitDisplayName(rng),
+					name,
 					Pilot.RollRecruitPortraitId(rng),
-					PilotBackgroundCatalog.Roll(rng).Id,
+					backgroundId,
 					learnedSkills: PilotSkillCatalog.IdsForOperatorClass(ship.Spec.ClassId),
-					classId: ship.Spec.ClassId);
+					classId: ship.Spec.ClassId,
+					nickname: nickname);
 				var pilot = Pilot.FromRecruitProfile(ship.Id, profile);
 				pilots.Register(pilot);
 				pilotSnapshot = new PilotBattleSnapshot(

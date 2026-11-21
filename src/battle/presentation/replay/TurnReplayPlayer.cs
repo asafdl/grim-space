@@ -4,6 +4,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.World;
 using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
@@ -24,6 +25,7 @@ public partial class TurnReplayPlayer : Node3D
 	[Signal]
 	public delegate void PlaybackCompleteEventHandler();
 	public event Action<int>? TurnFlowIndexChanged;
+	public Action<int, Action>? TurnFlowHandoffRequested { get; set; }
 
 	private static readonly ReplayClipRegistry Clips = ReplayClipRegistry.Default;
 
@@ -202,7 +204,15 @@ public partial class TurnReplayPlayer : Node3D
 				case Record<UnitActivationRoundPhase> { Value: var round }:
 					if (round.Phase == EUnitActivationPhase.Start)
 						break;
+					if (round.UnitId is BattleActorIds.Rules or BattleActorIds.Terrain)
+						break;
 					_flowCompletedCount++;
+					if (_flowCompletedCount < _activationOrder.Count
+						&& TurnFlowHandoffRequested is { } handoff)
+					{
+						handoff(_flowCompletedCount, PlayNext);
+						return;
+					}
 					EmitTurnFlowIndexChanged();
 					if (_participants.GetValueOrDefault(round.UnitId) == ETeam.Enemy)
 					{

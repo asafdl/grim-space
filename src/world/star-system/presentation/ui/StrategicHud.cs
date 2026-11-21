@@ -71,6 +71,8 @@ public partial class StrategicHud : CanvasLayer
 		_pilotSheet.SkillLearnRequested += OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested += OnPilotCycleRequested;
 		_pilotSheet.DismissRequested += OnPilotDismissRequested;
+		_pilotSheet.IdentityEdited += OnPilotIdentityEdited;
+		_pilotSheet.PaletteRandomizeRequested += OnPilotPaletteRandomizeRequested;
 		SetProcess(true);
 		SyncObjectives();
 		Session.Instance.Run.RefreshPilotAssignments();
@@ -94,6 +96,8 @@ public partial class StrategicHud : CanvasLayer
 		_pilotSheet.SkillLearnRequested -= OnPilotSkillLearnRequested;
 		_pilotSheet.PilotCycleRequested -= OnPilotCycleRequested;
 		_pilotSheet.DismissRequested -= OnPilotDismissRequested;
+		_pilotSheet.IdentityEdited -= OnPilotIdentityEdited;
+		_pilotSheet.PaletteRandomizeRequested -= OnPilotPaletteRandomizeRequested;
 		_errorBanner.ReportRequested -= OnErrorReportRequested;
 		_contractStateSubscription.Dispose();
 		_resourceFeed.Dispose();
@@ -206,6 +210,25 @@ public partial class StrategicHud : CanvasLayer
 			return;
 		}
 
+		TryOpenPilotSheet(pilotId);
+	}
+
+	private void OnPilotIdentityEdited(string pilotId, string name, string nickname)
+	{
+		if (!Session.Instance.Run.TryUpdatePilotIdentity(pilotId, name: name, nickname: nickname))
+		{
+			GD.PushWarning($"Could not update identity for pilot '{pilotId}'.");
+			return;
+		}
+		_playerFleetHud.Sync(Session.Instance.Run);
+		TryOpenPilotSheet(pilotId);
+	}
+
+	private void OnPilotPaletteRandomizeRequested(string pilotId)
+	{
+		if (!Session.Instance.Run.TryRandomizePilotPortraitPalette(pilotId))
+			return;
+		_playerFleetHud.Sync(Session.Instance.Run);
 		TryOpenPilotSheet(pilotId);
 	}
 

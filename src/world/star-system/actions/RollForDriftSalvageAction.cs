@@ -54,7 +54,7 @@ public sealed class RollForDriftSalvageDef
 			finder.Id,
 			finder.AssignedShipId,
 			0,
-			WorldEventCatalog.Drift.Announce(finder.Name),
+			WorldEventCatalog.Drift.Announce(finder.DisplayLabel),
 			reward);
 		return
 		[

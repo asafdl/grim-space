@@ -6,6 +6,10 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class SimulationModeTransitionView : Node
 {
 	private const double TransitionSeconds = 0.7;
+	public event Action<bool>? TransitionStateChanged;
+	public event Action? VisualStarted;
+	public Func<Rect2?>? SnapshotExclusion { get; set; }
+
 	private int _generation;
 	private bool _isCapturing;
 	private bool _isTransitioning;
@@ -29,8 +33,14 @@ public sealed partial class SimulationModeTransitionView : Node
 					render_mode unshaded;
 					uniform sampler2D incoming : hint_screen_texture, repeat_disable, filter_linear;
 					uniform float progress = 0.0;
+					uniform vec4 snapshot_exclusion = vec4(-1.0);
 					float hash(vec2 value) {
 						return fract(sin(dot(value, vec2(127.1, 311.7))) * 43758.5453);
+					}
+					float excluded(vec2 uv) {
+						vec2 lower = step(snapshot_exclusion.xy, uv);
+						vec2 upper = step(uv, snapshot_exclusion.zw);
+						return lower.x * lower.y * upper.x * upper.y;
 					}
 					void fragment() {
 						float envelope = smoothstep(0.0, 0.15, progress)
@@ -49,6 +59,8 @@ public sealed partial class SimulationModeTransitionView : Node
 							texture(TEXTURE, sample_uv).g, texture(TEXTURE, blue_uv).b);
 						vec3 new_color = vec3(texture(incoming, red_uv).r,
 							texture(incoming, sample_uv).g, texture(incoming, blue_uv).b);
+						old_color = mix(old_color, new_color, vec3(
+							excluded(red_uv), excluded(sample_uv), excluded(blue_uv)));
 						float threshold = mix(0.08, 0.92, hash(vec2(floor(row / 3.0), 7.0)));
 						float reveal = smoothstep(threshold - 0.06, threshold + 0.06, progress);
 						vec3 color = mix(old_color, new_color, reveal);
@@ -96,7 +108,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		ArgumentNullException.ThrowIfNull(applyPresentation);
 		_transitionTween?.Kill();
 		var generation = ++_generation;
-		_isTransitioning = true;
+		SetTransitioning(true);
 		CaptureAndTransition(generation, applyPresentation);
 	}
 
@@ -111,7 +123,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		_screenCopy.Hide();
 		_overlay.Texture = null;
 		_isCapturing = false;
-		_isTransitioning = false;
+		SetTransitioning(false);
 		applyPresentation();
 	}
 
@@ -131,6 +143,16 @@ public sealed partial class SimulationModeTransitionView : Node
 			return;
 
 		var snapshot = ImageTexture.CreateFromImage(GetViewport().GetTexture().GetImage());
+		var exclusion = SnapshotExclusion?.Invoke();
+		var viewportSize = GetViewport().GetVisibleRect().Size;
+		var rect = exclusion is { } area && viewportSize.X > 0 && viewportSize.Y > 0
+			? new Vector4(
+				area.Position.X / viewportSize.X,
+				area.Position.Y / viewportSize.Y,
+				area.End.X / viewportSize.X,
+				area.End.Y / viewportSize.Y)
+			: new Vector4(-1, -1, -1, -1);
+		_transitionMaterial.SetShaderParameter("snapshot_exclusion", rect);
 		try
 		{
 			applyPresentation();
@@ -147,6 +169,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		_overlay.Show();
 		_transitionSound.Play();
 		_isCapturing = false;
+		VisualStarted?.Invoke();
 		_transitionTween = CreateTween();
 		_transitionTween.TweenMethod(
 			Callable.From<float>(progress =>
@@ -165,6 +188,15 @@ public sealed partial class SimulationModeTransitionView : Node
 		_screenCopy.Hide();
 		_overlay.Texture = null;
 		_transitionTween = null;
-		_isTransitioning = false;
+		SetTransitioning(false);
+	}
+
+	private void SetTransitioning(bool active)
+	{
+		if (_isTransitioning == active)
+			return;
+
+		_isTransitioning = active;
+		TransitionStateChanged?.Invoke(active);
 	}
 }

@@ -35,18 +35,21 @@ public sealed class RunPilotRegistry : IPilotSkillRosterReader
 			.Select(pilot => pilot.ToPersistence(_lastDeployment.IndexOf(pilot.Id)))
 			.ToArray();
 
-	internal void RestoreSnapshot(IEnumerable<PilotPersistenceDto> pilots)
+	internal void RestoreSnapshot(
+		IEnumerable<PilotPersistenceDto> pilots,
+		PilotIdentityAllocator? identity = null)
 	{
 		_pilotsById.Clear();
 		_lastDeployment.Clear();
 		var restored = pilots.ToArray();
 		foreach (var dto in restored)
-			RegisterCore(Pilot.FromPersistence(dto));
+			RegisterCore(Pilot.FromPersistence(dto, identity));
 
 		_lastDeployment.AddRange(restored
 			.Where(dto => dto.DeploymentOrder >= 0)
 			.OrderBy(dto => dto.DeploymentOrder)
 			.Select(dto => dto.Id));
+		identity?.RebuildFrom(_pilotsById.Values);
 	}
 
 	public bool CanRegister => _pilotsById.Count < MaxPilots;

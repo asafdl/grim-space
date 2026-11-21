@@ -1,3 +1,4 @@
+using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.Poi;
 
 namespace GrimSpace.Tests.World.StarSystem.Poi;
@@ -12,4 +13,8 @@ public sealed class OperatorNamesTests
 		foreach (var name in OperatorNames.Pool)
 			Assert.True(seen.Add(name), $"Duplicate operator name in pool: {name}");
 	}
+
+	[Fact]
+	public void Pool_IsSharedRobotNameCatalog() =>
+		Assert.Same(RobotNameCatalog.All, OperatorNames.Pool);
 }

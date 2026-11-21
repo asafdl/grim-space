@@ -12,7 +12,7 @@ internal static class PilotHireDisplay
 		PilotBackgroundCatalog.Get(backgroundId).Name;
 
 	public static string CardSubtitle(PilotRecruitProfile profile) =>
-		$"{profile.Name} · Lv {profile.ClaimedLevel} · {profile.ClassId.DisplayName()}";
+		$"{profile.DisplayLabel} · Lv {profile.ClaimedLevel} · {profile.ClassId.DisplayName()}";
 
 	public static string ShipPackageLine(EType chassis, EShipGearTier gearTier) =>
 		$"{ShipChassisLabel(chassis)} ({gearTier})";

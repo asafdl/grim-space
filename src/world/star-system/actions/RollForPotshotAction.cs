@@ -52,7 +52,7 @@ public sealed class RollForPotshotDef
 			shooter.AssignedShipId!,
 			WorldEventCatalog.Potshot.Damage,
 			WorldEventCatalog.Potshot.Announce(
-				shooter.Name,
+				shooter.DisplayLabel,
 				ship.TotalCurrentShieldPoints - hit.TotalCurrentShieldPoints,
 				ship.CurrentHullPoints - hit.CurrentHullPoints));
 		return

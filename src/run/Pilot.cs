@@ -1,25 +1,21 @@
-using System.Globalization;
 using GrimSpace.Core.Ids;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
 using GrimSpace.World.StarSystem.Economy;
 using GrimSpace.Units.Enums;
-using UniqueNameGenerator;
 
 namespace GrimSpace.Run;
 
 public sealed class Pilot
 {
-	private static readonly UniqueName DisplayNames = new UniqueName(
-		Adjectives.WordList,
-		[Animals.WordList, Colors.WordList])
-		.Separator(" ")
-		.Format(Style.TitleCase);
-
 	private static readonly EPilotSkillId[] EmptySkills = [];
 
 	public string Id { get; }
 	public string Name { get; }
+	public string Nickname { get; }
+	public string Uid => PilotUid.FromId(Id);
+	public string TaggedName => $"{Name}-{Uid}";
+	public string DisplayLabel => $"{TaggedName} \"{Nickname}\"";
 	public string PortraitId { get; }
 	public EPilotBackgroundId BackgroundId { get; }
 	public EOperatorClassId ClassId { get; }
@@ -43,6 +39,7 @@ public sealed class Pilot
 	private Pilot(
 		string id,
 		string name,
+		string nickname,
 		string portraitId,
 		EPilotBackgroundId backgroundId,
 		EOperatorClassId classId,
@@ -59,6 +56,7 @@ public sealed class Pilot
 	{
 		ArgumentException.ThrowIfNullOrEmpty(id);
 		ArgumentException.ThrowIfNullOrEmpty(name);
+		ArgumentException.ThrowIfNullOrEmpty(nickname);
 		ArgumentException.ThrowIfNullOrEmpty(portraitId);
 		ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
 		ArgumentOutOfRangeException.ThrowIfLessThan(claimedLevel, 1);
@@ -71,6 +69,7 @@ public sealed class Pilot
 
 		Id = id;
 		Name = name;
+		Nickname = nickname;
 		PortraitId = portraitId;
 		BackgroundId = backgroundId;
 		ClassId = classId;
@@ -86,16 +85,6 @@ public sealed class Pilot
 		MissedHazardPeriods = missedHazardPeriods;
 	}
 
-	internal static string RollRecruitDisplayName(Random rng)
-	{
-		ArgumentNullException.ThrowIfNull(rng);
-		var adjective = Adjectives.WordList.GetWord(rng);
-		var noun = rng.Next(2) == 0
-			? Animals.WordList.GetWord(rng)
-			: Colors.WordList.GetWord(rng);
-		return CultureInfo.InvariantCulture.TextInfo.ToTitleCase($"{adjective} {noun}");
-	}
-
 	internal static string RollRecruitPortraitId(Random rng)
 	{
 		ArgumentNullException.ThrowIfNull(rng);
@@ -105,19 +94,26 @@ public sealed class Pilot
 	public static Pilot CreateForShip(
 		string assignedShipId,
 		EOperatorClassId classId = EOperatorClassId.SpaceRanger,
-		Random? rng = null)
+		Random? rng = null,
+		PilotIdentityAllocator? identity = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
 		rng ??= Random.Shared;
 		ValidateClassId(classId);
+		var backgroundId = PilotBackgroundCatalog.Roll(rng).Id;
+		var positive = new[] { PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng) };
+		var negative = new[] { PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng) };
+		var quirks = positive.Concat(negative).ToArray();
+		var (name, nickname) = RollIdentity(identity, backgroundId, quirks, rng);
 		return new Pilot(
 			TypedIdGenerator.NextId("pilot"),
-			DisplayNames.Generate(),
+			name,
+			nickname,
 			RollRecruitPortraitId(rng),
-			PilotBackgroundCatalog.Roll(rng).Id,
+			backgroundId,
 			classId,
-			[PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Positive, rng)],
-			[PilotQuirkCatalog.Roll(EPilotQuirkPolarity.Negative, rng)],
+			positive,
+			negative,
 			assignedShipId,
 			0,
 			PilotProgression.LevelFor(0),
@@ -136,6 +132,7 @@ public sealed class Pilot
 		return new Pilot(
 			TypedIdGenerator.NextId("pilot"),
 			profile.Name,
+			profile.Nickname,
 			profile.PortraitId,
 			profile.BackgroundId,
 			profile.ClassId,
@@ -154,19 +151,26 @@ public sealed class Pilot
 	public static Pilot CreateStarterForShip(
 		string assignedShipId,
 		Random? rng = null,
-		EOperatorClassId classId = EOperatorClassId.SpaceRanger)
+		EOperatorClassId classId = EOperatorClassId.SpaceRanger,
+		PilotIdentityAllocator? identity = null)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(assignedShipId);
 		rng ??= Random.Shared;
 		ValidateClassId(classId);
+		var backgroundId = PilotBackgroundCatalog.Roll(rng).Id;
+		EPilotQuirkId[] positive = [EPilotQuirkId.Charismatic];
+		EPilotQuirkId[] negative = [EPilotQuirkId.NeuroDrugAddict];
+		var quirks = positive.Concat(negative).ToArray();
+		var (name, nickname) = RollIdentity(identity, backgroundId, quirks, rng);
 		return new Pilot(
 			TypedIdGenerator.NextId("pilot"),
-			DisplayNames.Generate(),
+			name,
+			nickname,
 			RollRecruitPortraitId(rng),
-			PilotBackgroundCatalog.Roll(rng).Id,
+			backgroundId,
 			classId,
-			[EPilotQuirkId.Charismatic],
-			[EPilotQuirkId.NeuroDrugAddict],
+			positive,
+			negative,
 			assignedShipId,
 			0,
 			PilotProgression.LevelFor(0),
@@ -183,12 +187,32 @@ public sealed class Pilot
 		new(
 			Id,
 			Name,
+			Nickname,
 			PortraitId,
 			BackgroundId,
 			ClassId,
 			PositiveQuirkIds,
 			NegativeQuirkIds,
 			assignedShipId,
+			ExperiencePoints,
+			ClaimedLevel,
+			LearnedSkills,
+			BaseSalaryCredits,
+			MissedSalaryPeriods,
+			MissedHazardPeriods,
+			Personality);
+
+	internal Pilot WithIdentity(string name, string nickname, string? portraitId = null) =>
+		new(
+			Id,
+			name,
+			nickname,
+			portraitId ?? PortraitId,
+			BackgroundId,
+			ClassId,
+			PositiveQuirkIds,
+			NegativeQuirkIds,
+			AssignedShipId,
 			ExperiencePoints,
 			ClaimedLevel,
 			LearnedSkills,
@@ -226,11 +250,25 @@ public sealed class Pilot
 
 	internal Pilot Clone() => Copy();
 
-	internal static Pilot FromPersistence(PilotPersistenceDto dto)
+	internal static Pilot FromPersistence(PilotPersistenceDto dto, PilotIdentityAllocator? identity = null)
 	{
+		var name = NormalizeFirstName(dto.Name);
+		var nickname = dto.Nickname;
+		if (string.IsNullOrEmpty(nickname))
+		{
+			var quirks = dto.PositiveQuirkIds.Concat(dto.NegativeQuirkIds).ToArray();
+			nickname = PilotNicknameCatalog.Roll(
+				dto.BackgroundId,
+				quirks,
+				Random.Shared,
+				identity?.UsedNicknames);
+			identity?.Claim(name, nickname);
+		}
+
 		return new(
 			dto.Id,
-			dto.Name,
+			name,
+			nickname,
 			dto.PortraitId,
 			dto.BackgroundId,
 			dto.ClassId,
@@ -263,7 +301,8 @@ public sealed class Pilot
 			MissedSalaryPeriods,
 			MissedHazardPeriods,
 			ClassId,
-			Personality);
+			Personality,
+			Nickname);
 
 	private Pilot Copy(
 		int? experiencePoints = null,
@@ -275,6 +314,7 @@ public sealed class Pilot
 		new(
 			Id,
 			Name,
+			Nickname,
 			PortraitId,
 			BackgroundId,
 			ClassId,
@@ -288,6 +328,21 @@ public sealed class Pilot
 			missedSalaryPeriods ?? MissedSalaryPeriods,
 			missedHazardPeriods ?? MissedHazardPeriods,
 			personality ?? Personality);
+
+	private static (string Name, string Nickname) RollIdentity(
+		PilotIdentityAllocator? identity,
+		EPilotBackgroundId backgroundId,
+		IReadOnlyList<EPilotQuirkId> quirks,
+		Random rng) =>
+		identity?.Roll(backgroundId, quirks, rng)
+		?? (RobotNameCatalog.Roll(rng), PilotNicknameCatalog.Roll(backgroundId, quirks, rng));
+
+	private static string NormalizeFirstName(string name)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(name);
+		var space = name.IndexOf(' ');
+		return space < 0 ? name : name[..space];
+	}
 
 	private static void ValidateClassId(EOperatorClassId classId)
 	{

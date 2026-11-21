@@ -29,7 +29,7 @@ public sealed class PilotHireDisplayTests
 			experiencePoints: 0,
 			claimedLevel: 1);
 
-		Assert.Equal("Rin · Lv 1 · Space Ranger", PilotHireDisplay.CardSubtitle(profile));
+		Assert.Equal("Rin \"Rookie\" · Lv 1 · Space Ranger", PilotHireDisplay.CardSubtitle(profile));
 	}
 
 	[Fact]
@@ -39,9 +39,10 @@ public sealed class PilotHireDisplayTests
 			"Vera",
 			"pilot_02",
 			EPilotBackgroundId.CorporateSlave,
-			classId: EOperatorClassId.Support);
+			classId: EOperatorClassId.Support,
+			nickname: "Ledger");
 
-		Assert.Equal("Vera · Lv 1 · Forward Deployed Engineer", PilotHireDisplay.CardSubtitle(profile));
+		Assert.Equal("Vera \"Ledger\" · Lv 1 · Forward Deployed Engineer", PilotHireDisplay.CardSubtitle(profile));
 	}
 
 	[Fact]

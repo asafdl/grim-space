@@ -1,3 +1,5 @@
+using GrimSpace.Pilots;
+
 namespace GrimSpace.World.StarSystem.Poi;
 
 public static class OperatorNames
@@ -15,19 +17,5 @@ public static class OperatorNames
 	public const string Glim = "GLIM";
 	public const string K0rtex = "K0RTEX";
 
-	public static IReadOnlyList<string> Pool =>
-	[
-		Effy,
-		GiZmo,
-		Cl4nk,
-		Zorp,
-		B33p,
-		Unit7,
-		Scraplet,
-		OvrDrv,
-		Poly,
-		WrenchE,
-		Glim,
-		K0rtex,
-	];
+	public static IReadOnlyList<string> Pool => RobotNameCatalog.All;
 }

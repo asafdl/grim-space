@@ -54,7 +54,7 @@ public sealed class RollForCompulsiveStakeDef
 			demander.Id,
 			demander.AssignedShipId,
 			0,
-			WorldEventCatalog.Stake.Announce(demander.Name, stake),
+			WorldEventCatalog.Stake.Announce(demander.DisplayLabel, stake),
 			ResourceBundle.Of(ResourceId.Credits, -stake));
 		return
 		[

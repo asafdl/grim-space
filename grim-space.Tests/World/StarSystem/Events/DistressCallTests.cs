@@ -98,6 +98,7 @@ public sealed class DistressCallTests
 		var second = RollForDistressCallDef.RollRecruit(17);
 
 		Assert.Equal(first.Name, second.Name);
+		Assert.Equal(first.Nickname, second.Nickname);
 		Assert.Equal(first.PortraitId, second.PortraitId);
 		Assert.Equal(first.BackgroundId, second.BackgroundId);
 		Assert.Equal(first.ClassId, second.ClassId);
@@ -126,7 +127,7 @@ public sealed class DistressCallTests
 		Assert.Null(pending.Reward);
 		Assert.NotNull(pending.Recruit);
 		Assert.Equal(
-			WorldEventCatalog.Distress.AnnounceSurvivor(responder.Name, pending.Recruit.Name),
+			WorldEventCatalog.Distress.AnnounceSurvivor(responder.DisplayLabel, pending.Recruit.DisplayLabel),
 			pending.Presentation);
 		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
 	}
@@ -148,7 +149,7 @@ public sealed class DistressCallTests
 		Assert.Equal(responder.Id, pending.PilotId);
 		Assert.Null(pending.Recruit);
 		Assert.Equal(RollForDistressCallDef.RollReward(roll.RngSeed), pending.Reward);
-		Assert.Equal(WorldEventCatalog.Distress.AnnounceKill(responder.Name), pending.Presentation);
+		Assert.Equal(WorldEventCatalog.Distress.AnnounceKill(responder.DisplayLabel), pending.Presentation);
 	}
 
 	[Fact]
@@ -419,7 +420,7 @@ public sealed class DistressCallTests
 			pilot.Id,
 			pilot.AssignedShipId!,
 			0,
-			WorldEventCatalog.Distress.AnnounceKill(pilot.Name),
+			WorldEventCatalog.Distress.AnnounceKill(pilot.DisplayLabel),
 			reward);
 		run.StarSystem.CommitSetup(new DistressCallReceivedAction(StarSystemActorIds.WorldEvents, pending));
 		return pending;
@@ -435,7 +436,7 @@ public sealed class DistressCallTests
 			pilot.Id,
 			pilot.AssignedShipId!,
 			0,
-			WorldEventCatalog.Distress.AnnounceSurvivor(pilot.Name, recruit.Name),
+			WorldEventCatalog.Distress.AnnounceSurvivor(pilot.DisplayLabel, recruit.DisplayLabel),
 			Recruit: recruit);
 		run.StarSystem.CommitSetup(new DistressCallReceivedAction(StarSystemActorIds.WorldEvents, pending));
 		return pending;

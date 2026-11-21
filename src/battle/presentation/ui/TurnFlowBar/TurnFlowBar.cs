@@ -5,12 +5,14 @@ namespace GrimSpace.Battle.Presentation.Ui;
 
 public sealed partial class TurnFlowBar : Control
 {
+	public const double HandoffSeconds = 0.7;
 	private readonly CenteredCarousel _carousel;
 	private readonly TurnFlowDivider[] _turnDividers =
-		new TurnFlowDivider[CenteredCarousel.VisibleSlots - 1];
+		new TurnFlowDivider[CenteredCarousel.VisibleSlots + 1];
 	private IReadOnlyList<TurnFlowEntry> _timeline = [];
 
 	public event Action<string>? UnitClicked;
+	public bool IsAnimating => _carousel.IsAnimating;
 
 	public TurnFlowBar()
 	{
@@ -25,13 +27,16 @@ public sealed partial class TurnFlowBar : Control
 		for (var gap = 0; gap < _turnDividers.Length; gap++)
 		{
 			var divider = new TurnFlowDivider();
-			_carousel.AddViewportOverlay(divider);
+			_carousel.AddMovingOverlay(divider);
 			_turnDividers[gap] = divider;
 		}
 	}
 
 	public void SetTimeline(IReadOnlyList<TurnFlowEntry> timeline)
 	{
+		if (_timeline.SequenceEqual(timeline))
+			return;
+
 		_timeline = timeline;
 		_carousel.SetItems(timeline
 			.Select(entry => entry.UnitId is null
@@ -56,11 +61,15 @@ public sealed partial class TurnFlowBar : Control
 		UpdateTurnDividers();
 	}
 
+	public void AnimateHandoff(int index, Action? completed = null) =>
+		_carousel.AnimateHandoff(index, HandoffSeconds, completed);
+
 	private void UpdateTurnDividers()
 	{
 		for (var gap = 0; gap < _turnDividers.Length; gap++)
 		{
-			var activationIndex = _carousel.ItemIndexForSlot(gap);
+			var visibleGap = gap - 1;
+			var activationIndex = _carousel.ItemIndexForSlot(visibleGap);
 			var show = TurnFlowTimeline.HasDividerAfter(_timeline, activationIndex);
 			if (!show)
 			{
@@ -69,7 +78,7 @@ public sealed partial class TurnFlowBar : Control
 			}
 
 			_turnDividers[gap].ShowAt(
-				_carousel.GapMarkerPosition(gap),
+				_carousel.GapMarkerPosition(visibleGap),
 				TurnFlowTimeline.CompletedTurnsToLeft(_timeline, activationIndex));
 		}
 	}

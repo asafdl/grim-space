@@ -53,7 +53,7 @@ public sealed class RollForAsteroidDodgeDef
 			culprit.AssignedShipId!,
 			WorldEventCatalog.Asteroid.Damage,
 			WorldEventCatalog.Asteroid.Announce(
-				culprit.Name,
+				culprit.DisplayLabel,
 				ship.TotalCurrentShieldPoints - hit.TotalCurrentShieldPoints,
 				ship.CurrentHullPoints - hit.CurrentHullPoints));
 		return [new ScheduleWorldEventActionEffect(1, new AsteroidImpactAction(StarSystemActorIds.WorldEvents, pending))];

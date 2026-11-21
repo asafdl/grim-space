@@ -132,7 +132,7 @@ public partial class PlayerFleetHud : MarginContainer
 			_pilotColumn.MoveChild(card, index++);
 			card.SetState(
 				pilot.Id,
-				pilot.Name,
+				pilot.DisplayLabel,
 				pilot.PortraitId,
 				pilot.ClassId,
 				pilot.ExperiencePoints,

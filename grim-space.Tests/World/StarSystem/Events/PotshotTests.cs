@@ -60,7 +60,7 @@ public sealed class PotshotTests
 		Assert.Equal(shooter.Id, pending.PilotId);
 		Assert.Equal(WorldEventCatalog.Potshot.Damage, pending.Damage);
 		Assert.Equal(
-			WorldEventCatalog.Potshot.Announce(shooter.Name, 0, hullLost),
+			WorldEventCatalog.Potshot.Announce(shooter.DisplayLabel, 0, hullLost),
 			pending.Presentation);
 		Assert.True(run.StarSystem.Map.WaitingForPlayerInput);
 	}
@@ -180,7 +180,7 @@ public sealed class PotshotTests
 			pilot.Id,
 			pilot.AssignedShipId!,
 			WorldEventCatalog.Potshot.Damage,
-			WorldEventCatalog.Potshot.Announce(pilot.Name, 0, WorldEventCatalog.Potshot.Damage));
+			WorldEventCatalog.Potshot.Announce(pilot.DisplayLabel, 0, WorldEventCatalog.Potshot.Damage));
 		run.StarSystem.CommitSetup(new PotshotReportedAction(StarSystemActorIds.WorldEvents, pending));
 		return pending;
 	}

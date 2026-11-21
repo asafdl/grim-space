@@ -53,14 +53,14 @@ public sealed class RollForDistressCallDef
 		PendingWorldEvent pending;
 		if (responder.EffectivePersonality.Allegiance > 0)
 		{
-			var recruit = RollRecruit(roll.RngSeed);
+			var recruit = RollRecruit(roll.RngSeed, world.PilotIdentity);
 			pending = new PendingWorldEvent(
 				$"world-event-{roll.RngSeed:x}",
 				EWorldEventId.DistressCall,
 				responder.Id,
 				responder.AssignedShipId,
 				0,
-				WorldEventCatalog.Distress.AnnounceSurvivor(responder.Name, recruit.Name),
+				WorldEventCatalog.Distress.AnnounceSurvivor(responder.DisplayLabel, recruit.DisplayLabel),
 				Recruit: recruit);
 		}
 		else
@@ -71,7 +71,7 @@ public sealed class RollForDistressCallDef
 				responder.Id,
 				responder.AssignedShipId,
 				0,
-				WorldEventCatalog.Distress.AnnounceKill(responder.Name),
+				WorldEventCatalog.Distress.AnnounceKill(responder.DisplayLabel),
 				RollReward(roll.RngSeed));
 		}
 		return
@@ -123,10 +123,11 @@ public sealed class RollForDistressCallDef
 			(ResourceId.Credits, credits));
 	}
 
-	public static PilotRecruitProfile RollRecruit(ulong rngSeed)
+	public static PilotRecruitProfile RollRecruit(
+		ulong rngSeed,
+		PilotIdentityAllocator? identity = null)
 	{
 		var random = new StableRoll(rngSeed ^ RecruitStream);
-		var name = Pilot.RollRecruitDisplayName(random);
 		var portraitId = Pilot.RollRecruitPortraitId(random);
 		var backgrounds = PilotRecruitment.RecruitableBackgroundIds;
 		var classes = PilotRecruitment.RecruitableOperatorClassIds;
@@ -134,18 +135,25 @@ public sealed class RollForDistressCallDef
 		var classId = classes[random.Next(classes.Count)];
 		var baseSalary = StrategicEconomyConfig.RollBaseSalaryCredits(random);
 		var quirks = PilotQuirkCatalog.RollQuirks(random);
+		var positive = quirks.Where(id =>
+			PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Positive).ToArray();
+		var negative = quirks.Where(id =>
+			PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Negative).ToArray();
+		var allQuirks = positive.Concat(negative).ToArray();
+		var (name, nickname) = identity?.Roll(backgroundId, allQuirks, random)
+			?? (RobotNameCatalog.Roll(random),
+				PilotNicknameCatalog.Roll(backgroundId, allQuirks, random));
 		return new PilotRecruitProfile(
 			name,
 			portraitId,
 			backgroundId,
-			positiveQuirkIds: quirks.Where(id =>
-				PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Positive).ToArray(),
-			negativeQuirkIds: quirks.Where(id =>
-				PilotQuirkCatalog.Get(id).Polarity == EPilotQuirkPolarity.Negative).ToArray(),
+			positiveQuirkIds: positive,
+			negativeQuirkIds: negative,
 			experiencePoints: 0,
 			claimedLevel: PilotProgression.LevelFor(0),
 			baseSalaryCredits: baseSalary,
-			classId: classId);
+			classId: classId,
+			nickname: nickname);
 	}
 
 	/// <summary>

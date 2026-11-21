@@ -58,6 +58,8 @@ public sealed class PilotIdentityTests
 
 		Assert.Equal("gunship-1", pilot.AssignedShipId);
 		Assert.Equal(profile.Name, pilot.Name);
+		Assert.Equal(profile.Nickname, pilot.Nickname);
+		Assert.Equal($"{pilot.Name}-{pilot.Uid} \"{pilot.Nickname}\"", pilot.DisplayLabel);
 		Assert.Equal(profile.PortraitId, pilot.PortraitId);
 		Assert.Equal(profile.BackgroundId, pilot.BackgroundId);
 		Assert.Equal(profile.ClassId, pilot.ClassId);

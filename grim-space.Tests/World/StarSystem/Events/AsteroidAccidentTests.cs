@@ -126,7 +126,7 @@ public sealed class AsteroidAccidentTests
 			.SelectMany(actions => actions.OfType<AsteroidImpactAction>())
 			.Single();
 		Assert.Equal(
-			WorldEventCatalog.Asteroid.Announce(culprit.Name, 0, 4),
+			WorldEventCatalog.Asteroid.Announce(culprit.DisplayLabel, 0, 4),
 			impact.Pending.Presentation);
 		Assert.Contains("4 hull damage", impact.Pending.Presentation.Body);
 		Assert.Contains(culprit.Name, impact.Pending.Presentation.Body);

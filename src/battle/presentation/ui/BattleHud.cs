@@ -31,6 +31,8 @@ public partial class BattleHud : Node
 	public bool IsPauseMenuOpen =>
 		PauseMenu.Visible || PauseMenu.IsReportDialogOpen || PauseMenu.IsSettingsOpen;
 	public bool IsMountSelectorOpen => _mountSelectorLayer.Visible;
+	public Rect2? TurnFlowTransitionRect =>
+		_turnFlowLayer.Layer > 90 && _turnFlowLayer.Visible ? TurnFlowBar.GetGlobalRect() : null;
 
 	private bool _strategicBattle;
 
@@ -41,9 +43,11 @@ public partial class BattleHud : Node
 	private Tween? _planningVignetteTween;
 	private bool _planningVignetteTargetVisible;
 	private CanvasLayer _topHud = null!;
+	private CanvasLayer _turnFlowLayer = null!;
 	private CanvasLayer _bottomHud = null!;
 	private BattleControlHints _controlHints = null!;
 	private bool _simulationVisualsEnabled;
+	private bool _turnFlowTransitionActive;
 	private CanvasLayer _actionLogLayer = null!;
 	private MarginContainer _actionLogHost = null!;
 	private ActionLogPanel _actionLogPanel = null!;
@@ -133,8 +137,10 @@ public partial class BattleHud : Node
 		};
 		TurnFlowBar = new TurnFlowBar();
 		flowCenter.AddChild(TurnFlowBar);
-		_topHud.AddChild(flowCenter);
 		AddChild(_topHud);
+		_turnFlowLayer = new CanvasLayer { Layer = 10 };
+		_turnFlowLayer.AddChild(flowCenter);
+		AddChild(_turnFlowLayer);
 
 		_bottomHud = new CanvasLayer { Layer = 10 };
 
@@ -180,6 +186,7 @@ public partial class BattleHud : Node
 		AddChild(VictoryOverlay);
 
 		PauseMenu = new BattlePauseMenuOverlay();
+		PauseMenu.VisibilityChanged += UpdateTurnFlowLayer;
 		PauseMenu.ContinueRequested += ClosePauseMenu;
 		PauseMenu.RetireRequested += () => RetireRequested?.Invoke();
 		PauseMenu.RestartRequested += () => RestartRequested?.Invoke();
@@ -199,6 +206,15 @@ public partial class BattleHud : Node
 		_simulationVisualsEnabled = enabled;
 		_controlHints.Visible = enabled && _bottomHud.Visible;
 	}
+
+	public void SetTurnFlowTransitionActive(bool active)
+	{
+		_turnFlowTransitionActive = active;
+		UpdateTurnFlowLayer();
+	}
+
+	private void UpdateTurnFlowLayer() =>
+		_turnFlowLayer.Layer = _turnFlowTransitionActive && !PauseMenu.Visible ? 91 : 10;
 
 	private void BuildMountSelector()
 	{
@@ -323,6 +339,7 @@ public partial class BattleHud : Node
 			ref _planningVignetteTargetVisible,
 			ref _planningVignetteTween);
 		_topHud.Visible = !hideHud;
+		_turnFlowLayer.Visible = !hideHud;
 		_turnLabel.Text = BattleHudCopy.Turn(frame.TurnNumber);
 
 		var focusState = frame.FocusState;

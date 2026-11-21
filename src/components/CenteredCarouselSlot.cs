@@ -18,6 +18,7 @@ internal sealed partial class CenteredCarouselSlot : Button
 	public CenteredCarouselSlot(int size)
 	{
 		CustomMinimumSize = new Vector2(size, size);
+		PivotOffset = new Vector2(size, size) * 0.5f;
 		FocusMode = FocusModeEnum.None;
 		MouseFilter = MouseFilterEnum.Stop;
 		TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
@@ -86,6 +87,8 @@ internal sealed partial class CenteredCarouselSlot : Button
 	}
 
 	public void InvalidateItemVisual() => ClearItemVisual();
+
+	public void HideHighlightCursor() => _highlightCursor.Visible = false;
 
 	private void ClearItemVisual()
 	{

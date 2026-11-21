@@ -6,6 +6,17 @@ public static class TurnFlowTimeline
 {
 	public static IReadOnlyList<TurnFlowEntry> Build(
 		IReadOnlyList<IReadOnlyList<string>> completedTurns,
+		IReadOnlyList<string> resolvedThisTurn,
+		IReadOnlyList<string> upcoming)
+	{
+		var resolved = resolvedThisTurn.ToHashSet(StringComparer.Ordinal);
+		return Build(completedTurns, resolvedThisTurn
+			.Concat(upcoming.Where(id => !resolved.Contains(id)))
+			.ToArray());
+	}
+
+	public static IReadOnlyList<TurnFlowEntry> Build(
+		IReadOnlyList<IReadOnlyList<string>> completedTurns,
 		IReadOnlyList<string> currentTurn)
 	{
 		var timeline = new List<TurnFlowEntry>(
@@ -55,6 +66,18 @@ public static class TurnFlowTimeline
 		}
 
 		return 0;
+	}
+
+	public static int StartOfReplaySegment(
+		IReadOnlyList<TurnFlowEntry> timeline,
+		int resolvedCount,
+		int replayCount)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(replayCount);
+		ArgumentOutOfRangeException.ThrowIfLessThan(resolvedCount, replayCount);
+		var start = StartOfCurrentSegment(timeline);
+		ArgumentOutOfRangeException.ThrowIfGreaterThan(resolvedCount, timeline.Count - start);
+		return start + resolvedCount - replayCount;
 	}
 
 	/// <summary>Latest activation index for <paramref name="unitId"/> (units may appear in multiple turns).</summary>

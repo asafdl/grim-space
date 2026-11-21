@@ -1,4 +1,5 @@
 using Godot;
+using System.Text;
 using GrimSpace.Components;
 using GrimSpace.Pilots;
 using GrimSpace.Run;
@@ -25,12 +26,14 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private const string ReactiveShieldsIconPath = "res://assets/ui/abilities/reactive_shields.png";
 	private const string HealIconPath = "res://assets/ui/battle/heal.png";
 	private const string CritIconPath = "res://assets/ui/battle/crit.png";
+	private const string PaletteIconPath = "res://assets/ui/pilots/randomize-palette.png";
 	private const string SkillReticlePath =
 		"res://assets/ui/components/runtime/reticle_hollow_neutral.png";
 	private const int SkillNodeSize = 60;
 	private const int SkillIconSize = 26;
 	private const int PortraitSize = 144;
 	private const int IdentityRailWidth = 204;
+	private const int IdentityMaxLength = 15;
 
 	private static readonly Color AvailableColor = HudPalettes.PurpleRed.Primary;
 	private static readonly Color LearnedColor = new(0.42f, 0.88f, 0.58f);
@@ -41,10 +44,14 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	private readonly ModalShell _shell;
 	private readonly CompactConfirmationPopup _dismissPopup;
 	private string? _pilotId;
+	private Control? _identityEditArea;
+	private Action? _cancelIdentityEdit;
 
 	public event Action<string, EPilotSkillId>? SkillLearnRequested;
 	public event Action<string, int>? PilotCycleRequested;
 	public event Action<string>? DismissRequested;
+	public event Action<string, string, string>? IdentityEdited;
+	public event Action<string>? PaletteRandomizeRequested;
 	public event Action? Closed;
 
 	public PilotCharacterSheetOverlay()
@@ -57,9 +64,16 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		MouseFilter = MouseFilterEnum.Ignore;
 
 		_shell = new ModalShell(HudThemeFamily.Informative);
+		var sheetTheme = (Theme)HudThemes.Load(HudThemeFamily.Informative).Duplicate();
+		sheetTheme.SetColor("font_color", "Label", HudPalettes.BlueCyan.Primary);
+		sheetTheme.SetColor("font_color", "TextEdit", HudPalettes.BlueCyan.Title);
+		sheetTheme.SetColor("caret_color", "TextEdit", HudPalettes.BlueCyan.Title);
+		_shell.Theme = sheetTheme;
 		_shell.SetDismissVisible(true);
 		_shell.Closed += () =>
 		{
+			_cancelIdentityEdit = null;
+			_identityEditArea = null;
 			_dismissPopup.Hide();
 			Closed?.Invoke();
 		};
@@ -72,11 +86,23 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 
 	public void Close()
 	{
+		_cancelIdentityEdit = null;
+		_identityEditArea = null;
 		_dismissPopup.Hide();
 		_shell.Close();
 	}
 
 	public bool TryHandleInput(InputEvent @event) => _shell.TryHandleInput(@event);
+
+	public override void _Input(InputEvent @event)
+	{
+		if (_shell.IsOpen
+			&& _cancelIdentityEdit is not null
+			&& _identityEditArea is not null
+			&& @event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }
+			&& !_identityEditArea.GetGlobalRect().HasPoint(_identityEditArea.GetGlobalMousePosition()))
+			_cancelIdentityEdit();
+	}
 
 	public void Open(
 		Pilot pilot,
@@ -86,8 +112,10 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 	{
 		ArgumentNullException.ThrowIfNull(pilot);
 		_pilotId = pilot.Id;
+		_cancelIdentityEdit = null;
+		_identityEditArea = null;
 		_dismissPopup.Hide();
-		_shell.Open("Character Sheet", pilot.Name);
+		_shell.Open("Character Sheet");
 		_shell.SetHeader(HudHeaderMode.Close);
 		_shell.SetBackHandler(null);
 		_shell.SetFooter(
@@ -142,23 +170,33 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		};
 		portraitRow.AddThemeConstantOverride("separation", 6);
 		portraitRow.AddChild(BuildPilotCursor(-1, canCyclePilots));
-		portraitRow.AddChild(new UiFramedPortrait(
+		var portrait = new UiFramedPortrait(
 			new PilotPortrait(pilot.PortraitId))
 		{
 			SizeOverride = new UiSizeOverride(PortraitSize, PortraitSize),
 			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-		});
+		};
+		var randomizePalette = new TextureButton
+		{
+			Position = Vector2.Zero,
+			Size = new Vector2(28, 28),
+			TextureNormal = GD.Load<Texture2D>(PaletteIconPath)
+				?? throw new InvalidOperationException($"Could not load palette icon '{PaletteIconPath}'."),
+			IgnoreTextureSize = true,
+			StretchMode = TextureButton.StretchModeEnum.KeepAspectCentered,
+			Modulate = HudPalettes.BlueCyan.Title,
+			MouseDefaultCursorShape = CursorShape.PointingHand,
+		};
+		randomizePalette.Pressed += () =>
+		{
+			if (_pilotId is not null)
+				PaletteRandomizeRequested?.Invoke(_pilotId);
+		};
+		portrait.AddChild(randomizePalette);
+		portraitRow.AddChild(portrait);
 		portraitRow.AddChild(BuildPilotCursor(1, canCyclePilots));
 		rail.AddChild(portraitRow);
-
-		var level = new Label
-		{
-			Text = $"LEVEL {pilot.ClaimedLevel}",
-			HorizontalAlignment = HorizontalAlignment.Center,
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		HudStyles.ApplyTextRole(level, HudTextRole.Metadata);
-		rail.AddChild(level);
+		rail.AddChild(BuildIdentityEditor(pilot));
 
 		var identityIcons = PilotIdentityIconRail.BuildFor(pilot);
 		rail.AddChild(identityIcons);
@@ -185,9 +223,184 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			requiredXp > 0 ? currentXp : 1,
 			requiredXp > 0 ? requiredXp : 1,
 			HudPalettes.PurpleRed.Secondary,
-			requiredXp > 0 ? $"{currentXp} / {requiredXp}" : "MAX"));
+			requiredXp > 0 ? $"{currentXp} / {requiredXp}" : "MAX",
+			rightCaption: $"LEVEL {pilot.ClaimedLevel}"));
 		return rail;
 	}
+
+	private Control BuildIdentityEditor(Pilot pilot)
+	{
+		var host = new Control
+		{
+			CustomMinimumSize = new Vector2(IdentityRailWidth, 64),
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		var display = new VBoxContainer
+		{
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+			MouseFilter = MouseFilterEnum.Ignore,
+		};
+		display.AddThemeConstantOverride("separation", 2);
+		foreach (var text in new[] { pilot.TaggedName, $"\"{pilot.Nickname}\"" })
+		{
+			var label = new Label
+			{
+				Text = text,
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+				HorizontalAlignment = HorizontalAlignment.Center,
+				MouseFilter = MouseFilterEnum.Ignore,
+			};
+			HudStyles.ApplyTextRole(label, HudTextRole.Metadata);
+			label.AddThemeColorOverride("font_color", HudPalettes.BlueCyan.Secondary);
+			display.AddChild(label);
+		}
+		host.AddChild(display);
+
+		var displayButton = new Button
+		{
+			Flat = true,
+			TooltipText = "Edit",
+			MouseDefaultCursorShape = CursorShape.PointingHand,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+		};
+		host.AddChild(displayButton);
+
+		var fields = new VBoxContainer
+		{
+			Visible = false,
+			AnchorRight = 1f,
+			AnchorBottom = 1f,
+		};
+		fields.AddThemeConstantOverride("separation", 2);
+		var name = BuildIdentityField(pilot.Name, "First name");
+		var nickname = BuildIdentityField(pilot.Nickname, "Nickname");
+		fields.AddChild(name);
+		fields.AddChild(nickname);
+		host.AddChild(fields);
+
+		void UpdateHeight()
+		{
+			var height = Mathf.Max(64, Mathf.Max(
+				display.GetCombinedMinimumSize().Y,
+				fields.GetCombinedMinimumSize().Y));
+			host.CustomMinimumSize = new Vector2(IdentityRailWidth, height);
+		}
+
+		void Cancel()
+		{
+			_cancelIdentityEdit = null;
+			_identityEditArea = null;
+			name.Text = LimitIdentity(pilot.Name);
+			nickname.Text = LimitIdentity(pilot.Nickname);
+			name.ReleaseFocus();
+			nickname.ReleaseFocus();
+			fields.Visible = false;
+			display.Visible = true;
+			displayButton.Visible = true;
+		}
+
+		void Save()
+		{
+			var nextName = string.IsNullOrWhiteSpace(name.Text) ? pilot.Name : name.Text.Trim();
+			var nextNickname = string.IsNullOrWhiteSpace(nickname.Text) ? pilot.Nickname : nickname.Text.Trim();
+			Cancel();
+			if (nextName != pilot.Name || nextNickname != pilot.Nickname)
+				IdentityEdited?.Invoke(pilot.Id, nextName, nextNickname);
+		}
+
+		void HandleInput(InputEvent input, TextEdit field)
+		{
+			if (_cancelIdentityEdit is null
+				|| input is not InputEventKey { Pressed: true, Echo: false } key)
+				return;
+			if (key.Keycode is Key.Enter or Key.KpEnter)
+			{
+				field.AcceptEvent();
+				Save();
+			}
+			else if (key.Keycode == Key.Escape)
+			{
+				field.AcceptEvent();
+				Cancel();
+			}
+		}
+
+		displayButton.Pressed += () =>
+		{
+			display.Visible = false;
+			displayButton.Visible = false;
+			fields.Visible = true;
+			_identityEditArea = host;
+			_cancelIdentityEdit = Cancel;
+			name.GrabFocus();
+		};
+		name.GuiInput += input => HandleInput(input, name);
+		nickname.GuiInput += input => HandleInput(input, nickname);
+		display.MinimumSizeChanged += UpdateHeight;
+		fields.MinimumSizeChanged += UpdateHeight;
+		host.Ready += UpdateHeight;
+		return host;
+	}
+
+	private static TextEdit BuildIdentityField(string value, string label)
+	{
+		var field = new TextEdit
+		{
+			Text = LimitIdentity(value),
+			TooltipText = $"{label}: Enter to save, Escape to cancel",
+			CustomMinimumSize = new Vector2(40, 0),
+			SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+			ScrollFitContentHeight = true,
+			WrapMode = TextEdit.LineWrappingMode.Boundary,
+			TabInputMode = false,
+			CaretMultiple = false,
+		};
+		field.AddThemeStyleboxOverride("normal", new StyleBoxFlat
+		{
+			BgColor = HudPalettes.BlueCyan.Surface.Lerp(HudPalettes.BlueCyan.Border, 0.2f),
+		});
+		field.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+		void UpdateWidth()
+		{
+			if (!field.IsInsideTree())
+				return;
+
+			var font = field.GetThemeFont("font");
+			var fontSize = field.GetThemeFontSize("font_size");
+			var width = font.GetStringSize(field.Text, fontSize: fontSize).X;
+			field.CustomMinimumSize = new Vector2(
+				Mathf.Clamp(Mathf.Ceil(width) + 12, 40, IdentityRailWidth),
+				0);
+		}
+
+		var lastValid = field.Text;
+		field.Ready += UpdateWidth;
+		field.TextChanged += () =>
+		{
+			if (field.Text.EnumerateRunes().Count() > IdentityMaxLength
+				|| field.Text.EnumerateRunes().Any(rune =>
+					!Rune.IsLetterOrDigit(rune) && rune.Value is not (' ' or '-')))
+			{
+				var line = field.GetCaretLine();
+				var column = field.GetCaretColumn();
+				field.Text = lastValid;
+				line = Mathf.Min(line, field.GetLineCount() - 1);
+				field.SetCaretLine(line);
+				field.SetCaretColumn(Mathf.Min(column, field.GetLine(line).EnumerateRunes().Count()));
+			}
+			else
+			{
+				lastValid = field.Text;
+			}
+			UpdateWidth();
+		};
+		return field;
+	}
+
+	private static string LimitIdentity(string value) =>
+		string.Concat(value.EnumerateRunes().Take(IdentityMaxLength).Select(rune => rune.ToString()));
 
 	private Control BuildPilotCursor(int direction, bool visible)
 	{
@@ -205,7 +418,8 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 		int current,
 		int max,
 		Color color,
-		string? valueText = null)
+		string? valueText = null,
+		string? rightCaption = null)
 	{
 		max = Mathf.Max(1, max);
 		current = Mathf.Clamp(current, 0, max);
@@ -218,7 +432,22 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			MouseFilter = MouseFilterEnum.Ignore,
 		};
 		HudStyles.ApplyTextRole(caption, HudTextRole.Metadata);
-		meter.AddChild(caption);
+		caption.AddThemeColorOverride("font_color", HudPalettes.BlueCyan.Primary);
+		if (rightCaption is null)
+		{
+			meter.AddChild(caption);
+		}
+		else
+		{
+			var heading = new HBoxContainer();
+			caption.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			heading.AddChild(caption);
+			var level = new Label { Text = rightCaption, MouseFilter = MouseFilterEnum.Ignore };
+			HudStyles.ApplyTextRole(level, HudTextRole.Metadata);
+			level.AddThemeColorOverride("font_color", HudPalettes.BlueCyan.Primary);
+			heading.AddChild(level);
+			meter.AddChild(heading);
+		}
 
 		var bar = new ProgressBar
 		{
@@ -282,6 +511,7 @@ public sealed partial class PilotCharacterSheetOverlay : Control
 			VerticalAlignment = VerticalAlignment.Center,
 		};
 		HudStyles.ApplyTextRole(levelLabel, HudTextRole.Metadata);
+		levelLabel.AddThemeColorOverride("font_color", HudPalettes.BlueCyan.Primary);
 		row.AddChild(levelLabel);
 
 		var definitions = PilotSkillAvailability.TreeFor(pilot)
