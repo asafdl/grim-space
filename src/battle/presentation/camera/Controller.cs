@@ -428,7 +428,7 @@ public partial class Controller : Camera3D, ICameraRig
 
 		if (flatPan == Vector2.Zero
 			&& !_trailerActive
-			&& GameSettings.MouseCameraPanEnabled
+			&& GameSettings.BattleMouseCameraPanEnabled
 			&& !IsMouseOverUi())
 			flatPan = MouseEdgePan();
 
@@ -508,7 +508,7 @@ public partial class Controller : Camera3D, ICameraRig
 				break;
 
 			case InputEventMouseButton { Pressed: true } panStart
-				when GameSettings.MouseCameraPanEnabled
+				when GameSettings.BattleMouseCameraPanEnabled
 					&& panStart.IsActionPressed("battle_camera_pan", false, true):
 				if (IsMouseOverUi())
 					break;

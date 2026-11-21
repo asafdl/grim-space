@@ -10,7 +10,8 @@ public static class GameSettings
 	private const string WindowedMode = "windowed";
 
 	public static readonly Vector2I DesignCanvasSize = new(1920, 1080);
-	public static bool MouseCameraPanEnabled { get; private set; } = true;
+	public static bool BattleMouseCameraPanEnabled { get; private set; }
+	public static bool StarMapMouseCameraPanEnabled { get; private set; } = true;
 	public static bool InvertHorizontalCameraMovement { get; private set; }
 	public static bool InvertVerticalCameraMovement { get; private set; }
 	public static bool ShowActionLog { get; private set; } = false;
@@ -126,7 +127,8 @@ public static class GameSettings
 		VideoConfig video,
 		AudioConfig audio,
 		bool showTutorials,
-		bool mouseCameraPanEnabled,
+		bool battleMouseCameraPanEnabled,
+		bool starMapMouseCameraPanEnabled,
 		bool invertHorizontalCameraMovement,
 		bool invertVerticalCameraMovement,
 		bool showActionLog,
@@ -136,7 +138,8 @@ public static class GameSettings
 		WriteVideoConfig(config, video);
 		WriteAudioConfig(config, audio);
 		config.SetValue("gameplay", "show_tutorials", showTutorials);
-		config.SetValue("gameplay", "mouse_camera_pan", mouseCameraPanEnabled);
+		config.SetValue("gameplay", "battle_mouse_camera_pan", battleMouseCameraPanEnabled);
+		config.SetValue("gameplay", "starmap_mouse_camera_pan", starMapMouseCameraPanEnabled);
 		config.SetValue("gameplay", "invert_horizontal_camera_movement", invertHorizontalCameraMovement);
 		config.SetValue("gameplay", "invert_vertical_camera_movement", invertVerticalCameraMovement);
 		config.SetValue("gameplay", "show_action_log", showActionLog);
@@ -162,12 +165,20 @@ public static class GameSettings
 		return config!.GetValue("gameplay", "show_tutorials", true).AsBool();
 	}
 
-	public static bool ReadMouseCameraPan()
+	public static bool ReadBattleMouseCameraPan()
+	{
+		if (!TryLoad(out var config))
+			return false;
+
+		return config!.GetValue("gameplay", "battle_mouse_camera_pan", false).AsBool();
+	}
+
+	public static bool ReadStarMapMouseCameraPan()
 	{
 		if (!TryLoad(out var config))
 			return true;
 
-		return config!.GetValue("gameplay", "mouse_camera_pan", true).AsBool();
+		return config!.GetValue("gameplay", "starmap_mouse_camera_pan", true).AsBool();
 	}
 
 	public static bool ReadInvertHorizontalCameraMovement()
@@ -194,8 +205,11 @@ public static class GameSettings
 		return config!.GetValue("gameplay", "show_action_log", false).AsBool();
 	}
 
-	public static void ApplyMouseCameraPan(bool enabled) =>
-		MouseCameraPanEnabled = enabled;
+	public static void ApplyBattleMouseCameraPan(bool enabled) =>
+		BattleMouseCameraPanEnabled = enabled;
+
+	public static void ApplyStarMapMouseCameraPan(bool enabled) =>
+		StarMapMouseCameraPanEnabled = enabled;
 
 	public static void ApplyCameraMovementInversion(bool invertHorizontal, bool invertVertical)
 	{
@@ -215,14 +229,16 @@ public static class GameSettings
 
 	public static Error SaveGameplayPreferences(
 		bool showTutorials,
-		bool mouseCameraPan,
+		bool battleMouseCameraPan,
+		bool starMapMouseCameraPan,
 		bool invertHorizontalCameraMovement,
 		bool invertVerticalCameraMovement,
 		bool showActionLog)
 	{
 		var config = LoadOrCreate();
 		config.SetValue("gameplay", "show_tutorials", showTutorials);
-		config.SetValue("gameplay", "mouse_camera_pan", mouseCameraPan);
+		config.SetValue("gameplay", "battle_mouse_camera_pan", battleMouseCameraPan);
+		config.SetValue("gameplay", "starmap_mouse_camera_pan", starMapMouseCameraPan);
 		config.SetValue("gameplay", "invert_horizontal_camera_movement", invertHorizontalCameraMovement);
 		config.SetValue("gameplay", "invert_vertical_camera_movement", invertVerticalCameraMovement);
 		config.SetValue("gameplay", "show_action_log", showActionLog);

@@ -18,7 +18,8 @@ public partial class GameSettingsMenu : Control
 	private UiSlider _musicVolume = null!;
 	private UiSlider _sfxVolume = null!;
 	private UiToggle _showTutorials = null!;
-	private UiToggle _mouseCameraPan = null!;
+	private UiToggle _battleMouseCameraPan = null!;
+	private UiToggle _starMapMouseCameraPan = null!;
 	private UiToggle _invertHorizontalCameraMovement = null!;
 	private UiToggle _invertVerticalCameraMovement = null!;
 	private UiToggle _showActionLog = null!;
@@ -289,8 +290,10 @@ public partial class GameSettingsMenu : Control
 		var page = CreateSettingsPage();
 		_showTutorials = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Show tutorials", _showTutorials));
-		_mouseCameraPan = new UiToggle(palette: HudPalettes.PurpleRed);
-		page.AddChild(CreateSettingRow("Pan camera with mouse", _mouseCameraPan));
+		_battleMouseCameraPan = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Pan camera with mouse in battle", _battleMouseCameraPan));
+		_starMapMouseCameraPan = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Pan camera with mouse on star map", _starMapMouseCameraPan));
 		_invertHorizontalCameraMovement = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Invert horizontal camera movement", _invertHorizontalCameraMovement));
 		_invertVerticalCameraMovement = new UiToggle(palette: HudPalettes.PurpleRed);
@@ -360,7 +363,8 @@ public partial class GameSettingsMenu : Control
 		_musicVolume.ValueChanged += _ => RefreshFooterActions();
 		_sfxVolume.ValueChanged += _ => RefreshFooterActions();
 		_showTutorials.Toggled += _ => RefreshFooterActions();
-		_mouseCameraPan.Toggled += _ => RefreshFooterActions();
+		_battleMouseCameraPan.Toggled += _ => RefreshFooterActions();
+		_starMapMouseCameraPan.Toggled += _ => RefreshFooterActions();
 		_invertHorizontalCameraMovement.Toggled += _ => RefreshFooterActions();
 		_invertVerticalCameraMovement.Toggled += _ => RefreshFooterActions();
 		_showActionLog.Toggled += _ => RefreshFooterActions();
@@ -447,7 +451,8 @@ public partial class GameSettingsMenu : Control
 		if (current.Video != _baselineSnapshot.Video
 			|| current.Audio != _baselineSnapshot.Audio
 			|| current.ShowTutorials != _baselineSnapshot.ShowTutorials
-			|| current.MouseCameraPan != _baselineSnapshot.MouseCameraPan
+			|| current.BattleMouseCameraPan != _baselineSnapshot.BattleMouseCameraPan
+			|| current.StarMapMouseCameraPan != _baselineSnapshot.StarMapMouseCameraPan
 			|| current.InvertHorizontalCameraMovement != _baselineSnapshot.InvertHorizontalCameraMovement
 			|| current.InvertVerticalCameraMovement != _baselineSnapshot.InvertVerticalCameraMovement
 			|| current.ShowActionLog != _baselineSnapshot.ShowActionLog
@@ -476,7 +481,8 @@ public partial class GameSettingsMenu : Control
 		_musicVolume.Value = audio.MusicVolume * 100f;
 		_sfxVolume.Value = audio.SfxVolume * 100f;
 		_showTutorials.Value = GameSettings.ReadShowTutorials();
-		_mouseCameraPan.Value = GameSettings.ReadMouseCameraPan();
+		_battleMouseCameraPan.Value = GameSettings.ReadBattleMouseCameraPan();
+		_starMapMouseCameraPan.Value = GameSettings.ReadStarMapMouseCameraPan();
 		_invertHorizontalCameraMovement.Value = GameSettings.ReadInvertHorizontalCameraMovement();
 		_invertVerticalCameraMovement.Value = GameSettings.ReadInvertVerticalCameraMovement();
 		_showActionLog.Value = GameSettings.ReadShowActionLog();
@@ -487,7 +493,8 @@ public partial class GameSettingsMenu : Control
 			SelectedVideoConfig(),
 			SelectedAudioConfig(),
 			_showTutorials.Value,
-			_mouseCameraPan.Value,
+			_battleMouseCameraPan.Value,
+			_starMapMouseCameraPan.Value,
 			_invertHorizontalCameraMovement.Value,
 			_invertVerticalCameraMovement.Value,
 			_showActionLog.Value,
@@ -567,7 +574,8 @@ public partial class GameSettingsMenu : Control
 				break;
 			case SettingsTab.Gameplay:
 				_showTutorials.Value = true;
-				_mouseCameraPan.Value = true;
+				_battleMouseCameraPan.Value = false;
+				_starMapMouseCameraPan.Value = true;
 				_invertHorizontalCameraMovement.Value = false;
 				_invertVerticalCameraMovement.Value = false;
 				_showActionLog.Value = false;

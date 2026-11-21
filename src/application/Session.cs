@@ -157,7 +157,8 @@ public partial class Session : Node
 			ProjectSettings.GetSetting("display/mouse_cursor/custom_image_hotspot").AsVector2());
 		GameSettings.ApplySavedVideoConfig();
 		GameSettings.ApplySavedAudioConfig();
-		GameSettings.ApplyMouseCameraPan(GameSettings.ReadMouseCameraPan());
+		GameSettings.ApplyBattleMouseCameraPan(GameSettings.ReadBattleMouseCameraPan());
+		GameSettings.ApplyStarMapMouseCameraPan(GameSettings.ReadStarMapMouseCameraPan());
 		GameSettings.ApplyCameraMovementInversion(
 			GameSettings.ReadInvertHorizontalCameraMovement(),
 			GameSettings.ReadInvertVerticalCameraMovement());

@@ -298,7 +298,7 @@ public partial class MapCamera : Camera3D
 			pan.X += 1f;
 
 		if (pan == Vector2.Zero
-			&& GameSettings.MouseCameraPanEnabled
+			&& GameSettings.StarMapMouseCameraPanEnabled
 			&& !IsMouseOverUi())
 			pan = MouseEdgePan();
 

@@ -18,7 +18,8 @@ public static class GameSettingsApplicator
 			GameSettings.ReadVideoConfig(),
 			GameSettings.ReadAudioConfig(),
 			GameSettings.ReadShowTutorials(),
-			GameSettings.ReadMouseCameraPan(),
+			GameSettings.ReadBattleMouseCameraPan(),
+			GameSettings.ReadStarMapMouseCameraPan(),
 			GameSettings.ReadInvertHorizontalCameraMovement(),
 			GameSettings.ReadInvertVerticalCameraMovement(),
 			GameSettings.ReadShowActionLog(),
@@ -28,7 +29,8 @@ public static class GameSettingsApplicator
 	{
 		GameSettings.ApplyVideoConfig(snapshot.Video);
 		GameSettings.ApplyAudioConfig(snapshot.Audio);
-		GameSettings.ApplyMouseCameraPan(snapshot.MouseCameraPan);
+		GameSettings.ApplyBattleMouseCameraPan(snapshot.BattleMouseCameraPan);
+		GameSettings.ApplyStarMapMouseCameraPan(snapshot.StarMapMouseCameraPan);
 		GameSettings.ApplyCameraMovementInversion(
 			snapshot.InvertHorizontalCameraMovement,
 			snapshot.InvertVerticalCameraMovement);
@@ -49,7 +51,8 @@ public static class GameSettingsApplicator
 				snapshot.Video,
 				snapshot.Audio,
 				snapshot.ShowTutorials,
-				snapshot.MouseCameraPan,
+				snapshot.BattleMouseCameraPan,
+				snapshot.StarMapMouseCameraPan,
 				snapshot.InvertHorizontalCameraMovement,
 				snapshot.InvertVerticalCameraMovement,
 				snapshot.ShowActionLog,
@@ -84,7 +87,8 @@ public static class GameSettingsApplicator
 
 	public static void CommitGameplayPreferences(
 		bool showTutorials,
-		bool mouseCameraPan,
+		bool battleMouseCameraPan,
+		bool starMapMouseCameraPan,
 		bool invertHorizontalCameraMovement,
 		bool invertVerticalCameraMovement,
 		bool showActionLog,
@@ -93,13 +97,15 @@ public static class GameSettingsApplicator
 		var tutorialsChanged = showTutorials != GameSettings.ReadShowTutorials();
 		if (GameSettings.SaveGameplayPreferences(
 				showTutorials,
-				mouseCameraPan,
+				battleMouseCameraPan,
+				starMapMouseCameraPan,
 				invertHorizontalCameraMovement,
 				invertVerticalCameraMovement,
 				showActionLog) != Error.Ok)
 			return;
 
-		GameSettings.ApplyMouseCameraPan(mouseCameraPan);
+		GameSettings.ApplyBattleMouseCameraPan(battleMouseCameraPan);
+		GameSettings.ApplyStarMapMouseCameraPan(starMapMouseCameraPan);
 		GameSettings.ApplyCameraMovementInversion(
 			invertHorizontalCameraMovement,
 			invertVerticalCameraMovement);
