@@ -241,7 +241,6 @@ public partial class MovementPickLab : Node3D
 	private void ResetCamera()
 	{
 		var pose = BattleCameraPoses.PlayerAft(_battle.PlayerAgent.Sim.World.StateOf(_battle.PlayerId));
-		_camera.SetOrbitFocus(pose.Pivot);
 		_camera.SetFocus(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch);
 	}
 
@@ -286,7 +285,6 @@ public partial class MovementPickLab : Node3D
 		_frame = _frames.BuildFrame(_battle, _battle.PlayerAgent, acceptsCommands: true);
 		_units.ApplyUnitStates(_frame.PreviewUnits.ToDictionary(pair => pair.Key, pair => pair.Value.ToState()),
 			id => _frame.PreviewUnitTeams[id] == ETeam.Player ? PlayerColor : EnemyColor);
-		_camera.SetOrbitFocus(WorldMapping.ToWorld(_frame.FocusState.Position));
 		ApplyFrame();
 	}
 

@@ -552,7 +552,7 @@ public static class GameInputBindings
 			conflictGroup: "battle_camera_hold"),
 		BattleMouse(
 			"battle_camera_pan",
-			"Pan camera (hold)",
+			"Travel camera (hold)",
 			KeyBinding.Mouse(MouseButton.Middle),
 			conflictGroup: "battle_camera_hold"),
 		BattleMouse(

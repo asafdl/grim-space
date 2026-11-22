@@ -30,15 +30,15 @@ public partial class Controller : Camera3D, ICameraRig
 	private bool _trailerActive;
 
 	private OrbitPose _pose;
-	private Vector2 _lastMousePosition;
+	// Authoritative camera orientation; _pose.Yaw/Pitch mirror its view direction (see OrbitPose.AlignTo).
+	private Quaternion _rotation = Quaternion.Identity;
 	private bool _orbiting;
-	private bool _panning;
+	private bool _flying;
 	private Tween? _pivotTween;
 	private Tween? _impactShakeTween;
 	private Vector3 _impactShakeLocalOffset;
 	private Vector3? _automationTarget;
-	private Vector3? _orbitFocus;
-	private bool _pivotDetached;
+	private Vector2 _cursorRestore;
 
 	public Vector3 Pivot => _pose.Pivot;
 	public OrbitPose CurrentPose => _pose;
@@ -46,12 +46,9 @@ public partial class Controller : Camera3D, ICameraRig
 	public float Yaw => _pose.Yaw;
 	public float Pitch => _pose.Pitch;
 	public bool IsAutomationActive => _trailerActive || _pivotTween is not null;
-	public bool IsManualGestureActive => _orbiting || _panning;
+	public bool IsManualGestureActive => _orbiting || _flying;
 	public Vector3? AutomationTarget =>
 		_trailerActive ? _trailerStartPose?.Pivot : _automationTarget;
-
-	/// <summary>World point used to re-anchor orbit depth after the pivot was panned off its target.</summary>
-	public void SetOrbitFocus(Vector3 focus) => _orbitFocus = focus;
 
 	public void SetPivot(Vector3 pivot)
 	{
@@ -60,7 +57,6 @@ public partial class Controller : Camera3D, ICameraRig
 
 		CancelAutomation();
 		_pose.Pivot = pivot;
-		_pivotDetached = false;
 		ApplyTransform();
 	}
 
@@ -71,8 +67,8 @@ public partial class Controller : Camera3D, ICameraRig
 
 		CancelAutomation();
 		_pose.SetFocus(pivot, distance, yaw, pitch, Limits);
+		_rotation = _pose.LevelRotation();
 		_automationTarget = null;
-		_pivotDetached = false;
 		ApplyTransform();
 	}
 
@@ -125,7 +121,6 @@ public partial class Controller : Camera3D, ICameraRig
 			return;
 
 		_automationTarget = target;
-		_pivotDetached = false;
 		_pivotTween = CreateTween();
 		_pivotTween.TweenMethod(
 			Callable.From<Vector3>(SetPivotInternal),
@@ -203,7 +198,6 @@ public partial class Controller : Camera3D, ICameraRig
 		targetDistance = Mathf.Clamp(targetDistance, Limits.MinDistance, Limits.MaxDistance);
 		targetPitch = Mathf.Clamp(targetPitch, Limits.MinPitch, Limits.MaxPitch);
 		_automationTarget = targetPivot;
-		_pivotDetached = false;
 
 		_pivotTween = CreateTween();
 		_pivotTween.TweenMethod(
@@ -221,6 +215,7 @@ public partial class Controller : Camera3D, ICameraRig
 			_pose.Distance = Mathf.Lerp(startDistance, targetDistance, t);
 			_pose.Yaw = Mathf.LerpAngle(startYaw, targetYaw, t);
 			_pose.Pitch = Mathf.Lerp(startPitch, targetPitch, t);
+			_rotation = _pose.LevelRotation();
 			ApplyTransform();
 		}
 	}
@@ -236,14 +231,12 @@ public partial class Controller : Camera3D, ICameraRig
 		if (responseTime <= 0f)
 		{
 			_pose.Pivot = target;
-			_pivotDetached = false;
 			ApplyTransform();
 			return;
 		}
 
 		var t = Mathf.Clamp(delta / responseTime, 0f, 1f);
 		_pose.Pivot += (target - _pose.Pivot) * t;
-		_pivotDetached = false;
 		ApplyTransform();
 	}
 
@@ -408,8 +401,17 @@ public partial class Controller : Camera3D, ICameraRig
 			WorldMapping.CellSize * 4f);
 		_pose = OrbitPose.FromOffset(_pose.Pivot, GlobalPosition, Limits);
 		_pose.Distance = DefaultDistance;
+		_rotation = _pose.LevelRotation();
 		ApplyTransform();
 	}
+
+	public override void _Notification(int what)
+	{
+		if (what == NotificationWMWindowFocusOut)
+			EndCameraGesture();
+	}
+
+	public override void _ExitTree() => EndCameraGesture();
 
 	public override void _Process(double delta)
 	{
@@ -428,6 +430,7 @@ public partial class Controller : Camera3D, ICameraRig
 
 		if (flatPan == Vector2.Zero
 			&& !_trailerActive
+			&& !IsManualGestureActive
 			&& GameSettings.BattleMouseCameraPanEnabled
 			&& !IsMouseOverUi())
 			flatPan = MouseEdgePan();
@@ -449,6 +452,7 @@ public partial class Controller : Camera3D, ICameraRig
 				_pose.Pitch += TrailerPitchWaveRadians
 					* (float)System.Math.Sin(phase * TrailerPitchWavesPerOrbit);
 				_pose.Clamp(Limits);
+				_rotation = _pose.LevelRotation();
 				ApplyTransform();
 			}
 
@@ -460,14 +464,14 @@ public partial class Controller : Camera3D, ICameraRig
 		var panSpeed = OrbitControls.KeyboardPanSpeed;
 		if (flatPan != Vector2.Zero)
 		{
-			var (right, forward) = OrbitPose.ViewPanAxes(GlobalTransform.Basis);
-			_pose.ViewPan(flatPan, right, forward, panSpeed, deltaF);
+			var basis = GlobalTransform.Basis;
+			var axis = _flying ? -basis.Z : basis.Y;
+			_pose.ViewPan(flatPan, basis.X, axis, panSpeed, deltaF);
 		}
 
 		if (verticalPan != 0f)
 			_pose.VerticalPan(Mathf.Sign(verticalPan), panSpeed, deltaF);
 
-		_pivotDetached = true;
 		ApplyTransform();
 	}
 
@@ -494,33 +498,32 @@ public partial class Controller : Camera3D, ICameraRig
 		{
 			case InputEventMouseButton { Pressed: true } orbitStart
 				when orbitStart.IsActionPressed("battle_camera_orbit", false, true):
-				if (IsMouseOverUi())
+				if (IsMouseOverUi() || IsManualGestureActive)
 					break;
-				_orbiting = true;
-				_lastMousePosition = orbitStart.Position;
-				NotifyManualInput();
-				ReanchorDetachedPivot();
-				break;
-
-			case InputEventMouseButton orbitEnd
-				when !orbitEnd.Pressed && orbitEnd.IsActionReleased("battle_camera_orbit", true):
-				_orbiting = false;
-				break;
-
-			case InputEventMouseButton { Pressed: true } panStart
-				when GameSettings.BattleMouseCameraPanEnabled
-					&& panStart.IsActionPressed("battle_camera_pan", false, true):
-				if (IsMouseOverUi())
-					break;
-				_panning = true;
-				_lastMousePosition = panStart.Position;
+				BeginCameraGesture(orbitStart.Position, orbiting: true);
 				NotifyManualInput();
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseButton panEnd
-				when !panEnd.Pressed && panEnd.IsActionReleased("battle_camera_pan", true):
-				_panning = false;
+			case InputEventMouseButton orbitEnd
+				when _orbiting && !orbitEnd.Pressed && orbitEnd.IsActionReleased("battle_camera_orbit", true):
+				EndCameraGesture();
+				GetViewport().SetInputAsHandled();
+				break;
+
+			case InputEventMouseButton { Pressed: true } flyStart
+				when flyStart.IsActionPressed("battle_camera_pan", false, true):
+				if (IsMouseOverUi() || IsManualGestureActive)
+					break;
+				BeginCameraGesture(flyStart.Position, orbiting: false);
+				NotifyManualInput();
+				GetViewport().SetInputAsHandled();
+				break;
+
+			case InputEventMouseButton flyEnd
+				when _flying && !flyEnd.Pressed && flyEnd.IsActionReleased("battle_camera_pan", true):
+				EndCameraGesture();
+				GetViewport().SetInputAsHandled();
 				break;
 
 			case InputEvent zoomIn
@@ -543,29 +546,19 @@ public partial class Controller : Camera3D, ICameraRig
 				GetViewport().SetInputAsHandled();
 				break;
 
-			case InputEventMouseMotion motion when _orbiting || _panning:
+			case InputEventMouseMotion motion when IsManualGestureActive:
 			{
-				var delta = motion.Position - _lastMousePosition;
-				_lastMousePosition = motion.Position;
 				NotifyManualInput();
+				var delta = OrbitControls.ApplyOrbitInversion(
+					motion.Relative,
+					GameSettings.InvertHorizontalCameraMovement,
+					GameSettings.InvertVerticalCameraMovement);
 
-				if (_orbiting)
-					_pose.Orbit(
-						OrbitControls.ApplyOrbitInversion(
-							delta,
-							GameSettings.InvertHorizontalCameraMovement,
-							GameSettings.InvertVerticalCameraMovement),
-						OrbitControls.OrbitSensitivity,
-						Limits);
-				else
-				{
-					_pose.ScreenPan(
-						delta,
-						GlobalTransform.Basis.X,
-						GlobalTransform.Basis.Y,
-						OrbitControls.PanSensitivity);
-					_pivotDetached = true;
-				}
+				var sensitivity = GameSettings.BattleCameraSensitivity;
+				_rotation = _flying
+					? _pose.FreeLook(_rotation, delta, sensitivity)
+					: _pose.FreeOrbit(_rotation, delta,
+						sensitivity * (OrbitControls.OrbitSensitivity / OrbitControls.FreeLookSensitivity));
 
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();
@@ -583,8 +576,7 @@ public partial class Controller : Camera3D, ICameraRig
 		if (!blocked)
 			return;
 
-		_orbiting = false;
-		_panning = false;
+		EndCameraGesture();
 		_trailerActive = false;
 		CancelAutomation();
 	}
@@ -596,9 +588,9 @@ public partial class Controller : Camera3D, ICameraRig
 			_trailerStartPose = _pose;
 
 		_pose = _trailerStartPose.Value;
+		_rotation = _pose.LevelRotation();
 		_trailerElapsed = 0d;
-		_orbiting = false;
-		_panning = false;
+		EndCameraGesture();
 		_impactShakeTween?.Kill();
 		_impactShakeTween = null;
 		_impactShakeLocalOffset = Vector3.Zero;
@@ -606,13 +598,23 @@ public partial class Controller : Camera3D, ICameraRig
 		ApplyTransform();
 	}
 
-	private void ReanchorDetachedPivot()
+	private void BeginCameraGesture(Vector2 cursor, bool orbiting)
 	{
-		if (!_pivotDetached || _orbitFocus is not { } focus)
+		_orbiting = orbiting;
+		_flying = !orbiting;
+		_cursorRestore = cursor;
+		Input.MouseMode = Input.MouseModeEnum.Captured;
+	}
+
+	private void EndCameraGesture()
+	{
+		if (!IsManualGestureActive)
 			return;
 
-		_pose.ReanchorAlongView(focus, Limits);
-		_pivotDetached = false;
+		_orbiting = false;
+		_flying = false;
+		Input.MouseMode = Input.MouseModeEnum.Visible;
+		GetViewport().WarpMouse(_cursorRestore);
 	}
 
 	private void SetPivotInternal(Vector3 pivot)
@@ -712,8 +714,7 @@ public partial class Controller : Camera3D, ICameraRig
 
 	private void ApplyTransform()
 	{
-		GlobalPosition = _pose.CameraPosition();
-		LookAt(_pose.Pivot, Vector3.Up);
+		GlobalTransform = new Transform3D(new Basis(_rotation), _pose.CameraPosition());
 		if (_impactShakeLocalOffset.LengthSquared() > 0.000001f)
 			GlobalPosition += GlobalTransform.Basis * _impactShakeLocalOffset;
 	}

@@ -198,7 +198,6 @@ public partial class BattleController : Node3D
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
 		var openingPose = BattleCameraPoses.PlayerAft(
 			_battle.Engine.World.StateOf(_battle.PlayerId));
-		_camera.SetOrbitFocus(gridCenter);
 		_camera.SetFocus(
 			openingPose.Pivot,
 			openingPose.Distance,

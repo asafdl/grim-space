@@ -9,10 +9,11 @@ public readonly record struct OrbitLimits(
 	float MinPitch,
 	float MaxPitch);
 
-/// <summary>Shared default sensitivities for orbit / screen-pan / keyboard-pan / zoom.</summary>
+/// <summary>Shared default sensitivities for orbit / free-look / screen-pan / keyboard-pan / zoom.</summary>
 public static class OrbitControls
 {
 	public const float OrbitSensitivity = 0.004f;
+	public const float FreeLookSensitivity = 0.002f;
 	public const float PanSensitivity = 0.025f;
 	public const float KeyboardPanSpeed = 28f;
 	public const float MousePanEdgeMargin = 32f;
@@ -60,6 +61,41 @@ public struct OrbitPose
 		Pitch = Mathf.Clamp(Pitch - mouseDelta.Y * sensitivity, limits.MinPitch, limits.MaxPitch);
 	}
 
+	/// <summary>Camera rotation looking at the pivot from Yaw/Pitch with world up as up (no roll).</summary>
+	public readonly Quaternion LevelRotation() =>
+		new Quaternion(Vector3.Up, Yaw) * new Quaternion(Vector3.Right, -Pitch);
+
+	/// <summary>
+	/// Trackball orbit around Pivot with no poles: mouse X turns around the camera's own up,
+	/// mouse Y around its own right. Pivot and Distance are unchanged.
+	/// Returns the new rotation; Yaw/Pitch follow its view direction (unclamped).
+	/// </summary>
+	public Quaternion FreeOrbit(Quaternion rotation, Vector2 mouseDelta, float sensitivity)
+	{
+		var next = (rotation
+			* new Quaternion(Vector3.Up, -mouseDelta.X * sensitivity)
+			* new Quaternion(Vector3.Right, mouseDelta.Y * sensitivity)).Normalized();
+		AlignTo(next);
+		return next;
+	}
+
+	/// <summary>Unrestricted mouse-look in place; dragging down looks down, and the camera stays fixed.</summary>
+	public Quaternion FreeLook(Quaternion rotation, Vector2 mouseDelta, float sensitivity)
+	{
+		var camera = CameraPosition();
+		var next = FreeOrbit(rotation, new Vector2(mouseDelta.X, -mouseDelta.Y), sensitivity);
+		Pivot = camera - Offset();
+		return next;
+	}
+
+	/// <summary>Sets Yaw/Pitch so <see cref="Offset"/> points along the rotation's back axis.</summary>
+	public void AlignTo(Quaternion rotation)
+	{
+		var back = rotation * Vector3.Back;
+		Yaw = Mathf.Atan2(back.X, back.Z);
+		Pitch = Mathf.Asin(Mathf.Clamp(back.Y, -1f, 1f));
+	}
+
 	/// <summary>Screen-space pan along the camera's right and up axes.</summary>
 	public void ScreenPan(Vector2 mouseDelta, Vector3 cameraRight, Vector3 cameraUp, float sensitivity)
 	{
@@ -82,18 +118,18 @@ public struct OrbitPose
 	}
 
 	/// <summary>
-	/// Fly-style pan along camera right and look direction (W/S into the scene, A/D strafe).
-	/// Moving the pivot shifts the camera by the same delta while orbit offset stays fixed.
+	/// Camera-relative pan along right and a second axis (screen up or look direction).
+	/// Moving the pivot shifts the camera by the same delta while orbit distance stays fixed.
 	/// </summary>
-	public void ViewPan(Vector2 pan, Vector3 cameraRight, Vector3 viewForward, float speed, float delta)
+	public void ViewPan(Vector2 pan, Vector3 cameraRight, Vector3 cameraAxis, float speed, float delta)
 	{
 		if (pan == Vector2.Zero)
 			return;
 
 		pan = pan.Normalized();
 		var right = cameraRight.Normalized();
-		var forward = viewForward.Normalized();
-		Pivot += (right * pan.X + forward * pan.Y) * speed * delta;
+		var axis = cameraAxis.Normalized();
+		Pivot += (right * pan.X + axis * pan.Y) * speed * delta;
 	}
 
 	/// <summary>Moves the pivot along world up/down (Y axis).</summary>
@@ -103,18 +139,6 @@ public struct OrbitPose
 			return;
 
 		Pivot += Vector3.Up * axis * speed * delta;
-	}
-
-	/// <summary>
-	/// Slides the pivot along the current view axis to the depth nearest <paramref name="focus"/>,
-	/// keeping the camera position and orientation unchanged.
-	/// </summary>
-	public void ReanchorAlongView(Vector3 focus, in OrbitLimits limits)
-	{
-		var camera = CameraPosition();
-		var view = -Offset().Normalized();
-		Distance = Mathf.Clamp((focus - camera).Dot(view), limits.MinDistance, limits.MaxDistance);
-		Pivot = camera + view * Distance;
 	}
 
 	public void Zoom(float amount, in OrbitLimits limits) =>
@@ -183,9 +207,9 @@ public struct OrbitPose
 		return (right, forward);
 	}
 
-	/// <summary>Camera right and look direction from a camera basis.</summary>
-	public static (Vector3 Right, Vector3 Forward) ViewPanAxes(Basis basis) =>
-		(basis.X.Normalized(), (-basis.Z).Normalized());
+	/// <summary>Screen-plane right and up from a camera basis.</summary>
+	public static (Vector3 Right, Vector3 Up) ViewPanAxes(Basis basis) =>
+		(basis.X.Normalized(), basis.Y.Normalized());
 
 	private static Vector3 Flatten(Vector3 v)
 	{

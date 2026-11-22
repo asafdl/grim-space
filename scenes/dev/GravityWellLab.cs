@@ -80,7 +80,6 @@ public partial class GravityWellLab : Node3D
 	private void ResetCamera()
 	{
 		var center = Vector3.One * (GridSize * WorldMapping.CellSize * 0.5f);
-		_camera.SetOrbitFocus(center);
 		_camera.SetFocus(center, 14f, Mathf.Pi / 4f, 0.45f);
 	}
 }

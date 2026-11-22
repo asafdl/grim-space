@@ -56,10 +56,11 @@ public sealed partial class BattleControlHints : PanelContainer
 				: "Select target", false, "battle_primary_click");
 		AddHint("Orbit", true, "battle_camera_orbit");
 		AddHint("Pan", false, "battle_pan_up", "battle_pan_left", "battle_pan_down", "battle_pan_right");
+		AddHint("Free camera", true, "battle_camera_pan");
 		if (frame.CanAct && frame.IsMovePoseSelectionActive)
-			AddHint("Zoom / Roll", false, "battle_roll_clockwise", "battle_roll_counterclockwise");
+			AddHint("Roll", false, "battle_roll_clockwise", "battle_roll_counterclockwise");
 		else
-			AddHint("Zoom / Roll", false, "battle_zoom_in", "battle_zoom_out");
+			AddHint("Zoom", false, "battle_zoom_in", "battle_zoom_out");
 		if (context.CanPlace && (!context.Pose || context.Isolated))
 			AddHint("Move Pick Hints", true, "battle_isolate_movement");
 	}
@@ -91,6 +92,7 @@ public sealed partial class BattleControlHints : PanelContainer
 		};
 		inputs.AddThemeConstantOverride("separation", 3);
 		var shown = new HashSet<KeyBinding>();
+		var hasMouseIcon = false;
 		foreach (var action in actions)
 		{
 			var binding = GameInputBindings.Current[action].Primary;
@@ -99,7 +101,10 @@ public sealed partial class BattleControlHints : PanelContainer
 			if (!shown.Add(binding))
 				continue;
 			if (binding.Device == BindingDevice.Mouse && UiKeycap.MouseIconPath(binding.MouseButton) is not null)
+			{
+				hasMouseIcon = true;
 				inputs.AddChild(UiKeycap.ForBinding(binding));
+			}
 			else
 			{
 				var key = new Label
@@ -121,13 +126,17 @@ public sealed partial class BattleControlHints : PanelContainer
 		{
 			var held = new Label
 			{
-				Text = "+ hold",
+				Text = hasMouseIcon ? "hold" : "+ hold",
+				HorizontalAlignment = HorizontalAlignment.Center,
 				MouseFilter = MouseFilterEnum.Ignore,
 			};
 			held.AddThemeFontOverride("font", _bindingFont);
 			held.AddThemeFontSizeOverride("font_size", 20);
 			held.AddThemeColorOverride("font_color", Colors.White);
-			inputs.AddChild(held);
+			if (hasMouseIcon)
+				hint.AddChild(held);
+			else
+				inputs.AddChild(held);
 		}
 		_hints.AddChild(hint);
 	}

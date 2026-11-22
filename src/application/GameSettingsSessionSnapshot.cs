@@ -10,5 +10,6 @@ public readonly record struct GameSettingsSessionSnapshot(
 	bool StarMapMouseCameraPan,
 	bool InvertHorizontalCameraMovement,
 	bool InvertVerticalCameraMovement,
+	float BattleCameraSensitivity,
 	bool ShowActionLog,
 	IReadOnlyDictionary<StringName, BindingPair> KeyBindings);

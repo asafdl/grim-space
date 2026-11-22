@@ -7,6 +7,8 @@ namespace GrimSpace.Presentation.Menu;
 
 public partial class GameSettingsMenu : Control
 {
+	private const float CameraSensitivityDisplayScale = 1000f;
+
 	public event Action? CloseRequested;
 
 	public GameSettingsApplicator.Host Host { get; set; } = GameSettingsApplicator.Host.InRun;
@@ -17,6 +19,8 @@ public partial class GameSettingsMenu : Control
 	private UiSlider _masterVolume = null!;
 	private UiSlider _musicVolume = null!;
 	private UiSlider _sfxVolume = null!;
+	private UiSlider _battleCameraSensitivity = null!;
+	private Label _battleCameraSensitivityValue = null!;
 	private UiToggle _showTutorials = null!;
 	private UiToggle _battleMouseCameraPan = null!;
 	private UiToggle _starMapMouseCameraPan = null!;
@@ -298,6 +302,26 @@ public partial class GameSettingsMenu : Control
 		page.AddChild(CreateSettingRow("Invert horizontal camera movement", _invertHorizontalCameraMovement));
 		_invertVerticalCameraMovement = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Invert vertical camera movement", _invertVerticalCameraMovement));
+		_battleCameraSensitivity = new UiSlider(HudPalettes.PurpleRed)
+		{
+			MinValue = GameSettings.MinBattleCameraSensitivity * CameraSensitivityDisplayScale,
+			MaxValue = GameSettings.MaxBattleCameraSensitivity * CameraSensitivityDisplayScale,
+			Step = 1d,
+			Value = GameSettings.DefaultBattleCameraSensitivity * CameraSensitivityDisplayScale,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+		};
+		_battleCameraSensitivityValue = new Label
+		{
+			Text = $"{_battleCameraSensitivity.Value:0}",
+			CustomMinimumSize = new Vector2(32f, 0f),
+			HorizontalAlignment = HorizontalAlignment.Right,
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		var sensitivityControl = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		sensitivityControl.AddThemeConstantOverride("separation", 12);
+		sensitivityControl.AddChild(_battleCameraSensitivity);
+		sensitivityControl.AddChild(_battleCameraSensitivityValue);
+		page.AddChild(CreateSettingRow("Battle camera sensitivity", sensitivityControl));
 		_showActionLog = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Show action log", _showActionLog));
 		return page;
@@ -362,6 +386,11 @@ public partial class GameSettingsMenu : Control
 		_masterVolume.ValueChanged += _ => RefreshFooterActions();
 		_musicVolume.ValueChanged += _ => RefreshFooterActions();
 		_sfxVolume.ValueChanged += _ => RefreshFooterActions();
+		_battleCameraSensitivity.ValueChanged += value =>
+		{
+			_battleCameraSensitivityValue.Text = $"{value:0}";
+			RefreshFooterActions();
+		};
 		_showTutorials.Toggled += _ => RefreshFooterActions();
 		_battleMouseCameraPan.Toggled += _ => RefreshFooterActions();
 		_starMapMouseCameraPan.Toggled += _ => RefreshFooterActions();
@@ -455,6 +484,7 @@ public partial class GameSettingsMenu : Control
 			|| current.StarMapMouseCameraPan != _baselineSnapshot.StarMapMouseCameraPan
 			|| current.InvertHorizontalCameraMovement != _baselineSnapshot.InvertHorizontalCameraMovement
 			|| current.InvertVerticalCameraMovement != _baselineSnapshot.InvertVerticalCameraMovement
+			|| current.BattleCameraSensitivity != _baselineSnapshot.BattleCameraSensitivity
 			|| current.ShowActionLog != _baselineSnapshot.ShowActionLog
 			|| current.KeyBindings.Count != _baselineSnapshot.KeyBindings.Count)
 			return true;
@@ -485,6 +515,7 @@ public partial class GameSettingsMenu : Control
 		_starMapMouseCameraPan.Value = GameSettings.ReadStarMapMouseCameraPan();
 		_invertHorizontalCameraMovement.Value = GameSettings.ReadInvertHorizontalCameraMovement();
 		_invertVerticalCameraMovement.Value = GameSettings.ReadInvertVerticalCameraMovement();
+		_battleCameraSensitivity.Value = GameSettings.ReadBattleCameraSensitivity() * CameraSensitivityDisplayScale;
 		_showActionLog.Value = GameSettings.ReadShowActionLog();
 	}
 
@@ -497,6 +528,7 @@ public partial class GameSettingsMenu : Control
 			_starMapMouseCameraPan.Value,
 			_invertHorizontalCameraMovement.Value,
 			_invertVerticalCameraMovement.Value,
+			(float)(_battleCameraSensitivity.Value / CameraSensitivityDisplayScale),
 			_showActionLog.Value,
 			_keyBindingsTab.CurrentDraft);
 
@@ -578,6 +610,7 @@ public partial class GameSettingsMenu : Control
 				_starMapMouseCameraPan.Value = true;
 				_invertHorizontalCameraMovement.Value = false;
 				_invertVerticalCameraMovement.Value = false;
+				_battleCameraSensitivity.Value = GameSettings.DefaultBattleCameraSensitivity * CameraSensitivityDisplayScale;
 				_showActionLog.Value = false;
 				break;
 			case SettingsTab.KeyBindings:

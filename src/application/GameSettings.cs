@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Math.Camera;
 
 namespace GrimSpace.Application;
 
@@ -9,11 +10,16 @@ public static class GameSettings
 	private const string BorderlessFullscreenMode = "borderless_fullscreen";
 	private const string WindowedMode = "windowed";
 
+	public const float DefaultBattleCameraSensitivity = OrbitControls.FreeLookSensitivity;
+	public const float MinBattleCameraSensitivity = 0.001f;
+	public const float MaxBattleCameraSensitivity = 0.01f;
+
 	public static readonly Vector2I DesignCanvasSize = new(1920, 1080);
 	public static bool BattleMouseCameraPanEnabled { get; private set; }
 	public static bool StarMapMouseCameraPanEnabled { get; private set; } = true;
 	public static bool InvertHorizontalCameraMovement { get; private set; }
 	public static bool InvertVerticalCameraMovement { get; private set; }
+	public static float BattleCameraSensitivity { get; private set; } = DefaultBattleCameraSensitivity;
 	public static bool ShowActionLog { get; private set; } = false;
 
 	public static readonly Vector2I[] SupportedResolutions =
@@ -131,6 +137,7 @@ public static class GameSettings
 		bool starMapMouseCameraPanEnabled,
 		bool invertHorizontalCameraMovement,
 		bool invertVerticalCameraMovement,
+		float battleCameraSensitivity,
 		bool showActionLog,
 		IReadOnlyDictionary<StringName, BindingPair> bindings)
 	{
@@ -142,6 +149,7 @@ public static class GameSettings
 		config.SetValue("gameplay", "starmap_mouse_camera_pan", starMapMouseCameraPanEnabled);
 		config.SetValue("gameplay", "invert_horizontal_camera_movement", invertHorizontalCameraMovement);
 		config.SetValue("gameplay", "invert_vertical_camera_movement", invertVerticalCameraMovement);
+		config.SetValue("gameplay", "battle_camera_sensitivity", NormalizeBattleCameraSensitivity(battleCameraSensitivity));
 		config.SetValue("gameplay", "show_action_log", showActionLog);
 		GameInputBindings.WriteBindingsSection(config, bindings);
 		return config.Save(SettingsPath);
@@ -205,6 +213,26 @@ public static class GameSettings
 		return config!.GetValue("gameplay", "show_action_log", false).AsBool();
 	}
 
+	public static float ReadBattleCameraSensitivity()
+	{
+		if (!TryLoad(out var config))
+			return DefaultBattleCameraSensitivity;
+
+		return NormalizeBattleCameraSensitivity(
+			config!.GetValue("gameplay", "battle_camera_sensitivity", DefaultBattleCameraSensitivity).AsSingle());
+	}
+
+	public static float NormalizeBattleCameraSensitivity(float value)
+	{
+		if (!float.IsFinite(value))
+			throw new ArgumentOutOfRangeException(nameof(value), value, "Camera sensitivity must be finite.");
+
+		return System.Math.Clamp(value, MinBattleCameraSensitivity, MaxBattleCameraSensitivity);
+	}
+
+	public static void ApplyBattleCameraSensitivity(float value) =>
+		BattleCameraSensitivity = NormalizeBattleCameraSensitivity(value);
+
 	public static void ApplyBattleMouseCameraPan(bool enabled) =>
 		BattleMouseCameraPanEnabled = enabled;
 
@@ -233,6 +261,7 @@ public static class GameSettings
 		bool starMapMouseCameraPan,
 		bool invertHorizontalCameraMovement,
 		bool invertVerticalCameraMovement,
+		float battleCameraSensitivity,
 		bool showActionLog)
 	{
 		var config = LoadOrCreate();
@@ -241,6 +270,7 @@ public static class GameSettings
 		config.SetValue("gameplay", "starmap_mouse_camera_pan", starMapMouseCameraPan);
 		config.SetValue("gameplay", "invert_horizontal_camera_movement", invertHorizontalCameraMovement);
 		config.SetValue("gameplay", "invert_vertical_camera_movement", invertVerticalCameraMovement);
+		config.SetValue("gameplay", "battle_camera_sensitivity", NormalizeBattleCameraSensitivity(battleCameraSensitivity));
 		config.SetValue("gameplay", "show_action_log", showActionLog);
 		return config.Save(SettingsPath);
 	}

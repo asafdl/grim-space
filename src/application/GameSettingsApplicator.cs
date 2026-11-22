@@ -22,6 +22,7 @@ public static class GameSettingsApplicator
 			GameSettings.ReadStarMapMouseCameraPan(),
 			GameSettings.ReadInvertHorizontalCameraMovement(),
 			GameSettings.ReadInvertVerticalCameraMovement(),
+			GameSettings.ReadBattleCameraSensitivity(),
 			GameSettings.ReadShowActionLog(),
 			GameSettings.ReadKeyBindings());
 
@@ -34,6 +35,7 @@ public static class GameSettingsApplicator
 		GameSettings.ApplyCameraMovementInversion(
 			snapshot.InvertHorizontalCameraMovement,
 			snapshot.InvertVerticalCameraMovement);
+		GameSettings.ApplyBattleCameraSensitivity(snapshot.BattleCameraSensitivity);
 		GameSettings.ApplyShowActionLog(snapshot.ShowActionLog);
 		GameInputBindings.Apply(snapshot.KeyBindings);
 	}
@@ -55,6 +57,7 @@ public static class GameSettingsApplicator
 				snapshot.StarMapMouseCameraPan,
 				snapshot.InvertHorizontalCameraMovement,
 				snapshot.InvertVerticalCameraMovement,
+				snapshot.BattleCameraSensitivity,
 				snapshot.ShowActionLog,
 				snapshot.KeyBindings) != Error.Ok)
 		{
@@ -91,6 +94,7 @@ public static class GameSettingsApplicator
 		bool starMapMouseCameraPan,
 		bool invertHorizontalCameraMovement,
 		bool invertVerticalCameraMovement,
+		float battleCameraSensitivity,
 		bool showActionLog,
 		Host host)
 	{
@@ -101,6 +105,7 @@ public static class GameSettingsApplicator
 				starMapMouseCameraPan,
 				invertHorizontalCameraMovement,
 				invertVerticalCameraMovement,
+				battleCameraSensitivity,
 				showActionLog) != Error.Ok)
 			return;
 
@@ -109,6 +114,7 @@ public static class GameSettingsApplicator
 		GameSettings.ApplyCameraMovementInversion(
 			invertHorizontalCameraMovement,
 			invertVerticalCameraMovement);
+		GameSettings.ApplyBattleCameraSensitivity(battleCameraSensitivity);
 		GameSettings.ApplyShowActionLog(showActionLog);
 		if (tutorialsChanged && host == Host.MainMenu)
 		{
