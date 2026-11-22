@@ -84,6 +84,9 @@ public sealed partial class MoveGhostView : Node3D
 	public void SetHoldProgress(Coord? heading, float progress) =>
 		_orientationOverlay.SetHoldProgress(heading, progress);
 
+	public void NudgeHeadingAttention() =>
+		_orientationOverlay.NudgeAttention();
+
 	private static MultiMeshInstance3D CreateAxisGuides()
 	{
 		const int dotsPerRay = 9;

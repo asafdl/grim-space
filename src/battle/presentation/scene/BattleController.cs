@@ -516,6 +516,8 @@ public partial class BattleController : Node3D
 			_battleTutorial?.NotifyMoveSelectionCanceled();
 			RefreshPresentation();
 		};
+		_translator.HeadingPickAttentionRequested += () =>
+			_moveGhost.NudgeHeadingAttention();
 		_translator.MoveSelectionCompleted += () =>
 		{
 			_frames.Interaction.CompleteMoveSelection();

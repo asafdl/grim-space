@@ -8,6 +8,8 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class MoveOrientationOverlay : Node2D
 {
 	private const float RollIconSize = 32f;
+	private const float BuzzStepSeconds = 0.035f;
+	private const float BuzzShakePixels = 5f;
 	private Camera3D _camera = null!;
 	private TextureRect _rollIcon = null!;
 	private Coord? _destination;
@@ -16,6 +18,9 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	private Coord? _heldHeading;
 	private Vector2? _shellCenter;
 	private float _holdProgress;
+	private Vector2 _buzzOffset;
+	private Tween? _buzzTween;
+	private readonly RandomNumberGenerator _buzzRng = new();
 	private readonly Dictionary<Coord, ArrowView> _arrows = [];
 
 	public Control RollButton => _rollIcon;
@@ -49,6 +54,8 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		_reachableHeadings = reachableHeadings;
 		_selectedHeading = selectedHeading;
 		Visible = destination is not null;
+		if (destination is null)
+			ClearBuzz();
 		UpdateArrows();
 	}
 
@@ -57,6 +64,22 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		_heldHeading = heading;
 		_holdProgress = System.Math.Clamp(progress, 0f, 1f);
 		UpdateArrows();
+	}
+
+	public void NudgeAttention()
+	{
+		if (!Visible || _destination is null)
+			return;
+
+		_buzzTween?.Kill();
+		_buzzTween = CreateTween();
+		float[] amplitudes = [1f, 0.85f, 1f, 0.7f, 0.55f, 0.35f, 0f];
+		foreach (var amplitude in amplitudes)
+		{
+			var strength = amplitude;
+			_buzzTween.TweenCallback(Callable.From(() => SetBuzzOffset(strength)));
+			_buzzTween.TweenInterval(BuzzStepSeconds);
+		}
 	}
 
 	public override void _Process(double delta)
@@ -92,7 +115,7 @@ public sealed partial class MoveOrientationOverlay : Node2D
 		foreach (var handle in handles)
 		{
 			var arrow = _arrows[handle.Heading];
-			arrow.Position = handle.Position;
+			arrow.Position = handle.Position + _buzzOffset;
 			arrow.Visible = true;
 			arrow.Apply(
 				handle.Kind,
@@ -114,6 +137,27 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	{
 		if (_shellCenter is { } center)
 			ProjectedDirectionHandleRenderer.DrawShell(this, center);
+	}
+
+	private void SetBuzzOffset(float strength)
+	{
+		if (strength <= 0f)
+		{
+			_buzzOffset = Vector2.Zero;
+			UpdateArrows();
+			return;
+		}
+
+		var angle = _buzzRng.Randf() * Mathf.Tau;
+		_buzzOffset = Vector2.FromAngle(angle) * BuzzShakePixels * strength;
+		UpdateArrows();
+	}
+
+	private void ClearBuzz()
+	{
+		_buzzTween?.Kill();
+		_buzzTween = null;
+		_buzzOffset = Vector2.Zero;
 	}
 
 	private sealed partial class ArrowView : Node2D

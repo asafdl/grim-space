@@ -93,6 +93,7 @@ public sealed partial class UserIntentTranslator : Node
 	public event Action<Coord, GridBasis>? MoveSelectionStarted;
 	public event Action<GridBasis>? MovePoseRequested;
 	public event Action? MoveSelectionCanceled;
+	public event Action? HeadingPickAttentionRequested;
 	public event Action? MoveSelectionCompleted;
 	public event Action<int?, int>? AbilityHoverChanged;
 	public event Action? CycleEnemyRequested;
@@ -297,7 +298,7 @@ public sealed partial class UserIntentTranslator : Node
 					if (TryRequestMoveHeading(confirm.Position))
 						QueueMoveSelection();
 					else if (IsOutsideMoveHeadingPicker(confirm.Position))
-						CancelMoveSelection();
+						HeadingPickAttentionRequested?.Invoke();
 					GetViewport().SetInputAsHandled();
 					return;
 			}
