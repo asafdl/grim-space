@@ -71,6 +71,7 @@ public sealed class BattleSpawnPilotTests
 
 		var restoredPilot = RunTestKit.StarterFighterBattleSpawn(restored.Spawns).Pilot;
 		Assert.NotNull(expectedPilot);
+		Assert.NotNull(expectedPilot.PortraitId);
 		Assert.NotNull(restoredPilot);
 		Assert.Equal(expectedPilot.PilotId, restoredPilot.PilotId);
 		Assert.Equal(expectedPilot.PortraitId, restoredPilot.PortraitId);
@@ -159,7 +160,8 @@ public sealed class BattleSpawnPilotTests
 			Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 			map[shipId] = PilotBattleSnapshot.FromSkills(
 				pilot.Id,
-				pilot.LearnedSkills);
+				pilot.LearnedSkills,
+				pilot.PortraitId);
 		}
 
 		return map;

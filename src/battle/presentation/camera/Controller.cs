@@ -47,6 +47,17 @@ public partial class Controller : Camera3D, ICameraRig
 	public float Pitch => _pose.Pitch;
 	public bool IsAutomationActive => _trailerActive || _pivotTween is not null;
 	public bool IsManualGestureActive => _orbiting || _flying;
+	public bool IsPanning
+	{
+		get
+		{
+			if (GestureInputBlocked)
+				return false;
+
+			var (pan, vertical) = ReadPanInput();
+			return pan != Vector2.Zero || vertical != 0f;
+		}
+	}
 	public Vector3? AutomationTarget =>
 		_trailerActive ? _trailerStartPose?.Pivot : _automationTarget;
 
@@ -418,29 +429,7 @@ public partial class Controller : Camera3D, ICameraRig
 		if (GestureInputBlocked)
 			return;
 
-		var flatPan = Vector2.Zero;
-		if (Input.IsActionPressed("battle_pan_up", true))
-			flatPan.Y += 1f;
-		if (Input.IsActionPressed("battle_pan_down", true))
-			flatPan.Y -= 1f;
-		if (Input.IsActionPressed("battle_pan_left", true))
-			flatPan.X -= 1f;
-		if (Input.IsActionPressed("battle_pan_right", true))
-			flatPan.X += 1f;
-
-		if (flatPan == Vector2.Zero
-			&& !_trailerActive
-			&& !IsManualGestureActive
-			&& GameSettings.BattleMouseCameraPanEnabled
-			&& !IsMouseOverUi())
-			flatPan = MouseEdgePan();
-
-		var verticalPan = 0f;
-		if (Input.IsActionPressed("battle_pan_vertical_up", true))
-			verticalPan += 1f;
-		if (Input.IsActionPressed("battle_pan_vertical_down", true))
-			verticalPan -= 1f;
-
+		var (flatPan, verticalPan) = ReadPanInput();
 		if (flatPan == Vector2.Zero && verticalPan == 0f)
 		{
 			if (_trailerActive && _trailerStartPose is { } startPose)
@@ -473,6 +462,34 @@ public partial class Controller : Camera3D, ICameraRig
 			_pose.VerticalPan(Mathf.Sign(verticalPan), panSpeed, deltaF);
 
 		ApplyTransform();
+	}
+
+	private (Vector2 Pan, float Vertical) ReadPanInput()
+	{
+		var flatPan = Vector2.Zero;
+		if (Input.IsActionPressed("battle_pan_up", true))
+			flatPan.Y += 1f;
+		if (Input.IsActionPressed("battle_pan_down", true))
+			flatPan.Y -= 1f;
+		if (Input.IsActionPressed("battle_pan_left", true))
+			flatPan.X -= 1f;
+		if (Input.IsActionPressed("battle_pan_right", true))
+			flatPan.X += 1f;
+
+		if (flatPan == Vector2.Zero
+			&& !_trailerActive
+			&& !IsManualGestureActive
+			&& GameSettings.BattleMouseCameraPanEnabled
+			&& !IsMouseOverUi())
+			flatPan = MouseEdgePan();
+
+		var verticalPan = 0f;
+		if (Input.IsActionPressed("battle_pan_vertical_up", true))
+			verticalPan += 1f;
+		if (Input.IsActionPressed("battle_pan_vertical_down", true))
+			verticalPan -= 1f;
+
+		return (flatPan, verticalPan);
 	}
 
 	public override void _Input(InputEvent @event)

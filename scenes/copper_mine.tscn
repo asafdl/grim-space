@@ -55,10 +55,10 @@ script = ExtResource("3_manager")
 
 [node name="HealingStation" type="TextureButton" parent="Scene" unique_id=813116797]
 layout_mode = 0
-offset_left = 110.0
-offset_top = 220.0
-offset_right = 276.0
-offset_bottom = 554.0
+offset_left = 282.0
+offset_top = 222.0
+offset_right = 448.0
+offset_bottom = 556.0
 texture_normal = ExtResource("7_recharge")
 ignore_texture_size = true
 stretch_mode = 5

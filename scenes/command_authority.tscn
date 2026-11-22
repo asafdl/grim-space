@@ -43,10 +43,10 @@ stretch_mode = 5
 
 [node name="Manager" type="TextureButton" parent="Scene" unique_id=1587884116]
 layout_mode = 0
-offset_left = 1479.0
-offset_top = 395.0
-offset_right = 2103.0
-offset_bottom = 1104.0
+offset_left = 1069.0
+offset_top = 372.0
+offset_right = 1693.0
+offset_bottom = 1081.0
 scale = Vector2(0.8250968, 0.85275424)
 texture_normal = ExtResource("5_manager")
 ignore_texture_size = true

@@ -3,6 +3,7 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Run;
 using GrimSpace.Units;
+using GrimSpace.Units.Enums;
 using GrimSpace.World.StarSystem;
 using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.World.StarSystem.Contact;
@@ -295,6 +296,61 @@ public sealed class EngagementCommitTests(StarMapFixture maps)
 		Assert.Equal(1, battle.MovePreview.BuildCount);
 		battle.MovePreview.GetPaths(battle.PlayerAgent.Sim, battle.PlayerId);
 		Assert.Equal(1, battle.MovePreview.BuildCount);
+	}
+
+	[Fact]
+	public void MutualPursueSamePirate_ContactEngageLaunchesOneMatchingBattle()
+	{
+		using var run = RunState.CreateNewRun(42);
+		var battleReady = 0;
+		run.BattleReady += () => battleReady++;
+		FundHazardPay(run);
+		var map = run.StarSystem.Map;
+		const string pirateId = "pirate-mutual";
+		AddPirate(map, pirateId);
+		var runtime = new ActorRuntime();
+
+		new SetEngagementIntentEffect(pirateId, RunState.PlayerFleetUnitId)
+			.Apply(map, runtime, pirateId);
+		var pirateHuntId = map.StateOf(pirateId).CurrentEngagement!.Id;
+		new SetEngagementIntentEffect(RunState.PlayerFleetUnitId, pirateId)
+			.Apply(map, runtime, RunState.PlayerFleetUnitId);
+		var playerHuntId = map.StateOf(RunState.PlayerFleetUnitId).CurrentEngagement!.Id;
+
+		Assert.NotEqual(pirateHuntId, playerHuntId);
+		Assert.Equal(playerHuntId, map.StateOf(pirateId).CurrentEngagement!.Id);
+		Assert.Equal(pirateId, EngagementAssertions.Hunting(map.StateOf(RunState.PlayerFleetUnitId)));
+		Assert.Equal(RunState.PlayerFleetUnitId, EngagementAssertions.HuntedBy(map.StateOf(pirateId)));
+		Assert.Null(EngagementAssertions.Hunting(map.StateOf(pirateId)));
+
+		new SetTravelTargetEffect(
+			RunState.PlayerFleetUnitId,
+			TravelTarget.Fleet(pirateId, EContactIntent.Engagement))
+			.Apply(map, runtime, RunState.PlayerFleetUnitId);
+		run.StarSystem.CommitSetup(new ReachContactAction(RunState.PlayerFleetUnitId, pirateId));
+		Assert.True(EngagementQueries.TryGetPendingPlayerEngagement(map, RunState.PlayerFleetUnitId, out _));
+
+		run.StarSystem.PlayerAgent!.TryEnqueue([new EngageAction(RunState.PlayerFleetUnitId)]);
+		run.StarSystem.AdvanceClock();
+		Assert.True(SpinWait.SpinUntil(() => !run.IsBattleLaunching, TimeSpan.FromSeconds(30)));
+		run.CompleteBattleLaunch();
+
+		Assert.Equal(1, battleReady);
+		Assert.NotNull(run.ActiveBattle);
+		Assert.Equal(playerHuntId, run.ActiveBattle.Id);
+		Assert.True(EngagementQueries.TryGetCommittedPlayerEngagement(
+			map, RunState.PlayerFleetUnitId, out var committed));
+		Assert.Equal(playerHuntId, committed.EngagementId);
+		using var battle = run.CreateActiveBattleOrchestrator();
+		Assert.Equal(run.ActiveBattle.Id, battle.Engine.World.BattleId);
+		Assert.Equal(GrimSpace.Battle.EBattlePhase.PlayerTurn, battle.Phase);
+		foreach (var spawn in run.ActiveBattle.Spawns.Where(spawn => spawn.Team == ETeam.Player))
+		{
+			Assert.NotNull(spawn.Pilot?.PortraitId);
+			Assert.Equal(
+				spawn.Pilot!.PortraitId,
+				battle.Engine.ActorRuntimes.For(spawn.Ship.Id).PortraitId);
+		}
 	}
 
 	[Fact]

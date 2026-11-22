@@ -369,6 +369,7 @@ public partial class Session : Node
 			await WaitForPreparedRunAsync();
 			await WaitForMapScenePreloadAsync();
 
+			ClearSaveGame();
 			if (!TryAdoptPreparedRun())
 				StartNewRun();
 
@@ -382,6 +383,7 @@ public partial class Session : Node
 
 	public void StartNewRun()
 	{
+		ClearSaveGame();
 		AdoptRun(State.CreateNewRun(Random.Shared.Next(), GameSettings.ReadShowTutorials()));
 	}
 

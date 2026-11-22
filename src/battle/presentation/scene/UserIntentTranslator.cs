@@ -201,7 +201,8 @@ public sealed partial class UserIntentTranslator : Node
 
 		if (!_enabled
 			|| !_canIssueActions
-			|| _moveInput.IsPoseSelectionActive)
+			|| _moveInput.IsPoseSelectionActive
+			|| _camera.IsPanning)
 			return;
 
 		if (_mode != EPlayerMode.Move)
