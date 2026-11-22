@@ -44,12 +44,26 @@ public sealed partial class RobotPortrait : Control
 	private readonly TextureRect _tape;
 	private RobotPortraitParts _parts = new();
 	private RobotPortraitPalette _palette = new();
+	private RobotPortraitBody _body = new(1f, 1f);
 	private RobotPortraitLayer _layer;
 	private float _eyeOpenness = 1f;
 	private double _blinkWait = 6 + Random.Shared.NextDouble() * 39;
 	private double _blinkTime = -1;
 
 	public event Action? EyeOpennessChanged;
+
+	internal RobotPortraitBody Body
+	{
+		get => _body;
+		set
+		{
+			if (!float.IsFinite(value.Width) || value.Width <= 0 ||
+				!float.IsFinite(value.Height) || value.Height <= 0)
+				throw new ArgumentOutOfRangeException(nameof(value));
+			_body = value;
+			LayoutLayers();
+		}
+	}
 
 	public RobotPortraitParts Parts
 	{
@@ -234,6 +248,14 @@ public sealed partial class RobotPortrait : Control
 			image.Rotation = 0f;
 		}
 
+		foreach (var image in new[] { _chest, _shoulders, _rust })
+		{
+			image.PivotOffset = new Vector2(160, 310) * scale;
+			image.Scale = new Vector2(Body.Width, Body.Height);
+		}
+		foreach (var image in new[] { _ears, _antenna, _bezel, _screen, _eyes, _mouth })
+			image.Position += new Vector2(0, Body.HeadOffset * scale);
+
 		// Whole-cell offsets keep the triangular face aligned with the authored LED grid.
 		var triangle = Parts.Screen == RobotScreen.Triangle;
 		_eyes.Position += new Vector2(0, triangle ? 24f * scale : 0);
@@ -241,9 +263,21 @@ public sealed partial class RobotPortrait : Control
 		_eyes.Scale = new Vector2(1f, Mathf.Max(.04f, EyeOpenness));
 		_mouth.Position += new Vector2(0, triangle ? 24f * scale : 0);
 		if (Parts.CrackPlacement is { } crack)
-			PlaceOverlay(_cracks, crack, Parts.Cracks == RobotCracks.Branching ? new(162, 104) : new(163, 98), origin, scale);
+			PlaceOverlay(_cracks, Body.TransformWear(crack),
+				Parts.Cracks == RobotCracks.Branching ? new(162, 104) : new(163, 98), origin, scale);
+		else
+			_cracks.Position += new Vector2(0, Body.HeadOffset * scale);
 		if (Parts.TapePlacement is { } tape)
-			PlaceOverlay(_tape, tape, Parts.Tape == RobotTape.Crown ? new(157, 58) : new(103, 287), origin, scale);
+			PlaceOverlay(_tape, Body.TransformWear(tape),
+				Parts.Tape == RobotTape.Crown ? new(157, 58) : new(103, 287), origin, scale);
+		else
+		{
+			var anchor = Parts.Tape == RobotTape.Crown
+				? new RobotWearPlacement(RobotWearLocation.Casing, 157, 58, 0, 1)
+				: new RobotWearPlacement(RobotWearLocation.LeftShoulder, 103, 287, 0, 1);
+			var adjusted = Body.TransformWear(anchor);
+			_tape.Position += new Vector2(adjusted.X - anchor.X, adjusted.Y - anchor.Y) * scale;
+		}
 	}
 
 	private static void PlaceOverlay(TextureRect image, RobotWearPlacement placement, Vector2 assetCenter,

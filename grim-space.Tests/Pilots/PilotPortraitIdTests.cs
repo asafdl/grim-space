@@ -78,6 +78,7 @@ public sealed class PilotPortraitIdTests
 
 		Assert.Equal(PilotPortraitId.SeedFor(baseId), PilotPortraitId.SeedFor(nextId));
 		Assert.Equal(original.Parts, next.Parts);
+		Assert.Equal(original.Body, next.Body);
 		Assert.NotEqual(original.Colors, next.Colors);
 		Assert.True(PilotPortraitId.TryGetPaletteIndex(nextId, out var paletteIndex));
 		Assert.InRange(paletteIndex, 0, RobotPortraitGenerator.Palettes.Count - 1);
@@ -91,6 +92,7 @@ public sealed class PilotPortraitIdTests
 		var overridden = PilotPortraitId.GenerateAppearance(PilotPortraitId.WithPalette(seedId, 0));
 
 		Assert.Equal(baseline.Parts, overridden.Parts);
+		Assert.Equal(baseline.Body, overridden.Body);
 		Assert.Equal(RobotPortraitGenerator.Palettes[0].Colors, overridden.Colors);
 	}
 }

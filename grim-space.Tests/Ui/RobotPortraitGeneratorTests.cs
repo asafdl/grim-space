@@ -5,6 +5,47 @@ namespace GrimSpace.Tests.Ui;
 public sealed class RobotPortraitGeneratorTests
 {
 	[Theory]
+	[InlineData(.7f)]
+	[InlineData(1f)]
+	[InlineData(1.3f)]
+	public void BodyHeightKeepsHeadAttachedToNeck(float height)
+	{
+		var body = new RobotPortraitBody(1f, height);
+		var neckAfterScaling = 310f + (221f - 310f) * height;
+		Assert.Equal(neckAfterScaling, 221f + body.HeadOffset, 4);
+	}
+
+	[Theory]
+	[InlineData(RobotWearLocation.Screen, 110f, 90f, 110f, 63.3f)]
+	[InlineData(RobotWearLocation.Casing, 110f, 90f, 110f, 63.3f)]
+	[InlineData(RobotWearLocation.Chest, 110f, 280f, 95f, 271f)]
+	[InlineData(RobotWearLocation.LeftShoulder, 110f, 280f, 95f, 271f)]
+	[InlineData(RobotWearLocation.RightShoulder, 110f, 280f, 95f, 271f)]
+	public void BodyVariationMovesWearWithItsSurface(
+		RobotWearLocation location, float x, float y, float expectedX, float expectedY)
+	{
+		var wear = new RobotWearPlacement(location, x, y, 42f, .8f);
+		var transformed = new RobotPortraitBody(1.3f, 1.3f).TransformWear(wear);
+		Assert.Equal(expectedX, transformed.X, 3);
+		Assert.Equal(expectedY, transformed.Y, 3);
+		Assert.Equal(wear.RotationDegrees, transformed.RotationDegrees);
+		Assert.Equal(wear.Scale, transformed.Scale);
+	}
+
+	[Fact]
+	public void GeneratedBodiesCombineDiscreteWidthAndHeightChoices()
+	{
+		var bodies = Enumerable.Range(0, 1000)
+			.Select(seed => RobotPortraitGenerator.Generate(seed).Body).ToArray();
+		Assert.Equal(9, bodies.Distinct().Count());
+		Assert.All(bodies, body =>
+		{
+			Assert.Contains(body.Width, new[] { .7f, 1f, 1.3f });
+			Assert.Contains(body.Height, new[] { .7f, 1f, 1.3f });
+		});
+	}
+
+	[Theory]
 	[InlineData(0)]
 	[InlineData(42)]
 	[InlineData(-1)]

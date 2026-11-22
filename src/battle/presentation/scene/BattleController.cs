@@ -102,6 +102,8 @@ public partial class BattleController : Node3D
 	private bool _requestedSimulationVisuals;
 	private bool _openingVisualTransitionPending = true;
 	private bool _animateTurnFlowForPhaseTransition;
+	private int _simulationTransitionRound;
+	private int _fullReplayTransitionsThisRound;
 	public BattleEncounter? DevEncounter { get; set; }
 	private bool AcceptsCommands =>
 		_battle.AcceptsPlayerInput && !_frames.IsInspecting(_battle);
@@ -391,7 +393,7 @@ public partial class BattleController : Node3D
 			return;
 
 		_openingVisualTransitionPending = false;
-		TransitionSimulationVisualsForPhase(_battle.Phase);
+		TransitionSimulationVisualsForPhase(_battle.Phase, battleOpening: true);
 		ConfigureTutorial();
 	}
 
@@ -1152,7 +1154,7 @@ public partial class BattleController : Node3D
 			frame.RangeEnemy?.EnemyId);
 	}
 
-	private void TransitionSimulationVisualsForPhase(EBattlePhase phase)
+	private void TransitionSimulationVisualsForPhase(EBattlePhase phase, bool battleOpening = false)
 	{
 		if (_openingVisualTransitionPending)
 			return;
@@ -1177,7 +1179,30 @@ public partial class BattleController : Node3D
 		if (desired == _simulationVisualsEnabled)
 			_simulationTransition.ApplyImmediately(ApplyMode);
 		else
-			_simulationTransition.Transition(ApplyMode);
+		{
+			var fast = phase == EBattlePhase.PlayerTurn && !battleOpening;
+			if (phase == EBattlePhase.Replaying && !battleOpening)
+			{
+				var replay = _battle.PendingReplay
+					?? throw new InvalidOperationException("Replay transition started without a pending replay.");
+				var replayRound = _battle.PendingReplayTurn;
+				if (_simulationTransitionRound != replayRound)
+				{
+					_simulationTransitionRound = replayRound;
+					_fullReplayTransitionsThisRound = 0;
+				}
+				var participants = UnitRegistry.For(_battle.Engine.World).All
+					.ToDictionary(unit => unit.State.Id, unit => unit.Team);
+				var full = ReplayActorPhase.ShouldUseFullTransition(
+					replay.ActivationOrder, participants,
+					DidRoundComplete(replayRound, _battle.TurnNumber),
+					_fullReplayTransitionsThisRound);
+				if (full)
+					_fullReplayTransitionsThisRound++;
+				fast = !full;
+			}
+			_simulationTransition.Transition(ApplyMode, fast: fast);
+		}
 	}
 
 	private void ApplySimulationVisuals(bool enabled)

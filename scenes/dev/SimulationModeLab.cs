@@ -19,6 +19,7 @@ using GrimSpace.Units;
 using GrimSpace.Units.Enums;
 using GrimSpace.World.Factions;
 using GrimSpace.Core.Actions;
+using GrimSpace.Math.Camera;
 
 namespace GrimSpace.Scenes.Dev;
 
@@ -56,6 +57,9 @@ public partial class SimulationModeLab : Node3D
 	private AbilitySourcePickerView _abilitySources = null!;
 	private TargetOpportunityOverlay _opportunities = null!;
 	private Button _simulationToggle = null!;
+	private CheckButton _shortTransition = null!;
+	private CheckButton _cameraCut = null!;
+	private OrbitPose? _planningCameraPose;
 
 	public override void _Ready()
 	{
@@ -151,7 +155,8 @@ public partial class SimulationModeLab : Node3D
 		GD.Print("Simulation mode lab: fixed battle, no HUD or turn execution. "
 			+ "Battle camera bindings; click enemy to target; hover / click space to preview / pin; "
 			+ "Tab cycles enemies; 1 / 2 / 3 select XZ / YZ / XY; "
-			+ "B toggles blueprint visuals; Esc cancels preview; R resets camera. "
+			+ "B toggles blueprint visuals; use the controls to compare transitions and camera cuts; "
+			+ "Esc cancels preview; R resets camera. "
 			+ "M: movement; W: cycle abilities; Q/E: cycle mounts or roll pinned ghost; "
 			+ "Enter: queue preview; Z: undo; Delete: clear queued plan.");
 		foreach (var spec in AbilityHudCatalog.ForDisplayState(_frame.FocusState))
@@ -186,22 +191,62 @@ public partial class SimulationModeLab : Node3D
 		};
 		_simulationToggle.Pressed += ToggleSimulation;
 		controls.AddChild(_simulationToggle);
+		_shortTransition = new CheckButton
+		{
+			Text = "Silent fast glitch (100 ms)",
+			Position = new Vector2(20f, 68f),
+			ButtonPressed = true,
+			FocusMode = Control.FocusModeEnum.None,
+		};
+		controls.AddChild(_shortTransition);
+		_cameraCut = new CheckButton
+		{
+			Text = "Cut camera on toggle",
+			Position = new Vector2(20f, 108f),
+			ButtonPressed = true,
+			FocusMode = Control.FocusModeEnum.None,
+		};
+		controls.AddChild(_cameraCut);
 	}
 
 	private void ToggleSimulation()
 	{
-		if (_simulationTransition.IsCapturing)
+		if (_simulationTransition.IsTransitioning)
 		{
 			_simulationToggle.SetPressedNoSignal(_blueprintEnabled);
 			return;
 		}
 		var target = !_blueprintEnabled;
-		_simulationTransition.Transition(() =>
+		void ApplyMode()
 		{
 			_blueprintEnabled = target;
 			_simulationToggle.SetPressedNoSignal(target);
 			RefreshFrame();
-		});
+			if (_cameraCut.ButtonPressed)
+				CutCamera(target);
+		}
+
+		_simulationTransition.Transition(ApplyMode, fast: _shortTransition.ButtonPressed);
+	}
+
+	private void CutCamera(bool simulationEnabled)
+	{
+		if (!simulationEnabled)
+		{
+			_planningCameraPose = _camera.CurrentPose;
+			var points = new[]
+			{
+				WorldMapping.ToWorld(_frame.FocusState.Position),
+				WorldMapping.ToWorld(_frame.PreviewUnits[_enemies[0]].Position),
+			};
+			if (_camera.CalculateOverview(points, points) is { } overview)
+				_camera.SetFocus(overview.Pivot, overview.Distance, overview.Yaw, overview.Pitch);
+		}
+		else if (_planningCameraPose is { } pose)
+		{
+			_camera.SetFocus(WorldMapping.ToWorld(_frame.FocusState.Position), pose.Distance, pose.Yaw, pose.Pitch);
+			_planningCameraPose = null;
+		}
 	}
 
 	private static BattleEncounter CreateEncounter()

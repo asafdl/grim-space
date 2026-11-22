@@ -15,6 +15,34 @@ namespace GrimSpace.Tests.Presentation;
 public sealed class ReplayIdentityTests
 {
 	[Theory]
+	[InlineData(0, false, 0, false)]
+	[InlineData(0, true, 0, false)]
+	[InlineData(1, false, 0, false)]
+	[InlineData(1, true, 0, true)]
+	[InlineData(2, false, 0, true)]
+	[InlineData(2, false, 1, true)]
+	[InlineData(2, true, 2, false)]
+	[InlineData(3, false, 2, false)]
+	public void FullReplayTransitionRequiresEnemySequenceAndAvailableRoundBudget(
+		int enemyCount,
+		bool completesRound,
+		int fullTransitionsUsed,
+		bool expected)
+	{
+		var participants = new Dictionary<string, ETeam> { ["player"] = ETeam.Player };
+		var activations = new List<string> { "player", BattleActorIds.Rules };
+		for (var index = 0; index < enemyCount; index++)
+		{
+			var id = $"enemy-{index}";
+			participants.Add(id, ETeam.Enemy);
+			activations.Add(id);
+		}
+
+		Assert.Equal(expected, ReplayActorPhase.ShouldUseFullTransition(
+			activations, participants, completesRound, fullTransitionsUsed));
+	}
+
+	[Theory]
 	[InlineData(50, 0, false)]
 	[InlineData(50, 49, false)]
 	[InlineData(50, 50, true)]

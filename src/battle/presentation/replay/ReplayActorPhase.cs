@@ -12,6 +12,16 @@ public enum EReplayPlaybackPhase
 
 public static class ReplayActorPhase
 {
+	public static bool ShouldUseFullTransition(
+		IReadOnlyList<string> activationOrder,
+		IReadOnlyDictionary<string, ETeam> participants,
+		bool completesRound,
+		int fullTransitionsUsed)
+	{
+		var enemies = activationOrder.Count(id => Classify(id, participants) == EReplayPlaybackPhase.Enemy);
+		return fullTransitionsUsed < 2 && enemies > 0 && (enemies >= 2 || completesRound);
+	}
+
 	public static IReadOnlyList<string> EnemyOverviewActorsForReplay(
 		IReadOnlyList<string> activationOrder,
 		IReadOnlyDictionary<string, ETeam> participants)

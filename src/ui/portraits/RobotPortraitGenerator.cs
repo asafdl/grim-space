@@ -3,10 +3,13 @@ namespace GrimSpace.Ui.Portraits;
 public sealed record RobotPortraitColors(
 	uint Casing, uint Screen, uint Glyph, uint Ears, uint Antenna, uint Shoulders, uint Chest);
 
-public sealed record GeneratedRobotPortrait(RobotPortraitParts Parts, RobotPortraitColors Colors);
+public sealed record GeneratedRobotPortrait(
+	RobotPortraitParts Parts, RobotPortraitColors Colors, RobotPortraitBody Body);
 
 public static class RobotPortraitGenerator
 {
+	private static readonly float[] BodyWidths = [RobotPortraitBody.ThinWidth, 1f, RobotPortraitBody.WideWidth];
+	private static readonly float[] BodyHeights = [RobotPortraitBody.ShortHeight, 1f, RobotPortraitBody.TallHeight];
 	private static readonly (string Name, RobotPortraitColors Colors)[] ColorPalettes =
 	[
 		("Naval", new(0x426b9cff, 0x142738ff, 0xffc247ff,
@@ -60,7 +63,8 @@ public static class RobotPortraitGenerator
 			CrackPlacement = parts.Cracks == RobotCracks.None ? null : PlaceWear(random, parts, false),
 			TapePlacement = parts.Tape == RobotTape.None ? null : PlaceWear(random, parts, true),
 		};
-		return new(parts, colors);
+		var body = new RobotPortraitBody(Pick(random, BodyWidths), Pick(random, BodyHeights));
+		return new(parts, colors, body);
 	}
 
 	private static RobotWearPlacement PlaceWear(Random random, RobotPortraitParts parts, bool tape)

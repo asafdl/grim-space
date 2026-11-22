@@ -46,6 +46,7 @@ public sealed partial class PilotPortrait : TextureRect
 		var avatar = PilotPortraitId.GenerateAppearance(portraitId);
 		_robot.Parts = avatar.Parts;
 		_robot.Palette = RobotPortraitPalette.FromColors(avatar.Colors);
+		_robot.Body = avatar.Body;
 		_portraitId = portraitId;
 		_viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
 	}

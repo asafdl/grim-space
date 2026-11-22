@@ -6,6 +6,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class SimulationModeTransitionView : Node
 {
 	private const double TransitionSeconds = 0.7;
+	private const double FastTransitionSeconds = 0.1;
 	public event Action<bool>? TransitionStateChanged;
 	public event Action? VisualStarted;
 	public Func<Rect2?>? SnapshotExclusion { get; set; }
@@ -14,6 +15,7 @@ public sealed partial class SimulationModeTransitionView : Node
 	private bool _isCapturing;
 	private bool _isTransitioning;
 	private TextureRect _overlay = null!;
+	private ColorRect _fastOverlay = null!;
 	private BackBufferCopy _screenCopy = null!;
 	private ShaderMaterial _transitionMaterial = null!;
 	private AudioStreamPlayer _transitionSound = null!;
@@ -33,6 +35,7 @@ public sealed partial class SimulationModeTransitionView : Node
 					render_mode unshaded;
 					uniform sampler2D incoming : hint_screen_texture, repeat_disable, filter_linear;
 					uniform float progress = 0.0;
+					uniform bool fast_transition = false;
 					uniform vec4 snapshot_exclusion = vec4(-1.0);
 					float hash(vec2 value) {
 						return fract(sin(dot(value, vec2(127.1, 311.7))) * 43758.5453);
@@ -63,7 +66,7 @@ public sealed partial class SimulationModeTransitionView : Node
 							excluded(red_uv), excluded(sample_uv), excluded(blue_uv)));
 						float threshold = mix(0.08, 0.92, hash(vec2(floor(row / 3.0), 7.0)));
 						float reveal = smoothstep(threshold - 0.06, threshold + 0.06, progress);
-						vec3 color = mix(old_color, new_color, reveal);
+						vec3 color = fast_transition ? new_color : mix(old_color, new_color, reveal);
 						vec2 block = vec2(floor((UV.x + shift) * 18.0), row);
 						float fragment = step(0.84, hash(block + vec2(tick * 3.0, tick)));
 						float streak = band * fragment * envelope;
@@ -71,7 +74,8 @@ public sealed partial class SimulationModeTransitionView : Node
 							step(0.65, hash(block + 29.0)));
 						color = mix(color, interference, streak * 0.75);
 						float scanline = 0.5 + 0.5 * sin(UV.y / SCREEN_PIXEL_SIZE.y * 1.57);
-						color *= 1.0 - scanline * envelope * 0.08;
+						if (!fast_transition)
+							color *= 1.0 - scanline * envelope * 0.08;
 						COLOR = vec4(color, 1.0);
 					}
 					""",
@@ -101,15 +105,34 @@ public sealed partial class SimulationModeTransitionView : Node
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
 		transitionLayer.AddChild(_overlay);
+		_fastOverlay = new ColorRect
+		{
+			Name = "FastGlitch",
+			Material = _transitionMaterial,
+			Visible = false,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+		};
+		_fastOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		transitionLayer.AddChild(_fastOverlay);
 	}
 
-	public void Transition(Action applyPresentation)
+	public void Transition(Action applyPresentation, bool fast = false)
 	{
 		ArgumentNullException.ThrowIfNull(applyPresentation);
 		_transitionTween?.Kill();
+		_transitionTween = null;
+		_transitionSound.Stop();
+		_overlay.Hide();
+		_fastOverlay.Hide();
+		_screenCopy.Hide();
+		_overlay.Texture = null;
+		_isCapturing = false;
 		var generation = ++_generation;
 		SetTransitioning(true);
-		CaptureAndTransition(generation, applyPresentation);
+		if (fast)
+			ShowFastTransition(generation, applyPresentation);
+		else
+			CaptureAndTransition(generation, applyPresentation);
 	}
 
 	public void ApplyImmediately(Action applyPresentation)
@@ -120,6 +143,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		_transitionTween = null;
 		_transitionSound.Stop();
 		_overlay.Hide();
+		_fastOverlay.Hide();
 		_screenCopy.Hide();
 		_overlay.Texture = null;
 		_isCapturing = false;
@@ -133,6 +157,22 @@ public sealed partial class SimulationModeTransitionView : Node
 		_transitionTween?.Kill();
 		_transitionSound?.Stop();
 		base._ExitTree();
+	}
+
+	private void ShowFastTransition(int generation, Action applyPresentation)
+	{
+		applyPresentation();
+		if (!IsInsideTree() || generation != _generation)
+			return;
+
+		_transitionMaterial.SetShaderParameter("fast_transition", true);
+		_transitionMaterial.SetShaderParameter("progress", 0.5f);
+		_screenCopy.Show();
+		_fastOverlay.Show();
+		VisualStarted?.Invoke();
+		_transitionTween = CreateTween();
+		_transitionTween.TweenInterval(FastTransitionSeconds);
+		_transitionTween.TweenCallback(Callable.From(() => FinishTransition(generation)));
 	}
 
 	private async void CaptureAndTransition(int generation, Action applyPresentation)
@@ -164,6 +204,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		}
 
 		_overlay.Texture = snapshot;
+		_transitionMaterial.SetShaderParameter("fast_transition", false);
 		_transitionMaterial.SetShaderParameter("progress", 0f);
 		_screenCopy.Show();
 		_overlay.Show();
@@ -185,6 +226,7 @@ public sealed partial class SimulationModeTransitionView : Node
 		if (generation != _generation)
 			return;
 		_overlay.Hide();
+		_fastOverlay.Hide();
 		_screenCopy.Hide();
 		_overlay.Texture = null;
 		_transitionTween = null;
