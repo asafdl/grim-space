@@ -1,7 +1,6 @@
 using System.Text.Json;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.NonUnits;
@@ -758,7 +757,8 @@ public sealed class SaveGamePersistenceTests
 	{
 		const string playerId = "player";
 		var playerPos = new Coord(5, 5, 5);
-		using var battle = BattleOrchestrator.FromEncounter(
+		// Avoid FromEncounter/Start: higher-init AI resolve races CaptureBattleWorld's live registry enum.
+		using var battle = BattleOrchestrator.PrepareFromEncounter(
 			new BattleEncounter
 			{
 				Id = "goop-persist-test",
@@ -776,7 +776,7 @@ public sealed class SaveGamePersistenceTests
 						EType.Fighter,
 						ETeam.Enemy,
 						playerPos + Coord.Forward * 10,
-						new AiController()),
+						new UserExecutionAgent()),
 				],
 			},
 			gridSize: 30);
