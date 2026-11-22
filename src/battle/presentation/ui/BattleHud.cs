@@ -20,8 +20,6 @@ public partial class BattleHud : Node
 	public event Action? RestartRequested;
 	public event Action? MainMenuRequested;
 	public event Action<ESpatialOrientation?>? MountFaceHovered;
-	public event Action<ESpatialOrientation>? MountFaceSelected;
-	public event Action? MountSelectionCanceled;
 
 	public BattleCommandHud CommandHud { get; private set; } = null!;
 	public TurnFlowBar TurnFlowBar { get; private set; } = null!;
@@ -52,7 +50,6 @@ public partial class BattleHud : Node
 	private MarginContainer _actionLogHost = null!;
 	private ActionLogPanel _actionLogPanel = null!;
 	private CanvasLayer _mountSelectorLayer = null!;
-	private Control _mountSelectorBackdrop = null!;
 	private MountFaceSelector _mountFaceSelector = null!;
 
 	public void Build()
@@ -223,18 +220,6 @@ public partial class BattleHud : Node
 			Layer = 20,
 			Visible = false,
 		};
-		_mountSelectorBackdrop = new Control
-		{
-			AnchorsPreset = (int)Control.LayoutPreset.FullRect,
-			AnchorRight = 1f,
-			AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.Both,
-			MouseFilter = Control.MouseFilterEnum.Stop,
-		};
-		_mountSelectorBackdrop.GuiInput += OnMountSelectorBackdropInput;
-		_mountSelectorLayer.AddChild(_mountSelectorBackdrop);
-
 		_mountFaceSelector = new MountFaceSelector
 		{
 			Name = "MountFaceSelector",
@@ -245,8 +230,7 @@ public partial class BattleHud : Node
 			GrowVertical = Control.GrowDirection.Both,
 		};
 		_mountFaceSelector.FaceHovered += face => MountFaceHovered?.Invoke(face);
-		_mountFaceSelector.FaceSelected += face => MountFaceSelected?.Invoke(face);
-		_mountSelectorBackdrop.AddChild(_mountFaceSelector);
+		_mountSelectorLayer.AddChild(_mountFaceSelector);
 		AddChild(_mountSelectorLayer);
 	}
 
@@ -303,23 +287,18 @@ public partial class BattleHud : Node
 		_mountFaceSelector.Dismiss();
 	}
 
+	public (ESpatialOrientation? Face, bool IsOutside) PickMountFace(Vector2 position) =>
+		_mountFaceSelector.Pick(position);
+
+	public void SetMountFaceHover(ESpatialOrientation? face) =>
+		_mountFaceSelector.SetHoveredFace(face);
+
+	public void NudgeMountSelector() => _mountFaceSelector.NudgeAttention();
+
 	public void SetStrategicBattle(bool strategic)
 	{
 		_strategicBattle = strategic;
 		PauseMenu.SetRestartEnabled(!strategic);
-	}
-
-	private void OnMountSelectorBackdropInput(InputEvent @event)
-	{
-		if (@event is not InputEventMouseButton
-			{
-				Pressed: true,
-				ButtonIndex: MouseButton.Left,
-			})
-			return;
-
-		MountSelectionCanceled?.Invoke();
-		_mountSelectorBackdrop.AcceptEvent();
 	}
 
 	public void Apply(

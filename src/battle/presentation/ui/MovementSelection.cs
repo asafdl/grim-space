@@ -22,6 +22,32 @@ public static class MovementSelection
 		float Rotation,
 		HeadingHandleKind Kind);
 
+	public static (int? HandleIndex, bool IsOutside) ResolveDirectionPick(
+		Vector2 screenPos,
+		Vector2 center,
+		IReadOnlyList<Vector2> handles)
+	{
+		int? closest = null;
+		var closestDistanceSquared = ProjectedDirectionHandleRenderer.HitRadius
+			* ProjectedDirectionHandleRenderer.HitRadius;
+		var pickerRadius = ProjectedDirectionHandleRenderer.HitRadius;
+		for (var i = 0; i < handles.Count; i++)
+		{
+			var distanceSquared = screenPos.DistanceSquaredTo(handles[i]);
+			if (distanceSquared <= closestDistanceSquared)
+			{
+				closest = i;
+				closestDistanceSquared = distanceSquared;
+			}
+
+			pickerRadius = System.Math.Max(
+				pickerRadius,
+				handles[i].DistanceTo(center) + ProjectedDirectionHandleRenderer.HitRadius * 1.5f);
+		}
+
+		return (closest, screenPos.DistanceSquaredTo(center) > pickerRadius * pickerRadius);
+	}
+
 	public static Coord? PickCoordinate(
 		Camera3D camera,
 		Viewport viewport,
@@ -60,24 +86,12 @@ public static class MovementSelection
 		Coord destination,
 		IReadOnlyCollection<Coord> reachableHeadings)
 	{
-		Coord? closest = null;
-		var closestDistanceSquared =
-			ProjectedDirectionHandleRenderer.HitRadius
-			* ProjectedDirectionHandleRenderer.HitRadius;
-		foreach (var handle in ProjectHeadingHandles(
-			camera,
-			destination,
-			reachableHeadings))
-		{
-			var distanceSquared = screenPos.DistanceSquaredTo(handle.Position);
-			if (distanceSquared > closestDistanceSquared)
-				continue;
-
-			closest = handle.Heading;
-			closestDistanceSquared = distanceSquared;
-		}
-
-		return closest;
+		var handles = ProjectHeadingHandles(camera, destination, reachableHeadings);
+		if (handles.Count == 0)
+			return null;
+		var center = camera.UnprojectPosition(WorldMapping.ToWorld(destination));
+		var result = ResolveDirectionPick(screenPos, center, handles.Select(handle => handle.Position).ToArray());
+		return result.HandleIndex is { } index ? handles[index].Heading : null;
 	}
 
 	public static bool IsOutsideHeadingPicker(
@@ -92,11 +106,7 @@ public static class MovementSelection
 
 		var center = camera.UnprojectPosition(centerWorld);
 		var handles = ProjectHeadingHandles(camera, destination, reachableHeadings);
-		var pickerRadius = handles.Count == 0
-			? ProjectedDirectionHandleRenderer.HitRadius
-			: handles.Max(handle => handle.Position.DistanceTo(center))
-				+ ProjectedDirectionHandleRenderer.HitRadius * 1.5f;
-		return screenPos.DistanceSquaredTo(center) > pickerRadius * pickerRadius;
+		return ResolveDirectionPick(screenPos, center, handles.Select(handle => handle.Position).ToArray()).IsOutside;
 	}
 
 	public static IReadOnlyList<HeadingHandle> ProjectHeadingHandles(

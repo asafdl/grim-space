@@ -183,6 +183,8 @@ public sealed partial class UserIntentTranslator : Node
 		if (_camera.IsManualGestureActive)
 		{
 			ClearMoveHover();
+			if (_hud.IsMountSelectorOpen)
+				_hud.SetMountFaceHover(null);
 			return;
 		}
 
@@ -273,7 +275,7 @@ public sealed partial class UserIntentTranslator : Node
 			}
 		}
 
-		if (_moveInput.IsPoseSelectionActive)
+		if ((_moveInput.IsPoseSelectionActive || _hud.IsMountSelectorOpen) && !_hud.IsPauseMenuOpen)
 		{
 			switch (@event)
 			{
@@ -281,25 +283,25 @@ public sealed partial class UserIntentTranslator : Node
 					if (_camera.IsManualGestureActive)
 						return;
 
-					TryRequestMoveHeading(motion.Position);
+					UpdateDirectionPick(motion.Position, confirm: false);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEvent rollCw
-					when rollCw.IsPressed() && rollCw.IsActionPressed("battle_roll_clockwise", false, true):
+					when _moveInput.IsPoseSelectionActive
+						&& rollCw.IsPressed() && rollCw.IsActionPressed("battle_roll_clockwise", false, true):
 					WithCooldown(() => RequestRoll(1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEvent rollCcw
-					when rollCcw.IsPressed() && rollCcw.IsActionPressed("battle_roll_counterclockwise", false, true):
+					when _moveInput.IsPoseSelectionActive
+						&& rollCcw.IsPressed() && rollCcw.IsActionPressed("battle_roll_counterclockwise", false, true):
 					WithCooldown(() => RequestRoll(-1), ref _rollScrollButtonCooldownMs, DEFAULT_ROLL_COOLDOWN_MS);
 					GetViewport().SetInputAsHandled();
 					return;
 				case InputEventMouseButton { Pressed: true } confirm
 					when confirm.IsActionPressed("battle_primary_click", false, true):
-					if (TryRequestMoveHeading(confirm.Position))
-						QueueMoveSelection();
-					else if (IsOutsideMoveHeadingPicker(confirm.Position))
-						HeadingPickAttentionRequested?.Invoke();
+					if (!_camera.IsManualGestureActive)
+						UpdateDirectionPick(confirm.Position, confirm: true);
 					GetViewport().SetInputAsHandled();
 					return;
 			}
@@ -411,18 +413,10 @@ public sealed partial class UserIntentTranslator : Node
 		AbilityHoverChanged?.Invoke(index, _abilityChoices.Count);
 	}
 
-	public void OnMountFaceSelected(ESpatialOrientation face)
+	private void OnMountFaceSelected(ESpatialOrientation face)
 	{
 		if (IndexOfAbilityChoice(face) is { } index)
 			TryConfirmAbilityChoice(index);
-	}
-
-	public void OnMountSelectionCanceled()
-	{
-		if (_facePickActive)
-			FacePickUndoRequested?.Invoke();
-		else
-			TryCancelAbilityMode();
 	}
 
 	public void OnAbilityChoiceSelected(AbilityActivationChoice choice)
@@ -437,6 +431,9 @@ public sealed partial class UserIntentTranslator : Node
 		{
 			case Key.Escape when _isInspecting:
 				OnReturnToPlayer();
+				return true;
+			case Key.Escape when _facePickActive:
+				FacePickUndoRequested?.Invoke();
 				return true;
 			case Key.Escape when _mode != EPlayerMode.Move:
 				return TryCancelAbilityMode();
@@ -722,6 +719,30 @@ public sealed partial class UserIntentTranslator : Node
 
 		MovePoseRequested?.Invoke(basis);
 
+	}
+
+	private void UpdateDirectionPick(Vector2 screenPosition, bool confirm)
+	{
+		if (_hud.IsMountSelectorOpen)
+		{
+			var (face, outside) = _hud.PickMountFace(screenPosition);
+			_hud.SetMountFaceHover(face);
+			if (confirm && face is { } selected)
+				OnMountFaceSelected(selected);
+			else if (confirm && outside)
+				_hud.NudgeMountSelector();
+			return;
+		}
+
+		if (TryRequestMoveHeading(screenPosition))
+		{
+			if (confirm)
+				QueueMoveSelection();
+		}
+		else if (confirm && IsOutsideMoveHeadingPicker(screenPosition))
+		{
+			HeadingPickAttentionRequested?.Invoke();
+		}
 	}
 
 	private bool TryRequestMoveHeading(Vector2 screenPosition)

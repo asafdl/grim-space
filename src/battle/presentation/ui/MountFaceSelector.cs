@@ -16,20 +16,18 @@ public sealed partial class MountFaceSelector : Control
 	private IReadOnlyList<MountFaceSelectorOption> _options = [];
 	private Vector2 _center;
 	private ESpatialOrientation? _pointedFace;
+	private Vector2 _buzzOffset;
+	private Tween? _buzzTween;
+	private readonly RandomNumberGenerator _buzzRng = new();
 
 	public MountFaceSelector()
 	{
 		Visible = false;
-		MouseFilter = MouseFilterEnum.Stop;
+		MouseFilter = MouseFilterEnum.Ignore;
 		FocusMode = FocusModeEnum.None;
-		MouseExited += () => SetPointedFace(null);
 	}
 
 	public event Action<ESpatialOrientation?>? FaceHovered;
-	public event Action<ESpatialOrientation>? FaceSelected;
-
-	public ESpatialOrientation? HoveredFace =>
-		_pointedFace is { } face && OptionFor(face).Enabled ? face : null;
 
 	public void ShowProjected(
 		Vector2 center,
@@ -49,7 +47,6 @@ public sealed partial class MountFaceSelector : Control
 		_center = center;
 		_options = supplied;
 		Visible = true;
-		SetPointedFace(FaceAt(GetLocalMousePosition()));
 		QueueRedraw();
 	}
 
@@ -57,29 +54,32 @@ public sealed partial class MountFaceSelector : Control
 	{
 		Visible = false;
 		SetPointedFace(null);
+		_buzzTween?.Kill();
+		_buzzTween = null;
+		_buzzOffset = Vector2.Zero;
 	}
 
-	public override bool _HasPoint(Vector2 point) =>
-		FaceAt(point) is not null;
-
-	public override void _GuiInput(InputEvent @event)
+	public (ESpatialOrientation? Face, bool IsOutside) Pick(Vector2 point)
 	{
-		switch (@event)
+		var result = MovementSelection.ResolveDirectionPick(
+			point, _center, _options.Select(option => option.Position).ToArray());
+		var option = result.HandleIndex is { } index ? _options[index] : null;
+		return (option is { Enabled: true } ? option.Face : null, result.IsOutside);
+	}
+
+	public void SetHoveredFace(ESpatialOrientation? face) => SetPointedFace(face);
+
+	public void NudgeAttention()
+	{
+		if (!Visible)
+			return;
+
+		_buzzTween?.Kill();
+		_buzzTween = ProjectedDirectionHandleRenderer.StartAttention(this, _buzzRng, offset =>
 		{
-			case InputEventMouseMotion motion:
-				SetPointedFace(FaceAt(motion.Position));
-				AcceptEvent();
-				break;
-			case InputEventMouseButton
-				{
-					Pressed: true,
-					ButtonIndex: MouseButton.Left,
-				}:
-				if (HoveredFace is { } selected)
-					FaceSelected?.Invoke(selected);
-				AcceptEvent();
-				break;
-		}
+			_buzzOffset = offset;
+			QueueRedraw();
+		});
 	}
 
 	public override void _Draw()
@@ -93,7 +93,7 @@ public sealed partial class MountFaceSelector : Control
 	{
 		ProjectedDirectionHandleRenderer.Draw(
 			this,
-			option.Position,
+			option.Position + _buzzOffset,
 			option.Rotation,
 			option.Kind,
 			option.Color,
@@ -101,35 +101,13 @@ public sealed partial class MountFaceSelector : Control
 			_pointedFace == option.Face);
 	}
 
-	private ESpatialOrientation? FaceAt(Vector2 point)
-	{
-		MountFaceSelectorOption? closest = null;
-		var closestDistanceSquared =
-			ProjectedDirectionHandleRenderer.HitRadius
-			* ProjectedDirectionHandleRenderer.HitRadius;
-		foreach (var option in _options)
-		{
-			var distanceSquared = point.DistanceSquaredTo(option.Position);
-			if (distanceSquared > closestDistanceSquared)
-				continue;
-
-			closest = option;
-			closestDistanceSquared = distanceSquared;
-		}
-
-		return closest?.Face;
-	}
-
-	private MountFaceSelectorOption OptionFor(ESpatialOrientation face) =>
-		_options.First(option => option.Face == face);
-
 	private void SetPointedFace(ESpatialOrientation? face)
 	{
 		if (_pointedFace == face)
 			return;
 
 		_pointedFace = face;
-		FaceHovered?.Invoke(HoveredFace);
+		FaceHovered?.Invoke(face);
 		QueueRedraw();
 	}
 

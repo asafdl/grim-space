@@ -18,6 +18,23 @@ internal static class ProjectedDirectionHandleRenderer
 	private static readonly Color OutlineColor = new(0.78f, 0.88f, 0.96f, 0.98f);
 	private static readonly Color Shadow = new(0f, 0f, 0f, 0.72f);
 
+	public static Tween StartAttention(Node owner, RandomNumberGenerator rng, Action<Vector2> setOffset)
+	{
+		var tween = owner.CreateTween();
+		float[] amplitudes = [1f, 0.85f, 1f, 0.7f, 0.55f, 0.35f, 0f];
+		foreach (var amplitude in amplitudes)
+		{
+			var strength = amplitude;
+			tween.TweenCallback(Callable.From(() =>
+				setOffset(strength == 0f
+					? Vector2.Zero
+					: Vector2.FromAngle(rng.Randf() * Mathf.Tau) * 5f * strength)));
+			tween.TweenInterval(0.035f);
+		}
+
+		return tween;
+	}
+
 	public static void DrawShell(CanvasItem canvas, Vector2 center)
 	{
 		var shell = RegularPolygon(center, ShellRadius, 6, -Mathf.Pi / 6f);

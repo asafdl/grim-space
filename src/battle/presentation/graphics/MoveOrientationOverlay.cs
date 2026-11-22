@@ -8,8 +8,6 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 public sealed partial class MoveOrientationOverlay : Node2D
 {
 	private const float RollIconSize = 32f;
-	private const float BuzzStepSeconds = 0.035f;
-	private const float BuzzShakePixels = 5f;
 	private Camera3D _camera = null!;
 	private TextureRect _rollIcon = null!;
 	private Coord? _destination;
@@ -72,14 +70,11 @@ public sealed partial class MoveOrientationOverlay : Node2D
 			return;
 
 		_buzzTween?.Kill();
-		_buzzTween = CreateTween();
-		float[] amplitudes = [1f, 0.85f, 1f, 0.7f, 0.55f, 0.35f, 0f];
-		foreach (var amplitude in amplitudes)
+		_buzzTween = ProjectedDirectionHandleRenderer.StartAttention(this, _buzzRng, offset =>
 		{
-			var strength = amplitude;
-			_buzzTween.TweenCallback(Callable.From(() => SetBuzzOffset(strength)));
-			_buzzTween.TweenInterval(BuzzStepSeconds);
-		}
+			_buzzOffset = offset;
+			UpdateArrows();
+		});
 	}
 
 	public override void _Process(double delta)
@@ -137,20 +132,6 @@ public sealed partial class MoveOrientationOverlay : Node2D
 	{
 		if (_shellCenter is { } center)
 			ProjectedDirectionHandleRenderer.DrawShell(this, center);
-	}
-
-	private void SetBuzzOffset(float strength)
-	{
-		if (strength <= 0f)
-		{
-			_buzzOffset = Vector2.Zero;
-			UpdateArrows();
-			return;
-		}
-
-		var angle = _buzzRng.Randf() * Mathf.Tau;
-		_buzzOffset = Vector2.FromAngle(angle) * BuzzShakePixels * strength;
-		UpdateArrows();
 	}
 
 	private void ClearBuzz()

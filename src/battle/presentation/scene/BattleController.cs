@@ -450,7 +450,7 @@ public partial class BattleController : Node3D
 		if (_cameraDirector.NeedsTick)
 			_cameraDirector.Tick((float)delta, GetPlayerRenderedPosition());
 
-		if (_battleHud.IsMountSelectorOpen)
+		if (_currentFrame.AbilityChoices.Count > 1)
 			ApplyMountSelector(_currentFrame);
 		UpdateAsteroidOcclusionTargets(_currentFrame);
 		var meshUpdates = _cellVolumeMeshes.Pump(_currentFrame.SimulationTick);
@@ -465,8 +465,6 @@ public partial class BattleController : Node3D
 		_battleHud.TurnFlowBar.UnitClicked += FocusUnitFromTopBar;
 		_battleHud.CommandHud.AbilityModeRequested += OnAbilityModeRequested;
 		_battleHud.MountFaceHovered += _translator.OnMountFaceHovered;
-		_battleHud.MountFaceSelected += _translator.OnMountFaceSelected;
-		_battleHud.MountSelectionCanceled += _translator.OnMountSelectionCanceled;
 		_battleHud.CommandHud.ExecuteRequested += _translator.OnEndTurn;
 		_battleHud.CommandHud.UndoRequested += _translator.OnUndo;
 		_battleHud.CommandHud.FocusRequested += _translator.OnFocusCamera;

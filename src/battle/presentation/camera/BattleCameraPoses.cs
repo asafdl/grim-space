@@ -24,7 +24,7 @@ internal static class BattleCameraPoses
 		{
 			Pivot = WorldMapping.ToWorld(state.Position),
 			Distance = PlayerAftDistance,
-			Yaw = yaw,
+			Yaw = Mathf.Round(yaw / (Mathf.Pi / 2f)) * (Mathf.Pi / 2f),
 			Pitch = pitch,
 		};
 	}

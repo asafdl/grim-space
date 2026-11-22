@@ -1,7 +1,9 @@
 using Godot;
+using GrimSpace.Battle.Presentation;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
 using GrimSpace.Math.Camera;
+using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Presentation;
 
@@ -10,6 +12,27 @@ public sealed class BattleCameraOverviewTests
 {
 	private static readonly OrbitLimits Limits = new(8f, 80f, -1.5f, 1.5f);
 	private static readonly OrbitPose Source = new() { Distance = 22f };
+
+	[Theory]
+	[InlineData(0, 0, 1, 1, 0, 0, 0f, -1f)]
+	[InlineData(-1, 0, 0, 0, 1, 0, 1f, 0f)]
+	[InlineData(0, 1, 0, 1, 0, 0, 1f, 0f)]
+	public void OpeningPoseAlignsYawToGridWhilePreservingElevation(
+		int fx, int fy, int fz, int dx, int dy, int dz, float expectedX, float expectedZ)
+	{
+		var state = BattleTestFixture.Player(new Coord(3, 4, 5)).State;
+		state.Fore = new Coord(fx, fy, fz);
+		state.Dorsal = new Coord(dx, dy, dz);
+
+		var pose = BattleCameraPoses.PlayerAft(state);
+		var horizontal = new Vector2(pose.Offset().X, pose.Offset().Z).Normalized();
+		var expectedPitch = MathF.Asin((-fy + 0.45f * dy) / MathF.Sqrt(1f + 0.45f * 0.45f));
+
+		Assert.True(horizontal.DistanceTo(new Vector2(expectedX, expectedZ)) < 0.0001f);
+		Assert.Equal(expectedPitch, pose.Pitch, 5);
+		Assert.Equal(WorldMapping.ToWorld(state.Position), pose.Pivot);
+		Assert.Equal(18f, pose.Distance);
+	}
 
 	[Fact]
 	public void Overview_ChoosesAnAngleThatDoesNotLookAlongTheBattleAxis()

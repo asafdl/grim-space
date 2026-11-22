@@ -1,4 +1,6 @@
+using Godot;
 using GrimSpace.Battle.Presentation.Picking;
+using GrimSpace.Battle.Presentation.Ui;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Tests.Presentation;
@@ -6,6 +8,28 @@ namespace GrimSpace.Tests.Presentation;
 [BattleTestSuite]
 public sealed class MovementPickingTests
 {
+	[Fact]
+	public void DirectionPickerSelectsNearestHandleBeforeConsideringOutside()
+	{
+		Vector2[] handles = [new(50, 0), new(65, 0)];
+		var result = MovementSelection.ResolveDirectionPick(new Vector2(63, 0), Vector2.Zero, handles);
+
+		Assert.Equal(1, result.HandleIndex);
+		Assert.False(result.IsOutside);
+	}
+
+	[Theory]
+	[InlineData(120f, false)]
+	[InlineData(120.01f, true)]
+	public void DirectionPickerOnlyRequestsAttentionBeyondPickerBoundary(float x, bool outside)
+	{
+		Vector2[] handles = [new(50, 0), new(-78, 0)];
+		var result = MovementSelection.ResolveDirectionPick(new Vector2(x, 0), Vector2.Zero, handles);
+
+		Assert.Null(result.HandleIndex);
+		Assert.Equal(outside, result.IsOutside);
+	}
+
 	[Fact]
 	public void SmallerPixelDistanceWinsOutsideTieBand()
 	{
