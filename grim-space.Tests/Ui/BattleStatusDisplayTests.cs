@@ -64,8 +64,8 @@ public sealed class BattleStatusDisplayTests
 		var display = Assert.Single(BattleStatusDisplay.Capture(unit));
 		Assert.Equal("buff:TemporaryShield", display.Key);
 		Assert.Equal(2, display.StackCount);
-		Assert.Contains("Forward: 18", display.Tooltip.Details);
-		Assert.Contains("Dorsal: 30", display.Tooltip.Details);
+		Assert.Contains("F: 18", display.Tooltip.Details);
+		Assert.Contains("D: 30", display.Tooltip.Details);
 	}
 
 	[Fact]

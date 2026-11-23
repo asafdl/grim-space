@@ -26,7 +26,8 @@ public sealed class InitiativeFlowTests
 	[Fact]
 	public void ActivationOrder_UsesDescendingInitiativeWithStableTies()
 	{
-		using var battle = BattleOrchestrator.FromEncounter(
+		// PrepareFromEncounter: FromEncounter starts async AI and can enlist spawned void bombs.
+		using var battle = BattleOrchestrator.PrepareFromEncounter(
 			new BattleEncounter
 			{
 				Id = "initiative-test",
