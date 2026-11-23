@@ -5,4 +5,5 @@ public enum EBattleHazardKind
 	Asteroid,
 	CryoPlume,
 	GravityWell,
+	IonStorm,
 }

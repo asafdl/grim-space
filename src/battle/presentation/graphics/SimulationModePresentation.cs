@@ -38,8 +38,8 @@ public sealed class SimulationModePresentation
 	};
 	private static readonly Color BlueprintMovementColor = new(0.25f, 0.85f, 0.95f);
 	private static readonly Color EnemyTint = new(1f, 0.001f, 0.003f);
-	private static readonly Color TargetTint = new(1f, 0.4f, 0.015f);
-	private static readonly Color PlayerTint = new(0.03f, 0.32f, 1f);
+	public static readonly Color TargetTint = new(1f, 0.4f, 0.015f);
+	public static readonly Color PlayerTint = new(0.03f, 0.32f, 1f);
 	private static readonly Color AllyTint = new(0.015f, 1f, 0.12f);
 	private static readonly Godot.Environment.GlowBlendModeEnum SimulationGlowBlend =
 		Godot.Environment.GlowBlendModeEnum.Additive;
@@ -159,6 +159,8 @@ public sealed class SimulationModePresentation
 				foreach (var mesh in hull.FindChildren("*", "MeshInstance3D", true, false)
 					.OfType<MeshInstance3D>().Prepend(hull))
 				{
+					if (mesh.Name == "ReplayBorder")
+						continue;
 					_unitMaterials.TryAdd(mesh, mesh.MaterialOverride);
 					mesh.MaterialOverride = material;
 					activeMeshes.Add(mesh);

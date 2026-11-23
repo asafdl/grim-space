@@ -264,6 +264,10 @@ public sealed class PresentationFrameBuilder
 				.OrderBy(well => well.Id, StringComparer.Ordinal)
 				.Select(well => new GravityWellPresentation(well.Id, well.Center, well.Frame, well.Faces))
 				.ToImmutableArray(),
+			IonStormCells = battle.Engine.World.NonUnits.Values.OfType<IonStorm>()
+				.OrderBy(storm => storm.Id, StringComparer.Ordinal)
+				.Select(storm => storm.Center)
+				.ToImmutableArray(),
 			RangeEnemy = rangeEnemy,
 			TargetPick = targetPick,
 			FacePickTargetId = facePickTargetId,

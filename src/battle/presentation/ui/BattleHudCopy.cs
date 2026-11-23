@@ -100,6 +100,18 @@ internal static class BattleHudCopy
 			_ => face.ToString(),
 		};
 
+	public static string FaceAbbrev(ESpatialOrientation face) =>
+		face switch
+		{
+			ESpatialOrientation.Forward => "F",
+			ESpatialOrientation.Retro => "A",
+			ESpatialOrientation.Starboard => "S",
+			ESpatialOrientation.Port => "P",
+			ESpatialOrientation.Dorsal => "D",
+			ESpatialOrientation.Ventral => "V",
+			_ => face.ToString(),
+		};
+
 	public static string PickTargets(int picked, int max) =>
 		max == 1 ? "Pick an enemy" : $"Pick targets ({picked}/{max})";
 
@@ -257,6 +269,10 @@ internal static class BattleHudCopy
 			"Cryo-Plume",
 			"Vented coolant from a ruptured station line.",
 			$"[icon: {Icon.Heat}, text: -{CryoPlume.HeatCleared} when moving through ]\n[icon: {Icon.Heat}, text: -{CryoPlume.HeatCleared} more when starting a turn inside ]"),
+		IonStorm => new(
+			"Ion Storm",
+			"Charged gas cloud.",
+			$"[icon: {Icon.Shield}, text: +{IonStorm.ShieldPercentOfFaceMax}% temporary shields on entry ]\n[icon: {Icon.Overdrive}, text:  Go into overdrive on entry ]"),
 		GoopHazard => new("Goop", "Blocks ability fire. Ships can move through it."),
 		GravityWell => new(
 			"Gravity Well",

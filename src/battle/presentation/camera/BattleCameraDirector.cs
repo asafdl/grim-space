@@ -14,6 +14,8 @@ public sealed class BattleCameraDirector
 	public const float ManualInputGrace = 0.75f;
 	public const float ReturnControlDistanceScale = 40f;
 
+	private const float OverviewTransitionThreshold = 0.5f;
+	private const float OverviewTweenMinDuration = 0.9f;
 	private readonly ICameraRig _rig;
 
 	private CameraMode _mode = CameraMode.Manual;
@@ -25,6 +27,7 @@ public sealed class BattleCameraDirector
 	private bool _manualDuringPlayback;
 	private bool _returnPending;
 	private bool _focusNewPlayer;
+	private bool _overviewTweenStarted;
 	private int _overviewGeneration;
 
 	public void BeginBark(Vector3 position)
@@ -41,6 +44,9 @@ public sealed class BattleCameraDirector
 	public bool NeedsTick =>
 		_mode is CameraMode.Playback or CameraMode.Returning
 		|| _rig.IsAutomationActive;
+
+	public bool EnemyOverviewNeedsFullTransition { get; private set; }
+	public bool IsEnemyOverviewMoving => _overviewTweenStarted && _rig.IsAutomationActive;
 
 	public void EnterManual()
 	{
@@ -70,7 +76,8 @@ public sealed class BattleCameraDirector
 
 	public Action? PrepareEnemyOverview(
 		IReadOnlyList<Vector3> points,
-		IReadOnlyList<Vector3>? priorityPoints = null)
+		IReadOnlyList<Vector3>? priorityPoints = null,
+		bool tween = false)
 	{
 		if (_mode != CameraMode.Playback)
 			return null;
@@ -80,6 +87,9 @@ public sealed class BattleCameraDirector
 		if (target is not { } pose)
 			return null;
 
+		var duration = CameraTransition.Duration(_rig.CurrentPose, pose);
+		var shouldTween = tween && duration >= OverviewTransitionThreshold;
+		EnemyOverviewNeedsFullTransition = shouldTween;
 		_rig.CancelAutomation();
 		var generation = ++_overviewGeneration;
 		return () =>
@@ -88,7 +98,14 @@ public sealed class BattleCameraDirector
 				return;
 			if (!_manualAfterOverview)
 				_preOverviewPose ??= _rig.CurrentPose;
-			_rig.SetFocus(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch);
+			if (shouldTween)
+			{
+				_overviewTweenStarted = true;
+				_rig.TweenFocusOn(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch,
+					Mathf.Max(duration, OverviewTweenMinDuration));
+			}
+			else
+				_rig.SetFocus(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch);
 		};
 	}
 
@@ -192,6 +209,8 @@ public sealed class BattleCameraDirector
 	{
 		_overviewGeneration++;
 		_rig.CancelAutomation();
+		_overviewTweenStarted = false;
+		EnemyOverviewNeedsFullTransition = false;
 		if (_mode == CameraMode.Playback || _returnPending)
 			_manualDuringPlayback = true;
 		if (_preOverviewPose is not null || _enemyHold)
@@ -213,6 +232,8 @@ public sealed class BattleCameraDirector
 	private void ClearEnemyFraming()
 	{
 		_enemyHold = false;
+		_overviewTweenStarted = false;
+		EnemyOverviewNeedsFullTransition = false;
 	}
 
 	private static float ReturnTweenDuration(Vector3 from, Vector3 to) =>

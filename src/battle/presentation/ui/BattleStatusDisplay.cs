@@ -122,10 +122,10 @@ public sealed record BattleStatusDisplay(
 			: throw new InvalidDataException($"Temporary shield status '{status.InstanceId}' has no shield payload."))
 			.ToArray();
 		var faces = Enum.GetValues<ESpatialOrientation>()
-			.Select(face => $"{face}: {payloads.Sum(payload => payload.Remaining[face])}");
+			.Select(face => $"{BattleHudCopy.FaceAbbrev(face)}: {payloads.Sum(payload => payload.Remaining[face])}");
 		return new HudTooltipContent(
 			"Temporary Shields",
-			"Extra shields absorb damage before regular shields. Grants stack and expire independently.",
-			$"Grants: {statuses.Count}\nRemaining temporary shields:\n{string.Join("\n", faces)}");
+			"Extra shields absorb damage before regular shields.",
+			$"{string.Join(" ", faces)}");
 	}
 }

@@ -884,6 +884,14 @@ public static class SaveDtoMapper
 				Frame = dto.Frame,
 				Cells = dto.Cells.ToFrozenSet(),
 			},
+			NonUnitTypeSlug.IonStorm => new IonStorm
+			{
+				Id = dto.Id,
+				ActorId = dto.ActorId,
+				Center = dto.Center,
+				Frame = dto.Frame,
+				Cells = dto.Cells.ToFrozenSet(),
+			},
 			NonUnitTypeSlug.GravityWell => RestoreGravityWell(dto, grid),
 			var slug => throw new InvalidDataException($"Unsupported non-unit type slug '{slug}'."),
 		};

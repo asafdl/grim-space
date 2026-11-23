@@ -141,6 +141,20 @@ public sealed class BattleWorld
 		return null;
 	}
 
+	public IonStorm? IonStormAt(Coord cell)
+	{
+		if (!_nonUnitsByCell.TryGetValue(cell, out var nonUnits))
+			return null;
+
+		foreach (var nonUnit in nonUnits)
+		{
+			if (nonUnit is IonStorm storm)
+				return storm;
+		}
+
+		return null;
+	}
+
 	public bool IsTranslationAssisted(Coord source, Coord heading)
 	{
 		if (!_nonUnitsByCell.TryGetValue(source, out var nonUnits))

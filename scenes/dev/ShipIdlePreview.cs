@@ -17,6 +17,9 @@ public partial class ShipIdlePreview : Node3D
 	private readonly Dictionary<string, State> _states = new();
 	private TurnReplayPlayer _replay = null!;
 	private Label _status = null!;
+	private UnitView _ship = null!;
+	private bool _borderVisible = true;
+	private ETeam _borderTeam = ETeam.Player;
 
 	public override void _Ready()
 	{
@@ -51,6 +54,8 @@ public partial class ShipIdlePreview : Node3D
 		var view = new UnitView();
 		AddChild(view);
 		view.Bind(state, Colors.White);
+		_ship = view;
+		view.SetReplayActive(true, _borderTeam);
 		_views.Add(state.Id, view);
 		_states.Add(state.Id, state);
 		camera.LookAt(view.Position);
@@ -82,6 +87,18 @@ public partial class ShipIdlePreview : Node3D
 			TriggerBarrelRolls();
 		else if (key.Keycode == Key.Space)
 			PlayReplay();
+		else if (key.Keycode == Key.O)
+		{
+			_borderVisible = !_borderVisible;
+			_ship.SetReplayActive(_borderVisible, _borderTeam);
+			SetStatus("Border toggled.");
+		}
+		else if (key.Keycode == Key.G)
+		{
+			_borderTeam = _borderTeam == ETeam.Player ? ETeam.Enemy : ETeam.Player;
+			_ship.SetReplayActive(_borderVisible, _borderTeam);
+			SetStatus("Border team color toggled.");
+		}
 		else
 			return;
 		GetViewport().SetInputAsHandled();
@@ -114,5 +131,7 @@ public partial class ShipIdlePreview : Node3D
 	private void SetStatus(string message) =>
 		_status.Text = "Ship idle: +/-0.06 sideways, two 0.04-high arcs, gentle banking, 4s cycle\n"
 			+ "B: force idle barrel rolls | Space: Fighter replay (interrupts its roll)\n"
-			+ "Natural barrel roll: 1% per idle cycle, 3s duration\n" + message;
+			+ "Natural barrel roll: 1% per idle cycle, 3s duration\n"
+			+ $"O: border ({(_borderVisible ? "on" : "off")}) | G: team ({_borderTeam})\n"
+			+ message;
 }

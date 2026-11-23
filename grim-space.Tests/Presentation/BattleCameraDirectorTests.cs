@@ -31,6 +31,73 @@ public sealed class BattleCameraDirectorTests
 	}
 
 	[Fact]
+	public void EnemyOverview_CanTweenToOverviewInsteadOfCutting()
+	{
+		var rig = new Rig { HasOverview = true };
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+
+		director.PrepareEnemyOverview([Vector3.Zero], tween: true)!.Invoke();
+
+		Assert.Null(rig.SnappedPose);
+		Assert.Equal(new Vector3(1, 0, 0), rig.TweenedFocus!.Value.Pivot);
+		Assert.Equal(40, rig.TweenedFocus.Value.Distance);
+		Assert.Equal(1, rig.TweenedFocus.Value.Yaw);
+		Assert.Equal(0.5f, rig.TweenedFocus.Value.Pitch);
+	}
+
+	[Fact]
+	public void EnemyOverview_ManualInputCancelsPendingTween()
+	{
+		var rig = new Rig { HasOverview = true };
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+		var overview = director.PrepareEnemyOverview([Vector3.Zero], tween: true);
+
+		director.OnManualInputStarted();
+		overview!.Invoke();
+
+		Assert.Null(rig.TweenedFocus);
+		Assert.Null(rig.SnappedPose);
+	}
+
+	[Fact]
+	public void EnemyOverview_SubstantialMovementRequestsFullTransitionAndWaitsForTween()
+	{
+		var rig = new Rig { HasOverview = true, CurrentPose = new OrbitPose { Distance = 20 } };
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+
+		var overview = director.PrepareEnemyOverview([Vector3.Zero], tween: true);
+
+		Assert.True(director.EnemyOverviewNeedsFullTransition);
+		overview!.Invoke();
+		Assert.True(director.IsEnemyOverviewMoving);
+		Assert.InRange(rig.TweenedFocusDuration, 0.9f, 1.2f);
+		director.OnManualInputStarted();
+		Assert.False(director.IsEnemyOverviewMoving);
+	}
+
+	[Fact]
+	public void EnemyOverview_SmallMovementKeepsFastTransitionAndCuts()
+	{
+		var rig = new Rig
+		{
+			HasOverview = true,
+			CurrentPose = new OrbitPose { Pivot = Vector3.Right, Distance = 39, Yaw = 1, Pitch = 0.5f },
+		};
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+
+		var overview = director.PrepareEnemyOverview([Vector3.Zero], tween: true);
+
+		Assert.False(director.EnemyOverviewNeedsFullTransition);
+		overview!.Invoke();
+		Assert.NotNull(rig.SnappedPose);
+		Assert.Null(rig.TweenedFocus);
+	}
+
+	[Fact]
 	public void ManualInput_DoesNotRestartAutomaticEnemyFraming()
 	{
 		var rig = new Rig();
@@ -203,9 +270,18 @@ public sealed class BattleCameraDirectorTests
 		public IReadOnlyList<Vector3> OverviewPoints { get; private set; } = [];
 		public OrbitPose CurrentPose { get; set; }
 		public OrbitPose? SnappedPose { get; set; }
+		public OrbitPose? TweenedFocus { get; set; }
+		public float TweenedFocusDuration { get; set; }
 
 		public void SetFocus(Vector3 pivot, float distance, float yaw, float pitch) =>
 			SnappedPose = new OrbitPose { Pivot = pivot, Distance = distance, Yaw = yaw, Pitch = pitch };
+
+		public void TweenFocusOn(Vector3 pivot, float distance, float yaw, float pitch, float duration)
+		{
+			TweenedFocus = new OrbitPose { Pivot = pivot, Distance = distance, Yaw = yaw, Pitch = pitch };
+			TweenedFocusDuration = duration;
+			IsAutomationActive = true;
+		}
 
 		public bool AreVisible(IReadOnlyList<Vector3> points, float margin) => OnScreen;
 
@@ -236,6 +312,7 @@ public sealed class BattleCameraDirectorTests
 
 		public void CancelAutomation()
 		{
+			IsAutomationActive = false;
 		}
 
 		public void PlayImpactShake(ImpactShakeScale scale)

@@ -10,6 +10,7 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 	private int _previousHeat;
 	private bool _previousOverheat;
 	private bool _applied;
+	private HeatChangeEffect? _stormHeat;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
@@ -17,6 +18,7 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 		_previousHeat = actor.Heat;
 		_previousOverheat = actor.Overheat;
 		_applied = false;
+		_stormHeat = null;
 
 		if (!actor.HeatProfile.Participates)
 			return [];
@@ -25,7 +27,7 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.Heat = 0;
 		BattleStatuses.SyncOverheat(actor);
 		_applied = true;
-		return
+		List<IRecord> records =
 		[
 			new Record<HeatChangedFacts>(new HeatChangedFacts(
 				actorId,
@@ -33,6 +35,13 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 				actor.Overdrive,
 				actor.Overheat)),
 		];
+		if (world.IonStormAt(actor.Position) is not null)
+		{
+			_stormHeat = HeatChangeEffect.FillToCapacity();
+			records.AddRange(_stormHeat.Apply(world, runtime, actorId));
+		}
+
+		return records;
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -40,6 +49,7 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 		if (!_applied)
 			return;
 
+		_stormHeat?.Undo(world, runtime, actorId);
 		var actor = world.StateOf(actorId);
 		actor.Heat = _previousHeat;
 		actor.Overheat = _previousOverheat;

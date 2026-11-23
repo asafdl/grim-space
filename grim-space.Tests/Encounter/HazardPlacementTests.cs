@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -9,6 +10,94 @@ namespace GrimSpace.Tests.Encounter;
 [BattleTestSuite]
 public sealed class HazardPlacementTests
 {
+	[Fact]
+	public void IonStormSpawn_CreatesPassableSingleCellHazard()
+	{
+		var cell = new Coord(5, 5, 5);
+		var spawn = new BattleHazardSpawn
+		{
+			Kind = EBattleHazardKind.IonStorm,
+			Origin = cell,
+			Cells = new HashSet<Coord> { cell },
+		};
+
+		var hazard = spawn.CreateNonUnit(BattleTestFixture.Grid(12));
+
+		Assert.IsType<IonStorm>(hazard);
+		Assert.Equal(cell, Assert.Single(hazard.Cells));
+		Assert.Empty(hazard.MovementBlockingCells);
+		Assert.Empty(hazard.AbilityBlockingCells);
+	}
+
+	[Fact]
+	public void IonStormPlacement_ScattersSevenOrEightDeterministicUnoccupiedCells()
+	{
+		var placement = new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, requireComplete: true);
+
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
+			var first = new HazardPlacementContext { Rng = new Random(seed), GridSize = 64, Spawns = encounter.Spawns };
+			var second = new HazardPlacementContext { Rng = new Random(seed), GridSize = 64, Spawns = encounter.Spawns };
+			var existing = encounter.WorldHazards.Where(h => h.Kind != EBattleHazardKind.Asteroid).ToArray();
+			foreach (var hazard in existing)
+			{
+				first.ClaimedCells.UnionWith(hazard.Cells);
+				second.ClaimedCells.UnionWith(hazard.Cells);
+			}
+
+			placement.Place(first);
+			placement.Place(second);
+
+			Assert.InRange(first.Placed.Count, 7, 8);
+			Assert.Equal(first.Placed.Select(h => h.Origin), second.Placed.Select(h => h.Origin));
+			Assert.All(first.Placed, storm =>
+			{
+				Assert.Equal(EBattleHazardKind.IonStorm, storm.Kind);
+				Assert.Equal(storm.Origin, Assert.Single(storm.Cells));
+				Assert.DoesNotContain(encounter.Spawns, ship => ship.Position == storm.Origin);
+				Assert.DoesNotContain(existing, hazard => hazard.Cells.Contains(storm.Origin));
+			});
+			Assert.Equal(first.Placed.Count, first.Placed.Select(h => h.Origin).Distinct().Count());
+		}
+	}
+
+	[Fact]
+	public void IonStormPlacement_ReportsWhenNoCellsAreAvailable()
+	{
+		var encounter = BattleEncounter.DevDefault(seed: 0, gridSize: 64);
+		var context = new HazardPlacementContext { Rng = new Random(0), GridSize = 64, Spawns = encounter.Spawns };
+		for (var x = 0; x < context.GridSize; x++)
+		for (var y = 0; y < context.GridSize; y++)
+		for (var z = 0; z < context.GridSize; z++)
+			context.ClaimedCells.Add(new Coord(x, y, z));
+
+		var placement = new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, requireComplete: true);
+
+		Assert.Throws<InvalidOperationException>(() => placement.Place(context));
+		Assert.Empty(context.Placed);
+	}
+
+	[Theory]
+	[InlineData(12)]
+	[InlineData(64)]
+	public void DevEncounters_GenerateIonStormsWithoutOverlappingOtherHazards(int gridSize)
+	{
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var encounter = BattleEncounter.DevDefault(seed, gridSize);
+			var storms = encounter.WorldHazards.Where(h => h.Kind == EBattleHazardKind.IonStorm).ToArray();
+			var otherHazards = encounter.WorldHazards.Where(h => h.Kind != EBattleHazardKind.IonStorm).ToArray();
+
+			Assert.InRange(storms.Length, 7, 8);
+			Assert.All(storms, storm =>
+			{
+				Assert.DoesNotContain(encounter.Spawns, ship => ship.Position == storm.Origin);
+				Assert.DoesNotContain(otherHazards, hazard => hazard.Cells.Contains(storm.Origin));
+			});
+		}
+	}
+
 	[Fact]
 	public void DevEncounters_ScatterSpacedRoughlyBalancedPlumesAroundTheFightAndKeepAsteroidsOffThem()
 	{
@@ -41,21 +130,21 @@ public sealed class HazardPlacementTests
 				.ToArray();
 			var ships = encounter.Spawns.Select(spawn => spawn.Position).ToArray();
 
-			Assert.InRange(plumes.Length, CryoPlumePlacement.MinCount, CryoPlumePlacement.MaxCount);
+			Assert.InRange(plumes.Length, SingleCellHazardPlacement.MinCount, SingleCellHazardPlacement.MaxCount);
 			Assert.All(plumes, plume =>
 			{
-				Assert.All(ships, ship => Assert.True(plume.ChebyshevDistanceTo(ship) >= CryoPlumePlacement.MinShipDistance));
-				Assert.InRange(plume.X, ships.Min(s => s.X) - CryoPlumePlacement.Padding, ships.Max(s => s.X) + CryoPlumePlacement.Padding);
-				Assert.InRange(plume.Y, ships.Min(s => s.Y) - CryoPlumePlacement.Padding, ships.Max(s => s.Y) + CryoPlumePlacement.Padding);
-				Assert.InRange(plume.Z, ships.Min(s => s.Z) - CryoPlumePlacement.Padding, ships.Max(s => s.Z) + CryoPlumePlacement.Padding);
+				Assert.All(ships, ship => Assert.True(plume.ChebyshevDistanceTo(ship) >= SingleCellHazardPlacement.MinShipDistance));
+				Assert.InRange(plume.X, ships.Min(s => s.X) - SingleCellHazardPlacement.Padding, ships.Max(s => s.X) + SingleCellHazardPlacement.Padding);
+				Assert.InRange(plume.Y, ships.Min(s => s.Y) - SingleCellHazardPlacement.Padding, ships.Max(s => s.Y) + SingleCellHazardPlacement.Padding);
+				Assert.InRange(plume.Z, ships.Min(s => s.Z) - SingleCellHazardPlacement.Padding, ships.Max(s => s.Z) + SingleCellHazardPlacement.Padding);
 			});
 			for (var i = 0; i < plumes.Length; i++)
 			for (var j = i + 1; j < plumes.Length; j++)
-				Assert.True(plumes[i].ChebyshevDistanceTo(plumes[j]) >= CryoPlumePlacement.MinPlumeSpacing);
+				Assert.True(plumes[i].ChebyshevDistanceTo(plumes[j]) >= SingleCellHazardPlacement.MinPlumeSpacing);
 
-			var playerCenter = CryoPlumePlacement.Centroid(
+			var playerCenter = SingleCellHazardPlacement.Centroid(
 				encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray());
-			var enemyCenter = CryoPlumePlacement.Centroid(
+			var enemyCenter = SingleCellHazardPlacement.Centroid(
 				encounter.Spawns.Where(spawn => spawn.Team != ETeam.Player).Select(spawn => spawn.Position).ToArray());
 			Assert.All(wells, well =>
 			{
@@ -63,7 +152,7 @@ public sealed class HazardPlacementTests
 				Assert.InRange(well.Origin.Y, System.Math.Min(playerCenter.Y, enemyCenter.Y), System.Math.Max(playerCenter.Y, enemyCenter.Y));
 				Assert.InRange(well.Origin.Z, System.Math.Min(playerCenter.Z, enemyCenter.Z), System.Math.Max(playerCenter.Z, enemyCenter.Z));
 			});
-			Assert.True(CryoPlumePlacement.SideImbalance(plumes, playerCenter, enemyCenter) <= CryoPlumePlacement.MaxSideImbalance);
+			Assert.True(SingleCellHazardPlacement.SideImbalance(plumes, playerCenter, enemyCenter) <= SingleCellHazardPlacement.MaxSideImbalance);
 
 			var plumeCells = plumes.ToHashSet();
 			Assert.All(
@@ -77,9 +166,9 @@ public sealed class HazardPlacementTests
 	public void GravityWellPlacement_SkipsOccupiedMidpointAndAlreadyClaimedCells()
 	{
 		var encounter = BattleEncounter.DevDefault(seed: 7, gridSize: 64);
-		var playerCenter = CryoPlumePlacement.Centroid(encounter.Spawns
+		var playerCenter = SingleCellHazardPlacement.Centroid(encounter.Spawns
 			.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray());
-		var enemyCenter = CryoPlumePlacement.Centroid(encounter.Spawns
+		var enemyCenter = SingleCellHazardPlacement.Centroid(encounter.Spawns
 			.Where(spawn => spawn.Team == ETeam.Enemy).Select(spawn => spawn.Position).ToArray());
 		var midpoint = new Coord(
 			(playerCenter.X + enemyCenter.X) / 2,

@@ -10,7 +10,12 @@ public static class HazardPlacement
 {
 	private const int AsteroidFieldMargin = 2;
 
-	private static readonly IHazardPlacementPass[] Passes = [new GravityWellPlacement(), new CryoPlumePlacement()];
+	private static readonly IHazardPlacementPass[] Passes =
+		[
+			new GravityWellPlacement(),
+			new SingleCellHazardPlacement(EBattleHazardKind.CryoPlume, requireComplete: false),
+			new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, requireComplete: true),
+		];
 
 	public static IReadOnlyList<BattleHazardSpawn> Generate(
 		int seed,

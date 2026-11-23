@@ -28,6 +28,7 @@ public sealed class PresentationFrame
 	public required IReadOnlyDictionary<string, UnitDisplayState> PreviewUnits { get; init; }
 	public required IReadOnlyDictionary<string, ETeam> PreviewUnitTeams { get; init; }
 	public required ImmutableArray<GravityWellPresentation> GravityWells { get; init; }
+	public required ImmutableArray<Coord> IonStormCells { get; init; }
 	public EnemyRangeTarget? RangeEnemy { get; init; }
 	public TargetPickFrame? TargetPick { get; init; }
 	public string? FacePickTargetId { get; init; }

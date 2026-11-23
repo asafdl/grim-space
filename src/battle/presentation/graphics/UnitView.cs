@@ -37,8 +37,8 @@ public partial class UnitView : Node3D
 	private double _idleCycleTime;
 	private double _idleRollTime = -1;
 	private bool _replayActive;
-	private readonly Dictionary<MeshInstance3D, Material?> _replayHullOverlays = [];
-	private ShaderMaterial? _replayHullGlow;
+	private readonly List<MeshInstance3D> _replayBorders = [];
+	private ShaderMaterial? _replayBorderMaterial;
 	private bool CanAnimateIdle => VisualState == UnitVisualState.Live && _visualRoot.Visible
 		&& _type != EType.VoidBomb && !_replayActive && _poseTween?.IsRunning() != true
 		&& _shakeTween?.IsRunning() != true && _overchargeTween?.IsRunning() != true;
@@ -130,57 +130,70 @@ public partial class UnitView : Node3D
 		_idleRoot.Transform = new Transform3D(basis, center - basis * center + offset);
 	}
 
-	public void SetReplayActive(bool active, bool halo = false)
+	public void SetReplayActive(bool active, ETeam? team = null)
 	{
 		_replayActive = active;
-		if (!active || !halo)
+		if (!active || team is null)
 		{
-			foreach (var (mesh, overlay) in _replayHullOverlays)
-			{
+			foreach (var mesh in _replayBorders)
 				if (IsInstanceValid(mesh))
-					mesh.MaterialOverlay = overlay;
-			}
-			_replayHullOverlays.Clear();
+					mesh.Hide();
 			return;
 		}
 
-		if (_hull is null || _replayHullOverlays.Count > 0)
+		if (_hull is null)
 			return;
 
-		_replayHullGlow ??= new ShaderMaterial
+		_replayBorderMaterial ??= new ShaderMaterial
 		{
 			Shader = new Shader
 			{
 				Code =
 					"""
 					shader_type spatial;
-					render_mode unshaded, blend_add, depth_draw_never;
+					render_mode unshaded, cull_front;
 
 					uniform vec3 tint : source_color;
 
 					void vertex() {
-						POSITION = PROJECTION_MATRIX * MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
-						// Forward+ rejects an overlay at the exact same depth as its hull.
-						POSITION.z += 0.00001 * POSITION.w;
+						vec4 clip = PROJECTION_MATRIX * MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+						vec3 view_normal = MODELVIEW_NORMAL_MATRIX * NORMAL;
+						vec2 direction = (PROJECTION_MATRIX * vec4(view_normal, 0.0)).xy;
+						float magnitude = length(direction);
+						if (magnitude > 0.0001)
+							clip.xy += direction / magnitude * (5.0 / VIEWPORT_SIZE) * clip.w;
+						POSITION = clip;
 					}
 
 					void fragment() {
-						float edge = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
-						ALBEDO = tint * (3.2 * edge);
-						ALPHA = 1.0;
+						ALBEDO = tint;
 					}
 					""",
 			},
 		};
-		_replayHullGlow.SetShaderParameter("tint", _bindColor.Lightened(0.2f));
-		foreach (var mesh in _hull.FindChildren("*", "MeshInstance3D", true, false)
-			.OfType<MeshInstance3D>().Prepend(_hull))
+		_replayBorderMaterial.SetShaderParameter("tint", team == ETeam.Enemy
+			? SimulationModePresentation.TargetTint
+			: SimulationModePresentation.PlayerTint);
+		if (_replayBorders.Count == 0)
 		{
-			if (mesh.Mesh is null)
-				continue;
-			_replayHullOverlays.Add(mesh, mesh.MaterialOverlay);
-			mesh.MaterialOverlay = _replayHullGlow;
+			var hullMeshes = _hull.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>().Prepend(_hull)
+				.Where(mesh => mesh.Mesh is not null).ToArray();
+			foreach (var mesh in hullMeshes)
+			{
+				var border = new MeshInstance3D
+				{
+					Name = "ReplayBorder",
+					Mesh = mesh.Mesh,
+					MaterialOverride = _replayBorderMaterial,
+					CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+				};
+				mesh.AddChild(border);
+				_replayBorders.Add(border);
+			}
 		}
+		foreach (var border in _replayBorders)
+			border.Show();
 	}
 
 	public bool TryPlayIdleBarrelRoll()
@@ -373,6 +386,8 @@ public partial class UnitView : Node3D
 		foreach (var child in FindChildren("*", "GeometryInstance3D", true, false))
 		{
 			if (child is not GeometryInstance3D visual)
+				continue;
+			if (visual is MeshInstance3D mesh && _replayBorders.Contains(mesh))
 				continue;
 
 			if (!IsHullVisual(visual))

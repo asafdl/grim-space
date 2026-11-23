@@ -25,6 +25,10 @@ public sealed class BattleHazardSpawn
 				TypedIdGenerator.NextId(NonUnitTypeSlug.CryoPlume),
 				Origin,
 				grid),
+			EBattleHazardKind.IonStorm => IonStorm.Create(
+				TypedIdGenerator.NextId(NonUnitTypeSlug.IonStorm),
+				Origin,
+				grid),
 			EBattleHazardKind.GravityWell => GravityWell.Create(
 				TypedIdGenerator.NextId(NonUnitTypeSlug.GravityWell),
 				Origin,

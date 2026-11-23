@@ -6,6 +6,7 @@ public static class NonUnitTypeSlug
 	public const string Goop = "goop";
 	public const string CryoPlume = "cryoplume";
 	public const string GravityWell = "gravitywell";
+	public const string IonStorm = "ionstorm";
 
 	public static string ParseTypeSlug(string id)
 	{

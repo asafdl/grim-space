@@ -4,10 +4,10 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Battle.Encounter.Generation;
 
 /// <summary>
-/// Scatters single-cell cryo plumes through the volume spanned by the deployed squads.
-/// Layouts are random; one is re-rolled only when plumes skew too far toward one side.
+/// Scatters single-cell hazards through the volume spanned by the deployed squads.
+/// Layouts are random; one is re-rolled only when hazards skew too far toward one side.
 /// </summary>
-public sealed class CryoPlumePlacement : IHazardPlacementPass
+public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 {
 	public const int MinCount = 7;
 	public const int MaxCount = 8;
@@ -18,13 +18,27 @@ public sealed class CryoPlumePlacement : IHazardPlacementPass
 	public const int MaxSideImbalance = 2;
 	private const int LayoutAttempts = 32;
 	private const int CellAttemptsPerPlume = 64;
+	private readonly EBattleHazardKind _kind;
+	private readonly bool _requireComplete;
+
+	public SingleCellHazardPlacement(EBattleHazardKind kind, bool requireComplete)
+	{
+		if (kind is not (EBattleHazardKind.CryoPlume or EBattleHazardKind.IonStorm))
+			throw new ArgumentOutOfRangeException(nameof(kind), kind, "Expected a single-cell hazard kind.");
+		_kind = kind;
+		_requireComplete = requireComplete;
+	}
 
 	public void Place(HazardPlacementContext context)
 	{
 		var player = context.Spawns.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray();
 		var opponents = context.Spawns.Where(spawn => spawn.Team != ETeam.Player).Select(spawn => spawn.Position).ToArray();
 		if (player.Length == 0 || opponents.Length == 0)
+		{
+			if (_requireComplete)
+				throw new InvalidOperationException($"Cannot place {_kind} without both sides of the engagement.");
 			return;
+		}
 
 		var playerCenter = Centroid(player);
 		var opponentCenter = Centroid(opponents);
@@ -47,11 +61,14 @@ public sealed class CryoPlumePlacement : IHazardPlacementPass
 			}
 		}
 
+		if (best is null && _requireComplete)
+			best = RollCompactLayout(context, min, max, count);
+
 		foreach (var cell in best ?? [])
 		{
 			context.Claim(new BattleHazardSpawn
 			{
-				Kind = EBattleHazardKind.CryoPlume,
+				Kind = _kind,
 				Origin = cell,
 				Cells = new HashSet<Coord> { cell },
 			});
@@ -76,6 +93,27 @@ public sealed class CryoPlumePlacement : IHazardPlacementPass
 		}
 
 		return layout;
+	}
+
+	private List<Coord> RollCompactLayout(HazardPlacementContext context, Coord min, Coord max, int count)
+	{
+		var occupied = context.Spawns.Select(spawn => spawn.Position).ToHashSet();
+		var candidates = new List<Coord>();
+		for (var x = min.X; x <= max.X; x++)
+		for (var y = min.Y; y <= max.Y; y++)
+		for (var z = min.Z; z <= max.Z; z++)
+		{
+			var cell = new Coord(x, y, z);
+			if (!occupied.Contains(cell) && !context.ClaimedCells.Contains(cell))
+				candidates.Add(cell);
+		}
+
+		if (candidates.Count < count)
+			throw new InvalidOperationException($"Insufficient unoccupied space to place {count} {_kind} hazards.");
+
+		var shuffled = candidates.ToArray();
+		context.Rng.Shuffle(shuffled);
+		return shuffled.Take(count).ToList();
 	}
 
 	private static (Coord Min, Coord Max) Bounds(HazardPlacementContext context)

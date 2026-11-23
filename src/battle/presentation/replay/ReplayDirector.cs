@@ -22,7 +22,7 @@ public sealed partial class ReplayDirector : Node
 
 	private TurnReplay? _pendingReplay;
 	private TurnReplay? _entryReplay;
-	private Action? _entryCut;
+	private Action? _entryFocus;
 	private bool _entryApplied;
 	private int _pendingCompletedTurn;
 	private IReadOnlyDictionary<string, State>? _playbackEndStates;
@@ -55,6 +55,10 @@ public sealed partial class ReplayDirector : Node
 	public override void _Process(double delta)
 	{
 		if (_pendingReplay is not TurnReplay replay || !_playbackReady())
+			return;
+
+		ApplyReplayEntry();
+		if (_cameraDirector.IsEnemyOverviewMoving)
 			return;
 
 		_pendingReplay = null;
@@ -119,7 +123,9 @@ public sealed partial class ReplayDirector : Node
 				hasPriorityEnemy |= participants[id] == ETeam.Enemy;
 			}
 		}
-		_entryCut = hasPriorityEnemy ? _cameraDirector.PrepareEnemyOverview(points, priorityPoints) : null;
+		_entryFocus = hasPriorityEnemy
+			? _cameraDirector.PrepareEnemyOverview(points, priorityPoints, tween: true)
+			: null;
 	}
 
 	public void ApplyReplayEntry()
@@ -132,8 +138,8 @@ public sealed partial class ReplayDirector : Node
 			replay.EndStates,
 			interest => _cameraDirector.ReportInterest(interest),
 			scale => _cameraDirector.PlayImpactShake(scale));
-		_entryCut?.Invoke();
-		_entryCut = null;
+		_entryFocus?.Invoke();
+		_entryFocus = null;
 		_entryApplied = true;
 	}
 
@@ -164,7 +170,7 @@ public sealed partial class ReplayDirector : Node
 		var syncMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 		_playbackEndStates = null;
 		_entryReplay = null;
-		_entryCut = null;
+		_entryFocus = null;
 		_entryApplied = false;
 		_battle.NotifyReplayComplete();
 		GameLog.Log(

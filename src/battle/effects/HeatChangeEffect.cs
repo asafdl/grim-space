@@ -7,7 +7,7 @@ using GrimSpace.Core.Actions;
 
 namespace GrimSpace.Battle.Effects;
 
-public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRuntime>
+public sealed class HeatChangeEffect : IEffect<BattleWorld, ActorRuntime>
 {
 	public const int PerApSpent = 10;
 	public const int PerMpSpent = 5;
@@ -20,8 +20,20 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 	private bool _applied;
 	private int _scheduledTick;
 	private EnterOverheatAction? _scheduledOverheat;
+	private readonly int _delta;
+	private readonly bool _forceToCapacity;
 
-	public int Delta => delta;
+	public HeatChangeEffect(int delta) : this(delta, forceToCapacity: false) { }
+
+	private HeatChangeEffect(int delta, bool forceToCapacity)
+	{
+		_delta = delta;
+		_forceToCapacity = forceToCapacity;
+	}
+
+	public static HeatChangeEffect FillToCapacity() => new(0, forceToCapacity: true);
+
+	public int Delta => _delta;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
@@ -31,24 +43,25 @@ public sealed class HeatChangeEffect(int delta) : IEffect<BattleWorld, ActorRunt
 		_applied = false;
 		_scheduledOverheat = null;
 
-		if (!actor.HeatProfile.Participates || BattleStatuses.HasOverheat(actor) || delta == 0)
+		if (!actor.HeatProfile.Participates || BattleStatuses.HasOverheat(actor) || (!_forceToCapacity && _delta == 0))
 			return [];
 
-		var appliedDelta = delta > 0
-			? actor.HeatProfile.ScaleGain(delta)
-			: delta;
-		if (appliedDelta == 0)
+		var appliedDelta = _delta > 0
+			? actor.HeatProfile.ScaleGain(_delta)
+			: _delta;
+		if (!_forceToCapacity && appliedDelta == 0)
 			return [];
 
 		var capacity = actor.HeatProfile.EffectiveCapacity;
-		var next = actor.Heat + appliedDelta;
+		var next = _forceToCapacity ? capacity : actor.Heat + appliedDelta;
 		if (next < 0)
 			next = 0;
 		else if (next > capacity)
 			next = capacity;
 
 		actor.Heat = next;
-		if (appliedDelta > 0 && _previousHeat < capacity && next >= capacity)
+		if (!_previousOverdrive
+			&& (_forceToCapacity || appliedDelta > 0 && _previousHeat < capacity && next >= capacity))
 		{
 			actor.Overdrive = true;
 			BattleStatuses.SyncOverdrive(actor);

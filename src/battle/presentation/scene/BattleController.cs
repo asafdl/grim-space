@@ -55,6 +55,7 @@ public partial class BattleController : Node3D
 	private PickedTargetMarksView _pickedTargetMarks = null!;
 	private GoopHazardView _goopHazardView = null!;
 	private GravityWellsView _gravityWellsView = null!;
+	private CryoPlumeView _ionStormView = null!;
 	private BattleHud _battleHud = null!;
 	private BattleTutorialAdapter? _battleTutorial;
 	private Node3D _unitsRoot = null!;
@@ -221,9 +222,11 @@ public partial class BattleController : Node3D
 		_asteroidView.Build(_camera, layout.Asteroids);
 		hazardsRoot.AddChild(_asteroidView);
 		_camera.OverviewOcclusion = _asteroidView.CountOccludedTargets;
-		var cryoPlumeView = new CryoPlumeView { Name = "CryoPlumes" };
+		var cryoPlumeView = new CryoPlumeView { Name = "CryoPlumes", EncounterSeed = backdropSeed };
 		cryoPlumeView.Build(_battle.Engine.World.NonUnits.Values.OfType<CryoPlume>());
 		hazardsRoot.AddChild(cryoPlumeView);
+		_ionStormView = new CryoPlumeView { Name = "IonStorms", EncounterSeed = backdropSeed };
+		hazardsRoot.AddChild(_ionStormView);
 		_goopHazardView = new GoopHazardView { Name = "GoopHazards" };
 		hazardsRoot.AddChild(_goopHazardView);
 		SyncAuthoritativeHazardViews();
@@ -1103,6 +1106,7 @@ public partial class BattleController : Node3D
 	private void ApplyFrame(PresentationFrame frame)
 	{
 		_gravityWellsView.Apply(frame.GravityWells);
+		_ionStormView.ApplyIonStorms(frame.IonStormCells);
 		if (ShouldApplyFrameUnitStates(_battle.Phase))
 			ApplyUnitStates(frame);
 		ApplyEnemyRangeTether(frame);
@@ -1192,7 +1196,8 @@ public partial class BattleController : Node3D
 				}
 				var participants = UnitRegistry.For(_battle.Engine.World).All
 					.ToDictionary(unit => unit.State.Id, unit => unit.Team);
-				var full = ReplayActorPhase.ShouldUseFullTransition(
+				var full = _cameraDirector.EnemyOverviewNeedsFullTransition
+					|| ReplayActorPhase.ShouldUseFullTransition(
 					replay.ActivationOrder, participants,
 					DidRoundComplete(replayRound, _battle.TurnNumber),
 					_fullReplayTransitionsThisRound);

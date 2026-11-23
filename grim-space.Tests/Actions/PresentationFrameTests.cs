@@ -26,6 +26,30 @@ namespace GrimSpace.Tests.Actions;
 public sealed class PresentationFrameTests
 {
 	[Fact]
+	public void FrameProjectsIonStormCellsThroughPlanningAndLoadedWorlds()
+	{
+		var grid = BattleTestFixture.Grid(16);
+		var center = new Coord(6, 6, 6);
+		var storm = IonStorm.Create("ionstorm-a", center, grid);
+		using var battle = BattleTestFixture.BeginSimulation(
+			BattleTestFixture.Player(center + new Coord(1, 0, 0)),
+			[BattleTestFixture.Enemy(Coord.Zero)],
+			grid,
+			hazards: [storm]);
+
+		Assert.Equal(new[] { center }, BattleTestCommands.Frame(battle).IonStormCells);
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new MoveStepAction(battle.PlayerId)));
+		Assert.Equal(new[] { center }, BattleTestCommands.Frame(battle).IonStormCells);
+
+		var registry = PersistenceRegistry.CreateDefault();
+		var restored = SaveDtoMapper.RestoreBattleWorld(
+			SaveDtoMapper.CaptureBattleWorld(battle.Engine.World, registry), registry);
+		using var loaded = BattleOrchestrator.FromSavedWorld(restored, battle.PlayerId);
+		loaded.Start("test");
+		Assert.Equal(new[] { center }, BattleTestCommands.Frame(loaded).IonStormCells);
+	}
+
+	[Fact]
 	public void FrameProjectsWellFacesThroughPlanningAndLoadedWorlds()
 	{
 		var grid = BattleTestFixture.Grid(16);

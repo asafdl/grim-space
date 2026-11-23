@@ -16,8 +16,8 @@ public sealed class GravityWellPlacement : IHazardPlacementPass
 		if (players.Length == 0 || opponents.Length == 0)
 			throw new InvalidOperationException("Gravity well placement requires both sides of the engagement.");
 
-		var playerCenter = CryoPlumePlacement.Centroid(players);
-		var opponentCenter = CryoPlumePlacement.Centroid(opponents);
+		var playerCenter = SingleCellHazardPlacement.Centroid(players);
+		var opponentCenter = SingleCellHazardPlacement.Centroid(opponents);
 		var count = context.Rng.Next(3);
 		if (count == 0)
 			return;

@@ -233,7 +233,7 @@ public partial class TurnReplayPlayer : Node3D
 						if (_unitViews.TryGetValue(action.ActorId, out var active))
 							active.SetReplayActive(
 								true,
-								halo: _participants.GetValueOrDefault(action.ActorId) == ETeam.Enemy);
+								team: _participants[action.ActorId]);
 					}
 					BeginPhase(ReplayActorPhase.Classify(action.ActorId, _participants));
 					ReportActionInterest(action);

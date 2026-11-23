@@ -112,6 +112,10 @@ public sealed class RunStatePersistenceTests
 
 		Assert.Equal(run.GetFieldedShipIds(), restored.GetFieldedShipIds());
 		Assert.Equal(run.ActiveBattle.Id, restored.ActiveBattle!.Id);
+		Assert.Equal(run.ActiveBattle.Seed, restored.ActiveBattle.Seed);
+		Assert.Equal(
+			run.ActiveBattle.WorldHazards.Select(hazard => (hazard.Kind, hazard.Origin)),
+			restored.ActiveBattle.WorldHazards.Select(hazard => (hazard.Kind, hazard.Origin)));
 		Assert.Equal(
 			battle.Engine.World.UnitRegistry.Ids.Order(),
 			restoredWorld.UnitRegistry.Ids.Order());
