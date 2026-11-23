@@ -16,6 +16,7 @@ public sealed class BattleCameraDirector
 
 	private const float OverviewTransitionThreshold = 0.5f;
 	private const float OverviewTweenMinDuration = 0.9f;
+	private const float PlanningRecenterDurationScale = 1.2f;
 	private readonly ICameraRig _rig;
 
 	private CameraMode _mode = CameraMode.Manual;
@@ -154,6 +155,25 @@ public sealed class BattleCameraDirector
 
 	public void PlayImpactShake(ImpactShakeScale scale) =>
 		_rig.PlayImpactShake(scale);
+
+	public void OnPlanningChanged(
+		Vector3 previousPosition,
+		Vector3 currentPosition,
+		int previousActionCount,
+		int currentActionCount,
+		bool enabled)
+	{
+		if (!enabled || _barkFocus || _mode == CameraMode.Playback
+			|| currentActionCount == previousActionCount || previousPosition == currentPosition)
+			return;
+
+		var currentPose = _rig.CurrentPose;
+		var targetPose = currentPose;
+		targetPose.Pivot = currentPosition;
+		_rig.TweenPivotTo(
+			currentPosition,
+			CameraTransition.Duration(currentPose, targetPose) * PlanningRecenterDurationScale);
+	}
 
 	public void ReportInterest(CameraInterest interest)
 	{

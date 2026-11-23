@@ -27,6 +27,7 @@ public partial class GameSettingsMenu : Control
 	private UiToggle _invertHorizontalCameraMovement = null!;
 	private UiToggle _invertVerticalCameraMovement = null!;
 	private UiToggle _showActionLog = null!;
+	private UiToggle _battleCameraRecenterAfterMovement = null!;
 	private KeyBindingsTab _keyBindingsTab = null!;
 	private ModalShell _shell = null!;
 	private Control _unsavedChangesPopup = null!;
@@ -296,6 +297,8 @@ public partial class GameSettingsMenu : Control
 		page.AddChild(CreateSettingRow("Show tutorials", _showTutorials));
 		_battleMouseCameraPan = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Pan camera with mouse in battle", _battleMouseCameraPan));
+		_battleCameraRecenterAfterMovement = new UiToggle(palette: HudPalettes.PurpleRed);
+		page.AddChild(CreateSettingRow("Recenter battle camera after movement", _battleCameraRecenterAfterMovement));
 		_starMapMouseCameraPan = new UiToggle(palette: HudPalettes.PurpleRed);
 		page.AddChild(CreateSettingRow("Pan camera with mouse on star map", _starMapMouseCameraPan));
 		_invertHorizontalCameraMovement = new UiToggle(palette: HudPalettes.PurpleRed);
@@ -393,6 +396,7 @@ public partial class GameSettingsMenu : Control
 		};
 		_showTutorials.Toggled += _ => RefreshFooterActions();
 		_battleMouseCameraPan.Toggled += _ => RefreshFooterActions();
+		_battleCameraRecenterAfterMovement.Toggled += _ => RefreshFooterActions();
 		_starMapMouseCameraPan.Toggled += _ => RefreshFooterActions();
 		_invertHorizontalCameraMovement.Toggled += _ => RefreshFooterActions();
 		_invertVerticalCameraMovement.Toggled += _ => RefreshFooterActions();
@@ -486,6 +490,7 @@ public partial class GameSettingsMenu : Control
 			|| current.InvertVerticalCameraMovement != _baselineSnapshot.InvertVerticalCameraMovement
 			|| current.BattleCameraSensitivity != _baselineSnapshot.BattleCameraSensitivity
 			|| current.ShowActionLog != _baselineSnapshot.ShowActionLog
+			|| current.BattleCameraRecenterAfterMovement != _baselineSnapshot.BattleCameraRecenterAfterMovement
 			|| current.KeyBindings.Count != _baselineSnapshot.KeyBindings.Count)
 			return true;
 
@@ -517,6 +522,7 @@ public partial class GameSettingsMenu : Control
 		_invertVerticalCameraMovement.Value = GameSettings.ReadInvertVerticalCameraMovement();
 		_battleCameraSensitivity.Value = GameSettings.ReadBattleCameraSensitivity() * CameraSensitivityDisplayScale;
 		_showActionLog.Value = GameSettings.ReadShowActionLog();
+		_battleCameraRecenterAfterMovement.Value = GameSettings.ReadBattleCameraRecenterAfterMovement();
 	}
 
 	private GameSettingsSessionSnapshot CaptureUiSnapshot() =>
@@ -530,6 +536,7 @@ public partial class GameSettingsMenu : Control
 			_invertVerticalCameraMovement.Value,
 			(float)(_battleCameraSensitivity.Value / CameraSensitivityDisplayScale),
 			_showActionLog.Value,
+			_battleCameraRecenterAfterMovement.Value,
 			_keyBindingsTab.CurrentDraft);
 
 	private void PopulateResolutions()
@@ -612,6 +619,7 @@ public partial class GameSettingsMenu : Control
 				_invertVerticalCameraMovement.Value = false;
 				_battleCameraSensitivity.Value = GameSettings.DefaultBattleCameraSensitivity * CameraSensitivityDisplayScale;
 				_showActionLog.Value = false;
+				_battleCameraRecenterAfterMovement.Value = true;
 				break;
 			case SettingsTab.KeyBindings:
 				_keyBindingsTab.ResetToDefaults();

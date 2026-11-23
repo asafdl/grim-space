@@ -24,6 +24,7 @@ public static class GameSettingsApplicator
 			GameSettings.ReadInvertVerticalCameraMovement(),
 			GameSettings.ReadBattleCameraSensitivity(),
 			GameSettings.ReadShowActionLog(),
+			GameSettings.ReadBattleCameraRecenterAfterMovement(),
 			GameSettings.ReadKeyBindings());
 
 	public static void Preview(GameSettingsSessionSnapshot snapshot)
@@ -37,6 +38,7 @@ public static class GameSettingsApplicator
 			snapshot.InvertVerticalCameraMovement);
 		GameSettings.ApplyBattleCameraSensitivity(snapshot.BattleCameraSensitivity);
 		GameSettings.ApplyShowActionLog(snapshot.ShowActionLog);
+		GameSettings.ApplyBattleCameraRecenterAfterMovement(snapshot.BattleCameraRecenterAfterMovement);
 		GameInputBindings.Apply(snapshot.KeyBindings);
 	}
 
@@ -59,6 +61,7 @@ public static class GameSettingsApplicator
 				snapshot.InvertVerticalCameraMovement,
 				snapshot.BattleCameraSensitivity,
 				snapshot.ShowActionLog,
+				snapshot.BattleCameraRecenterAfterMovement,
 				snapshot.KeyBindings) != Error.Ok)
 		{
 			error = "Could not save settings to disk.";

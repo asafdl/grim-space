@@ -164,6 +164,7 @@ public partial class Session : Node
 			GameSettings.ReadInvertVerticalCameraMovement());
 		GameSettings.ApplyBattleCameraSensitivity(GameSettings.ReadBattleCameraSensitivity());
 		GameSettings.ApplyShowActionLog(GameSettings.ReadShowActionLog());
+		GameSettings.ApplyBattleCameraRecenterAfterMovement(GameSettings.ReadBattleCameraRecenterAfterMovement());
 		GameInputBindings.Apply(GameSettings.ReadKeyBindings());
 	}
 

@@ -8,6 +8,61 @@ namespace GrimSpace.Tests.Presentation;
 public sealed class BattleCameraDirectorTests
 {
 	[Fact]
+	public void PlanningMovement_TweensToTheConfirmedPosition()
+	{
+		var rig = new Rig { CurrentPose = new OrbitPose { Distance = 20 } };
+		var director = new BattleCameraDirector(rig);
+
+		director.OnPlanningChanged(Vector3.Zero, new Vector3(4, 0, 0), 0, 4, enabled: true);
+
+		var tween = Assert.Single(rig.Tweens);
+		Assert.Equal(new Vector3(4, 0, 0), tween.Target);
+		var target = rig.CurrentPose;
+		target.Pivot = tween.Target;
+		var defaultDuration = CameraTransition.Duration(rig.CurrentPose, target);
+		Assert.InRange(tween.Duration, defaultDuration * 1.1f, defaultDuration * 1.3f);
+	}
+
+	[Theory]
+	[InlineData(false, 0, 1, true)]
+	[InlineData(true, 1, 1, true)]
+	[InlineData(true, 0, 1, false)]
+	public void PlanningMovement_DoesNotRecenterWhenNotApplicable(
+		bool enabled, int previousCount, int currentCount, bool moved)
+	{
+		var rig = new Rig();
+		var director = new BattleCameraDirector(rig);
+
+		director.OnPlanningChanged(
+			Vector3.Zero, moved ? Vector3.Right : Vector3.Zero, previousCount, currentCount, enabled);
+
+		Assert.Empty(rig.Tweens);
+	}
+
+	[Fact]
+	public void PlanningMovement_UndoTweensBackToThePreviousPosition()
+	{
+		var rig = new Rig();
+		var director = new BattleCameraDirector(rig);
+
+		director.OnPlanningChanged(Vector3.Right, Vector3.Zero, 1, 0, enabled: true);
+
+		Assert.Equal(Vector3.Zero, Assert.Single(rig.Tweens).Target);
+	}
+
+	[Fact]
+	public void PlanningMovement_DoesNotOverridePlayback()
+	{
+		var rig = new Rig();
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+
+		director.OnPlanningChanged(Vector3.Zero, Vector3.Right, 0, 1, enabled: true);
+
+		Assert.Empty(rig.Tweens);
+	}
+
+	[Fact]
 	public void EnemySequence_MovesOnceToOverviewThenHolds()
 	{
 		var rig = new Rig { HasOverview = true };

@@ -21,6 +21,7 @@ public static class GameSettings
 	public static bool InvertVerticalCameraMovement { get; private set; }
 	public static float BattleCameraSensitivity { get; private set; } = DefaultBattleCameraSensitivity;
 	public static bool ShowActionLog { get; private set; } = false;
+	public static bool BattleCameraRecenterAfterMovement { get; private set; } = true;
 
 	public static readonly Vector2I[] SupportedResolutions =
 	[
@@ -139,6 +140,7 @@ public static class GameSettings
 		bool invertVerticalCameraMovement,
 		float battleCameraSensitivity,
 		bool showActionLog,
+		bool battleCameraRecenterAfterMovement,
 		IReadOnlyDictionary<StringName, BindingPair> bindings)
 	{
 		var config = LoadOrCreate();
@@ -151,6 +153,7 @@ public static class GameSettings
 		config.SetValue("gameplay", "invert_vertical_camera_movement", invertVerticalCameraMovement);
 		config.SetValue("gameplay", "battle_camera_sensitivity", NormalizeBattleCameraSensitivity(battleCameraSensitivity));
 		config.SetValue("gameplay", "show_action_log", showActionLog);
+		config.SetValue("gameplay", "battle_camera_recenter_after_movement", battleCameraRecenterAfterMovement);
 		GameInputBindings.WriteBindingsSection(config, bindings);
 		return config.Save(SettingsPath);
 	}
@@ -213,6 +216,14 @@ public static class GameSettings
 		return config!.GetValue("gameplay", "show_action_log", false).AsBool();
 	}
 
+	public static bool ReadBattleCameraRecenterAfterMovement()
+	{
+		if (!TryLoad(out var config))
+			return true;
+
+		return config!.GetValue("gameplay", "battle_camera_recenter_after_movement", true).AsBool();
+	}
+
 	public static float ReadBattleCameraSensitivity()
 	{
 		if (!TryLoad(out var config))
@@ -247,6 +258,9 @@ public static class GameSettings
 
 	public static void ApplyShowActionLog(bool show) =>
 		ShowActionLog = show;
+
+	public static void ApplyBattleCameraRecenterAfterMovement(bool enabled) =>
+		BattleCameraRecenterAfterMovement = enabled;
 
 	public static void SaveShowTutorials(bool enabled)
 	{

@@ -82,6 +82,7 @@ public partial class BattleController : Node3D
 	private UnitDisplayState? _abilityAimResult;
 
 	private PresentationFrame _currentFrame = null!;
+	private int _presentedPlanningActionCount;
 
 	private bool _strategicBattle;
 	private IReadOnlyList<BattleSpawn> _encounterSpawns = [];
@@ -376,7 +377,7 @@ public partial class BattleController : Node3D
 			() => !_simulationTransition.IsTransitioning && !_battleHud.TurnFlowBar.IsAnimating);
 		AddChild(_replayDirector);
 
-		_agent.PlanningChanged += RefreshPresentation;
+		_agent.PlanningChanged += OnPlanningChanged;
 		_battle.PhaseChanged += OnPhaseChanged;
 		_battle.TurnResolved += OnTurnResolved;
 
@@ -579,10 +580,11 @@ public partial class BattleController : Node3D
 		if (ReferenceEquals(_agent, activeAgent))
 			return;
 
-		_agent.PlanningChanged -= RefreshPresentation;
+		_agent.PlanningChanged -= OnPlanningChanged;
 		_agent = activeAgent;
 		_translator.Bind(_battle.ActivePlayerId, _agent);
-		_agent.PlanningChanged += RefreshPresentation;
+		_agent.PlanningChanged += OnPlanningChanged;
+		_presentedPlanningActionCount = _agent.Sim.Actions.Count;
 		_frames.Interaction.ResetAfterTurn();
 	}
 
@@ -723,6 +725,27 @@ public partial class BattleController : Node3D
 		return undone;
 	}
 
+	private void OnPlanningChanged()
+	{
+		var previousFrame = _currentFrame;
+		var previousActionCount = _presentedPlanningActionCount;
+		RefreshPresentation();
+
+		var playerId = _battle.PlayerId;
+		if (_battle.Phase != EBattlePhase.PlayerTurn || !_agent.IsPlanning
+			|| previousFrame is null
+			|| !previousFrame.PreviewUnits.TryGetValue(playerId, out var previousPlayer)
+			|| !_currentFrame.PreviewUnits.TryGetValue(playerId, out var currentPlayer))
+			return;
+
+		_cameraDirector.OnPlanningChanged(
+			WorldMapping.ToWorld(previousPlayer.Position),
+			WorldMapping.ToWorld(currentPlayer.Position),
+			previousActionCount,
+			_presentedPlanningActionCount,
+			GameSettings.BattleCameraRecenterAfterMovement);
+	}
+
 	private void RefreshPresentation()
 	{
 		if (_battle.Phase == EBattlePhase.PlayerTurn && !_replayPlayer.IsPlaying)
@@ -736,6 +759,7 @@ public partial class BattleController : Node3D
 		var frame = _frames.BuildFrame(_battle, _agent, AcceptsCommands);
 		var previousFrame = _currentFrame;
 		_currentFrame = frame;
+		_presentedPlanningActionCount = _agent.Sim.Actions.Count;
 		RefreshPlanningDisplacements(frame);
 		_translator.SetPresentation(
 			enabled: _battle.AcceptsPlayerInput && !_battle.IsBattleOver,
@@ -1624,7 +1648,7 @@ public partial class BattleController : Node3D
 		_camera.ManualInputStarted -= _cameraDirector.OnManualInputStarted;
 		_camera.ManualInputStarted -= _translator.OnCameraManualInputStarted;
 		_replayPlayer.TurnFlowIndexChanged -= OnTurnFlowIndexChanged;
-		_agent.PlanningChanged -= RefreshPresentation;
+		_agent.PlanningChanged -= OnPlanningChanged;
 		_battle.PhaseChanged -= OnPhaseChanged;
 		_battle.TurnResolved -= OnTurnResolved;
 		if (Session.Instance.Run.Tutorials is { } tutorials)
