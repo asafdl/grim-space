@@ -9,6 +9,7 @@ public partial class PixelTeleportEffect : Node
 	public const double DurationSeconds = FadeSeconds * 2 + HiddenSeconds;
 	private readonly List<(MeshInstance3D Mesh, int Surface, Material? Original, ShaderMaterial Effect)> _surfaces = [];
 	private readonly List<(MeshInstance3D Mesh, Material Original, ShaderMaterial Effect)> _overrides = [];
+	private readonly List<(MeshInstance3D Mesh, bool WasVisible)> _suppressed = [];
 	private readonly List<ShaderMaterial> _shields = [];
 	private Tween? _tween;
 
@@ -30,6 +31,12 @@ public partial class PixelTeleportEffect : Node
 					&& (shield.Shader == ShieldFaceMaterials.Shader || shield.Shader == ShieldFaceMaterials.LinkShader))
 				{
 					_shields.Add(shield);
+					continue;
+				}
+				if (mesh.MaterialOverride is not StandardMaterial3D)
+				{
+					_suppressed.Add((mesh, mesh.Visible));
+					mesh.Hide();
 					continue;
 				}
 				_overrides.Add((mesh, mesh.MaterialOverride, CreateEffectMaterial(shader, mesh, mesh.MaterialOverride)));
@@ -82,6 +89,12 @@ public partial class PixelTeleportEffect : Node
 				surface.Mesh.SetSurfaceOverrideMaterial(surface.Surface, surface.Original);
 		}
 		_surfaces.Clear();
+		foreach (var item in _suppressed)
+		{
+			if (IsInstanceValid(item.Mesh) && item.WasVisible)
+				item.Mesh.Show();
+		}
+		_suppressed.Clear();
 	}
 
 	public void SetPaused(bool paused)
