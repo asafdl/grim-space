@@ -572,10 +572,14 @@ public partial class Controller : Camera3D, ICameraRig
 					GameSettings.InvertVerticalCameraMovement);
 
 				var sensitivity = GameSettings.BattleCameraSensitivity;
-				_rotation = _flying
-					? _pose.FreeLook(_rotation, delta, sensitivity)
-					: _pose.FreeOrbit(_rotation, delta,
-						sensitivity * (OrbitControls.OrbitSensitivity / OrbitControls.FreeLookSensitivity));
+				if (_flying)
+					_rotation = _pose.FreeLook(_rotation, delta, sensitivity);
+				else if (delta != Vector2.Zero)
+				{
+					_pose.Orbit(delta,
+						sensitivity * (OrbitControls.OrbitSensitivity / OrbitControls.FreeLookSensitivity), Limits);
+					_rotation = _pose.LevelRotation();
+				}
 
 				ApplyTransform();
 				GetViewport().SetInputAsHandled();

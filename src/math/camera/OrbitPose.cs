@@ -65,25 +65,14 @@ public struct OrbitPose
 	public readonly Quaternion LevelRotation() =>
 		new Quaternion(Vector3.Up, Yaw) * new Quaternion(Vector3.Right, -Pitch);
 
-	/// <summary>
-	/// Trackball orbit around Pivot with no poles: mouse X turns around the camera's own up,
-	/// mouse Y around its own right. Pivot and Distance are unchanged.
-	/// Returns the new rotation; Yaw/Pitch follow its view direction (unclamped).
-	/// </summary>
-	public Quaternion FreeOrbit(Quaternion rotation, Vector2 mouseDelta, float sensitivity)
-	{
-		var next = (rotation
-			* new Quaternion(Vector3.Up, -mouseDelta.X * sensitivity)
-			* new Quaternion(Vector3.Right, mouseDelta.Y * sensitivity)).Normalized();
-		AlignTo(next);
-		return next;
-	}
-
 	/// <summary>Unrestricted mouse-look in place; dragging down looks down, and the camera stays fixed.</summary>
 	public Quaternion FreeLook(Quaternion rotation, Vector2 mouseDelta, float sensitivity)
 	{
 		var camera = CameraPosition();
-		var next = FreeOrbit(rotation, new Vector2(mouseDelta.X, -mouseDelta.Y), sensitivity);
+		var next = (rotation
+			* new Quaternion(Vector3.Up, -mouseDelta.X * sensitivity)
+			* new Quaternion(Vector3.Right, -mouseDelta.Y * sensitivity)).Normalized();
+		AlignTo(next);
 		Pivot = camera - Offset();
 		return next;
 	}

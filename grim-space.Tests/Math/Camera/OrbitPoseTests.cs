@@ -18,44 +18,49 @@ public sealed class OrbitPoseTests
 	}
 
 	[Fact]
-	public void FreeOrbit_KeepsPivotAndDepth()
-	{
-		var pose = new OrbitPose { Pivot = new Vector3(2f, 1f, -3f), Distance = 12f, Yaw = 0.4f, Pitch = 0.2f };
-
-		var rotation = pose.FreeOrbit(pose.LevelRotation(), new Vector2(40f, 25f), 0.01f);
-
-		AssertApprox(new Vector3(2f, 1f, -3f), pose.Pivot);
-		Assert.Equal(12f, pose.CameraPosition().DistanceTo(pose.Pivot), 3);
-		AssertApprox(rotation * Vector3.Back * pose.Distance, pose.Offset());
-	}
-
-	[Fact]
-	public void FreeOrbit_CrossesThePoleInsteadOfClamping()
+	public void FreeLook_CrossesThePoleInsteadOfClamping()
 	{
 		var pose = new OrbitPose { Distance = 10f, Yaw = 0f, Pitch = Mathf.DegToRad(80f) };
 		var rotation = pose.LevelRotation();
+		var camera = pose.CameraPosition();
 
-		rotation = pose.FreeOrbit(rotation, new Vector2(0f, -30f), Mathf.DegToRad(1f));
+		rotation = pose.FreeLook(rotation, new Vector2(0f, 30f), Mathf.DegToRad(1f));
 
 		var view = rotation * Vector3.Back;
 		AssertApprox(new Vector3(0f, Mathf.Sin(Mathf.DegToRad(110f)), Mathf.Cos(Mathf.DegToRad(110f))), view);
 		AssertApprox(view * pose.Distance, pose.Offset());
+		AssertApprox(camera, pose.CameraPosition());
+	}
+
+	[Theory]
+	[InlineData(-100f, 1.5f)]
+	[InlineData(100f, -1.5f)]
+	public void Orbit_ClampsPitchWithoutChangingPivotOrDistance(float mouseY, float expectedPitch)
+	{
+		var pose = new OrbitPose { Pivot = new Vector3(2f, 1f, -3f), Distance = 12f };
+
+		pose.Orbit(new Vector2(30f, mouseY), 0.1f, Limits);
+
+		Assert.Equal(expectedPitch, pose.Pitch);
+		AssertApprox(new Vector3(2f, 1f, -3f), pose.Pivot);
+		Assert.Equal(12f, pose.CameraPosition().DistanceTo(pose.Pivot), 3);
+		Assert.Equal(0f, (pose.LevelRotation() * Vector3.Right).Dot(Vector3.Up), 3);
 	}
 
 	[Fact]
-	public void FreeOrbit_MatchesClampedOrbitAtTheHorizon()
+	public void Orbit_AfterRolledFreeLook_StraightensAndKeepsFocus()
 	{
-		var free = new OrbitPose { Distance = 10f, Yaw = 0.3f, Pitch = 0f };
-		var clamped = free;
-		var delta = new Vector2(12f, -7f);
+		var pose = new OrbitPose { Pivot = new Vector3(2f, 1f, -3f), Distance = 12f, Pitch = 0.2f };
+		var rolled = pose.LevelRotation() * new Quaternion(Vector3.Back, 0.8f);
+		pose.FreeLook(rolled, new Vector2(10f, -15f), 0.01f);
+		var pivot = pose.Pivot;
 
-		var rotation = free.FreeOrbit(free.LevelRotation(), delta, OrbitControls.OrbitSensitivity);
-		clamped.Orbit(delta, OrbitControls.OrbitSensitivity, Limits);
+		pose.Orbit(new Vector2(5f, 2f), 0.01f, Limits);
 
-		var expected = clamped.LevelRotation();
-		AssertApprox(expected * Vector3.Back, rotation * Vector3.Back);
-		AssertApprox(expected * Vector3.Up, rotation * Vector3.Up);
-		AssertApprox(clamped.Offset(), free.Offset());
+		AssertApprox(pivot, pose.Pivot);
+		Assert.Equal(12f, pose.CameraPosition().DistanceTo(pose.Pivot), 3);
+		Assert.Equal(0f, (pose.LevelRotation() * Vector3.Right).Dot(Vector3.Up), 3);
+		AssertApprox(pose.Offset(), pose.LevelRotation() * Vector3.Back * pose.Distance);
 	}
 
 	[Theory]
@@ -65,8 +70,8 @@ public sealed class OrbitPoseTests
 	public void ViewPan_AfterOrbit_MovesCameraAndPivotInScreenPlane(float x, float y)
 	{
 		var pose = new OrbitPose { Pivot = new Vector3(2f, 1f, -3f), Distance = 12f, Yaw = 0.4f, Pitch = 1.4f };
-		var rotation = pose.FreeOrbit(pose.LevelRotation(), new Vector2(40f, -25f), 0.01f);
-		var basis = new Basis(rotation);
+		pose.Orbit(new Vector2(40f, -25f), 0.01f, Limits);
+		var basis = new Basis(pose.LevelRotation());
 		var camera = pose.CameraPosition();
 		var pivot = pose.Pivot;
 		var input = new Vector2(x, y).Normalized();
@@ -114,7 +119,8 @@ public sealed class OrbitPoseTests
 		var travelPivot = pose.Pivot;
 		AssertApprox(pose.CameraPosition() - basis.Z * 12f, travelPivot);
 
-		rotation = pose.FreeOrbit(rotation, new Vector2(15f, 10f), 0.01f);
+		pose.Orbit(new Vector2(15f, 10f), 0.01f, Limits);
+		rotation = pose.LevelRotation();
 
 		AssertApprox(travelPivot, pose.Pivot);
 		AssertApprox(travelPivot + rotation * Vector3.Back * 12f, pose.CameraPosition());

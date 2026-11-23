@@ -14,22 +14,20 @@ public sealed class BattleCameraOverviewTests
 	private static readonly OrbitPose Source = new() { Distance = 22f };
 
 	[Theory]
-	[InlineData(0, 0, 1, 1, 0, 0, 0f, -1f)]
-	[InlineData(-1, 0, 0, 0, 1, 0, 1f, 0f)]
-	[InlineData(0, 1, 0, 1, 0, 0, 1f, 0f)]
-	public void OpeningPoseAlignsYawToGridWhilePreservingElevation(
-		int fx, int fy, int fz, int dx, int dy, int dz, float expectedX, float expectedZ)
+	[InlineData(0, 0, 1, 0, 1, 0, 1, 0, -1)]
+	[InlineData(1, 0, 0, 0, 1, 0, -1, 0, -1)]
+	[InlineData(0, 0, 1, 1, 0, 0, 0, -1, -1)]
+	[InlineData(0, 0, 1, -1, 0, 0, 0, 1, -1)]
+	public void OpeningPoseLooksFromRightRearAtFortyFiveDegrees(
+		int fx, int fy, int fz, int dx, int dy, int dz, int x, int y, int z)
 	{
 		var state = BattleTestFixture.Player(new Coord(3, 4, 5)).State;
 		state.Fore = new Coord(fx, fy, fz);
 		state.Dorsal = new Coord(dx, dy, dz);
 
-		var pose = BattleCameraPoses.PlayerAft(state);
-		var horizontal = new Vector2(pose.Offset().X, pose.Offset().Z).Normalized();
-		var expectedPitch = MathF.Asin((-fy + 0.45f * dy) / MathF.Sqrt(1f + 0.45f * 0.45f));
+		var pose = BattleCameraPoses.PlayerRearQuarter(state);
 
-		Assert.True(horizontal.DistanceTo(new Vector2(expectedX, expectedZ)) < 0.0001f);
-		Assert.Equal(expectedPitch, pose.Pitch, 5);
+		Assert.True(pose.Offset().Normalized().DistanceTo(new Vector3(x, y, z).Normalized()) < 0.0001f);
 		Assert.Equal(WorldMapping.ToWorld(state.Position), pose.Pivot);
 		Assert.Equal(18f, pose.Distance);
 	}

@@ -198,7 +198,7 @@ public partial class BattleController : Node3D
 		AddChild(_abilitySourcePicker);
 
 		var gridCenter = WorldMapping.GridCenter(layout.Grid);
-		var openingPose = BattleCameraPoses.PlayerAft(
+		var openingPose = BattleCameraPoses.PlayerRearQuarter(
 			_battle.Engine.World.StateOf(_battle.PlayerId));
 		_camera.SetFocus(
 			openingPose.Pivot,

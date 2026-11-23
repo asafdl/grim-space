@@ -240,7 +240,7 @@ public partial class MovementPickLab : Node3D
 
 	private void ResetCamera()
 	{
-		var pose = BattleCameraPoses.PlayerAft(_battle.PlayerAgent.Sim.World.StateOf(_battle.PlayerId));
+		var pose = BattleCameraPoses.PlayerRearQuarter(_battle.PlayerAgent.Sim.World.StateOf(_battle.PlayerId));
 		_camera.SetFocus(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch);
 	}
 

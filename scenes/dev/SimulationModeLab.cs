@@ -536,7 +536,7 @@ public partial class SimulationModeLab : Node3D
 
 	private void ResetCamera()
 	{
-		var pose = BattleCameraPoses.PlayerAft(_frame.FocusState.ToState());
+		var pose = BattleCameraPoses.PlayerRearQuarter(_frame.FocusState.ToState());
 		_camera.SetFocus(pose.Pivot, pose.Distance, pose.Yaw, pose.Pitch);
 	}
 

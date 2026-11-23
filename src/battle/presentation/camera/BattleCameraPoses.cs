@@ -7,24 +7,21 @@ namespace GrimSpace.Battle.Presentation.Camera;
 
 internal static class BattleCameraPoses
 {
-	private const float PlayerAftDistance = 18f;
-	private const float PlayerAftDorsalOffset = 0.45f;
+	private const float PlayerDistance = 18f;
 	private const float OverviewUsableScreen = 0.8f;
 	private const float OverviewShipPadding = 1f;
 	private const float OverviewPreferredDistance = 22f;
 	private const float OverviewComfortDistance = 36f;
 
-	public static OrbitPose PlayerAft(State state)
+	public static OrbitPose PlayerRearQuarter(State state)
 	{
-		var fore = ToVector(state.Fore);
-		var dorsal = ToVector(state.Dorsal);
-		var direction = (-fore + dorsal * PlayerAftDorsalOffset).Normalized();
+		var direction = ToVector(Coord.Cross(state.Dorsal, state.Fore) - state.Fore);
 		var (yaw, pitch) = Controller.OrbitAnglesForDirection(direction);
 		return new OrbitPose
 		{
 			Pivot = WorldMapping.ToWorld(state.Position),
-			Distance = PlayerAftDistance,
-			Yaw = Mathf.Round(yaw / (Mathf.Pi / 2f)) * (Mathf.Pi / 2f),
+			Distance = PlayerDistance,
+			Yaw = yaw,
 			Pitch = pitch,
 		};
 	}
