@@ -1423,7 +1423,7 @@ public partial class BattleController : Node3D
 					continue;
 
 				_cameraDirector.BeginBark(view.GlobalPosition + Vector3.Up * 2f);
-				GetTree().CreateTimer(BattleCameraDirector.CombatInterestTween).Timeout += () =>
+				GetTree().CreateTimer(BattleCameraDirector.BarkFocusTween).Timeout += () =>
 				{
 					if (_exiting)
 						return;
@@ -1439,9 +1439,17 @@ public partial class BattleController : Node3D
 		}
 
 		if (decisions.Count == 0)
+		{
 			completed();
-		else
+			return;
+		}
+
+		GetTree().CreateTimer(BattleCameraDirector.BarkSettleSeconds).Timeout += () =>
+		{
+			if (_exiting)
+				return;
 			_pilotSpeech.WhenIdle(Next);
+		};
 	}
 
 	private PilotSpeechHost.Anchor? ResolvePilotSpeechAnchor(string pilotId)

@@ -59,8 +59,10 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 	internal static SearchBridge<IEffect<BattleWorld, ActorRuntime>, BattleWorld, ActorRuntime> Search(
 		BattleSimulation session,
 		string actorId,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken = default,
+		TimeSpan? timeBudget = null)
 	{
+		var budget = timeBudget ?? TimeSpan.FromSeconds(2);
 		var dfsTimer = Stopwatch.StartNew();
 		var actor = session.World.StateOf(actorId);
 		var workers = System.Math.Clamp(Environment.ProcessorCount, 1, 8);
@@ -69,17 +71,21 @@ public sealed class AiController : SimulationExecutionAgent<BattleWorld, ActorRu
 			actorId,
 			SearchCapabilities(actor, session.RuntimeFor(actorId)),
 			new SearchInput<BattleWorld, ActorRuntime>(
-				BattleSearchVisit.ForCapabilities,
+				BattleSearchVisit.ForCapabilitySearch(session),
 				ShouldExploreAction: EnemySearchInput.ShouldExploreAction),
 			EnemySearchInput.CreateEvaluator(session, actorId),
 			workers,
-			cancellationToken);
+			cancellationToken,
+			timeBudget: budget);
 		dfsTimer.Stop();
 		GameLog.Log(
 			$"Enemy DFS ({actorId}): backend=Go workers={search.WorkersUsed}/{workers} "
 			+ $"scored={search.EvaluatedFrames} dominancePruned={search.DominancePrunedFrames} "
 			+ $"boundPruned={search.BoundPrunedFrames} best={search.BestScore} "
-			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms");
+			+ $"dfs={dfsTimer.Elapsed.TotalMilliseconds:F1}ms"
+			+ (search.BudgetExhausted
+				? $" warning: time budget exhausted (budget={budget.TotalMilliseconds:F1}ms); using best plan found."
+				: ""));
 		return search;
 	}
 

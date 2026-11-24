@@ -2,9 +2,12 @@ using System.Globalization;
 using System.Text;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
+using GrimSpace.Battle.World;
 using GrimSpace.Core.Dfs;
 using GrimSpace.Math.Grid;
+using GrimSpace.Units.Enums;
 using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Ai;
@@ -43,9 +46,59 @@ internal readonly record struct MovePreviewSearchState(
 	int DorsalShield,
 	int VentralShield);
 
+internal sealed record CapabilitySearchWorldState(
+	string World,
+	IReadOnlyList<object?> Rules)
+{
+	public bool Equals(CapabilitySearchWorldState? other) =>
+		other is not null && World == other.World && Rules.SequenceEqual(other.Rules);
+
+	public override int GetHashCode()
+	{
+		var hash = new HashCode();
+		hash.Add(World, StringComparer.Ordinal);
+		foreach (var rule in Rules)
+			hash.Add(rule);
+		return hash.ToHashCode();
+	}
+}
+
 internal static class BattleSearchVisit
 {
 	private static readonly ESpatialOrientation[] Faces = Enum.GetValues<ESpatialOrientation>();
+
+	public static Func<BattleSimulation, string, SearchVisitState> ForCapabilitySearch(BattleSimulation anchor)
+	{
+		var start = anchor.Actions.Count;
+		var originalIds = anchor.World.UnitRegistry.Ids.ToHashSet(StringComparer.Ordinal);
+		var terrain = anchor.World.NonUnits.ToDictionary();
+		return (simulation, actorId) =>
+		{
+			var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
+			foreach (var action in simulation.Actions.Skip(start).OfType<VoidBombAction>())
+			{
+				if (!originalIds.Contains(action.SpawnedUnitId)
+					&& simulation.World.UnitRegistry.Contains(action.SpawnedUnitId))
+					aliases.TryAdd(action.SpawnedUnitId, $"spawn:{aliases.Count}");
+			}
+			string Identity(string id) =>
+				aliases.TryGetValue(id, out var alias) ? alias : $"original:{id}";
+
+			var actor = simulation.StateOf<ActorState>(actorId);
+			var fingerprint = new StringBuilder();
+			var rules = new List<object?>();
+			foreach (var unit in simulation.World.UnitRegistry.All)
+				AppendUnit(fingerprint, rules, unit, actorId, Identity);
+			AppendTerrainChanges(fingerprint, simulation.World, terrain, Identity);
+			return new SearchVisitState(
+				new CapabilitySearchWorldState(fingerprint.ToString(), rules),
+				[
+					actor.CurrentActionPoints,
+					actor.CurrentManeuverPoints,
+					-simulation.Actions.Count(action => action.ActorId == actorId),
+				]);
+		};
+	}
 
 	public static SearchVisitState ForCapabilities(BattleSimulation sim, string actorId)
 	{
@@ -120,6 +173,101 @@ internal static class BattleSearchVisit
 			fingerprint.Append('|');
 		}
 		return fingerprint.ToString();
+	}
+
+	private static void AppendText(StringBuilder fingerprint, string value) =>
+		fingerprint.Append(CultureInfo.InvariantCulture, $"{value.Length}:").Append(value);
+
+	private static void AppendUnit(
+		StringBuilder fingerprint, List<object?> rules, Unit unit, string actorId, Func<string, string> identity)
+	{
+		var state = unit.State;
+		AppendText(fingerprint, identity(state.Id));
+		AppendText(fingerprint, identity(state.ParentId));
+		fingerprint.Append(CultureInfo.InvariantCulture,
+			$":{unit.Team}:{unit.Faction}:{state.Type}:{state.Initiative}:{state.Position}:{state.Fore}:{state.Dorsal}:{state.Starboard}"
+			+ $":{state.CurrentHullPoints}:{state.FuelRemaining}:{state.Projectile}"
+			+ $":{state.Heat}:{state.Overdrive}:{state.Overheat}"
+			+ $":{state.ShieldsUpUsedThisTurn}:{state.HeatVentsUsedThisTurn}:{state.ShieldBraceUsedThisTurn}"
+			+ $":{state.OverchargeEnginesCooldownRemaining}:{state.MarkWeakspotCooldownRemaining}"
+			+ $":{state.DefensiveManeuversMpUsed}:{state.ShieldDynamoGrantedPerFace}"
+			+ $":{state.ThirstForScrapStacks}:{state.ReactiveShieldsStacks}");
+		if (state.Id != actorId)
+			fingerprint.Append(CultureInfo.InvariantCulture, $":{state.CurrentActionPoints}:{state.CurrentManeuverPoints}");
+		AppendText(fingerprint, MountFingerprint(state));
+		foreach (var face in Faces)
+			fingerprint.Append(CultureInfo.InvariantCulture,
+				$":{state.CurrentShieldPoints[face]}:{state.Loadout.BaseShieldPoints[face]}");
+		fingerprint.Append(CultureInfo.InvariantCulture, $":{state.Loadout.BaseHullPoints}");
+		foreach (var plume in state.CryoPlumesCooledThisTurn.Order(StringComparer.Ordinal))
+			AppendText(fingerprint, plume);
+		fingerprint.Append(';');
+		foreach (var status in state.Statuses)
+			AppendStatus(fingerprint, rules, status, state.Id);
+		fingerprint.Append(']');
+	}
+
+	private static void AppendStatus(
+		StringBuilder fingerprint, List<object?> rules, BattleStatus status, string unitId)
+	{
+		var name = status.InstanceId.EndsWith($":{unitId}", StringComparison.Ordinal)
+			? status.InstanceId[..^unitId.Length]
+			: status.InstanceId;
+		// Expiry runs outside this activation search; grant order and amounts, not opaque IDs, affect its rules.
+		AppendText(fingerprint, status.Payload is TemporaryShieldPayload ? nameof(TemporaryShieldPayload) : name);
+		fingerprint.Append(CultureInfo.InvariantCulture, $":{status.Priority}:{status.Polarity}");
+		foreach (var tag in status.ActionTags)
+			AppendText(fingerprint, tag);
+		fingerprint.Append(';');
+		AppendText(fingerprint, status.RuleKey ?? "");
+		if (status.RuleKey is null)
+			rules.AddRange([
+				status.RewriteOutgoing, status.RewriteArea, status.RewriteIncomingDamage,
+				status.RewriteIncomingHit, status.RewriteShieldDamage, status.RewriteHullDamage,
+			]);
+		switch (status.Payload)
+		{
+			case EmptyStatusPayload:
+				break;
+			case TemporaryShieldPayload temporary:
+				foreach (var face in Faces)
+					fingerprint.Append(CultureInfo.InvariantCulture, $":{temporary.Remaining[face]}");
+				break;
+			case ShieldBracePayload brace:
+				fingerprint.Append(CultureInfo.InvariantCulture, $":{brace.Face}:{brace.DamagePending}");
+				foreach (var face in Faces)
+					fingerprint.Append(CultureInfo.InvariantCulture, $":{brace.Snapshot[face]}");
+				break;
+			default:
+				rules.Add(status.Payload.DeepCopy());
+				break;
+		}
+		fingerprint.Append('|');
+	}
+
+	private static void AppendTerrainChanges(
+		StringBuilder fingerprint, BattleWorld world, IReadOnlyDictionary<string, NonUnit> terrain,
+		Func<string, string> identity)
+	{
+		foreach (var nonUnit in world.NonUnits.Values)
+		{
+			if (terrain.TryGetValue(nonUnit.Id, out var original) && ReferenceEquals(nonUnit, original))
+				continue;
+			AppendText(fingerprint, nonUnit.Id);
+			AppendText(fingerprint, identity(nonUnit.ActorId));
+			AppendText(fingerprint, nonUnit.GetType().FullName!);
+			fingerprint.Append(nonUnit.Frame);
+			foreach (var cell in nonUnit.Cells.OrderBy(cell => cell.X).ThenBy(cell => cell.Y).ThenBy(cell => cell.Z))
+				fingerprint.Append(cell);
+			if (nonUnit is AsteroidBelt belt)
+				fingerprint.Append(CultureInfo.InvariantCulture, $":{belt.DamageResistancePercent}");
+			fingerprint.Append('|');
+		}
+		foreach (var id in terrain.Keys)
+		{
+			if (!world.NonUnits.ContainsKey(id))
+				AppendText(fingerprint, $"removed:{id}");
+		}
 	}
 
 	private static string MountFingerprint(ActorState actor) =>

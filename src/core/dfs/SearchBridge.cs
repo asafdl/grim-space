@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
@@ -40,11 +41,12 @@ internal static class SearchBridge
 		SearchInput<TWorld, TRuntime> input,
 		Func<Simulation<TWorld, TRuntime>, SearchEvaluation> evaluate,
 		int workers,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken = default,
+		TimeSpan? timeBudget = null)
 		where TEffect : IEffect<TWorld, TRuntime>
 		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>, new() =>
-		new(source, actorId, definitions, input, null, workers, evaluate, cancellationToken);
+		new(source, actorId, definitions, input, null, workers, evaluate, cancellationToken, timeBudget);
 
 	public static IEnumerable<SearchFrame<TWorld, TRuntime>> Enumerate<TEffect, TWorld, TRuntime>(
 		Simulation<TWorld, TRuntime> source,
@@ -139,7 +141,7 @@ internal static class SearchBridge
 
 		[DllImport(Library, EntryPoint = "bridge_search_best", CallingConvention = CallingConvention.Cdecl)]
 		internal static extern int FindBest(
-			int familyCount, int capacity, int workers, Rules rules,
+			int familyCount, int capacity, int workers, Rules rules, long budgetNanoseconds,
 			out ulong handle, [Out] long[] statistics);
 
 		[DllImport(Library, EntryPoint = "bridge_search_start", CallingConvention = CallingConvention.Cdecl)]
@@ -188,8 +190,13 @@ internal sealed class SearchBridge<TEffect, TWorld, TRuntime>
 		Func<SearchFrame<TWorld, TRuntime>, BridgeDecision>? decide,
 		int workers,
 		Func<Simulation<TWorld, TRuntime>, SearchEvaluation>? evaluate = null,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken = default,
+		TimeSpan? timeBudget = null)
 	{
+		var started = Stopwatch.GetTimestamp();
+		cancellationToken.ThrowIfCancellationRequested();
+		if (timeBudget is { } budget && budget <= TimeSpan.Zero)
+			throw new ArgumentOutOfRangeException(nameof(timeBudget), "Search time budget must be positive.");
 		if (workers is < 0 or > 64)
 			throw new ArgumentOutOfRangeException(nameof(workers), "Use 0 for serial or 1-64 goroutine workers.");
 		if (workers != 0 && decide is not null)
@@ -209,16 +216,21 @@ internal sealed class SearchBridge<TEffect, TWorld, TRuntime>
 				workers, _rules, out handle));
 		else
 		{
-			var statistics = new long[4];
+			var statistics = new long[5];
+			var remainingNanoseconds = timeBudget is { } limit
+				? System.Math.Max(1L, checked((limit - Stopwatch.GetElapsedTime(started)).Ticks * 100))
+				: 0;
 			Check(SearchBridge.Native.FindBest(
-				definitions.Count, SearchBridge.CallbackCapacity, workers, _rules, out handle, statistics));
+				definitions.Count, SearchBridge.CallbackCapacity, workers, _rules, remainingNanoseconds, out handle, statistics));
 			EvaluatedFrames = statistics[0];
 			DominancePrunedFrames = statistics[1];
 			BoundPrunedFrames = statistics[2];
 			BestScore = checked((int)statistics[3]);
+			BudgetExhausted = statistics[4] != 0;
 		}
 		try
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			Frames = ReadFrames(handle);
 		}
 		finally
@@ -234,6 +246,7 @@ internal sealed class SearchBridge<TEffect, TWorld, TRuntime>
 	public long DominancePrunedFrames { get; }
 	public long BoundPrunedFrames { get; }
 	public int BestScore { get; } = int.MinValue;
+	public bool BudgetExhausted { get; }
 
 	public SearchFrame<TWorld, TRuntime> FrameAt(int index) => _adapters[0].Materialize(Frames[index]);
 

@@ -311,6 +311,63 @@ public sealed class BattleCameraDirectorTests
 		Assert.Empty(rig.Tweens);
 	}
 
+	[Fact]
+	public void BarkFocus_RestoresPreBarkPivotAfterEnemyOverviewHold()
+	{
+		var fight = new Vector3(10, 0, 0);
+		var speaker = new Vector3(-30, 0, 0);
+		var rig = new Rig { Pivot = fight, HasOverview = true };
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+		director.PrepareEnemyOverview([fight])!.Invoke();
+		rig.Tweens.Clear();
+
+		director.BeginBark(speaker);
+		Assert.Equal(speaker, Assert.Single(rig.Tweens).Target);
+		Assert.Equal(BattleCameraDirector.BarkFocusTween, rig.Tweens[0].Duration);
+
+		director.EndBark();
+
+		Assert.Equal(2, rig.Tweens.Count);
+		Assert.Equal(fight, rig.Tweens[1].Target);
+		Assert.Equal(BattleCameraDirector.BarkFocusTween, rig.Tweens[1].Duration);
+		director.ReportInterest(new CameraInterest([new Vector3(40, 0, 0)], CameraImportance.Combat));
+		director.Tick(0.1f, speaker);
+		Assert.Equal(2, rig.Tweens.Count);
+		Assert.Equal(0, rig.Follows);
+	}
+
+	[Fact]
+	public void BarkFocus_KeepsOriginalPivotAcrossChainedBarks()
+	{
+		var fight = Vector3.Zero;
+		var rig = new Rig { Pivot = fight };
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+
+		director.BeginBark(new Vector3(-20, 0, 0));
+		director.BeginBark(new Vector3(-40, 0, 0));
+		director.EndBark();
+
+		Assert.Equal(3, rig.Tweens.Count);
+		Assert.Equal(fight, rig.Tweens[2].Target);
+	}
+
+	[Fact]
+	public void BarkFocus_ManualInputSkipsRestore()
+	{
+		var rig = new Rig { Pivot = Vector3.Zero };
+		var director = new BattleCameraDirector(rig);
+		director.BeginPlayback();
+		director.BeginBark(Vector3.Left);
+		rig.Tweens.Clear();
+
+		director.OnManualInputStarted();
+		director.EndBark();
+
+		Assert.Empty(rig.Tweens);
+	}
+
 	private sealed class Rig : ICameraRig
 	{
 		public Vector3 Pivot { get; set; }

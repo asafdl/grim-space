@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unsafe"
 )
 
@@ -31,6 +32,19 @@ type boundedState struct {
 	dominated  atomic.Int64
 	pruned     atomic.Int64
 	failed     atomic.Bool
+	deadline   time.Time
+	exhausted  atomic.Bool
+}
+
+func (b *boundedState) stopped() bool {
+	if b.failed.Load() || b.exhausted.Load() {
+		return true
+	}
+	if !b.deadline.IsZero() && !time.Now().Before(b.deadline) {
+		b.exhausted.Store(true)
+		return true
+	}
+	return false
 }
 
 func (b *boundedState) improve(node boundedNode) {
@@ -48,7 +62,7 @@ func (b *boundedState) improve(node boundedNode) {
 func (b *boundedState) enqueue(node boundedNode) bool {
 	b.Lock()
 	defer b.Unlock()
-	if len(b.queue) >= b.queueLimit || b.failed.Load() {
+	if len(b.queue) >= b.queueLimit || b.stopped() {
 		return false
 	}
 	b.queue = append(b.queue, node)
@@ -61,9 +75,12 @@ func (b *boundedState) take() (boundedNode, bool) {
 	b.Lock()
 	defer b.Unlock()
 	for len(b.queue) == 0 && b.pending != 0 {
+		if b.stopped() {
+			return boundedNode{}, false
+		}
 		b.ready.Wait()
 	}
-	if len(b.queue) == 0 {
+	if len(b.queue) == 0 || b.stopped() {
 		return boundedNode{}, false
 	}
 	last := len(b.queue) - 1
@@ -82,6 +99,10 @@ func (b *boundedState) complete() {
 
 // Evaluate on the worker's existing simulation, without copying a world or retaining a result frame.
 func (s *actionSearch) inspectBest(path []C.int32_t, b *boundedState) (boundedNode, bool) {
+	// Always score the root so even an exhausted budget can return a legal incumbent.
+	if len(path) > 0 && b.stopped() {
+		return boundedNode{}, false
+	}
 	if s.query(path, 5, 0) != 2 {
 		if s.err == nil {
 			s.err = fmt.Errorf("missing score and upper bound")
@@ -99,6 +120,9 @@ func (s *actionSearch) inspectBest(path []C.int32_t, b *boundedState) (boundedNo
 		b.pruned.Add(1)
 		return boundedNode{}, false
 	}
+	if b.stopped() {
+		return boundedNode{}, false
+	}
 	_, dominated := s.visitNode(path, C.int32_t(node.score))
 	if s.err != nil {
 		b.failed.Store(true)
@@ -112,7 +136,7 @@ func (s *actionSearch) inspectBest(path []C.int32_t, b *boundedState) (boundedNo
 }
 
 func (s *actionSearch) expandBest(node boundedNode, b *boundedState) {
-	if b.failed.Load() || len(node.path) >= maxSearchDepth {
+	if b.stopped() || len(node.path) >= maxSearchDepth {
 		return
 	}
 	if node.bound <= b.best.Load() {
@@ -121,6 +145,9 @@ func (s *actionSearch) expandBest(node boundedNode, b *boundedState) {
 	}
 	var children []boundedNode
 	for family := 0; family < s.families; family++ {
+		if b.stopped() {
+			return
+		}
 		count := s.query(node.path, discover, family)
 		if count < 0 {
 			b.failed.Store(true)
@@ -128,6 +155,9 @@ func (s *actionSearch) expandBest(node boundedNode, b *boundedState) {
 		}
 		candidates := append([]C.int32_t(nil), s.buffer[:count]...)
 		for _, candidate := range candidates {
+			if b.stopped() {
+				return
+			}
 			legal := s.query(node.path, apply, int(candidate))
 			if legal < 0 {
 				b.failed.Store(true)
@@ -149,6 +179,9 @@ func (s *actionSearch) expandBest(node boundedNode, b *boundedState) {
 		return children[i].bound > children[j].bound
 	})
 	for index, child := range children {
+		if b.stopped() {
+			return
+		}
 		if child.bound <= b.best.Load() {
 			b.pruned.Add(1)
 			continue
@@ -163,12 +196,16 @@ func (s *actionSearch) expandBest(node boundedNode, b *boundedState) {
 //export bridge_search_best
 func bridge_search_best(
 	familyCount, capacity, workers C.int32_t, rules C.bridge_search_rules,
+	budgetNanoseconds C.int64_t,
 	handle *C.uint64_t, statistics *C.int64_t,
 ) C.int32_t {
-	if familyCount <= 0 || capacity < 2 || workers < 1 || workers > 64 || rules == nil || handle == nil || statistics == nil {
+	if familyCount <= 0 || capacity < 2 || workers < 1 || workers > 64 || rules == nil || budgetNanoseconds < 0 || handle == nil || statistics == nil {
 		return failed
 	}
 	b := &boundedState{queueLimit: int(workers) * 4}
+	if budgetNanoseconds > 0 {
+		b.deadline = time.Now().Add(time.Duration(budgetNanoseconds))
+	}
 	b.ready = sync.NewCond(&b.Mutex)
 	b.best.Store(math.MinInt64)
 	root := &actionSearch{
@@ -206,9 +243,12 @@ func bridge_search_best(
 	} else {
 		score = math.MinInt32
 	}
-	stats := unsafe.Slice(statistics, 4)
+	stats := unsafe.Slice(statistics, 5)
 	stats[0], stats[1], stats[2], stats[3] = C.int64_t(b.evaluated.Load()),
 		C.int64_t(b.dominated.Load()), C.int64_t(b.pruned.Load()), C.int64_t(score)
+	if b.exhausted.Load() {
+		stats[4] = 1
+	}
 	sessions.Lock()
 	defer sessions.Unlock()
 	sessions.next++

@@ -144,9 +144,30 @@ public sealed class TargetPickTests
 		var frame = Frame(battle, frames);
 
 		Assert.Equal(["enemy"], frame.TargetPick!.PickedIds);
+		Assert.Null(frame.TargetPick.CandidateId);
+		Assert.Null(frame.TargetingFocusId);
 		Assert.True(frame.TargetPick.IsExactQuota);
 		Assert.True(frame.TargetPick.CanLockIn);
 		Assert.False(frame.TargetPick.RequiresManualCommit);
+		Assert.False(frame.TargetPick.CanConfirmPick);
+	}
+
+	[Fact]
+	public void ExactMultiQuotaDoesNotAdvanceCandidateAfterFinalPick()
+	{
+		var battle = World();
+		var frames = BeginSession(battle, new TargetPickSpec(2, 2, EnemyOnly()));
+		Frame(battle, frames);
+		Assert.True(frames.Interaction.ConfirmTargetPick());
+		Assert.Equal("far-enemy", Frame(battle, frames).TargetPick!.CandidateId);
+
+		Assert.True(frames.Interaction.ConfirmTargetPick());
+		var frame = Frame(battle, frames);
+
+		Assert.Equal(["enemy", "far-enemy"], frame.TargetPick!.PickedIds);
+		Assert.Null(frame.TargetPick.CandidateId);
+		Assert.Null(frame.TargetingFocusId);
+		Assert.True(frame.TargetPick.CanLockIn);
 		Assert.False(frame.TargetPick.CanConfirmPick);
 	}
 

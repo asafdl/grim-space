@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Ai;
@@ -271,7 +272,81 @@ public sealed class SearchBridgeTests(ITestOutputHelper output)
 		Assert.Equal(expected, bridge.BestScore);
 		Assert.Equal(expected, EnemySearchInput.ScoreHeuristic(bridge.FrameAt(0), source, actorId, source.Actions.Count));
 		Assert.True(bridge.BoundPrunedFrames > 0);
+		Assert.False(bridge.BudgetExhausted);
 		Assert.Equal(before, Capture(source.World));
+	}
+
+	[Theory]
+	[InlineData(1)]
+	[InlineData(4)]
+	public void BoundedSearchBudgetReturnsBestEvaluatedPlanWithoutChangingSource(int workers)
+	{
+		var source = CreateSource(ap: 4);
+		Assert.True(source.TryEnqueue(new MoveStepAction("player")));
+		var prefix = source.Actions.ToArray();
+		var before = Capture(source.World);
+		var timer = Stopwatch.StartNew();
+		var bridge = SearchBridge.FindBest(source, "player", Capabilities.Movement, MovePreviewInput,
+			simulation =>
+			{
+				if (simulation.Actions.Count == prefix.Length)
+					return new SearchEvaluation(0, 100);
+				Thread.Sleep(TimeSpan.FromMilliseconds(250));
+				return new SearchEvaluation(10, 100);
+			}, workers, TestContext.Current.CancellationToken, timeBudget: TimeSpan.FromMilliseconds(200));
+
+		Assert.True(bridge.BudgetExhausted);
+		Assert.Equal(10, bridge.BestScore);
+		Assert.Equal(2, bridge.EvaluatedFrames);
+		Assert.Single(Assert.Single(bridge.Frames).Path);
+		var replay = source.Fork();
+		foreach (var action in bridge.Frames[0].Path)
+			Assert.True(replay.TryEnqueue(action));
+		Assert.Equal(Capture(replay.World), Capture(bridge.FrameAt(0).World));
+		Assert.Equal(prefix, source.Actions);
+		Assert.Equal(before, Capture(source.World));
+		Assert.True(timer.Elapsed < TimeSpan.FromSeconds(2), $"Budgeted search took {timer.Elapsed}.");
+	}
+
+	[Fact]
+	public void BoundedSearchBudgetCanReturnTheLegalRootBeforeAnyWorkerExpansion()
+	{
+		var source = CreateSource();
+		var bridge = SearchBridge.FindBest(source, "player", Capabilities.Movement, MovePreviewInput,
+			_ => new SearchEvaluation(7, 100),
+			workers: 4, cancellationToken: TestContext.Current.CancellationToken,
+			timeBudget: TimeSpan.FromTicks(1));
+
+		Assert.True(bridge.BudgetExhausted);
+		Assert.Equal(7, bridge.BestScore);
+		Assert.Equal(1, bridge.EvaluatedFrames);
+		Assert.Empty(Assert.Single(bridge.Frames).Path);
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void BoundedSearchBudgetDoesNotHideCancellationOrScoringFailure(bool cancel)
+	{
+		using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+		var source = CreateSource();
+		var failure = Record.Exception(() =>
+			SearchBridge.FindBest(source, "player", Capabilities.Movement, MovePreviewInput,
+				_ =>
+				{
+					if (cancel)
+					{
+						cancellation.Cancel();
+						cancellation.Token.ThrowIfCancellationRequested();
+					}
+					throw new InvalidOperationException("scoring failed at deadline");
+				}, workers: 4, cancellationToken: cancellation.Token,
+				timeBudget: TimeSpan.FromTicks(1)));
+
+		if (cancel)
+			Assert.IsAssignableFrom<OperationCanceledException>(failure);
+		else
+			Assert.Equal("scoring failed at deadline", Assert.IsType<InvalidOperationException>(failure).Message);
 	}
 
 	[Fact]

@@ -325,7 +325,12 @@ public sealed class PresentationFrameBuilder
 		state.PruneTargetPicks(id => TargetPickSpec.IsLiving(world, id));
 		var legal = pick.LegalTargets(world, actorId, state.PickedTargetIds);
 		if (state.TargetCandidateId is not { } candidate || !legal.Contains(candidate))
-			state.SetTargetCandidate(legal.Count > 0 ? legal[0] : null);
+		{
+			state.SetTargetCandidate(
+				pick.CanPickMore(state.PickedTargetIds.Count) && legal.Count > 0
+					? legal[0]
+					: null);
+		}
 
 		var picked = state.PickedTargetIds.ToArray();
 		return new TargetPickFrame(

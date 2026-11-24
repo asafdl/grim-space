@@ -9,6 +9,8 @@ public sealed class BattleCameraDirector
 	public const float ComfortMargin = 0.15f;
 	public const float PlaybackFollowResponse = 0.3f;
 	public const float CombatInterestTween = 0.35f;
+	public const float BarkFocusTween = 0.7f;
+	public const float BarkSettleSeconds = 0.7f;
 	public const float ReturnControlMin = 0.4f;
 	public const float ReturnControlMax = 0.7f;
 	public const float ManualInputGrace = 0.75f;
@@ -22,6 +24,7 @@ public sealed class BattleCameraDirector
 	private CameraMode _mode = CameraMode.Manual;
 	private float _manualInputGraceRemaining;
 	private bool _barkFocus;
+	private Vector3? _preBarkPivot;
 	private bool _enemyHold;
 	private OrbitPose? _preOverviewPose;
 	private bool _manualAfterOverview;
@@ -33,12 +36,26 @@ public sealed class BattleCameraDirector
 
 	public void BeginBark(Vector3 position)
 	{
+		if (!_barkFocus)
+			_preBarkPivot = _rig.AutomationTarget ?? _rig.Pivot;
 		_barkFocus = true;
 		_rig.CancelAutomation();
-		_rig.TweenPivotTo(position, CombatInterestTween);
+		_rig.TweenPivotTo(position, BarkFocusTween);
 	}
 
-	public void EndBark() => _barkFocus = false;
+	public void EndBark()
+	{
+		if (!_barkFocus)
+			return;
+
+		_barkFocus = false;
+		if (_preBarkPivot is not { } pivot)
+			return;
+
+		_preBarkPivot = null;
+		_rig.CancelAutomation();
+		_rig.TweenPivotTo(pivot, BarkFocusTween);
+	}
 
 	public BattleCameraDirector(ICameraRig rig) => _rig = rig;
 
@@ -54,6 +71,7 @@ public sealed class BattleCameraDirector
 		_overviewGeneration++;
 		_mode = CameraMode.Manual;
 		ClearEnemyFraming();
+		ClearBarkFocus();
 		_preOverviewPose = null;
 		_manualAfterOverview = false;
 		_manualDuringPlayback = false;
@@ -67,6 +85,7 @@ public sealed class BattleCameraDirector
 		_overviewGeneration++;
 		_mode = CameraMode.Playback;
 		_manualInputGraceRemaining = 0f;
+		ClearBarkFocus();
 		_preOverviewPose = null;
 		_manualAfterOverview = false;
 		_manualDuringPlayback = false;
@@ -177,10 +196,7 @@ public sealed class BattleCameraDirector
 
 	public void ReportInterest(CameraInterest interest)
 	{
-		if (_mode != CameraMode.Playback)
-			return;
-
-		if (_enemyHold)
+		if (_mode != CameraMode.Playback || _barkFocus || _enemyHold)
 			return;
 
 		if (_rig.AreVisible(interest.Points, SafeMargin))
@@ -231,6 +247,7 @@ public sealed class BattleCameraDirector
 		_rig.CancelAutomation();
 		_overviewTweenStarted = false;
 		EnemyOverviewNeedsFullTransition = false;
+		_preBarkPivot = null;
 		if (_mode == CameraMode.Playback || _returnPending)
 			_manualDuringPlayback = true;
 		if (_preOverviewPose is not null || _enemyHold)
@@ -254,6 +271,12 @@ public sealed class BattleCameraDirector
 		_enemyHold = false;
 		_overviewTweenStarted = false;
 		EnemyOverviewNeedsFullTransition = false;
+	}
+
+	private void ClearBarkFocus()
+	{
+		_barkFocus = false;
+		_preBarkPivot = null;
 	}
 
 	private static float ReturnTweenDuration(Vector3 from, Vector3 to) =>

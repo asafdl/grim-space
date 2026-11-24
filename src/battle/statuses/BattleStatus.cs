@@ -37,6 +37,8 @@ public sealed class EmptyStatusPayload : IBattleStatusPayload
 public sealed class BattleStatus
 {
 	public required string InstanceId { get; init; }
+	// Equal non-null keys promise equivalent callbacks for the owning unit, independent of closure identity.
+	public string? RuleKey { get; init; }
 	public required int Priority { get; init; }
 	public required IReadOnlyList<string> ActionTags { get; init; }
 	public IBattleStatusPayload Payload { get; init; } = EmptyStatusPayload.Instance;
@@ -52,6 +54,7 @@ public sealed class BattleStatus
 		new()
 		{
 			InstanceId = InstanceId,
+			RuleKey = RuleKey,
 			Priority = Priority,
 			ActionTags = ActionTags,
 			Payload = Payload.DeepCopy(),
@@ -179,6 +182,7 @@ public static class BattleStatuses
 		new()
 		{
 			InstanceId = BuffInstanceId("Overdrive", actorId),
+			RuleKey = nameof(CreateOverdrive),
 			Priority = 50,
 			ActionTags = [BattleActionTags.Attack],
 			Polarity = EStatusPolarity.Buff,
