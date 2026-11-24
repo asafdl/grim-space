@@ -16,4 +16,19 @@ public sealed class HazardPlacementContext
 		Placed.Add(hazard);
 		ClaimedCells.UnionWith(hazard.Cells);
 	}
+
+	public static bool IsWithinApproach(Coord cell, Coord start, Coord end, int radius)
+	{
+		var direction = end - start;
+		var offset = cell - start;
+		var lengthSquared = Coord.Dot(direction, direction);
+		var offsetSquared = Coord.Dot(offset, offset);
+		if (lengthSquared == 0)
+			return offsetSquared <= radius * radius;
+
+		var projection = Coord.Dot(offset, direction);
+		return projection >= 0 && projection <= lengthSquared
+			&& (long)offsetSquared * lengthSquared - (long)projection * projection
+				<= (long)radius * radius * lengthSquared;
+	}
 }

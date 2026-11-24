@@ -4,13 +4,12 @@ using GrimSpace.Units.Enums;
 namespace GrimSpace.Battle.Encounter.Generation;
 
 /// <summary>
-/// Scatters single-cell hazards through the volume spanned by the deployed squads.
-/// Layouts are random; one is re-rolled only when hazards skew too far toward one side.
+/// Places cover near the engagement and other single-cell hazards along the approach.
 /// </summary>
 public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 {
-	public const int MinCount = 7;
-	public const int MaxCount = 8;
+	public const int MinCount = 14;
+	public const int MaxCount = 16;
 	public const int Padding = 4;
 	public const int GridMargin = 2;
 	public const int MinShipDistance = 3;
@@ -18,10 +17,14 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 	public const int MaxSideImbalance = 2;
 	private const int LayoutAttempts = 32;
 	private const int CellAttemptsPerPlume = 64;
+	private const int ApproachRadius = 7;
+	private const int EngagementRadius = 8;
+	private const int CoverSpacingSquared = 16;
+	private const int IonSpacingSquared = 9;
 	private readonly EBattleHazardKind _kind;
-	private readonly bool _requireComplete;
+	private readonly bool _required;
 
-	public SingleCellHazardPlacement(EBattleHazardKind kind, bool requireComplete)
+	public SingleCellHazardPlacement(EBattleHazardKind kind, bool required)
 	{
 		if (kind is not (
 			EBattleHazardKind.CryoPlume
@@ -29,7 +32,7 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 			or EBattleHazardKind.AsteroidBelt))
 			throw new ArgumentOutOfRangeException(nameof(kind), kind, "Expected a single-cell hazard kind.");
 		_kind = kind;
-		_requireComplete = requireComplete;
+		_required = required;
 	}
 
 	public void Place(HazardPlacementContext context)
@@ -38,7 +41,7 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		var opponents = context.Spawns.Where(spawn => spawn.Team != ETeam.Player).Select(spawn => spawn.Position).ToArray();
 		if (player.Length == 0 || opponents.Length == 0)
 		{
-			if (_requireComplete)
+			if (_required)
 				throw new InvalidOperationException($"Cannot place {_kind} without both sides of the engagement.");
 			return;
 		}
@@ -52,7 +55,7 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		var bestImbalance = int.MaxValue;
 		for (var attempt = 0; attempt < LayoutAttempts && bestImbalance > MaxSideImbalance; attempt++)
 		{
-			var layout = RollLayout(context, min, max, count);
+			var layout = RollLayout(context, min, max, count, playerCenter, opponentCenter);
 			if (layout.Count < count)
 				continue;
 
@@ -64,8 +67,8 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 			}
 		}
 
-		if (best is null && _requireComplete)
-			best = RollCompactLayout(context, min, max, count);
+		if (best is null && _required)
+			best = RollCompactLayout(context, min, max, count, playerCenter, opponentCenter);
 
 		var cells = best ?? [];
 		var firstResistancePercent = _kind == EBattleHazardKind.AsteroidBelt
@@ -97,7 +100,8 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		}
 	}
 
-	private static List<Coord> RollLayout(HazardPlacementContext context, Coord min, Coord max, int count)
+	private List<Coord> RollLayout(
+		HazardPlacementContext context, Coord min, Coord max, int count, Coord playerCenter, Coord opponentCenter)
 	{
 		var layout = new List<Coord>(count);
 		for (var attempt = 0; attempt < count * CellAttemptsPerPlume && layout.Count < count; attempt++)
@@ -106,9 +110,10 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 				context.Rng.Next(min.X, max.X + 1),
 				context.Rng.Next(min.Y, max.Y + 1),
 				context.Rng.Next(min.Z, max.Z + 1));
-			if (context.ClaimedCells.Contains(cell)
+			if (!IsInTacticalRegion(cell, playerCenter, opponentCenter)
+				|| context.ClaimedCells.Contains(cell)
 				|| context.Spawns.Any(spawn => cell.ChebyshevDistanceTo(spawn.Position) < MinShipDistance)
-				|| layout.Any(other => cell.ChebyshevDistanceTo(other) < MinPlumeSpacing))
+				|| layout.Any(other => TooClose(cell, other)))
 				continue;
 
 			layout.Add(cell);
@@ -117,7 +122,8 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		return layout;
 	}
 
-	private List<Coord> RollCompactLayout(HazardPlacementContext context, Coord min, Coord max, int count)
+	private List<Coord> RollCompactLayout(
+		HazardPlacementContext context, Coord min, Coord max, int count, Coord playerCenter, Coord opponentCenter)
 	{
 		var occupied = context.Spawns.Select(spawn => spawn.Position).ToHashSet();
 		var candidates = new List<Coord>();
@@ -126,16 +132,55 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		for (var z = min.Z; z <= max.Z; z++)
 		{
 			var cell = new Coord(x, y, z);
-			if (!occupied.Contains(cell) && !context.ClaimedCells.Contains(cell))
+			if (!occupied.Contains(cell) && !context.ClaimedCells.Contains(cell)
+				&& IsInTacticalRegion(cell, playerCenter, opponentCenter))
 				candidates.Add(cell);
 		}
 
-		if (candidates.Count < count)
-			throw new InvalidOperationException($"Insufficient unoccupied space to place {count} {_kind} hazards.");
-
 		var shuffled = candidates.ToArray();
-		context.Rng.Shuffle(shuffled);
-		return shuffled.Take(count).ToList();
+		var best = new List<Coord>();
+		for (var attempt = 0; attempt < LayoutAttempts && best.Count < count; attempt++)
+		{
+			context.Rng.Shuffle(shuffled);
+			var layout = new List<Coord>();
+			foreach (var cell in shuffled)
+			{
+				if (layout.Any(other => TooClose(cell, other)))
+					continue;
+				layout.Add(cell);
+				if (layout.Count == count)
+					break;
+			}
+			if (layout.Count > best.Count)
+				best = layout;
+		}
+
+		if (best.Count == 0)
+			throw new InvalidOperationException($"Insufficient unoccupied space to place {_kind} hazards.");
+		return best;
+	}
+
+	private bool IsInTacticalRegion(Coord cell, Coord playerCenter, Coord opponentCenter)
+	{
+		if (_kind != EBattleHazardKind.AsteroidBelt)
+			return HazardPlacementContext.IsWithinApproach(cell, playerCenter, opponentCenter, ApproachRadius);
+
+		var midpoint = new Coord(
+			(playerCenter.X + opponentCenter.X) / 2,
+			(playerCenter.Y + opponentCenter.Y) / 2,
+			(playerCenter.Z + opponentCenter.Z) / 2);
+		var offset = cell - midpoint;
+		return Coord.Dot(offset, offset) <= EngagementRadius * EngagementRadius;
+	}
+
+	private bool TooClose(Coord cell, Coord other)
+	{
+		if (_kind == EBattleHazardKind.CryoPlume)
+			return cell.ChebyshevDistanceTo(other) < MinPlumeSpacing;
+
+		var offset = cell - other;
+		var minimumSquared = _kind == EBattleHazardKind.AsteroidBelt ? CoverSpacingSquared : IonSpacingSquared;
+		return Coord.Dot(offset, offset) < minimumSquared;
 	}
 
 	private static (Coord Min, Coord Max) Bounds(HazardPlacementContext context)

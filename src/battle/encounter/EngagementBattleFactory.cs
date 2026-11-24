@@ -43,7 +43,7 @@ public static class EngagementBattleFactory
 			Seed = seed,
 			Spawns = spawns,
 			Objective = EObjective.EliminateOpponents,
-			WorldHazards = HazardPlacement.Generate(seed, GridSize, spawns),
+			WorldHazards = tutorialScriptedSpawn ? [] : HazardPlacement.Generate(seed, GridSize, spawns),
 		};
 	}
 }

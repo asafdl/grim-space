@@ -160,6 +160,52 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
+	public void ForEngagement_VariedLayout_SpreadsGravityWellsAcrossElevations()
+	{
+		using var run = RunState.CreateNewRun(seed: 0, tutorialsEnabled: true);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "engagement-gravity-wells");
+		for (var seed = 0; seed < 128; seed++)
+		{
+			var spawns = DeploymentPlacement.ForEngagement(
+				[playerFleet, enemyFleet], run.ItemInventory, seed, gridSize: 64, playerFleet.State.Id);
+			var context = new HazardPlacementContext { Rng = new Random(seed), GridSize = 64, Spawns = spawns };
+			new GravityWellPlacement().Place(context);
+
+			Assert.InRange(context.Placed.Count, 12, 15);
+			var playerCenter = SingleCellHazardPlacement.Centroid(
+				spawns.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray());
+			var enemyCenter = SingleCellHazardPlacement.Centroid(
+				spawns.Where(spawn => spawn.Team == ETeam.Enemy).Select(spawn => spawn.Position).ToArray());
+			var midpointHeight = (playerCenter.Y + enemyCenter.Y) / 2;
+			Assert.Contains(context.Placed, well => well.Origin.Y >= midpointHeight + 3);
+			Assert.Contains(context.Placed, well => well.Origin.Y <= midpointHeight - 3);
+			for (var i = 0; i < context.Placed.Count; i++)
+			for (var j = i + 1; j < context.Placed.Count; j++)
+			{
+				var delta = context.Placed[i].Origin - context.Placed[j].Origin;
+				Assert.True(Coord.Dot(delta, delta) >= 36);
+			}
+		}
+	}
+
+	[Fact]
+	public void ForEngagement_GeneratesAtLeastTwelveGravityWellsAlongsideOtherHazards()
+	{
+		using var run = RunState.CreateNewRun(seed: 0, tutorialsEnabled: true);
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "engagement-gravity-hazards");
+		for (var seed = 0; seed < 8; seed++)
+		{
+			var encounter = EngagementBattleFactory.Create(
+				[playerFleet, enemyFleet], run.ItemInventory, seed, "gravity-test", playerFleet.State.Id);
+			Assert.InRange(encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.GravityWell), 12, 15);
+			foreach (var kind in new[] { EBattleHazardKind.CryoPlume, EBattleHazardKind.IonStorm, EBattleHazardKind.AsteroidBelt })
+				Assert.InRange(encounter.WorldHazards.Count(hazard => hazard.Kind == kind), 14, 16);
+		}
+	}
+
+	[Fact]
 	public void ForEngagement_VariedLayout_ProducesDiagonalEngagementsAcrossSeeds()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
@@ -265,8 +311,7 @@ public sealed class DeploymentPlacementTests
 			playerFleet.State.Id,
 			tutorialScriptedSpawn: true);
 		var targetId = encounter.Spawns.Single(spawn => spawn.Position == target).Ship.Id;
-		Assert.Equal(new Random(seed).Next(3),
-			encounter.WorldHazards.Count(hazard => hazard.Kind == EBattleHazardKind.GravityWell));
+		Assert.Empty(encounter.WorldHazards);
 		var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
 		Assert.IsType<BattleTutorialObjectiveResult.Resolved>(BattleTutorialObjectives.ResolveShieldApproach(battle));
 		var sim = battle.PlayerAgent.Sim;

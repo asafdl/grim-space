@@ -13,9 +13,9 @@ public static class HazardPlacement
 	private static readonly IHazardPlacementPass[] Passes =
 		[
 			new GravityWellPlacement(),
-			new SingleCellHazardPlacement(EBattleHazardKind.CryoPlume, requireComplete: false),
-			new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, requireComplete: true),
-			new SingleCellHazardPlacement(EBattleHazardKind.AsteroidBelt, requireComplete: false),
+			new SingleCellHazardPlacement(EBattleHazardKind.CryoPlume, required: true),
+			new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, required: true),
+			new SingleCellHazardPlacement(EBattleHazardKind.AsteroidBelt, required: true),
 		];
 
 	public static IReadOnlyList<BattleHazardSpawn> Generate(

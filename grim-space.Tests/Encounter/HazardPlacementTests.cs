@@ -1,6 +1,8 @@
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Encounter.Generation;
+using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.NonUnits;
+using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units.Enums;
@@ -10,6 +12,120 @@ namespace GrimSpace.Tests.Encounter;
 [BattleTestSuite]
 public sealed class HazardPlacementTests
 {
+	[Fact]
+	public void GravityWellPlacement_ProvidesSpacedApproachAndFlankingOptions()
+	{
+		var player = new Coord(20, 32, 32);
+		var enemy = new Coord(40, 32, 32);
+		var spawns = new[]
+		{
+			BattleSpawnTestKit.Create("player", EType.Fighter, ETeam.Player, player, new UserExecutionAgent()),
+			BattleSpawnTestKit.Create("enemy", EType.Fighter, ETeam.Enemy, enemy, new AiController()),
+		};
+
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var context = new HazardPlacementContext { Rng = new Random(seed), GridSize = 64, Spawns = spawns };
+			new GravityWellPlacement().Place(context);
+
+			Assert.InRange(context.Placed.Count, 12, 15);
+			Assert.Contains(context.Placed, well => well.Origin.Y >= player.Y + 3);
+			Assert.Contains(context.Placed, well => well.Origin.Y <= player.Y - 3);
+			Assert.Contains(context.Placed, well =>
+				System.Math.Abs(well.Origin.Y - player.Y) >= 3
+				|| System.Math.Abs(well.Origin.Z - player.Z) >= 3);
+			Assert.Contains(context.Placed, well => Coord.Dot(well.Origin - player, well.Origin - player) <= 64);
+			Assert.Contains(context.Placed, well => Coord.Dot(well.Origin - enemy, well.Origin - enemy) <= 64);
+			foreach (var well in context.Placed)
+			{
+				Assert.InRange(well.Origin.X, player.X, enemy.X);
+				Assert.InRange(well.Origin.Y, player.Y - 9, player.Y + 9);
+				Assert.InRange(well.Origin.Z, player.Z - 9, player.Z + 9);
+				Assert.DoesNotContain(spawns, spawn => well.Cells.Contains(spawn.Position));
+			}
+			for (var i = 0; i < context.Placed.Count; i++)
+			for (var j = i + 1; j < context.Placed.Count; j++)
+			{
+				var delta = context.Placed[i].Origin - context.Placed[j].Origin;
+				Assert.True(Coord.Dot(delta, delta) >= 36);
+			}
+		}
+	}
+
+	[Fact]
+	public void SingleCellHazards_ConcentrateCoverNearTheEngagementAndHelpersAlongTheApproach()
+	{
+		var player = new Coord(20, 32, 32);
+		var enemy = new Coord(40, 32, 32);
+		var midpoint = new Coord(30, 32, 32);
+		var spawns = new[]
+		{
+			BattleSpawnTestKit.Create("player", EType.Fighter, ETeam.Player, player, new UserExecutionAgent()),
+			BattleSpawnTestKit.Create("enemy", EType.Fighter, ETeam.Enemy, enemy, new AiController()),
+		};
+
+		for (var seed = 0; seed < 16; seed++)
+		{
+			var context = new HazardPlacementContext { Rng = new Random(seed), GridSize = 64, Spawns = spawns };
+			foreach (var kind in new[] { EBattleHazardKind.CryoPlume, EBattleHazardKind.IonStorm, EBattleHazardKind.AsteroidBelt })
+				new SingleCellHazardPlacement(kind, required: true).Place(context);
+
+			var cover = context.Placed.Where(hazard => hazard.Kind == EBattleHazardKind.AsteroidBelt).ToArray();
+			Assert.InRange(cover.Length, 14, 16);
+			Assert.Contains(cover, hazard => hazard.Origin.X < midpoint.X);
+			Assert.Contains(cover, hazard => hazard.Origin.X > midpoint.X);
+			Assert.All(cover, hazard =>
+			{
+				var offset = hazard.Origin - midpoint;
+				Assert.True(Coord.Dot(offset, offset) <= 64);
+			});
+			for (var i = 0; i < cover.Length; i++)
+			for (var j = i + 1; j < cover.Length; j++)
+			{
+				var delta = cover[i].Origin - cover[j].Origin;
+				Assert.True(Coord.Dot(delta, delta) >= 16);
+			}
+
+			foreach (var kind in new[] { EBattleHazardKind.CryoPlume, EBattleHazardKind.IonStorm })
+			{
+				var helpers = context.Placed.Where(hazard => hazard.Kind == kind).ToArray();
+				Assert.InRange(helpers.Length, 14, 16);
+				Assert.All(helpers, hazard =>
+				{
+					Assert.InRange(hazard.Origin.X, player.X, enemy.X);
+					var y = hazard.Origin.Y - player.Y;
+					var z = hazard.Origin.Z - player.Z;
+					Assert.True(y * y + z * z <= 49);
+				});
+			}
+		}
+	}
+
+	[Fact]
+	public void RequiredCover_WithLimitedSpaceKeepsFourKilometersBetweenCenters()
+	{
+		var spawns = new[]
+		{
+			BattleSpawnTestKit.Create("player", EType.Fighter, ETeam.Player, new Coord(5, 6, 6), new UserExecutionAgent()),
+			BattleSpawnTestKit.Create("enemy", EType.Fighter, ETeam.Enemy, new Coord(15, 6, 6), new AiController()),
+		};
+		var available = new HashSet<Coord> { new(8, 6, 6), new(12, 6, 6) };
+		var context = new HazardPlacementContext { Rng = new Random(0), GridSize = 24, Spawns = spawns };
+		for (var x = 0; x < context.GridSize; x++)
+		for (var y = 0; y < context.GridSize; y++)
+		for (var z = 0; z < context.GridSize; z++)
+		{
+			var cell = new Coord(x, y, z);
+			if (!available.Contains(cell))
+				context.ClaimedCells.Add(cell);
+		}
+
+		new SingleCellHazardPlacement(EBattleHazardKind.AsteroidBelt, required: true).Place(context);
+
+		Assert.Equal(2, context.Placed.Count);
+		Assert.True(available.SetEquals(context.Placed.Select(hazard => hazard.Origin)));
+	}
+
 	[Fact]
 	public void IonStormSpawn_CreatesPassableSingleCellHazard()
 	{
@@ -30,9 +146,9 @@ public sealed class HazardPlacementTests
 	}
 
 	[Fact]
-	public void IonStormPlacement_ScattersSevenOrEightDeterministicUnoccupiedCells()
+	public void IonStormPlacement_ScattersFourteenToSixteenDeterministicUnoccupiedCells()
 	{
-		var placement = new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, requireComplete: true);
+		var placement = new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, required: true);
 
 		for (var seed = 0; seed < 32; seed++)
 		{
@@ -49,7 +165,7 @@ public sealed class HazardPlacementTests
 			placement.Place(first);
 			placement.Place(second);
 
-			Assert.InRange(first.Placed.Count, 7, 8);
+			Assert.InRange(first.Placed.Count, 14, 16);
 			Assert.Equal(first.Placed.Select(h => h.Origin), second.Placed.Select(h => h.Origin));
 			Assert.All(first.Placed, storm =>
 			{
@@ -72,7 +188,7 @@ public sealed class HazardPlacementTests
 		for (var z = 0; z < context.GridSize; z++)
 			context.ClaimedCells.Add(new Coord(x, y, z));
 
-		var placement = new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, requireComplete: true);
+		var placement = new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, required: true);
 
 		Assert.Throws<InvalidOperationException>(() => placement.Place(context));
 		Assert.Empty(context.Placed);
@@ -95,7 +211,7 @@ public sealed class HazardPlacementTests
 
 		var placement = new SingleCellHazardPlacement(
 			EBattleHazardKind.AsteroidBelt,
-			requireComplete: false);
+			required: false);
 
 		placement.Place(context);
 
@@ -113,7 +229,9 @@ public sealed class HazardPlacementTests
 			var storms = encounter.WorldHazards.Where(h => h.Kind == EBattleHazardKind.IonStorm).ToArray();
 			var otherHazards = encounter.WorldHazards.Where(h => h.Kind != EBattleHazardKind.IonStorm).ToArray();
 
-			Assert.InRange(storms.Length, 7, 8);
+			if (gridSize == 64)
+				Assert.InRange(encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.GravityWell), 12, 15);
+			Assert.InRange(storms.Length, gridSize == 64 ? 14 : 1, 16);
 			Assert.All(storms, storm =>
 			{
 				Assert.DoesNotContain(encounter.Spawns, ship => ship.Position == storm.Origin);
@@ -140,7 +258,13 @@ public sealed class HazardPlacementTests
 
 			Assert.Equal(belts.Select(belt => (belt.Origin, belt.DamageResistancePercent)),
 				repeatedBelts.Select(belt => (belt.Origin, belt.DamageResistancePercent)));
-			Assert.InRange(belts.Length, 0, 8);
+			Assert.InRange(belts.Length, 1, 16);
+			for (var i = 0; i < belts.Length; i++)
+			for (var j = i + 1; j < belts.Length; j++)
+			{
+				var delta = belts[i].Origin - belts[j].Origin;
+				Assert.True(Coord.Dot(delta, delta) >= 16);
+			}
 			Assert.All(belts, belt =>
 			{
 				Assert.Contains(
@@ -172,16 +296,16 @@ public sealed class HazardPlacementTests
 				Assert.DoesNotContain(asteroids, asteroid => asteroid.Cells.Contains(belt.Origin)));
 			Assert.InRange(
 				encounter.WorldHazards.Count(hazard => hazard.Kind == EBattleHazardKind.IonStorm),
-				SingleCellHazardPlacement.MinCount,
-				SingleCellHazardPlacement.MaxCount);
+				gridSize == 64 ? 14 : 1,
+				16);
 
 			if (gridSize == 64)
 			{
 				Assert.InRange(
 					encounter.WorldHazards.Count(hazard => hazard.Kind == EBattleHazardKind.CryoPlume),
-					SingleCellHazardPlacement.MinCount,
-					SingleCellHazardPlacement.MaxCount);
-				Assert.InRange(belts.Length, 7, 8);
+					14,
+					16);
+				Assert.InRange(belts.Length, 14, 16);
 				Assert.Contains(belts, belt => belt.DamageResistancePercent == AsteroidBelt.LowResistancePercent);
 				Assert.Contains(belts, belt => belt.DamageResistancePercent == AsteroidBelt.HighResistancePercent);
 			}
@@ -191,13 +315,11 @@ public sealed class HazardPlacementTests
 	[Fact]
 	public void DevEncounters_ScatterSpacedRoughlyBalancedPlumesAroundTheFightAndKeepAsteroidsOffThem()
 	{
-		var counts = new HashSet<int>();
 		for (var seed = 0; seed < 32; seed++)
 		{
 			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
 			var wells = encounter.WorldHazards.Where(hazard => hazard.Kind == EBattleHazardKind.GravityWell).ToArray();
-			Assert.Equal(new Random(seed).Next(3), wells.Length);
-			counts.Add(wells.Length);
+			Assert.InRange(wells.Length, 12, 15);
 			var repeated = BattleEncounter.DevDefault(seed, gridSize: 64);
 			Assert.Equal(wells.Select(well => well.Origin), repeated.WorldHazards
 				.Where(hazard => hazard.Kind == EBattleHazardKind.GravityWell).Select(well => well.Origin));
@@ -220,7 +342,7 @@ public sealed class HazardPlacementTests
 				.ToArray();
 			var ships = encounter.Spawns.Select(spawn => spawn.Position).ToArray();
 
-			Assert.InRange(plumes.Length, SingleCellHazardPlacement.MinCount, SingleCellHazardPlacement.MaxCount);
+			Assert.InRange(plumes.Length, 14, 16);
 			Assert.All(plumes, plume =>
 			{
 				Assert.All(ships, ship => Assert.True(plume.ChebyshevDistanceTo(ship) >= SingleCellHazardPlacement.MinShipDistance));
@@ -236,12 +358,6 @@ public sealed class HazardPlacementTests
 				encounter.Spawns.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray());
 			var enemyCenter = SingleCellHazardPlacement.Centroid(
 				encounter.Spawns.Where(spawn => spawn.Team != ETeam.Player).Select(spawn => spawn.Position).ToArray());
-			Assert.All(wells, well =>
-			{
-				Assert.InRange(well.Origin.X, System.Math.Min(playerCenter.X, enemyCenter.X), System.Math.Max(playerCenter.X, enemyCenter.X));
-				Assert.InRange(well.Origin.Y, System.Math.Min(playerCenter.Y, enemyCenter.Y), System.Math.Max(playerCenter.Y, enemyCenter.Y));
-				Assert.InRange(well.Origin.Z, System.Math.Min(playerCenter.Z, enemyCenter.Z), System.Math.Max(playerCenter.Z, enemyCenter.Z));
-			});
 			Assert.True(SingleCellHazardPlacement.SideImbalance(plumes, playerCenter, enemyCenter) <= SingleCellHazardPlacement.MaxSideImbalance);
 
 			var plumeCells = plumes.ToHashSet();
@@ -249,7 +365,6 @@ public sealed class HazardPlacementTests
 				encounter.WorldHazards.Where(hazard => hazard.Kind == EBattleHazardKind.Asteroid),
 				asteroid => Assert.DoesNotContain(asteroid.Cells, plumeCells.Contains));
 		}
-		Assert.True(counts.SetEquals([0, 1, 2]));
 	}
 
 	[Fact]
@@ -274,7 +389,7 @@ public sealed class HazardPlacementTests
 
 		new GravityWellPlacement().Place(context);
 
-		Assert.Equal(2, context.Placed.Count);
+		Assert.InRange(context.Placed.Count, 12, 15);
 		foreach (var well in context.Placed)
 		{
 			Assert.DoesNotContain(midpoint, well.Cells);
