@@ -78,6 +78,30 @@ public sealed class HazardPlacementTests
 		Assert.Empty(context.Placed);
 	}
 
+	[Fact]
+	public void AsteroidBeltPlacement_OmitsCoverWhenNoCellsAreAvailable()
+	{
+		var encounter = BattleEncounter.DevDefault(seed: 0, gridSize: 64);
+		var context = new HazardPlacementContext
+		{
+			Rng = new Random(0),
+			GridSize = 64,
+			Spawns = encounter.Spawns,
+		};
+		for (var x = 0; x < context.GridSize; x++)
+		for (var y = 0; y < context.GridSize; y++)
+		for (var z = 0; z < context.GridSize; z++)
+			context.ClaimedCells.Add(new Coord(x, y, z));
+
+		var placement = new SingleCellHazardPlacement(
+			EBattleHazardKind.AsteroidBelt,
+			requireComplete: false);
+
+		placement.Place(context);
+
+		Assert.Empty(context.Placed);
+	}
+
 	[Theory]
 	[InlineData(12)]
 	[InlineData(64)]
@@ -95,6 +119,72 @@ public sealed class HazardPlacementTests
 				Assert.DoesNotContain(encounter.Spawns, ship => ship.Position == storm.Origin);
 				Assert.DoesNotContain(otherHazards, hazard => hazard.Cells.Contains(storm.Origin));
 			});
+		}
+	}
+
+	[Theory]
+	[InlineData(12)]
+	[InlineData(64)]
+	public void DevEncounters_GenerateAsteroidBeltsDeterministicallyWithoutOverlaps(int gridSize)
+	{
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var encounter = BattleEncounter.DevDefault(seed, gridSize);
+			var repeat = BattleEncounter.DevDefault(seed, gridSize);
+			var belts = encounter.WorldHazards
+				.Where(hazard => hazard.Kind == EBattleHazardKind.AsteroidBelt)
+				.ToArray();
+			var repeatedBelts = repeat.WorldHazards
+				.Where(hazard => hazard.Kind == EBattleHazardKind.AsteroidBelt)
+				.ToArray();
+
+			Assert.Equal(belts.Select(belt => (belt.Origin, belt.DamageResistancePercent)),
+				repeatedBelts.Select(belt => (belt.Origin, belt.DamageResistancePercent)));
+			Assert.InRange(belts.Length, 0, 8);
+			Assert.All(belts, belt =>
+			{
+				Assert.Contains(
+					belt.DamageResistancePercent,
+					new int?[] { AsteroidBelt.LowResistancePercent, AsteroidBelt.HighResistancePercent });
+				Assert.Equal(belt.Origin, Assert.Single(belt.Cells));
+				Assert.DoesNotContain(encounter.Spawns, spawn => spawn.Position == belt.Origin);
+				Assert.Empty(belt.CreateNonUnit(BattleTestFixture.Grid(gridSize)).MovementBlockingCells);
+				Assert.Empty(belt.CreateNonUnit(BattleTestFixture.Grid(gridSize)).AbilityBlockingCells);
+			});
+
+			var otherHazards = encounter.WorldHazards
+				.Where(hazard => hazard.Kind != EBattleHazardKind.AsteroidBelt)
+				.ToArray();
+			Assert.All(belts, belt =>
+				Assert.DoesNotContain(otherHazards, hazard => hazard.Cells.Contains(belt.Origin)));
+
+			var claimedCells = new HashSet<Coord>();
+			foreach (var hazard in encounter.WorldHazards)
+			{
+				Assert.DoesNotContain(hazard.Cells, claimedCells.Contains);
+				claimedCells.UnionWith(hazard.Cells);
+			}
+
+			var asteroids = encounter.WorldHazards
+				.Where(hazard => hazard.Kind == EBattleHazardKind.Asteroid)
+				.ToArray();
+			Assert.All(belts, belt =>
+				Assert.DoesNotContain(asteroids, asteroid => asteroid.Cells.Contains(belt.Origin)));
+			Assert.InRange(
+				encounter.WorldHazards.Count(hazard => hazard.Kind == EBattleHazardKind.IonStorm),
+				SingleCellHazardPlacement.MinCount,
+				SingleCellHazardPlacement.MaxCount);
+
+			if (gridSize == 64)
+			{
+				Assert.InRange(
+					encounter.WorldHazards.Count(hazard => hazard.Kind == EBattleHazardKind.CryoPlume),
+					SingleCellHazardPlacement.MinCount,
+					SingleCellHazardPlacement.MaxCount);
+				Assert.InRange(belts.Length, 7, 8);
+				Assert.Contains(belts, belt => belt.DamageResistancePercent == AsteroidBelt.LowResistancePercent);
+				Assert.Contains(belts, belt => belt.DamageResistancePercent == AsteroidBelt.HighResistancePercent);
+			}
 		}
 	}
 

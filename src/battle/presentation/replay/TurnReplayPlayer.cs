@@ -37,6 +37,7 @@ public partial class TurnReplayPlayer : Node3D
 	private Action<State> _stateChanged = _ => { };
 	private Action<GoopSpawnedFacts> _showGoop = _ => { };
 	private Action<string> _removeGoop = _ => { };
+	private Action<AsteroidBeltChangedFacts, Vector3> _changeAsteroidBelt = (_, _) => { };
 	private Action<ImpactFacts, ETeam, IReadOnlyList<string>, Action> _playImpactReaction =
 		(_, _, _, completed) => completed();
 	private HazardBurstView _hazardBursts = null!;
@@ -90,7 +91,8 @@ public partial class TurnReplayPlayer : Node3D
 		Action<State> stateChanged,
 		Action<GoopSpawnedFacts> showGoop,
 		Action<string> removeGoop,
-		Action<ImpactFacts, ETeam, IReadOnlyList<string>, Action>? playImpactReaction = null)
+		Action<ImpactFacts, ETeam, IReadOnlyList<string>, Action>? playImpactReaction = null,
+		Action<AsteroidBeltChangedFacts, Vector3>? changeAsteroidBelt = null)
 	{
 		_unitViews = unitViews;
 		_colorFor = colorFor;
@@ -102,6 +104,8 @@ public partial class TurnReplayPlayer : Node3D
 		_removeGoop = removeGoop;
 		if (playImpactReaction is not null)
 			_playImpactReaction = playImpactReaction;
+		if (changeAsteroidBelt is not null)
+			_changeAsteroidBelt = changeAsteroidBelt;
 
 		_hazardBursts = new HazardBurstView { Name = "HazardBursts" };
 		AddChild(_hazardBursts);
@@ -281,6 +285,13 @@ public partial class TurnReplayPlayer : Node3D
 						return;
 					}
 					_impactWorkMs += Stopwatch.GetElapsedTime(entryStart).TotalMilliseconds;
+					break;
+				case Record<AsteroidBeltChangedFacts> { Value: var belt }:
+					_changeAsteroidBelt(
+						belt,
+						_unitViews.TryGetValue(belt.SourceId, out var sourceView) && IsInstanceValid(sourceView)
+							? sourceView.GlobalPosition
+							: WorldMapping.ToWorld(belt.Cell));
 					break;
 				case Record<HealFacts> { Value: var heal }:
 					BeginPhase(ReplayActorPhase.Classify(heal.SourceId, _participants));

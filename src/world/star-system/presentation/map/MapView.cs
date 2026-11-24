@@ -1,4 +1,5 @@
 using Godot;
+using GrimSpace.Presentation.Graphics;
 using GrimSpace.World.StarSystem.Presentation.Picking;
 using GrimSpace.Math;
 using GrimSpace.Math.Camera;
@@ -646,7 +647,7 @@ public partial class MapView : Node3D
 				: supportRock
 					? 0.12f + (float)random.NextDouble() * 0.11f
 					: 0.065f + (float)random.NextDouble() * 0.045f);
-			var rock = NavigationLandmarkRockLibrary.CreateRock(rng, diameter, mainMass);
+			var rock = AsteroidRockLibrary.CreateRock(rng, diameter, mainMass);
 			rock.Name = $"Rock_{i}";
 			rock.Position = new Vector3(
 				(float)(System.Math.Cos(angle) * distance),
@@ -666,7 +667,7 @@ public partial class MapView : Node3D
 				rotationAxis,
 				0.04f + (float)random.NextDouble() * 0.08f,
 				(float)(random.NextDouble() * Mathf.Tau)));
-			NavigationLandmarkRockLibrary.TintMeshes(
+			AsteroidRockLibrary.TintMeshes(
 				rock,
 				copper.Lerp(weatheredCopper, rng.Randf() * 0.55f),
 				emissionStrength: 0.05f);

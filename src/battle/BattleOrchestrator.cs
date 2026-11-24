@@ -5,6 +5,7 @@ using GrimSpace.Pilots;
 using GrimSpace.Battle.Debug;
 using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Movement;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Objectives;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation;
@@ -506,6 +507,7 @@ public sealed class BattleOrchestrator : IDisposable
 			var turnNumber = TurnNumber;
 			var historyStart = _engine.History(turnNumber).Count;
 			var segmentStart = SnapshotAll();
+			var startAsteroidBelts = _engine.World.NonUnits.Values.OfType<AsteroidBelt>().ToArray();
 
 			while (NextLivingActivation() is { } live)
 			{
@@ -539,7 +541,10 @@ public sealed class BattleOrchestrator : IDisposable
 			if (allActivationsComplete)
 				_engine.AdvanceTick();
 
-			return new TurnReplay(segmentStart, history, segmentEnd);
+			return new TurnReplay(segmentStart, history, segmentEnd)
+			{
+				StartAsteroidBelts = startAsteroidBelts,
+			};
 		}
 		finally
 		{

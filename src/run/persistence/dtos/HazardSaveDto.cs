@@ -8,4 +8,5 @@ public sealed record HazardSaveDto(
 	string ActorId,
 	Coord Center,
 	BodyFrame Frame,
-	IReadOnlyList<Coord> Cells);
+	IReadOnlyList<Coord> Cells,
+	int? DamageResistancePercent = null);

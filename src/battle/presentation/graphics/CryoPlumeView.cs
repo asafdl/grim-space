@@ -14,7 +14,8 @@ public partial class CryoPlumeView : Node3D
 	private static readonly Color IceColor = new(0.35f, 0.78f, 1f, 0.55f);
 	public int EncounterSeed { private get; init; }
 	private Coord[] _ionCells = [];
-	private readonly Dictionary<Mesh, CloudFragmentMesh> _fragmentMeshes = [];
+	private static readonly Dictionary<Mesh, CloudFragmentMesh> FragmentMeshes = [];
+	private static PackedScene? _cloudModel;
 	private readonly Dictionary<(Mesh Source, int Seed), Mesh> _generatedMeshes = [];
 	private static readonly Shader CloudShader = new()
 	{
@@ -141,8 +142,6 @@ public partial class CryoPlumeView : Node3D
 		if (cells.Length == 0)
 			return;
 
-		var model = GD.Load<PackedScene>(CloudModelPath)
-			?? throw new InvalidOperationException($"Could not load cloud model '{CloudModelPath}'.");
 		Texture2D[] textures = ionStorm
 			? [GD.Load<Texture2D>(MessierPath) ?? throw new InvalidOperationException($"Could not load '{MessierPath}'."),
 				GD.Load<Texture2D>(PurpleNebulaPath) ?? throw new InvalidOperationException($"Could not load '{PurpleNebulaPath}'.")]
@@ -150,7 +149,6 @@ public partial class CryoPlumeView : Node3D
 		foreach (var cell in cells)
 		{
 			var seed = CloudPattern.SeedFor(EncounterSeed, cell);
-			var regions = CloudPattern.Create(seed);
 			var rng = new RandomNumberGenerator
 			{
 				Seed = (ulong)seed,
@@ -159,106 +157,125 @@ public partial class CryoPlumeView : Node3D
 				rng.RandfRange(0f, 64f), rng.RandfRange(0f, 64f), rng.RandfRange(0f, 64f));
 			var flashPeriod = ionStorm ? rng.RandfRange(2.8f, 5f) : 0f;
 			var flashOffset = ionStorm ? rng.RandfRange(0f, flashPeriod) : 0f;
-			var scene = model.Instantiate<Node3D>();
-			try
+			var cloud = CreateCloud(seed, source =>
 			{
-				var meshes = scene.FindChildren("*", "MeshInstance3D", true, false)
-					.OfType<MeshInstance3D>().ToArray();
-				if (meshes.Length == 0)
-					throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has no meshes.");
-
-				var bounds = default(Aabb);
-				for (var i = 0; i < meshes.Length; i++)
+				var material = new ShaderMaterial { Shader = ionStorm ? IonShader : CloudShader };
+				if (ionStorm)
 				{
-					if (meshes[i].Mesh is not { } mesh)
-						throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has an empty mesh.");
-
-					var transform = Transform3D.Identity;
-					for (Node3D? node = meshes[i]; node is not null; node = node.GetParent() as Node3D)
-					{
-						transform = node.Transform * transform;
-						if (node == scene)
-							break;
-					}
-
-					var partBounds = transform * mesh.GetAabb();
-					bounds = i == 0 ? partBounds : bounds.Merge(partBounds);
+					material.SetShaderParameter("nebula_texture", textures[seed % textures.Length]);
+					material.SetShaderParameter("cloud_texture", source.AlbedoTexture);
+					material.SetShaderParameter("cloud_color", source.AlbedoColor);
+					material.SetShaderParameter("cloud_center", WorldMapping.ToWorld(cell));
+					material.SetShaderParameter("flash_period", flashPeriod);
+					material.SetShaderParameter("flash_offset", flashOffset);
 				}
-
-				var extent = Mathf.Max(bounds.Size.X, Mathf.Max(bounds.Size.Y, bounds.Size.Z));
-				if (extent <= 0f)
-					throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has no extent.");
-
-				foreach (var meshInstance in meshes)
+				else
 				{
-					var mesh = meshInstance.Mesh;
-					var materials = new List<ShaderMaterial>();
-					for (var surface = 0; surface < mesh.GetSurfaceCount(); surface++)
-					{
-						if (meshInstance.GetActiveMaterial(surface) is not StandardMaterial3D source)
-							throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has an unsupported material.");
-
-						var material = new ShaderMaterial { Shader = ionStorm ? IonShader : CloudShader };
-						if (ionStorm)
-						{
-							material.SetShaderParameter("nebula_texture", textures[seed % textures.Length]);
-							material.SetShaderParameter("cloud_texture", source.AlbedoTexture);
-							material.SetShaderParameter("cloud_color", source.AlbedoColor);
-							material.SetShaderParameter("cloud_center", WorldMapping.ToWorld(cell));
-							material.SetShaderParameter("flash_period", flashPeriod);
-							material.SetShaderParameter("flash_offset", flashOffset);
-						}
-						else
-						{
-							material.SetShaderParameter("albedo_texture", source.AlbedoTexture);
-							material.SetShaderParameter("ice_texture", textures[0]);
-							material.SetShaderParameter("ice_color", IceColor);
-							material.SetShaderParameter("plume_center", WorldMapping.ToWorld(cell));
-							material.SetShaderParameter("noise_offset", noiseOffset);
-						}
-						material.SetShaderParameter("cell_size", WorldMapping.CellSize);
-						materials.Add(material);
-					}
-
-					if (!_fragmentMeshes.TryGetValue(mesh, out var fragments))
-					{
-						fragments = new CloudFragmentMesh(mesh, bounds.GetCenter(), extent);
-						_fragmentMeshes.Add(mesh, fragments);
-					}
-					if (!_generatedMeshes.TryGetValue((mesh, seed), out var generated))
-					{
-						generated = fragments.Build(regions);
-						_generatedMeshes.Add((mesh, seed), generated);
-					}
-					meshInstance.Mesh = generated;
-					for (var surface = 0; surface < materials.Count; surface++)
-						meshInstance.SetSurfaceOverrideMaterial(surface, materials[surface]);
-					meshInstance.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
-					PresentationLayers.MarkWorld(meshInstance);
+					material.SetShaderParameter("albedo_texture", source.AlbedoTexture);
+					material.SetShaderParameter("ice_texture", textures[0]);
+					material.SetShaderParameter("ice_color", IceColor);
+					material.SetShaderParameter("plume_center", WorldMapping.ToWorld(cell));
+					material.SetShaderParameter("noise_offset", noiseOffset);
 				}
-
-				if (!ionStorm)
-				{
-					scene.RotateY(rng.RandfRange(0f, Mathf.Tau));
-					scene.RotateX(rng.RandfRange(-0.3f, 0.3f));
-					scene.RotateZ(rng.RandfRange(-0.3f, 0.3f));
-				}
-				scene.Position = -(scene.Basis * bounds.GetCenter());
-				var scale = WorldMapping.CellSize / extent;
-				var cloud = new Node3D
-				{
-					Name = ionStorm ? "IonStormCloud" : "CryoPlumeCloud",
-					Position = WorldMapping.ToWorld(cell),
-					Scale = Vector3.One * scale,
-				};
-				cloud.AddChild(scene);
-				AddChild(cloud);
-			}
-			finally
+				material.SetShaderParameter("cell_size", WorldMapping.CellSize);
+				return material;
+			}, _generatedMeshes);
+			if (!ionStorm)
 			{
-				if (scene.GetParent() is null)
-					scene.Free();
+				var scene = cloud.GetChild<Node3D>(0);
+				var center = -scene.Position;
+				scene.RotateY(rng.RandfRange(0f, Mathf.Tau));
+				scene.RotateX(rng.RandfRange(-0.3f, 0.3f));
+				scene.RotateZ(rng.RandfRange(-0.3f, 0.3f));
+				scene.Position = -(scene.Basis * center);
 			}
+			cloud.Name = ionStorm ? "IonStormCloud" : "CryoPlumeCloud";
+			cloud.Position = WorldMapping.ToWorld(cell);
+			AddChild(cloud);
+		}
+	}
+
+	/// <summary>
+	/// Builds the shared cloud model cut into seeded fragments, centered on the origin and scaled to one cell.
+	/// </summary>
+	internal static Node3D CreateCloud(
+		int seed,
+		Func<StandardMaterial3D, ShaderMaterial> createMaterial,
+		Dictionary<(Mesh Source, int Seed), Mesh>? generatedMeshes = null)
+	{
+		_cloudModel ??= GD.Load<PackedScene>(CloudModelPath)
+			?? throw new InvalidOperationException($"Could not load cloud model '{CloudModelPath}'.");
+		var regions = CloudPattern.Create(seed);
+		var scene = _cloudModel.Instantiate<Node3D>();
+		try
+		{
+			var meshes = scene.FindChildren("*", "MeshInstance3D", true, false)
+				.OfType<MeshInstance3D>().ToArray();
+			if (meshes.Length == 0)
+				throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has no meshes.");
+
+			var bounds = default(Aabb);
+			for (var i = 0; i < meshes.Length; i++)
+			{
+				if (meshes[i].Mesh is not { } mesh)
+					throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has an empty mesh.");
+
+				var transform = Transform3D.Identity;
+				for (Node3D? node = meshes[i]; node is not null; node = node.GetParent() as Node3D)
+				{
+					transform = node.Transform * transform;
+					if (node == scene)
+						break;
+				}
+
+				var partBounds = transform * mesh.GetAabb();
+				bounds = i == 0 ? partBounds : bounds.Merge(partBounds);
+			}
+
+			var extent = Mathf.Max(bounds.Size.X, Mathf.Max(bounds.Size.Y, bounds.Size.Z));
+			if (extent <= 0f)
+				throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has no extent.");
+
+			foreach (var meshInstance in meshes)
+			{
+				var mesh = meshInstance.Mesh;
+				var materials = new List<ShaderMaterial>();
+				for (var surface = 0; surface < mesh.GetSurfaceCount(); surface++)
+				{
+					if (meshInstance.GetActiveMaterial(surface) is not StandardMaterial3D source)
+						throw new InvalidOperationException($"Cloud model '{CloudModelPath}' has an unsupported material.");
+					materials.Add(createMaterial(source));
+				}
+
+				if (!FragmentMeshes.TryGetValue(mesh, out var fragments))
+				{
+					fragments = new CloudFragmentMesh(mesh, bounds.GetCenter(), extent);
+					FragmentMeshes.Add(mesh, fragments);
+				}
+				if (generatedMeshes is null || !generatedMeshes.TryGetValue((mesh, seed), out var generated))
+				{
+					generated = fragments.Build(regions);
+					generatedMeshes?.Add((mesh, seed), generated);
+				}
+				meshInstance.Mesh = generated;
+				for (var surface = 0; surface < materials.Count; surface++)
+					meshInstance.SetSurfaceOverrideMaterial(surface, materials[surface]);
+				meshInstance.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+				PresentationLayers.MarkWorld(meshInstance);
+			}
+
+			scene.Position = -bounds.GetCenter();
+			var cloud = new Node3D
+			{
+				Scale = Vector3.One * (WorldMapping.CellSize / extent),
+			};
+			cloud.AddChild(scene);
+			return cloud;
+		}
+		finally
+		{
+			if (scene.GetParent() is null)
+				scene.Free();
 		}
 	}
 }

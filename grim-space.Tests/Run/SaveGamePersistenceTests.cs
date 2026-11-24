@@ -847,6 +847,185 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
+	public void BattleEncounterSave_RoundTripsAsteroidBeltResistance()
+	{
+		var cell = new Coord(3, 3, 3);
+		var encounter = new BattleEncounter
+		{
+			Id = "asteroid-belt-save-test",
+			Seed = 17,
+			Objective = EObjective.EliminateOpponents,
+			Spawns = [],
+			WorldHazards =
+			[
+				new BattleHazardSpawn
+				{
+					Kind = EBattleHazardKind.AsteroidBelt,
+					Origin = cell,
+					Cells = new HashSet<Coord> { cell },
+					DamageResistancePercent = 40,
+				},
+				new BattleHazardSpawn
+				{
+					Kind = EBattleHazardKind.AsteroidBelt,
+					Origin = cell + Coord.Forward,
+					Cells = new HashSet<Coord> { cell + Coord.Forward },
+					DamageResistancePercent = 80,
+				},
+			],
+		};
+
+		var saved = SaveDtoMapper.CaptureBattleEncounter(encounter);
+		var restored = SaveDtoMapper.RestoreBattleEncounter(saved);
+		var grid = BattleTestFixture.Grid();
+		var resistance = restored.WorldHazards
+			.Select(hazard => Assert.IsType<AsteroidBelt>(hazard.CreateNonUnit(grid)))
+			.Select(belt => belt.DamageResistancePercent);
+
+		Assert.Equal(new[] { 40, 80 }, resistance);
+		Assert.Equal(new int?[] { 40, 80 }, saved.Hazards.Select(hazard => hazard.DamageResistancePercent));
+	}
+
+	[Theory]
+	[InlineData(null)]
+	[InlineData(0)]
+	[InlineData(60)]
+	public void RestoreBattleEncounter_RejectsInvalidAsteroidBeltResistance(int? resistancePercent)
+	{
+		var cell = new Coord(3, 3, 3);
+		var encounter = new BattleEncounter
+		{
+			Id = "asteroid-belt-invalid-encounter",
+			Seed = 17,
+			Objective = EObjective.EliminateOpponents,
+			Spawns = [],
+			WorldHazards =
+			[
+				new BattleHazardSpawn
+				{
+					Kind = EBattleHazardKind.AsteroidBelt,
+					Origin = cell,
+					Cells = new HashSet<Coord> { cell },
+					DamageResistancePercent = 80,
+				},
+			],
+		};
+		var saved = SaveDtoMapper.CaptureBattleEncounter(encounter);
+
+		Assert.Throws<InvalidDataException>(() => SaveDtoMapper.RestoreBattleEncounter(
+			saved with
+			{
+				Hazards = [Assert.Single(saved.Hazards) with
+				{
+					DamageResistancePercent = resistancePercent,
+				}],
+			}));
+	}
+
+	[Fact]
+	public void BattleWorldSave_PreservesDegradedAndDestroyedAsteroidBelts()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var world = battle.Engine.World;
+		var cell = new Coord(4, 5, 5);
+		const string hazardId = "asteroidbelt-save-test";
+		world.AddNonUnit(AsteroidBelt.Create(hazardId, cell, world.Grid, 80));
+		var runtime = battle.Engine.ActorRuntimes.For("player");
+		var registry = PersistenceRegistry.CreateDefault();
+
+		_ = new ErodeAsteroidBeltCoverEffect(new HashSet<Coord> { cell })
+			.Apply(world, runtime, "player");
+		var degraded = SaveDtoMapper.RestoreBattleWorld(
+			SaveDtoMapper.CaptureBattleWorld(world, registry),
+			registry);
+		Assert.Equal(40, degraded.AsteroidBeltAt(cell)!.DamageResistancePercent);
+
+		_ = new ErodeAsteroidBeltCoverEffect(new HashSet<Coord> { cell })
+			.Apply(degraded, runtime, "player");
+		var destroyed = SaveDtoMapper.RestoreBattleWorld(
+			SaveDtoMapper.CaptureBattleWorld(degraded, registry),
+			registry);
+		Assert.Null(destroyed.AsteroidBeltAt(cell));
+
+		var change = new Record<AsteroidBeltChangedFacts>(
+			new("player", hazardId, cell, 80, 40));
+		Assert.Equal(change, registry.Read(registry.Write(change)));
+	}
+
+	[Theory]
+	[InlineData(null)]
+	[InlineData(0)]
+	[InlineData(60)]
+	public void RestoreBattleWorld_RejectsInvalidAsteroidBeltResistance(int? resistancePercent)
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var world = battle.Engine.World;
+		var cell = new Coord(4, 5, 5);
+		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-invalid-save", cell, world.Grid, 80));
+		var registry = PersistenceRegistry.CreateDefault();
+		var dto = SaveDtoMapper.CaptureBattleWorld(world, registry);
+		var hazard = Assert.Single(dto.Hazards);
+
+		Assert.Throws<InvalidDataException>(() => SaveDtoMapper.RestoreBattleWorld(
+			dto with { Hazards = [hazard with { DamageResistancePercent = resistancePercent }] },
+			registry));
+	}
+
+	[Fact]
+	public void RestoreBattleWorld_RejectsAsteroidBeltWithInvalidTerrainOrFootprint()
+	{
+		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
+		var world = battle.Engine.World;
+		var cell = new Coord(4, 5, 5);
+		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-invalid-metadata", cell, world.Grid, 40));
+		var registry = PersistenceRegistry.CreateDefault();
+		var dto = SaveDtoMapper.CaptureBattleWorld(world, registry);
+		var hazard = Assert.Single(dto.Hazards);
+
+		Assert.Throws<InvalidDataException>(() => SaveDtoMapper.RestoreBattleWorld(
+			dto with { Hazards = [hazard with { ActorId = "player" }] },
+			registry));
+		Assert.Throws<InvalidDataException>(() => SaveDtoMapper.RestoreBattleWorld(
+			dto with { Hazards = [hazard with { Cells = [cell, cell + Coord.Forward] }] },
+			registry));
+		Assert.Throws<InvalidDataException>(() => SaveDtoMapper.RestoreBattleWorld(
+			dto with { Hazards = [hazard with { Frame = BodyFrame.WorldAligned(cell + Coord.Forward) }] },
+			registry));
+	}
+
+	[Fact]
+	public void OldEncounterWithoutAsteroidResistanceStillLoadsForOtherHazards()
+	{
+		var cell = new Coord(3, 3, 3);
+		var encounter = new BattleEncounter
+		{
+			Id = "old-encounter-save",
+			Seed = 17,
+			Objective = EObjective.EliminateOpponents,
+			Spawns = [],
+			WorldHazards =
+			[
+				new BattleHazardSpawn
+				{
+					Kind = EBattleHazardKind.IonStorm,
+					Origin = cell,
+					Cells = new HashSet<Coord> { cell },
+				},
+			],
+		};
+		var options = new PersistenceRegistry().Options;
+		var json = JsonSerializer.SerializeToNode(
+			SaveDtoMapper.CaptureBattleEncounter(encounter),
+			options)!;
+		json["hazards"]!.AsArray()[0]!.AsObject().Remove("damageResistancePercent");
+		var loadedDto = JsonSerializer.Deserialize<BattleEncounterSaveDto>(json, options)!;
+
+		var restored = SaveDtoMapper.RestoreBattleEncounter(loadedDto);
+
+		Assert.Null(Assert.Single(restored.WorldHazards).DamageResistancePercent);
+	}
+
+	[Fact]
 	public void SaveDtoMapper_RoundTripsBattleWorldState()
 	{
 		using var orchestrator = BattleOrchestrator.FromEncounter(

@@ -3,6 +3,7 @@ using GrimSpace.Math;
 using GrimSpace.World.StarSystem.Landmarks;
 using GrimSpace.World.StarSystem.Presentation.Atmosphere;
 using GrimSpace.World.StarSystem.Presentation.Picking;
+using GrimSpace.Presentation.Graphics;
 
 namespace GrimSpace.World.StarSystem.Presentation.Map;
 
@@ -88,14 +89,14 @@ internal static class NavigationLandmarkVisualCatalog
 		{
 			var position = LayoutPoint(layout, i, mainCount, clusterRadius, random, 0.55f);
 			var diameter = worldRadius * (0.3f + random.Randf() * 0.35f);
-			var rock = NavigationLandmarkRockLibrary.CreateRock(random, diameter, mainMass: true);
+			var rock = AsteroidRockLibrary.CreateRock(random, diameter, mainMass: true);
 			rock.Name = $"Asteroid_Main_{i}";
 			rock.Position = position;
 			rock.RotationDegrees = new Vector3(
 				random.Randf() * 35f,
 				random.Randf() * 360f,
 				random.Randf() * 35f);
-			NavigationLandmarkRockLibrary.TintMeshes(
+			AsteroidRockLibrary.TintMeshes(
 				rock,
 				NavigationLandmarkPalette.MainRockAccent(random),
 				emissionStrength: 0.09f);
@@ -106,14 +107,14 @@ internal static class NavigationLandmarkVisualCatalog
 		{
 			var position = LayoutPoint(layout, i, supportCount, clusterRadius, random, 0.95f);
 			var diameter = worldRadius * (0.08f + random.Randf() * 0.12f);
-			var rock = NavigationLandmarkRockLibrary.CreateRock(random, diameter, mainMass: false);
+			var rock = AsteroidRockLibrary.CreateRock(random, diameter, mainMass: false);
 			rock.Name = $"Asteroid_Support_{i}";
 			rock.Position = position;
 			rock.RotationDegrees = new Vector3(
 				random.Randf() * 180f,
 				random.Randf() * 360f,
 				random.Randf() * 180f);
-			NavigationLandmarkRockLibrary.TintMeshes(
+			AsteroidRockLibrary.TintMeshes(
 				rock,
 				NavigationLandmarkPalette.SupportRockAccent(random),
 				emissionStrength: 0.05f);
@@ -186,7 +187,7 @@ internal static class NavigationLandmarkVisualCatalog
 		{
 			var angle = random.Randf() * Mathf.Tau;
 			var distance = random.Randf() * worldRadius * 0.55f;
-			var shard = NavigationLandmarkRockLibrary.CreateRock(
+			var shard = AsteroidRockLibrary.CreateRock(
 				random,
 				worldRadius * (0.04f + random.Randf() * 0.06f),
 				mainMass: false);
@@ -196,7 +197,7 @@ internal static class NavigationLandmarkVisualCatalog
 				(random.Randf() - 0.5f) * worldRadius * 0.03f,
 				Mathf.Sin(angle) * distance);
 			shard.RotationDegrees = new Vector3(random.Randf() * 180f, random.Randf() * 360f, 0f);
-			NavigationLandmarkRockLibrary.TintMeshes(
+			AsteroidRockLibrary.TintMeshes(
 				shard,
 				new Color(0.62f, 0.34f, 0.18f).Lerp(new Color(0.48f, 0.28f, 0.16f), random.Randf()),
 				roughness: 0.72f);
@@ -219,7 +220,7 @@ internal static class NavigationLandmarkVisualCatalog
 		{
 			var angle = random.Randf() * Mathf.Tau;
 			var distance = random.Randf() * worldRadius * 0.65f;
-			var piece = NavigationLandmarkRockLibrary.CreateRock(
+			var piece = AsteroidRockLibrary.CreateRock(
 				random,
 				worldRadius * (0.06f + random.Randf() * 0.1f),
 				mainMass: i < 2);
@@ -229,7 +230,7 @@ internal static class NavigationLandmarkVisualCatalog
 				(random.Randf() - 0.5f) * worldRadius * 0.04f,
 				Mathf.Sin(angle) * distance);
 			piece.RotationDegrees = new Vector3(random.Randf() * 45f, random.Randf() * 360f, random.Randf() * 45f);
-			NavigationLandmarkRockLibrary.TintMeshes(
+			AsteroidRockLibrary.TintMeshes(
 				piece,
 				NavigationLandmarkPalette.SupportRockAccent(random),
 				roughness: 0.78f);

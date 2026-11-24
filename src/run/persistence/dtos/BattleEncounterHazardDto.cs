@@ -8,4 +8,5 @@ public sealed record BattleEncounterHazardDto(
 	Coord Origin,
 	IReadOnlyList<Coord> Cells,
 	EBattleHazardKind Kind = EBattleHazardKind.Asteroid,
-	BodyFrame? Frame = null);
+	BodyFrame? Frame = null,
+	int? DamageResistancePercent = null);

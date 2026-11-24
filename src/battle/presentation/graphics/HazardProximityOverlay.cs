@@ -24,7 +24,7 @@ public sealed partial class HazardProximityOverlay : Node2D
 	private Node _hud = null!;
 	private IReadOnlyList<(Hazard Hazard, string Range)> _inRange = [];
 	private Control? _tooltip;
-	private string? _tooltipHazardId;
+	private (string Id, int? Resistance)? _tooltipKey;
 
 	public void Configure(Camera3D camera, Node hud)
 	{
@@ -82,7 +82,7 @@ public sealed partial class HazardProximityOverlay : Node2D
 		{
 			_tooltip?.QueueFree();
 			_tooltip = null;
-			_tooltipHazardId = null;
+			_tooltipKey = null;
 			return;
 		}
 
@@ -91,11 +91,13 @@ public sealed partial class HazardProximityOverlay : Node2D
 		var overHud = viewport.GuiGetHoveredControl() is { } control && _hud.IsAncestorOf(control);
 		var hovered = overHud ? null : _marks.FirstOrDefault(mark => mark.Rect.HasPoint(pointer)).Hazard;
 
-		if (hovered?.Id != _tooltipHazardId || (hovered is not null && _tooltip is null))
+		// Cover keeps its id while eroding, so resistance must refresh an already hovered tooltip.
+		var key = hovered is null ? ((string, int?)?)null : (hovered.Id, (hovered as AsteroidBelt)?.DamageResistancePercent);
+		if (key != _tooltipKey || (hovered is not null && _tooltip is null))
 		{
 			_tooltip?.QueueFree();
 			_tooltip = null;
-			_tooltipHazardId = hovered?.Id;
+			_tooltipKey = key;
 			if (hovered is not null)
 			{
 				_tooltip = BattleHudTooltipCard.Create(BattleHudCopy.HazardTooltipFor(hovered));

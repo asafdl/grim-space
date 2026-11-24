@@ -2,6 +2,7 @@ using GrimSpace.Battle;
 using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.Ids;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Core;
 using GrimSpace.Core.Actions;
 
@@ -12,6 +13,8 @@ public sealed record TurnReplay(
 	IReadOnlyList<ITimelineEntry> History,
 	IReadOnlyDictionary<string, State> EndStates)
 {
+	public IReadOnlyList<AsteroidBelt> StartAsteroidBelts { get; init; } = [];
+
 	public IEnumerable<IAction> Actions =>
 		History.OfType<IAction>();
 

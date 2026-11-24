@@ -268,6 +268,10 @@ public sealed class PresentationFrameBuilder
 				.OrderBy(storm => storm.Id, StringComparer.Ordinal)
 				.Select(storm => storm.Center)
 				.ToImmutableArray(),
+			AsteroidBelts = (isPlanning ? sim.World : battle.Engine.World).NonUnits.Values
+				.OfType<AsteroidBelt>()
+				.OrderBy(belt => belt.Id, StringComparer.Ordinal)
+				.ToImmutableArray(),
 			RangeEnemy = rangeEnemy,
 			TargetPick = targetPick,
 			FacePickTargetId = facePickTargetId,

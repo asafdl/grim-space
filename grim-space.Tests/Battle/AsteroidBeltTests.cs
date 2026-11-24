@@ -15,6 +15,7 @@ using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
+using GrimSpace.Tests.Actions;
 
 namespace GrimSpace.Tests.Hazards;
 
@@ -302,6 +303,27 @@ public sealed class AsteroidBeltTests
 			new[] { emptyCells[0], emptyCells[1], targetCell },
 			cell => Assert.Equal(80, world.AsteroidBeltAt(cell)!.DamageResistancePercent));
 		Assert.Equal(80, world.AsteroidBeltAt(sourceCell)!.DamageResistancePercent);
+	}
+
+	[Fact]
+	public void ResolvedReplayKeepsSegmentStartCoverAndRecordsErosion()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var enemyPos = TurnOrchestrationTests.EnemyInLightningCannonLine(playerPos);
+		using var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
+		var live = battle.Engine.World;
+		live.AddNonUnit(AsteroidBelt.Create("asteroidbelt-target", enemyPos, live.Grid, 80));
+		BattleTestFixture.ResetPlayerPlanning(battle);
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction("player")));
+
+		var replay = BattleTestActions.CommitAndResolve(battle);
+
+		var start = Assert.Single(replay.StartAsteroidBelts);
+		Assert.Equal(80, start.DamageResistancePercent);
+		var change = replay.History.OfType<Record<AsteroidBeltChangedFacts>>()
+			.First(record => record.Value.SourceId == "player").Value;
+		Assert.Equal((80, 40), (change.BeforeResistancePercent, change.AfterResistancePercent));
+		Assert.True(live.AsteroidBeltAt(enemyPos) is null or { DamageResistancePercent: < 80 });
 	}
 
 	[Fact]

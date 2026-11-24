@@ -15,6 +15,7 @@ public static class HazardPlacement
 			new GravityWellPlacement(),
 			new SingleCellHazardPlacement(EBattleHazardKind.CryoPlume, requireComplete: false),
 			new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, requireComplete: true),
+			new SingleCellHazardPlacement(EBattleHazardKind.AsteroidBelt, requireComplete: false),
 		];
 
 	public static IReadOnlyList<BattleHazardSpawn> Generate(

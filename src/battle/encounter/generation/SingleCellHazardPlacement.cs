@@ -23,7 +23,10 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 
 	public SingleCellHazardPlacement(EBattleHazardKind kind, bool requireComplete)
 	{
-		if (kind is not (EBattleHazardKind.CryoPlume or EBattleHazardKind.IonStorm))
+		if (kind is not (
+			EBattleHazardKind.CryoPlume
+			or EBattleHazardKind.IonStorm
+			or EBattleHazardKind.AsteroidBelt))
 			throw new ArgumentOutOfRangeException(nameof(kind), kind, "Expected a single-cell hazard kind.");
 		_kind = kind;
 		_requireComplete = requireComplete;
@@ -64,13 +67,32 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		if (best is null && _requireComplete)
 			best = RollCompactLayout(context, min, max, count);
 
-		foreach (var cell in best ?? [])
+		var cells = best ?? [];
+		var firstResistancePercent = _kind == EBattleHazardKind.AsteroidBelt
+			? context.Rng.Next(2) == 0
+				? AsteroidBelt.LowResistancePercent
+				: AsteroidBelt.HighResistancePercent
+			: (int?)null;
+		for (var index = 0; index < cells.Count; index++)
 		{
+			var cell = cells[index];
+			int? damageResistancePercent = null;
+			if (firstResistancePercent is { } firstResistance)
+			{
+				var isLowResistance = index % 2 == 0
+					? firstResistance == AsteroidBelt.LowResistancePercent
+					: firstResistance == AsteroidBelt.HighResistancePercent;
+				damageResistancePercent = isLowResistance
+					? AsteroidBelt.LowResistancePercent
+					: AsteroidBelt.HighResistancePercent;
+			}
+
 			context.Claim(new BattleHazardSpawn
 			{
 				Kind = _kind,
 				Origin = cell,
 				Cells = new HashSet<Coord> { cell },
+				DamageResistancePercent = damageResistancePercent,
 			});
 		}
 	}

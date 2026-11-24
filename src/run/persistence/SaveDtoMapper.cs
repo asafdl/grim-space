@@ -127,6 +127,7 @@ public static class SaveDtoMapper
 					hazard.Origin,
 					Cells = hazard.Cells.ToArray(),
 					hazard.Frame,
+					hazard.DamageResistancePercent,
 				})).ToArray(),
 		});
 	}
@@ -141,12 +142,21 @@ public static class SaveDtoMapper
 			Objective = dto.Objective,
 			XpDifficulty = dto.XpDifficulty,
 			Spawns = dto.Spawns.Select(RestoreBattleSpawn).ToArray(),
-			WorldHazards = dto.Hazards.Select(hazard => new BattleHazardSpawn
+			WorldHazards = dto.Hazards.Select(hazard =>
 			{
-				Kind = hazard.Kind,
-				Origin = hazard.Origin,
-				Cells = hazard.Cells.ToHashSet(),
-				Frame = hazard.Frame,
+				if (hazard.Kind == EBattleHazardKind.AsteroidBelt
+					&& hazard.DamageResistancePercent
+						is not (AsteroidBelt.LowResistancePercent or AsteroidBelt.HighResistancePercent))
+					throw new InvalidDataException("Saved asteroid belt has invalid damage resistance.");
+
+				return new BattleHazardSpawn
+				{
+					Kind = hazard.Kind,
+					Origin = hazard.Origin,
+					Cells = hazard.Cells.ToHashSet(),
+					Frame = hazard.Frame,
+					DamageResistancePercent = hazard.DamageResistancePercent,
+				};
 			}).ToArray(),
 		};
 	}
@@ -854,6 +864,9 @@ public static class SaveDtoMapper
 			Center = center,
 			nonUnit.Frame,
 			Cells = nonUnit.Cells.ToArray(),
+			DamageResistancePercent = nonUnit is AsteroidBelt belt
+				? belt.DamageResistancePercent
+				: (int?)null,
 		});
 	}
 
@@ -892,9 +905,28 @@ public static class SaveDtoMapper
 				Frame = dto.Frame,
 				Cells = dto.Cells.ToFrozenSet(),
 			},
+			NonUnitTypeSlug.AsteroidBelt => RestoreAsteroidBelt(dto, grid),
 			NonUnitTypeSlug.GravityWell => RestoreGravityWell(dto, grid),
 			var slug => throw new InvalidDataException($"Unsupported non-unit type slug '{slug}'."),
 		};
+
+	private static AsteroidBelt RestoreAsteroidBelt(HazardSaveDto dto, Grid grid)
+	{
+		if (dto.ActorId != BattleActorIds.Terrain
+			|| !grid.IsInBounds(dto.Center)
+			|| dto.Cells.Count != 1
+			|| dto.Cells[0] != dto.Center
+			|| dto.Frame != BodyFrame.WorldAligned(dto.Center)
+			|| dto.DamageResistancePercent
+				is not (AsteroidBelt.LowResistancePercent or AsteroidBelt.HighResistancePercent))
+			throw new InvalidDataException("Saved asteroid belt has invalid terrain, footprint, frame, or resistance.");
+
+		return AsteroidBelt.Create(
+			dto.Id,
+			dto.Center,
+			grid,
+			dto.DamageResistancePercent.Value);
+	}
 
 	private static GravityWell RestoreGravityWell(HazardSaveDto dto, Grid grid)
 	{

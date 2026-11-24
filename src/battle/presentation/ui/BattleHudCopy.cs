@@ -274,6 +274,10 @@ internal static class BattleHudCopy
 			"Charged gas cloud.",
 			$"[icon: {Icon.Shield}, text: +{IonStorm.ShieldPercentOfFaceMax}% temporary shields on entry ]\n[icon: {Icon.Overdrive}, text:  Go into overdrive on entry ]"),
 		GoopHazard => new("Goop", "Blocks ability fire. Ships can move through it."),
+		AsteroidBelt belt => new(
+			"Asteroid Belt Cover",
+			$"Ships can hide from attacks here. Each attack that hits it strips cover.",
+			$"[icon: {Icon.Shield}, text: -{belt.DamageResistancePercent}% damage taken inside ]\n[icon: {Icon.Damage}, text: -{100 - AsteroidBelt.OutgoingDamageRetainedPercent}% damage dealt from inside ]"),
 		GravityWell => new(
 			"Gravity Well",
 			"Distortions of space-time allow for free movement around the well, provided you follow the gravity curves.",

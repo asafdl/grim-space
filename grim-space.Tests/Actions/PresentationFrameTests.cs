@@ -50,6 +50,28 @@ public sealed class PresentationFrameTests
 	}
 
 	[Fact]
+	public void FrameProjectsAsteroidBeltsFromPlanningSimulation()
+	{
+		var playerPos = new Coord(5, 5, 5);
+		var enemyPos = TurnOrchestrationTests.EnemyInLightningCannonLine(playerPos);
+		using var battle = TurnOrchestrationTests.CreateOrchestrator(playerPos, enemyPos);
+		var live = battle.Engine.World;
+		live.AddNonUnit(AsteroidBelt.Create("asteroidbelt-target", enemyPos, live.Grid, 80));
+		BattleTestFixture.ResetPlayerPlanning(battle);
+		var covers = () => BattleTestCommands.Frame(battle).AsteroidBelts
+			.Select(belt => (belt.Id, belt.Center, belt.DamageResistancePercent))
+			.ToArray();
+
+		Assert.Equal(new[] { ("asteroidbelt-target", enemyPos, 80) }, covers());
+		Assert.True(battle.PlayerAgent.Sim.TryEnqueue(new LightningCannonAction("player")));
+		Assert.Equal(new[] { ("asteroidbelt-target", enemyPos, 40) }, covers());
+		Assert.Equal(80, live.AsteroidBeltAt(enemyPos)!.DamageResistancePercent);
+
+		battle.PlayerAgent.Undo();
+		Assert.Equal(new[] { ("asteroidbelt-target", enemyPos, 80) }, covers());
+	}
+
+	[Fact]
 	public void FrameProjectsWellFacesThroughPlanningAndLoadedWorlds()
 	{
 		var grid = BattleTestFixture.Grid(16);

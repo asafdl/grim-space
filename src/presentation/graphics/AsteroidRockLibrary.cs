@@ -1,8 +1,8 @@
 using Godot;
 
-namespace GrimSpace.World.StarSystem.Presentation.Map;
+namespace GrimSpace.Presentation.Graphics;
 
-internal static class NavigationLandmarkRockLibrary
+internal static class AsteroidRockLibrary
 {
 	private const string PackPath = "res://assets/models/asteroids/asteroids_pack_metallic_version.glb";
 	private static (Mesh Mesh, Aabb Bounds)[]? _rocks;

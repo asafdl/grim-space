@@ -54,6 +54,7 @@ public partial class BattleController : Node3D
 	private EnemyRangeTetherView _enemyRangeTether = null!;
 	private PickedTargetMarksView _pickedTargetMarks = null!;
 	private GoopHazardView _goopHazardView = null!;
+	private AsteroidBeltsView _asteroidBeltsView = null!;
 	private GravityWellsView _gravityWellsView = null!;
 	private CryoPlumeView _ionStormView = null!;
 	private BattleHud _battleHud = null!;
@@ -230,6 +231,8 @@ public partial class BattleController : Node3D
 		hazardsRoot.AddChild(_ionStormView);
 		_goopHazardView = new GoopHazardView { Name = "GoopHazards" };
 		hazardsRoot.AddChild(_goopHazardView);
+		_asteroidBeltsView = new AsteroidBeltsView { Name = "AsteroidBelts", EncounterSeed = backdropSeed };
+		hazardsRoot.AddChild(_asteroidBeltsView);
 		SyncAuthoritativeHazardViews();
 
 		_unitsRoot = GetNode<Node3D>("Units");
@@ -354,7 +357,8 @@ public partial class BattleController : Node3D
 			ApplyReplayState,
 			_goopHazardView.Show,
 			_goopHazardView.Remove,
-			PlayImpactReaction);
+			PlayImpactReaction,
+			_asteroidBeltsView.ApplyChange);
 		_replayPlayer.TurnFlowIndexChanged += OnTurnFlowIndexChanged;
 		_replayPlayer.TurnFlowHandoffRequested = OnTurnFlowHandoffRequested;
 		AddChild(_replayPlayer);
@@ -374,7 +378,8 @@ public partial class BattleController : Node3D
 			_battleView,
 			_cameraDirector,
 			ColorForActor,
-			() => !_simulationTransition.IsTransitioning && !_battleHud.TurnFlowBar.IsAnimating);
+			() => !_simulationTransition.IsTransitioning && !_battleHud.TurnFlowBar.IsAnimating,
+			_asteroidBeltsView.Apply);
 		AddChild(_replayDirector);
 
 		_agent.PlanningChanged += OnPlanningChanged;
@@ -1131,6 +1136,9 @@ public partial class BattleController : Node3D
 	{
 		_gravityWellsView.Apply(frame.GravityWells);
 		_ionStormView.ApplyIonStorms(frame.IonStormCells);
+		// Resolve mutates the live world before replay; replay owns cover until it completes.
+		if (_battle.Phase is not (EBattlePhase.Resolving or EBattlePhase.Replaying))
+			_asteroidBeltsView.Apply(frame.AsteroidBelts);
 		if (ShouldApplyFrameUnitStates(_battle.Phase))
 			ApplyUnitStates(frame);
 		ApplyEnemyRangeTether(frame);
@@ -1154,7 +1162,9 @@ public partial class BattleController : Node3D
 			.ToArray();
 		_hazardProximityOverlay.Apply(
 			frame.FocusState.Position,
-			_battle.Engine.World.NonUnits.Values.OfType<Hazard>());
+			_battle.Engine.World.NonUnits.Values.OfType<Hazard>()
+				.Where(hazard => hazard is not AsteroidBelt)
+				.Concat(frame.AsteroidBelts));
 		_targetOpportunityOverlay.Apply(
 			frame.PreviewUnits,
 			frame.PoseHitOpportunities.Concat(lethalTargets).ToArray());

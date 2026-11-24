@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Godot;
 using GrimSpace.Battle.Presentation.Camera;
 using GrimSpace.Battle.Presentation.Graphics;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Log;
 using GrimSpace.Units.Enums;
@@ -19,6 +20,7 @@ public sealed partial class ReplayDirector : Node
 	private BattleCameraDirector _cameraDirector = null!;
 	private Func<string, Color> _colorForActor = _ => Colors.White;
 	private Func<bool> _playbackReady = () => true;
+	private Action<IReadOnlyList<AsteroidBelt>> _syncAsteroidBelts = _ => { };
 
 	private TurnReplay? _pendingReplay;
 	private TurnReplay? _entryReplay;
@@ -37,7 +39,8 @@ public sealed partial class ReplayDirector : Node
 		BattleView battleView,
 		BattleCameraDirector cameraDirector,
 		Func<string, Color> colorForActor,
-		Func<bool>? playbackReady = null)
+		Func<bool>? playbackReady = null,
+		Action<IReadOnlyList<AsteroidBelt>>? syncAsteroidBelts = null)
 	{
 		_battle = battle;
 		_replayPlayer = replayPlayer;
@@ -45,6 +48,7 @@ public sealed partial class ReplayDirector : Node
 		_cameraDirector = cameraDirector;
 		_colorForActor = colorForActor;
 		_playbackReady = playbackReady ?? (() => true);
+		_syncAsteroidBelts = syncAsteroidBelts ?? (_ => { });
 		_lastPlayerId = battle.ActivePlayerId;
 
 		_battle.PhaseChanged += OnPhaseChanged;
@@ -138,6 +142,7 @@ public sealed partial class ReplayDirector : Node
 			replay.EndStates,
 			interest => _cameraDirector.ReportInterest(interest),
 			scale => _cameraDirector.PlayImpactShake(scale));
+		_syncAsteroidBelts(replay.StartAsteroidBelts);
 		_entryFocus?.Invoke();
 		_entryFocus = null;
 		_entryApplied = true;
