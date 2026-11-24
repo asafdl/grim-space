@@ -1,5 +1,6 @@
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
+using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
@@ -31,6 +32,8 @@ public sealed class EmptyStatusPayload : IBattleStatusPayload
 	public IBattleStatusPayload DeepCopy() => this;
 }
 
+
+// TODO: This class is a mess. its just a monolith of functions instead of actual statuses
 public sealed class BattleStatus
 {
 	public required string InstanceId { get; init; }
@@ -353,6 +356,15 @@ public static class BattleStatuses
 			if (status.RewriteIncomingHit is { } rewrite)
 				current = rewrite(world, target, origin, cause, face, current);
 		}
+
+		if (world.AsteroidBeltAt(origin) is not null)
+			current = Defense.ScaleHitDamageTaken(
+				current,
+				AsteroidBelt.OutgoingDamageRetainedPercent);
+		if (world.AsteroidBeltAt(target.State.Position) is { } cover)
+			current = Defense.ScaleHitDamageTaken(
+				current,
+				100 - cover.DamageResistancePercent);
 
 		return current;
 	}
