@@ -59,7 +59,7 @@ public sealed class BattleTutorialMovementMatchTests
 		var objective = ResolveObjective(battle);
 		var agent = battle.PlayerAgent;
 		var path = MovePathEndpoints.DiscoverExtensions(agent.Sim, battle.PlayerId)
-			.First(candidate => candidate.EndPosition == new Coord(32, 29, 32)
+			.First(candidate => candidate.EndPosition == new Coord(12, 9, 12)
 				&& candidate.EndBasis.Forward == new Coord(0, 1, 0));
 
 		Assert.True(agent.TryEnqueue(path.Steps));
@@ -82,7 +82,7 @@ public sealed class BattleTutorialMovementMatchTests
 				&& candidate.EndBasis == objective.RequiredBasis);
 
 		Assert.Equal("target", objective.TargetId);
-		Assert.Equal(new Coord(29, 32, 32), objective.Destination);
+		Assert.Equal(new Coord(9, 12, 12), objective.Destination);
 		Assert.True(battle.PlayerAgent.TryEnqueue(path.Steps));
 		Assert.Equal(objective, ResolveObjective(battle));
 	}
@@ -104,7 +104,7 @@ public sealed class BattleTutorialMovementMatchTests
 					Ship = ShipInstance.FromCatalog("fighter", EType.Fighter),
 					Team = ETeam.Player,
 					Faction = EFaction.Player,
-					Position = new Coord(29, 29, 32),
+					Position = new Coord(9, 9, 12),
 					Fore = new Coord(1, 0, 0),
 					ExecutionAgent = new UserExecutionAgent(),
 				},
@@ -113,7 +113,7 @@ public sealed class BattleTutorialMovementMatchTests
 					Ship = ShipInstance.FromCatalog("target", EType.RepurposedMiner),
 					Team = ETeam.Enemy,
 					Faction = GrimSpace.Battle.Units.Factory.DefaultFactionFor(ETeam.Enemy),
-					Position = new Coord(32, 32, 32),
+					Position = new Coord(12, 12, 12),
 					Fore = new Coord(-1, 0, 0),
 					ExecutionAgent = new AiController(),
 				},
@@ -122,7 +122,7 @@ public sealed class BattleTutorialMovementMatchTests
 					Ship = ShipInstance.FromCatalog("backup", EType.RepurposedMiner),
 					Team = ETeam.Enemy,
 					Faction = GrimSpace.Battle.Units.Factory.DefaultFactionFor(ETeam.Enemy),
-					Position = new Coord(43, 33, 38),
+					Position = new Coord(16, 13, 17),
 					Fore = new Coord(-1, 0, 0),
 					ExecutionAgent = new AiController(),
 				},

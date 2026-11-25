@@ -93,8 +93,8 @@ public sealed class BeginEngagementTests
 		var player = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns);
 		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
-		Assert.Equal(16, player.Position.ManhattanDistanceTo(enemy.Position));
-		Assert.Equal(player.Position + player.Fore * 16, enemy.Position);
+		Assert.Equal(12, player.Position.ManhattanDistanceTo(enemy.Position));
+		Assert.Equal(player.Position + player.Fore * 12, enemy.Position);
 	}
 
 	[Fact]
@@ -118,7 +118,7 @@ public sealed class BeginEngagementTests
 		var player = RunTestKit.StarterFighterBattleSpawn(encounter.Spawns);
 		var enemy = encounter.Spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
-		Assert.Equal(enemy.Position + enemy.Fore * 16, player.Position);
+		Assert.Equal(enemy.Position + enemy.Fore * 12, player.Position);
 	}
 
 	[Fact]
