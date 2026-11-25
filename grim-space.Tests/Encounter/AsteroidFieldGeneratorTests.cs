@@ -14,6 +14,10 @@ public sealed class AsteroidFieldGeneratorTests
 		var config = new AsteroidFieldConfig
 		{
 			Seed = 42,
+			GridSize = 64,
+			RegionCenter = new Coord(32, 32, 32),
+			RegionHalfExtent = 30,
+			TargetCount = 128,
 			UnitPositions = [unit],
 		};
 
@@ -72,7 +76,11 @@ public sealed class AsteroidFieldGeneratorTests
 	{
 		for (var seed = 0; seed < 16; seed++)
 		{
-			var hazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig { Seed = seed });
+			var hazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
+			{
+				Seed = seed, GridSize = 64, RegionCenter = new Coord(32, 32, 32),
+				RegionHalfExtent = 30, TargetCount = 128,
+			});
 			Assert.InRange(hazards.Count(hazard => hazard.Cells.Count > 64), 3, 5);
 		}
 	}
@@ -82,7 +90,7 @@ public sealed class AsteroidFieldGeneratorTests
 	{
 		for (var seed = 0; seed < 32; seed++)
 		{
-			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
+			var encounter = BattleEncounter.DevDefault(seed);
 			var player = encounter.Spawns[0];
 			var reserved = AsteroidFieldReservations.PlayerCorridor(player);
 			Assert.All(encounter.WorldHazards.Where(hazard => hazard.Kind == EBattleHazardKind.Asteroid), hazard =>
@@ -93,7 +101,11 @@ public sealed class AsteroidFieldGeneratorTests
 	[Fact]
 	public void Generate_SameSeedProducesSameVolumes()
 	{
-		var config = new AsteroidFieldConfig { Seed = 119 };
+		var config = new AsteroidFieldConfig
+		{
+			Seed = 119, GridSize = 64, RegionCenter = new Coord(32, 32, 32),
+			RegionHalfExtent = 30, TargetCount = 128,
+		};
 		var first = AsteroidFieldGenerator.Generate(config);
 		var second = AsteroidFieldGenerator.Generate(config);
 

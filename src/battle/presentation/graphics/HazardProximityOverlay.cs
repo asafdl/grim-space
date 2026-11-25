@@ -9,7 +9,7 @@ namespace GrimSpace.Battle.Presentation.Graphics;
 /// <summary>Screen-space corner brackets, range labels, and hover tooltips for hazards near the focused unit.</summary>
 public sealed partial class HazardProximityOverlay : Node2D
 {
-	public const int RangeCells = 10;
+	public const int RangeCells = 4;
 
 	private const float MinHalfPx = 14f;
 	private const float MaxHalfPx = 60f;

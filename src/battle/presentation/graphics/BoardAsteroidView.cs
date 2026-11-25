@@ -1,6 +1,7 @@
 using Godot;
 using GrimSpace.Battle.World;
 using GrimSpace.Math.Grid;
+using BoundedGrid = GrimSpace.Math.Grid.Grid;
 
 namespace GrimSpace.Battle.Presentation.Graphics;
 
@@ -41,7 +42,36 @@ public partial class BoardAsteroidView : Node3D
 
 		foreach (var asteroid in asteroids)
 		{
-			var visual = CreateAsteroid(asteroid);
+			var visual = CreateAsteroid(asteroid.Id, asteroid.Center, asteroid.Cells);
+			_asteroidVisuals.Add(visual);
+			AddChild(visual);
+		}
+	}
+
+	public void BuildDecorations(Camera3D camera, BoundedGrid grid, int seed)
+	{
+		_camera = camera;
+		EnsureLoaded();
+		var rng = new Random(seed);
+		for (var i = 0; i < 48; i++)
+		{
+			var x = rng.Next(grid.Width);
+			var y = rng.Next(grid.Height);
+			var z = rng.Next(grid.Depth);
+			var distance = rng.Next(4, 13);
+			switch (rng.Next(6))
+			{
+				case 0: x = -distance; break;
+				case 1: x = grid.Width - 1 + distance; break;
+				case 2: y = -distance; break;
+				case 3: y = grid.Height - 1 + distance; break;
+				case 4: z = -distance; break;
+				case 5: z = grid.Depth - 1 + distance; break;
+			}
+
+			var center = new Coord(x, y, z);
+			var cells = Coord.OffsetsInCube(rng.Next(1, 3)).Select(offset => center + offset).ToArray();
+			var visual = CreateAsteroid($"DecorativeAsteroid{i}", center, cells);
 			_asteroidVisuals.Add(visual);
 			AddChild(visual);
 		}
@@ -71,18 +101,18 @@ public partial class BoardAsteroidView : Node3D
 		}
 	}
 
-	private static MeshInstance3D CreateAsteroid(Asteroid asteroid)
+	private static MeshInstance3D CreateAsteroid(string id, Coord cell, IReadOnlyCollection<Coord> cells)
 	{
-		var rng = RngFor(asteroid.Center);
+		var rng = RngFor(cell);
 		var metallic = rng.Randf() < 0.18f;
 		var variants = metallic ? _metallicRocks! : _rocks!;
 		var variant = variants[rng.Randi() % variants.Length];
-		var minX = asteroid.Cells.Min(cell => cell.X);
-		var minY = asteroid.Cells.Min(cell => cell.Y);
-		var minZ = asteroid.Cells.Min(cell => cell.Z);
-		var maxX = asteroid.Cells.Max(cell => cell.X);
-		var maxY = asteroid.Cells.Max(cell => cell.Y);
-		var maxZ = asteroid.Cells.Max(cell => cell.Z);
+		var minX = cells.Min(position => position.X);
+		var minY = cells.Min(position => position.Y);
+		var minZ = cells.Min(position => position.Z);
+		var maxX = cells.Max(position => position.X);
+		var maxY = cells.Max(position => position.Y);
+		var maxZ = cells.Max(position => position.Z);
 		var center = (WorldMapping.ToWorld(new Coord(minX, minY, minZ))
 			+ WorldMapping.ToWorld(new Coord(maxX, maxY, maxZ))) * 0.5f;
 		var availableSize = new Vector3(
@@ -111,7 +141,7 @@ public partial class BoardAsteroidView : Node3D
 
 		return new MeshInstance3D
 		{
-			Name = asteroid.Id,
+			Name = id,
 			Position = center - rotation * (variant.Bounds.GetCenter() * sizeScale),
 			Basis = rotation.ScaledLocal(sizeScale),
 			Mesh = variant.Mesh,

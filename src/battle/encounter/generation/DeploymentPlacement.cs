@@ -14,15 +14,8 @@ namespace GrimSpace.Battle.Encounter.Generation;
 public static class DeploymentPlacement
 {
 	private const int Margin = 4;
-	private const int DeploySpreadDivisor = 5;
-	private const int EnemySpreadBand = 4;
-	private const int LaneHalfBand = 8;
-	private const int EngagementSeparation = 16;
-	private const int MinEngagementSeparation = EngagementSeparation;
-	private const int MaxEngagementSeparation = 20;
-	private const int MinEngagementSeparationSquared = MinEngagementSeparation * MinEngagementSeparation;
-	private const int MaxEngagementSeparationSquared = MaxEngagementSeparation * MaxEngagementSeparation;
-	private static readonly Coord[] EngagementSeparationOffsets = BuildEngagementSeparationOffsets();
+	private const int EngagementSeparation = 12;
+	private static readonly Coord[] EngagementSeparationOffsets = BuildEngagementSeparationOffsets(10, 12);
 	private static readonly Coord[] CardinalDirections =
 	[
 		new(1, 0, 0),
@@ -32,23 +25,6 @@ public static class DeploymentPlacement
 		new(0, 0, 1),
 		new(0, 0, -1),
 	];
-
-	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
-		BattleUnitType playerChassis,
-		BattleUnitType enemyChassis,
-		int seed,
-		int gridSize,
-		string? playerId = null,
-		string? enemyId = null)
-	{
-		var playerShip = ShipInstance.FromCatalog(
-			playerId ?? "dev-player",
-			playerChassis);
-		var enemyShip = ShipInstance.FromCatalog(
-			enemyId ?? "dev-enemy",
-			enemyChassis);
-		return DevDuel(playerShip, enemyShip, seed, gridSize);
-	}
 
 	public static List<BattleSpawn> ForEngagement(
 		IReadOnlyList<Fleet> participantFleets,
@@ -152,44 +128,6 @@ public static class DeploymentPlacement
 		|| fleet.State.Type != GrimSpace.World.StarSystem.Units.EType.PlayerFleet
 		|| playerDeployShipIds.Contains(member.Id);
 
-	public static (BattleSpawn Player, BattleSpawn Enemy) DevDuel(
-		ShipInstance playerShip,
-		ShipInstance enemyShip,
-		int seed,
-		int gridSize)
-	{
-		ArgumentOutOfRangeException.ThrowIfLessThan(gridSize, 1);
-		var center = gridSize / 2;
-		var deploySpread = gridSize / DeploySpreadDivisor;
-		var playerPosition = new Coord(center - deploySpread, center, center);
-		var enemyPosition = PickEnemyPosition(seed, gridSize, playerPosition);
-		var dorsal = Coord.Up;
-		var playerFore = AxisToward(playerPosition, enemyPosition);
-		var enemyFore = AxisToward(enemyPosition, playerPosition);
-
-		return (
-			new BattleSpawn
-			{
-				Ship = playerShip,
-				Team = ETeam.Player,
-				Faction = EFaction.Player,
-				Position = playerPosition,
-				Fore = playerFore,
-				Dorsal = dorsal,
-				ExecutionAgent = new UserExecutionAgent(),
-			},
-			new BattleSpawn
-			{
-				Ship = enemyShip,
-				Team = ETeam.Enemy,
-				Faction = EFaction.TheOptimality,
-				Position = enemyPosition,
-				Fore = enemyFore,
-				Dorsal = dorsal,
-				ExecutionAgent = new AiController(),
-			});
-	}
-
 	private static void PlaceFormation(
 		IReadOnlyList<(Fleet Fleet, FleetMember Member)> members,
 		Coord anchor,
@@ -225,7 +163,7 @@ public static class DeploymentPlacement
 		IReadOnlyDictionary<string, PilotBattleSnapshot>? shipIdToPilotSnapshot)
 	{
 		var center = gridSize / 2;
-		var target = new Coord(center, center, center);
+		var target = new Coord(System.Math.Min(center, gridSize - 12), center, center);
 		var towardEnemy = new Coord(1, 0, 0);
 		var towardPlayer = new Coord(-1, 0, 0);
 		Coord[] playerSlots = [target + new Coord(-3, -3, 0), target + new Coord(-7, -3, -3), target + new Coord(-7, -3, 3)];
@@ -318,18 +256,18 @@ public static class DeploymentPlacement
 		throw new InvalidOperationException("Could not find an open deployment cell.");
 	}
 
-	private static Coord[] BuildEngagementSeparationOffsets()
+	private static Coord[] BuildEngagementSeparationOffsets(int minSeparation, int maxSeparation)
 	{
 		var offsets = new List<Coord>();
-		for (var x = -MaxEngagementSeparation; x <= MaxEngagementSeparation; x++)
+		for (var x = -maxSeparation; x <= maxSeparation; x++)
 		{
-			for (var y = -MaxEngagementSeparation; y <= MaxEngagementSeparation; y++)
+			for (var y = -maxSeparation; y <= maxSeparation; y++)
 			{
-				for (var z = -MaxEngagementSeparation; z <= MaxEngagementSeparation; z++)
+				for (var z = -maxSeparation; z <= maxSeparation; z++)
 				{
 					var lengthSquared = x * x + y * y + z * z;
-					if (lengthSquared < MinEngagementSeparationSquared
-						|| lengthSquared > MaxEngagementSeparationSquared)
+					if (lengthSquared < minSeparation * minSeparation
+						|| lengthSquared > maxSeparation * maxSeparation)
 						continue;
 
 					offsets.Add(new Coord(x, y, z));
@@ -348,23 +286,20 @@ public static class DeploymentPlacement
 	{
 		attackerAnchor = default;
 		interceptedAnchor = default;
-		if (EngagementSeparationOffsets.Length == 0)
-			return false;
-
-		var anchorMin = Margin + MaxEngagementSeparation;
-		var anchorMax = gridSize - Margin - MaxEngagementSeparation - 1;
-		if (anchorMin > anchorMax)
+		if (gridSize <= Margin * 2)
 			return false;
 
 		for (var attempt = 0; attempt < 128; attempt++)
 		{
 			attackerAnchor = new Coord(
-				rng.Next(anchorMin, anchorMax + 1),
-				rng.Next(anchorMin, anchorMax + 1),
-				rng.Next(anchorMin, anchorMax + 1));
-			var offset = EngagementSeparationOffsets[rng.Next(EngagementSeparationOffsets.Length)];
-			interceptedAnchor = attackerAnchor + offset;
-			if (IsInBounds(interceptedAnchor, gridSize))
+				rng.Next(Margin, gridSize - Margin),
+				rng.Next(Margin, gridSize - Margin),
+				rng.Next(Margin, gridSize - Margin));
+			interceptedAnchor = attackerAnchor + EngagementSeparationOffsets[
+				rng.Next(EngagementSeparationOffsets.Length)];
+			if (interceptedAnchor.X >= Margin && interceptedAnchor.X < gridSize - Margin
+				&& interceptedAnchor.Y >= Margin && interceptedAnchor.Y < gridSize - Margin
+				&& interceptedAnchor.Z >= Margin && interceptedAnchor.Z < gridSize - Margin)
 				return true;
 		}
 
@@ -383,35 +318,6 @@ public static class DeploymentPlacement
 		cell.X >= 0 && cell.X < gridSize
 		&& cell.Y >= 0 && cell.Y < gridSize
 		&& cell.Z >= 0 && cell.Z < gridSize;
-
-	private static Coord PickEnemyPosition(int seed, int gridSize, Coord playerPosition)
-	{
-		var rng = new Random(seed);
-		var half = gridSize / 2;
-		var center = gridSize / 2;
-
-		var deploySpread = gridSize / DeploySpreadDivisor;
-		var enemyCenter = center + deploySpread;
-		var minX = playerPosition.X < half
-			? enemyCenter - EnemySpreadBand
-			: Margin;
-		var maxX = playerPosition.X < half
-			? enemyCenter + EnemySpreadBand
-			: half - Margin - 1;
-
-		return new Coord(
-			NextInBounds(rng, minX, maxX, gridSize),
-			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize),
-			NextInBounds(rng, center - LaneHalfBand, center + LaneHalfBand, gridSize));
-	}
-
-	private static int NextInBounds(Random rng, int min, int max, int gridSize)
-	{
-		var last = gridSize - 1;
-		var boundedMin = System.Math.Clamp(min, 0, last);
-		var boundedMax = System.Math.Clamp(max, boundedMin, last);
-		return rng.Next(boundedMin, boundedMax + 1);
-	}
 
 	private static Coord AxisToward(Coord from, Coord to)
 	{

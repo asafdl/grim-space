@@ -63,7 +63,7 @@ public partial class SimulationModeLab : Node3D
 
 	public override void _Ready()
 	{
-		_battle = BattleOrchestrator.PrepareFromEncounter(CreateEncounter());
+		_battle = BattleOrchestrator.PrepareFromEncounter(CreateEncounter(), gridSize: 64);
 		_battle.EnterPlayerTurn("simulation lab");
 		_battle.GrantPlayerCanWork();
 		var layout = _battle.Layout;
@@ -302,6 +302,10 @@ public partial class SimulationModeLab : Node3D
 			WorldHazards = AsteroidFieldGenerator.Generate(new AsteroidFieldConfig
 			{
 				Seed = Seed,
+				GridSize = 64,
+				RegionCenter = new Coord(32, 32, 32),
+				RegionHalfExtent = 30,
+				TargetCount = 128,
 				UnitPositions = spawns.Select(spawn => spawn.Position).ToArray(),
 				ReservedCells = AsteroidFieldReservations.PlayerCorridors(spawns),
 			}),

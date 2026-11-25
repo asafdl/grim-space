@@ -15,8 +15,7 @@ public sealed class BattleWorldRehydrationTests
 	public void FromWorld_PreservesAuthoritativeBattleState()
 	{
 		using var original = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 17, gridSize: 12),
-			gridSize: 12);
+			BattleEncounter.DevDefault(seed: 17));
 		var liveWorld = original.Engine.World;
 		var player = liveWorld.UnitRegistry.UnitOf(original.PlayerId);
 		var mount = player.State.MountRuntime.Keys.First();
@@ -60,8 +59,7 @@ public sealed class BattleWorldRehydrationTests
 	public void FromSavedWorld_RecreatesAgentsInsteadOfReusingInstances()
 	{
 		using var original = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 18, gridSize: 12),
-			gridSize: 12);
+			BattleEncounter.DevDefault(seed: 18));
 		var savedWorld = original.Engine.World.Fork();
 		var savedAgents = savedWorld.UnitRegistry.All
 			.ToDictionary(unit => unit.State.Id, unit => unit.ExecutionAgent);

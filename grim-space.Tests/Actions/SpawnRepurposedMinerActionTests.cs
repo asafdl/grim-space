@@ -186,8 +186,7 @@ public sealed class SpawnRepurposedMinerActionTests
 	public void EncounterUnitsUseSystemParentId()
 	{
 		var battle = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 3, gridSize: 16),
-			gridSize: 16);
+			BattleEncounter.DevDefault(seed: 3));
 
 		foreach (var unit in UnitRegistry.For(battle.Engine.World).All)
 			Assert.Equal(BattleActorIds.Rules, unit.State.ParentId);

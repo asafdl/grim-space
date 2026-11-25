@@ -208,7 +208,7 @@ public partial class BattleController : Node3D
 			openingPose.Pitch);
 		_simulationBackdrop = new SimulationBackdropView { Name = "BattleBackdrop" };
 		AddChild(_simulationBackdrop);
-		_simulationBackdrop.Build(layout.Grid, backdropSeed, _camera);
+		_simulationBackdrop.Build(layout.Grid, backdropSeed, _camera, decorativeAsteroids: true);
 		var chamberRadius = layout.Grid.Width * WorldMapping.CellSize * 0.5f;
 		RedDwarfSun.Configure(
 			GetNode<DirectionalLight3D>("DirectionalLight3D"),

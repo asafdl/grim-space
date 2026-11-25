@@ -8,6 +8,7 @@ public sealed class GravityWellPlacement : IHazardPlacementPass
 {
 	private const int ApproachRadius = 9;
 	private const int MinCenterDistanceSquared = 36;
+	private const int Count = 4;
 
 	public void Place(HazardPlacementContext context)
 	{
@@ -21,7 +22,6 @@ public sealed class GravityWellPlacement : IHazardPlacementPass
 
 		var playerCenter = SingleCellHazardPlacement.Centroid(players);
 		var opponentCenter = SingleCellHazardPlacement.Centroid(opponents);
-		var count = context.Rng.Next(12, 16);
 		var min = new Coord(
 			System.Math.Clamp(System.Math.Min(playerCenter.X, opponentCenter.X) - ApproachRadius, 1, context.GridSize - 2),
 			System.Math.Clamp(System.Math.Min(playerCenter.Y, opponentCenter.Y) - ApproachRadius, 1, context.GridSize - 2),
@@ -52,13 +52,13 @@ public sealed class GravityWellPlacement : IHazardPlacementPass
 		PlaceAtHeight(midpointHeight - 3, above: false);
 		foreach (var center in shuffled)
 		{
-			if (placed.Count == count)
+			if (placed.Count == Count)
 				break;
 			TryPlace(center);
 		}
 
-		if (placed.Count == 0)
-			throw new InvalidOperationException("Insufficient unoccupied volume between teams for a gravity well.");
+		if (placed.Count != Count)
+			throw new InvalidOperationException($"Insufficient unoccupied volume to place {Count} gravity wells.");
 
 		void PlaceAtHeight(int height, bool above)
 		{
@@ -86,6 +86,8 @@ public sealed class GravityWellPlacement : IHazardPlacementPass
 
 		bool TryPlace(Coord center)
 		{
+			if (placed.Count >= Count)
+				return false;
 			var cells = Coord.OffsetsInCube(1).Select(offset => center + offset).ToHashSet();
 			if (cells.Overlaps(occupied) || cells.Overlaps(context.ClaimedCells)
 				|| placed.Any(other => Coord.Dot(center - other, center - other) < MinCenterDistanceSquared))

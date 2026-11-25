@@ -49,93 +49,7 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void DevDuel_PlacesPlayerOnLowXAndEnemyOnHighX()
-	{
-		var (player, enemy) = DeploymentPlacement.DevDuel(
-			BattleUnitType.Fighter,
-			BattleUnitType.Carrier,
-			seed: 42,
-			gridSize: 64);
-
-		Assert.True(player.Position.X < 64 / 2);
-		Assert.True(enemy.Position.X >= 64 / 2);
-		Assert.NotEqual(player.Position, enemy.Position);
-	}
-
-	[Fact]
-	public void DevDuel_UsesT0CatalogLoadouts()
-	{
-		var (player, enemy) = DeploymentPlacement.DevDuel(
-			BattleUnitType.Fighter,
-			BattleUnitType.Carrier,
-			seed: 42,
-			gridSize: 64);
-
-		Assert.Equal(
-			ShipCatalog.LoadoutForTier(BattleUnitType.Fighter, EShipGearTier.T0).InstalledAbilities,
-			player.Ship.Loadout.InstalledAbilities);
-		Assert.Equal(
-			ShipCatalog.LoadoutForTier(BattleUnitType.Carrier, EShipGearTier.T0).InstalledAbilities,
-			enemy.Ship.Loadout.InstalledAbilities);
-		Assert.All(
-			player.Ship.Loadout.InstalledAbilities.Concat(enemy.Ship.Loadout.InstalledAbilities),
-			ability =>
-			{
-				Assert.Equal(0, ability.DamageUpgradeTier);
-				Assert.Equal(0, ability.RangeUpgradeTier);
-			});
-	}
-
-	[Fact]
-	public void DevDuel_PlayerNotAtGridCenter()
-	{
-		var (player, _) = DeploymentPlacement.DevDuel(
-			BattleUnitType.Fighter,
-			BattleUnitType.Carrier,
-			seed: 42,
-			gridSize: 64);
-
-		Assert.NotEqual(new Coord(32, 32, 32), player.Position);
-	}
-
-	[Fact]
-	public void DevDuel_UnitsFaceEachOther()
-	{
-		var (player, enemy) = DeploymentPlacement.DevDuel(
-			BattleUnitType.Fighter,
-			BattleUnitType.Carrier,
-			seed: 42,
-			gridSize: 64);
-
-		var delta = enemy.Position - player.Position;
-		Assert.Equal(System.Math.Sign(delta.X), player.Fore.X);
-		Assert.Equal(System.Math.Sign(-delta.X), enemy.Fore.X);
-	}
-
-	[Fact]
-	public void DevDuel_EnemyPositionVariesBySeed()
-	{
-		var (_, enemyA) = DeploymentPlacement.DevDuel(
-			BattleUnitType.Fighter, BattleUnitType.Carrier, seed: 1, gridSize: 64);
-		var (_, enemyB) = DeploymentPlacement.DevDuel(
-			BattleUnitType.Fighter, BattleUnitType.Carrier, seed: 2, gridSize: 64);
-
-		Assert.NotEqual(enemyA.Position, enemyB.Position);
-	}
-
-	[Fact]
-	public void DevDuel_KeepsEnemyInsideSmallGrid()
-	{
-		var (_, enemy) = DeploymentPlacement.DevDuel(
-			BattleUnitType.Fighter, BattleUnitType.Carrier, seed: 8, gridSize: 16);
-
-		Assert.InRange(enemy.Position.X, 0, 15);
-		Assert.InRange(enemy.Position.Y, 0, 15);
-		Assert.InRange(enemy.Position.Z, 0, 15);
-	}
-
-	[Fact]
-	public void ForEngagement_VariedLayout_KeepsSixteenCellSeparation()
+	public void ForEngagement_VariedLayout_KeepsTenToTwelveCellSeparation()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -147,15 +61,15 @@ public sealed class DeploymentPlacementTests
 				[playerFleet, enemyFleet],
 				run.ItemInventory,
 				seed,
-				gridSize: 64,
+				gridSize: 20,
 				playerFleet.State.Id);
 			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
 			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
 
 			Assert.InRange(
 				BattleDistance.SeparationMeters(player.Position, enemy.Position),
-				16_000f,
-				20_000f);
+				10_000f,
+				12_000f);
 		}
 	}
 
@@ -168,11 +82,11 @@ public sealed class DeploymentPlacementTests
 		for (var seed = 0; seed < 128; seed++)
 		{
 			var spawns = DeploymentPlacement.ForEngagement(
-				[playerFleet, enemyFleet], run.ItemInventory, seed, gridSize: 64, playerFleet.State.Id);
-			var context = new HazardPlacementContext { Rng = new Random(seed), GridSize = 64, Spawns = spawns };
+				[playerFleet, enemyFleet], run.ItemInventory, seed, gridSize: 20, playerFleet.State.Id);
+			var context = new HazardPlacementContext { Rng = new Random(seed), GridSize = 20, Spawns = spawns };
 			new GravityWellPlacement().Place(context);
 
-			Assert.InRange(context.Placed.Count, 12, 15);
+			Assert.Equal(4, context.Placed.Count);
 			var playerCenter = SingleCellHazardPlacement.Centroid(
 				spawns.Where(spawn => spawn.Team == ETeam.Player).Select(spawn => spawn.Position).ToArray());
 			var enemyCenter = SingleCellHazardPlacement.Centroid(
@@ -190,7 +104,7 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void ForEngagement_GeneratesAtLeastTwelveGravityWellsAlongsideOtherHazards()
+	public void ForEngagement_GeneratesCompactHazards()
 	{
 		using var run = RunState.CreateNewRun(seed: 0, tutorialsEnabled: true);
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
@@ -199,9 +113,10 @@ public sealed class DeploymentPlacementTests
 		{
 			var encounter = EngagementBattleFactory.Create(
 				[playerFleet, enemyFleet], run.ItemInventory, seed, "gravity-test", playerFleet.State.Id);
-			Assert.InRange(encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.GravityWell), 12, 15);
-			foreach (var kind in new[] { EBattleHazardKind.CryoPlume, EBattleHazardKind.IonStorm, EBattleHazardKind.AsteroidBelt })
-				Assert.InRange(encounter.WorldHazards.Count(hazard => hazard.Kind == kind), 14, 16);
+			Assert.Equal(4, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.GravityWell));
+			Assert.Equal(10, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.CryoPlume));
+			Assert.Equal(10, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.IonStorm));
+			Assert.Equal(30, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.AsteroidBelt));
 		}
 	}
 
@@ -219,7 +134,7 @@ public sealed class DeploymentPlacementTests
 				[playerFleet, enemyFleet],
 				run.ItemInventory,
 				seed,
-				gridSize: 64,
+				gridSize: 20,
 				playerFleet.State.Id);
 			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
 			var enemy = spawns.Single(spawn => spawn.Team == ETeam.Enemy);
@@ -237,7 +152,7 @@ public sealed class DeploymentPlacementTests
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-canonical");
-		var center = new Coord(32, 32, 32);
+		var center = new Coord(10, 10, 10);
 
 		for (var seed = 0; seed < 16; seed++)
 		{
@@ -245,7 +160,7 @@ public sealed class DeploymentPlacementTests
 				[playerFleet, enemyFleet],
 				run.ItemInventory,
 				seed,
-				gridSize: 64,
+				gridSize: 20,
 				playerFleet.State.Id,
 				canonicalLayout: true);
 			var player = RunTestKit.StarterFighterBattleSpawn(spawns);
@@ -262,7 +177,7 @@ public sealed class DeploymentPlacementTests
 					(player.Position.X + enemy.Position.X) / 2,
 					(player.Position.Y + enemy.Position.Y) / 2,
 					(player.Position.Z + enemy.Position.Z) / 2));
-			Assert.Equal(16_000f, BattleDistance.SeparationMeters(player.Position, enemy.Position));
+			Assert.Equal(12_000f, BattleDistance.SeparationMeters(player.Position, enemy.Position));
 		}
 	}
 
@@ -272,13 +187,13 @@ public sealed class DeploymentPlacementTests
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-scripted", minerCount: 3);
-		var target = new Coord(32, 32, 32);
+		var target = new Coord(8, 10, 10);
 
 		var spawns = DeploymentPlacement.ForEngagement(
 			[playerFleet, enemyFleet],
 			run.ItemInventory,
 			seed: 7,
-			gridSize: 64,
+			gridSize: 20,
 			enemyFleet.State.Id,
 			tutorialScriptedSpawn: true);
 		var fighter = RunTestKit.StarterFighterBattleSpawn(spawns);
@@ -302,7 +217,7 @@ public sealed class DeploymentPlacementTests
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
 		var enemyFleet = CreateEnemyFleet(run, "engagement-tutorial-shots", minerCount: 3);
-		var target = new Coord(32, 32, 32);
+		var target = new Coord(8, 10, 10);
 		var encounter = EngagementBattleFactory.Create(
 			[playerFleet, enemyFleet],
 			run.ItemInventory,
@@ -312,7 +227,9 @@ public sealed class DeploymentPlacementTests
 			tutorialScriptedSpawn: true);
 		var targetId = encounter.Spawns.Single(spawn => spawn.Position == target).Ship.Id;
 		Assert.Empty(encounter.WorldHazards);
-		var battle = BattleOrchestrator.FromEncounter(encounter, gridSize: 64);
+		using var battle = BattleOrchestrator.FromEncounter(encounter);
+		Assert.Equal(20, battle.Engine.World.Grid.Width);
+		Assert.All(encounter.Spawns, spawn => Assert.True(battle.Engine.World.Grid.IsInBounds(spawn.Position)));
 		Assert.IsType<BattleTutorialObjectiveResult.Resolved>(BattleTutorialObjectives.ResolveShieldApproach(battle));
 		var sim = battle.PlayerAgent.Sim;
 		var paths = MovePathEndpoints.DiscoverExtensions(sim, battle.PlayerId);
@@ -325,6 +242,36 @@ public sealed class DeploymentPlacementTests
 
 		Assert.Contains(paths, path =>
 			CannonImpactsOn(sim, battle.PlayerId, targetId, path.Steps).Any(impact => impact.IsLethal));
+	}
+
+	[Fact]
+	public void EngagementBattle_UsesCompactGridAndHazardCounts()
+	{
+		using var run = RunTestKit.CreateFighterSupportRun();
+		var playerFleet = run.StarSystem.Map.FleetRegistry.FleetOf(RunState.PlayerFleetUnitId);
+		var enemyFleet = CreateEnemyFleet(run, "compact-engagement", minerCount: 3);
+		var approachDirections = new HashSet<Coord>();
+
+		for (var seed = 0; seed < 32; seed++)
+		{
+			var encounter = EngagementBattleFactory.Create(
+				[playerFleet, enemyFleet], run.ItemInventory, seed, $"compact-{seed}", playerFleet.State.Id);
+			using var battle = BattleOrchestrator.FromEncounter(encounter);
+			var grid = battle.Engine.World.Grid;
+			Assert.Equal((20, 20, 20), (grid.Width, grid.Height, grid.Depth));
+			Assert.All(encounter.Spawns, spawn => Assert.True(grid.IsInBounds(spawn.Position)));
+			Assert.All(encounter.WorldHazards, hazard =>
+				Assert.All(hazard.Cells, cell => Assert.True(grid.IsInBounds(cell))));
+			Assert.Equal(4, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.GravityWell));
+			Assert.Equal(10, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.CryoPlume));
+			Assert.Equal(10, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.IonStorm));
+			Assert.Equal(30, encounter.WorldHazards.Count(h => h.Kind == EBattleHazardKind.AsteroidBelt));
+			var player = encounter.Spawns.First(spawn => spawn.Team == ETeam.Player);
+			var enemy = encounter.Spawns.First(spawn => spawn.Team == ETeam.Enemy);
+			approachDirections.Add(enemy.Position - player.Position);
+		}
+		Assert.Contains(approachDirections, delta =>
+			(delta.X != 0 ? 1 : 0) + (delta.Y != 0 ? 1 : 0) + (delta.Z != 0 ? 1 : 0) > 1);
 	}
 
 	private static IEnumerable<ImpactFacts> CannonImpactsOn(
@@ -345,9 +292,9 @@ public sealed class DeploymentPlacementTests
 	}
 
 	[Fact]
-	public void DevDefault_UsesDeploymentPlacement()
+	public void DevDefault_PlacesOpposingFormations()
 	{
-		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
+		var encounter = BattleEncounter.DevDefault(seed: 99);
 		var player = encounter.Spawns.First(spawn => spawn.Team == ETeam.Player);
 		var enemy = encounter.Spawns.First(spawn => spawn.Team == ETeam.Enemy);
 
@@ -358,7 +305,7 @@ public sealed class DeploymentPlacementTests
 	[Fact]
 	public void DevDefault_FieldsFourClassesAtT0WithFullClassSkills()
 	{
-		var encounter = BattleEncounter.DevDefault(seed: 99, gridSize: 64);
+		var encounter = BattleEncounter.DevDefault(seed: 99);
 		Assert.Equal(
 			[
 				BattleUnitType.Fighter,
@@ -425,7 +372,7 @@ public sealed class DeploymentPlacementTests
 	{
 		for (var seed = 0; seed < 32; seed++)
 		{
-			var encounter = BattleEncounter.DevDefault(seed, gridSize: 64);
+			var encounter = BattleEncounter.DevDefault(seed);
 			var playerFighter = encounter.Spawns.Single(spawn =>
 				spawn.Team == ETeam.Player && spawn.Ship.Spec.Chassis == BattleUnitType.Fighter);
 			var playerGooper = encounter.Spawns.Single(spawn =>
@@ -446,8 +393,7 @@ public sealed class DeploymentPlacementTests
 	public void FromEncounter_AssignsGeneratedUnitIds()
 	{
 		var battle = GrimSpace.Battle.BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 7, gridSize: 32),
-			gridSize: 32);
+			BattleEncounter.DevDefault(seed: 7));
 
 		Assert.Equal("rogue-dev-7", battle.PlayerId);
 		Assert.Equal("fighter-enemy-dev-7", BattleTestFixture.FirstEnemyId(battle));

@@ -11,7 +11,7 @@ public sealed partial class SimulationBackdropView : Node3D
 	public ShaderMaterial TintMaterial { get; private set; } = null!;
 	public WorldEnvironment WorldEnvironment { get; private set; } = null!;
 
-	public void Build(BoundedGrid grid, int seed, Camera3D camera)
+	public void Build(BoundedGrid grid, int seed, Camera3D camera, bool decorativeAsteroids = false)
 	{
 		_backdropViewport = new SubViewport
 		{
@@ -27,6 +27,12 @@ public sealed partial class SimulationBackdropView : Node3D
 		var backdrop = new SpaceBackdrop { Name = "SpaceBackdrop" };
 		_backdropViewport.AddChild(backdrop);
 		backdrop.Build(grid, seed, _backdropCamera);
+		if (decorativeAsteroids)
+		{
+			var asteroids = new BoardAsteroidView { Name = "DecorativeAsteroids" };
+			_backdropViewport.AddChild(asteroids);
+			asteroids.BuildDecorations(_backdropCamera, grid, seed);
+		}
 		var backdropLight = new DirectionalLight3D();
 		_backdropViewport.AddChild(backdropLight);
 		RedDwarfSun.Configure(

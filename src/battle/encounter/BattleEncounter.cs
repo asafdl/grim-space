@@ -22,6 +22,7 @@ public sealed class BattleEncounter
 	public required string Id { get; init; }
 	public required IReadOnlyList<BattleSpawn> Spawns { get; init; }
 	public required EObjective Objective { get; init; }
+	public const int DefaultGridSize = 20;
 	public const int DefaultXpDifficulty = 3;
 	public int XpDifficulty { get; init; } = DefaultXpDifficulty;
 	public IReadOnlyList<BattleHazardSpawn> WorldHazards { get; init; } = [];
@@ -42,18 +43,34 @@ public sealed class BattleEncounter
 		EType.IndustrialGooper,
 	];
 
-	public static BattleEncounter DevDefault(int seed = 42, int gridSize = 64)
+	public static BattleEncounter DevDefault(int seed = 42)
 	{
-		var (playerAnchor, enemyAnchor) = DeploymentPlacement.DevDuel(
-			ShipInstance.FromCatalog($"fighter-dev-{seed}", EType.Fighter),
-			ShipInstance.FromCatalog($"fighter-enemy-dev-{seed}", EType.Fighter),
-			seed,
-			gridSize);
+		var playerAnchor = new BattleSpawn
+		{
+			Ship = ShipInstance.FromCatalog($"fighter-dev-{seed}", EType.Fighter),
+			Team = ETeam.Player,
+			Faction = EFaction.Player,
+			Position = new Coord(4, 10, 10),
+			Fore = new Coord(1, 0, 0),
+			Dorsal = Coord.Up,
+			ExecutionAgent = new UserExecutionAgent(),
+		};
+		var enemyAnchor = new BattleSpawn
+		{
+			Ship = ShipInstance.FromCatalog($"fighter-enemy-dev-{seed}", EType.Fighter),
+			Team = ETeam.Enemy,
+			Faction = EFaction.TheOptimality,
+			Position = new Coord(15, 10, 10),
+			Fore = new Coord(-1, 0, 0),
+			Dorsal = Coord.Up,
+			ExecutionAgent = new AiController(),
+		};
 
 		var pilots = new RunPilotRegistry();
 		var playerSpawns = DevClassFormation(seed, playerSide: true, playerAnchor, DevPlayerChassis, pilots);
 		var enemySpawns = DevClassFormation(seed, playerSide: false, enemyAnchor, DevEnemyChassis);
 		var spawns = playerSpawns.Concat(enemySpawns).ToArray();
+		var hazards = HazardPlacement.Generate(seed, DefaultGridSize, spawns);
 
 		return new BattleEncounter
 		{
@@ -62,7 +79,7 @@ public sealed class BattleEncounter
 			Spawns = spawns,
 			DevPilots = pilots.All.ToArray(),
 			Objective = EObjective.EliminateOpponents,
-			WorldHazards = HazardPlacement.Generate(seed, gridSize, spawns),
+			WorldHazards = hazards,
 		};
 	}
 

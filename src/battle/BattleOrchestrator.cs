@@ -79,7 +79,7 @@ public sealed class BattleOrchestrator : IDisposable
 
 	public static BattleOrchestrator FromEncounter(
 		BattleEncounter encounter,
-		int gridSize = 64,
+		int gridSize = BattleEncounter.DefaultGridSize,
 		string? preferredPlayerId = null)
 	{
 		var orchestrator = PrepareFromEncounter(encounter, gridSize, preferredPlayerId);
@@ -89,7 +89,7 @@ public sealed class BattleOrchestrator : IDisposable
 
 	public static BattleOrchestrator PrepareFromEncounter(
 		BattleEncounter encounter,
-		int gridSize = 64,
+		int gridSize = BattleEncounter.DefaultGridSize,
 		string? preferredPlayerId = null)
 	{
 		ArgumentNullException.ThrowIfNull(encounter);

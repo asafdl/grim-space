@@ -97,8 +97,8 @@ public sealed class RunStatePersistenceTests
 	public void SaveDocument_JsonRoundTripsRunWithActiveBattle()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun(tutorialsEnabled: true);
-		run.ActiveBattle = BattleEncounter.DevDefault(123, 12);
-		using var battle = BattleOrchestrator.FromEncounter(run.ActiveBattle, gridSize: 12);
+		run.ActiveBattle = BattleEncounter.DevDefault(123);
+		using var battle = BattleOrchestrator.FromEncounter(run.ActiveBattle);
 		var registry = PersistenceRegistry.CreateDefault();
 		var document = SaveGameDocument.Create(
 			"test",
@@ -130,7 +130,7 @@ public sealed class RunStatePersistenceTests
 		Assert.True(run.PilotRegistry.TryGetForShip(shipId, out var pilot));
 		run.TutorialState!.ActiveStepIndex = 2;
 		run.TutorialState!.PendingTutorialGraduation = true;
-		run.ActiveBattle = BattleEncounter.DevDefault(123, 12);
+		run.ActiveBattle = BattleEncounter.DevDefault(123);
 		run.StarSystem.SetStepped();
 		var registry = PersistenceRegistry.CreateDefault();
 

@@ -8,8 +8,6 @@ namespace GrimSpace.Battle.Encounter.Generation;
 /// </summary>
 public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 {
-	public const int MinCount = 14;
-	public const int MaxCount = 16;
 	public const int Padding = 4;
 	public const int GridMargin = 2;
 	public const int MinShipDistance = 3;
@@ -18,21 +16,24 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 	private const int LayoutAttempts = 32;
 	private const int CellAttemptsPerPlume = 64;
 	private const int ApproachRadius = 7;
-	private const int EngagementRadius = 8;
+	private const int EngagementRadius = 11;
 	private const int CoverSpacingSquared = 16;
 	private const int IonSpacingSquared = 9;
 	private readonly EBattleHazardKind _kind;
 	private readonly bool _required;
+	private readonly int _count;
 
-	public SingleCellHazardPlacement(EBattleHazardKind kind, bool required)
+	public SingleCellHazardPlacement(EBattleHazardKind kind, bool required, int count)
 	{
 		if (kind is not (
 			EBattleHazardKind.CryoPlume
 			or EBattleHazardKind.IonStorm
 			or EBattleHazardKind.AsteroidBelt))
 			throw new ArgumentOutOfRangeException(nameof(kind), kind, "Expected a single-cell hazard kind.");
+		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
 		_kind = kind;
 		_required = required;
+		_count = count;
 	}
 
 	public void Place(HazardPlacementContext context)
@@ -49,7 +50,7 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		var playerCenter = Centroid(player);
 		var opponentCenter = Centroid(opponents);
 		var (min, max) = Bounds(context);
-		var count = MinCount + context.Rng.Next(MaxCount - MinCount + 1);
+		var count = _count;
 
 		List<Coord>? best = null;
 		var bestImbalance = int.MaxValue;
@@ -71,6 +72,8 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 			best = RollCompactLayout(context, min, max, count, playerCenter, opponentCenter);
 
 		var cells = best ?? [];
+		if (_required && cells.Count != count)
+			throw new InvalidOperationException($"Could not place {count} {_kind} hazards.");
 		var firstResistancePercent = _kind == EBattleHazardKind.AsteroidBelt
 			? context.Rng.Next(2) == 0
 				? AsteroidBelt.LowResistancePercent
@@ -183,10 +186,17 @@ public sealed class SingleCellHazardPlacement : IHazardPlacementPass
 		return Coord.Dot(offset, offset) < minimumSquared;
 	}
 
-	private static (Coord Min, Coord Max) Bounds(HazardPlacementContext context)
+	private (Coord Min, Coord Max) Bounds(HazardPlacementContext context)
 	{
 		var low = GridMargin;
 		var high = context.GridSize - GridMargin - 1;
+		if (_kind == EBattleHazardKind.AsteroidBelt)
+		{
+			return (
+				new Coord(low, low, low),
+				new Coord(high, high, high));
+		}
+
 		var positions = context.Spawns.Select(spawn => spawn.Position).ToArray();
 		return (
 			new Coord(

@@ -5,12 +5,12 @@ namespace GrimSpace.Battle.Encounter.Generation;
 public sealed class AsteroidFieldConfig
 {
 	public required int Seed { get; init; }
-	public int GridSize { get; init; } = 64;
+	public required int GridSize { get; init; }
 	public IReadOnlyList<Coord> UnitPositions { get; init; } = [];
-	public Coord RegionCenter { get; init; } = new(32, 32, 32);
-	public int RegionHalfExtent { get; init; } = 30;
+	public required Coord RegionCenter { get; init; }
+	public required int RegionHalfExtent { get; init; }
 	public int RegionMargin { get; init; } = 2;
-	public int TargetCount { get; init; } = 128;
+	public required int TargetCount { get; init; }
 	public int UnitClearance { get; init; } = 2;
 	public int AsteroidGap { get; init; } = 1;
 	public IReadOnlySet<Coord> ReservedCells { get; init; } = new HashSet<Coord>();

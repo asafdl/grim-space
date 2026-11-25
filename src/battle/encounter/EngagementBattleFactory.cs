@@ -8,9 +8,6 @@ namespace GrimSpace.Battle.Encounter;
 
 public static class EngagementBattleFactory
 {
-	//TODO: duplicated grid size, horrible.
-	private const int GridSize = 64;
-
 	public static BattleEncounter Create(
 		Fleet[] participantFleets,
 		Inventory registry,
@@ -28,7 +25,7 @@ public static class EngagementBattleFactory
 			participantFleets,
 			registry,
 			seed,
-			GridSize,
+			BattleEncounter.DefaultGridSize,
 			initiatorFleetId,
 			shipIdToPilotSnapshot,
 			canonicalLayout,
@@ -43,7 +40,9 @@ public static class EngagementBattleFactory
 			Seed = seed,
 			Spawns = spawns,
 			Objective = EObjective.EliminateOpponents,
-			WorldHazards = tutorialScriptedSpawn ? [] : HazardPlacement.Generate(seed, GridSize, spawns),
+			WorldHazards = tutorialScriptedSpawn
+				? []
+				: HazardPlacement.Generate(seed, BattleEncounter.DefaultGridSize, spawns),
 		};
 	}
 }

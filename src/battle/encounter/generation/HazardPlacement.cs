@@ -13,9 +13,9 @@ public static class HazardPlacement
 	private static readonly IHazardPlacementPass[] Passes =
 		[
 			new GravityWellPlacement(),
-			new SingleCellHazardPlacement(EBattleHazardKind.CryoPlume, required: true),
-			new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, required: true),
-			new SingleCellHazardPlacement(EBattleHazardKind.AsteroidBelt, required: true),
+			new SingleCellHazardPlacement(EBattleHazardKind.CryoPlume, required: true, count: 10),
+			new SingleCellHazardPlacement(EBattleHazardKind.IonStorm, required: true, count: 10),
+			new SingleCellHazardPlacement(EBattleHazardKind.AsteroidBelt, required: true, count: 30),
 		];
 
 	public static IReadOnlyList<BattleHazardSpawn> Generate(
@@ -43,6 +43,7 @@ public static class HazardPlacement
 			RegionCenter = new Coord(center, center, center),
 			RegionHalfExtent = center - AsteroidFieldMargin,
 			RegionMargin = AsteroidFieldMargin,
+			TargetCount = 32,
 			ReservedCells = reserved,
 		});
 

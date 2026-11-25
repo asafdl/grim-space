@@ -13,12 +13,15 @@ internal static class RunTestKit
 
 	public static State CreateFighterSupportRun(bool tutorialsEnabled = false)
 	{
+		if (tutorialsEnabled)
+			return State.CreateNewRun(0, tutorialsEnabled: true);
+
 		if (_fighterSupportSeed is { } knownSeed)
-			return State.CreateNewRun(knownSeed, tutorialsEnabled);
+			return State.CreateNewRun(knownSeed);
 
 		for (var seed = 0; seed < 1000; seed++)
 		{
-			var run = State.CreateNewRun(seed, tutorialsEnabled);
+			var run = State.CreateNewRun(seed);
 			var chassis = run.GetFieldedShipIds()
 				.Select(id => run.ItemInventory.Get(id).Spec.Chassis).ToArray();
 			if (chassis.SequenceEqual(new[] { BattleUnitType.Fighter, BattleUnitType.RepurposedMiner }))

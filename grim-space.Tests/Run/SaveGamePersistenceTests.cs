@@ -1026,11 +1026,23 @@ public sealed class SaveGamePersistenceTests
 	}
 
 	[Fact]
+	public void BattleEncounterSave_UsesDefaultGridWithoutSizeMetadata()
+	{
+		var encounter = BattleEncounter.DevDefault(seed: 22);
+		var saved = SaveDtoMapper.CaptureBattleEncounter(encounter);
+		var json = JsonSerializer.SerializeToNode(saved, new PersistenceRegistry().Options)!.AsObject();
+		Assert.False(json.ContainsKey("gridSize"));
+		var restored = SaveDtoMapper.RestoreBattleEncounter(saved);
+		using var battle = BattleOrchestrator.FromEncounter(restored);
+		var grid = battle.Engine.World.Grid;
+		Assert.Equal((20, 20, 20), (grid.Width, grid.Height, grid.Depth));
+	}
+
+	[Fact]
 	public void SaveDtoMapper_RoundTripsBattleWorldState()
 	{
 		using var orchestrator = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
-			gridSize: 12);
+			BattleEncounter.DevDefault(seed: 22), gridSize: 24);
 		var registry = new PersistenceRegistry();
 		var dto = SaveDtoMapper.CaptureBattleWorld(orchestrator.Engine.World, registry);
 		var restored = SaveDtoMapper.RestoreBattleWorld(dto, registry);
@@ -1038,6 +1050,9 @@ public sealed class SaveGamePersistenceTests
 		Assert.Equal(dto.BattleId, restored.BattleId);
 		Assert.Equal(dto.Objective, restored.Objective);
 		Assert.Equal(dto.GridWidth, restored.Grid.Width);
+		Assert.Equal(dto.GridHeight, restored.Grid.Height);
+		Assert.Equal(dto.GridDepth, restored.Grid.Depth);
+		Assert.Equal((24, 24, 24), (restored.Grid.Width, restored.Grid.Height, restored.Grid.Depth));
 		Assert.Equal(dto.Units.Count, restored.UnitRegistry.All.Count());
 		Assert.Equal(dto.Hazards.Count, restored.NonUnits.Count);
 		foreach (var nonUnit in restored.NonUnits.Values)
@@ -1055,8 +1070,7 @@ public sealed class SaveGamePersistenceTests
 	public void SaveDtoMapper_RoundTripsManeuverPointState()
 	{
 		using var orchestrator = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
-			gridSize: 12);
+			BattleEncounter.DevDefault(seed: 22));
 		var player = orchestrator.Engine.World.StateOf(orchestrator.PlayerId);
 		player.CurrentManeuverPoints = 1;
 		player.Maneuverability = player.Maneuverability.WithBudgets(
@@ -1077,8 +1091,7 @@ public sealed class SaveGamePersistenceTests
 	public void SaveDtoMapper_RoundTripsBattleInitiative()
 	{
 		using var orchestrator = BattleOrchestrator.FromEncounter(
-			BattleEncounter.DevDefault(seed: 22, gridSize: 12),
-			gridSize: 12);
+			BattleEncounter.DevDefault(seed: 22));
 		var player = orchestrator.Engine.World.StateOf(orchestrator.PlayerId);
 		player.Initiative = 99;
 		var registry = new PersistenceRegistry();
