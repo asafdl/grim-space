@@ -44,7 +44,7 @@ public sealed class RoadsWeDontNeedRoadsDef
 		var jump = Cast(action);
 		var state = world.StateOf(jump.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.RoadsWeDontNeedRoads);
-		if (!state.IsAlive || BattleStatuses.HasOverheat(state)
+		if (!state.IsAlive || state.Overheat
 			|| installed?.Spec is not RoadsWeDontNeedRoadsSpec spec
 			|| state.CooldownRemaining(installed.Mount) > 0)
 			return false;

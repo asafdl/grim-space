@@ -35,12 +35,10 @@ public sealed class HelpABotterOutTests
 		var world = battle.Engine.World;
 		var state = world.StateOf(PlayerId);
 
-		BattleStatuses.RemoveInstance(
-			state.Statuses,
-			BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.HealingSkillRangeBonus), state.Id));
+		state.Statuses.RemoveAll(status => status is HealingSkillRangeBonus);
 		var baseline = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).Count;
 
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
+		BattleStatusMaterializer.Materialize(
 			world,
 			state.Id,
 			battle.Engine.ActorRuntimes.For(PlayerId));
@@ -52,17 +50,37 @@ public sealed class HelpABotterOutTests
 	[Fact]
 	public void EffectiveArea_ExtendsScrapDroneSwarmBurstByOne()
 	{
-		var player = BattleTestFixture.Player(Coord.Zero);
-		player.State.Statuses.Add(
-			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.HealingSkillRangeBonus, player.State.Id));
-		var boosted = (ScrapDroneSwarmSpec)BattleStatuses.RewriteArea(
-			ScrapDroneSwarmSpec.Baseline,
-			player.State.Statuses,
-			[BattleActionTags.Heal]);
+		var origin = new Coord(5, 5, 5);
+		var battle = BeginBattleWithSkill(origin);
+		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
+		var world = battle.Engine.World;
+		Assert.True(world.StateOf(PlayerId).Has<HealingSkillRangeBonus>());
+
+		var cells = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).Count;
+		world.StateOf(PlayerId).RemoveStatus<HealingSkillRangeBonus>();
+		var baseline = ScrapDroneSwarmDef.Instance.AffectedCells(action, world).Count;
 
 		Assert.Equal(
-			ScrapDroneSwarmSpec.Baseline.BurstRange + PilotSkillPercents.HelpABotterOut.HealingRangeBonusCells,
-			boosted.BurstRange);
+			baseline + ExpectedExtraCells(world.StateOf(PlayerId), ESpatialOrientation.Starboard),
+			cells);
+	}
+
+	private static int ExpectedExtraCells(State firer, ESpatialOrientation mountedOn)
+	{
+		var frame = BodyFrame.From(firer);
+		var burstDirection = frame.Step(mountedOn);
+		var baseline = ScrapDroneSwarmSpec.Baseline.GetArea(
+			frame.Origin,
+			burstDirection,
+			frame.Fore,
+			frame.Dorsal);
+		var extended = ScrapDroneSwarmSpec.Baseline with
+		{
+			BurstRange = ScrapDroneSwarmSpec.Baseline.BurstRange
+				+ PilotSkillPercents.HelpABotterOut.HealingRangeBonusCells,
+		};
+		var boosted = extended.GetArea(frame.Origin, burstDirection, frame.Fore, frame.Dorsal);
+		return boosted.Count(cell => !baseline.Contains(cell));
 	}
 
 	[Fact]

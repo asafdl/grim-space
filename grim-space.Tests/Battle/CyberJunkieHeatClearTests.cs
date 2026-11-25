@@ -25,7 +25,7 @@ public sealed class CyberJunkieHeatClearTests
 				PilotCapabilityGrant.FromBackground(
 					pilotId,
 					EPilotBackgroundId.CyberJunkie,
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

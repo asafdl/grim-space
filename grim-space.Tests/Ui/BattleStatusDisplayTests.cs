@@ -27,18 +27,18 @@ public sealed class BattleStatusDisplayTests
 	public void ReactiveShieldsCounterIsCapturedAndRoundTripsWithoutSharingState()
 	{
 		var state = CreateState();
-		state.ReactiveShieldsStacks = 3;
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReactiveShields, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.ReactiveShields));
+		state.StatusOf<ReactiveShields>()!.Stacks = 3;
 
 		var unit = Capture(state);
-		state.ReactiveShieldsStacks = 0;
+		state.StatusOf<ReactiveShields>()!.Stacks = 0;
 		state.Statuses.Clear();
 
 		var display = Assert.Single(BattleStatusDisplay.Capture(unit));
 		Assert.Equal(3, display.StackCount);
 		Assert.Equal("Reactive Shields", display.Tooltip.Title);
 		Assert.Contains("multiplicatively", display.Tooltip.Details);
-		Assert.Equal(3, unit.ToState().ReactiveShieldsStacks);
+		Assert.Equal(3, unit.ToState().StatusOf<ReactiveShields>()!.Stacks);
 		Assert.Single(unit.ToState().Statuses);
 	}
 
@@ -46,7 +46,7 @@ public sealed class BattleStatusDisplayTests
 	public void ReactiveShieldsShowsZeroAfterResetRatherThanInventingOneStack()
 	{
 		var state = CreateState();
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReactiveShields, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.ReactiveShields));
 
 		Assert.Equal(0, Assert.Single(BattleStatusDisplay.Capture(Capture(state))).StackCount);
 	}
@@ -62,7 +62,7 @@ public sealed class BattleStatusDisplayTests
 		TemporaryShields.AbsorbOnFace(state, ESpatialOrientation.Forward, 18);
 
 		var display = Assert.Single(BattleStatusDisplay.Capture(unit));
-		Assert.Equal("buff:TemporaryShield", display.Key);
+		Assert.Equal(nameof(TemporaryShieldGrantStatus), display.Key);
 		Assert.Equal(2, display.StackCount);
 		Assert.Contains("F: 18", display.Tooltip.Details);
 		Assert.Contains("D: 30", display.Tooltip.Details);
@@ -87,8 +87,8 @@ public sealed class BattleStatusDisplayTests
 	public void OverdriveUsesTheDisplayedShipsDamageBonusAndOverheatIsADebuff()
 	{
 		var state = CreateState();
-		state.Statuses.Add(BattleStatuses.CreateOverdrive(state.Id));
-		state.Statuses.Add(BattleStatuses.CreateOverheat(state.Id));
+		state.Overdrive = true;
+		state.Overheat = true;
 
 		var display = BattleStatusDisplay.Capture(Capture(state));
 
@@ -124,7 +124,7 @@ public sealed class BattleStatusDisplayTests
 	public void EveryInstalledPassiveHasAnIconAndEffectDescription(EPilotCapabilityId capability, string title)
 	{
 		var state = CreateState();
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(capability, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(capability));
 
 		var display = Assert.Single(BattleStatusDisplay.Capture(Capture(state)));
 
@@ -137,7 +137,7 @@ public sealed class BattleStatusDisplayTests
 	public void ProtectionDroneReusesTheChassisAbilityDescription()
 	{
 		var state = CreateState();
-		state.Statuses.Add(BattleStatuses.CreateProtectionDrone(state.Id));
+		state.Statuses.Add(new ProtectionDroneBuff());
 
 		Assert.Equal(
 			(HudTooltipContent)BattleHudCopy.ProtectionDroneTooltipFor(ProtectionDroneSpec.Baseline),
@@ -150,17 +150,17 @@ public sealed class BattleStatusDisplayTests
 	public void ThirstForScrapDisplaysCapturedStacksAndDamageBonus(int stacks, string bonus)
 	{
 		var state = CreateState();
-		state.ThirstForScrapStacks = stacks;
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ThirstForScrap, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.ThirstForScrap));
+		state.StatusOf<ThirstForScrap>()!.Stacks = stacks;
 		var unit = Capture(state);
-		state.ThirstForScrapStacks = 99;
+		state.StatusOf<ThirstForScrap>()!.Stacks = 99;
 
 		var display = Assert.Single(BattleStatusDisplay.Capture(unit));
 
 		Assert.Equal(stacks, display.StackCount);
 		Assert.Equal("Damage", display.IconName);
 		Assert.Contains(bonus, display.Tooltip.Details);
-		Assert.Equal(stacks, unit.ToState().ThirstForScrapStacks);
+		Assert.Equal(stacks, unit.ToState().StatusOf<ThirstForScrap>()!.Stacks);
 	}
 
 	[Fact]
@@ -168,7 +168,7 @@ public sealed class BattleStatusDisplayTests
 	{
 		var player = CreateState();
 		var enemy = BattleTestFixture.Enemy(new Coord(5, 5, 7)).State;
-		enemy.Statuses.Add(BattleStatuses.CreateOverheat(enemy.Id));
+		enemy.Overheat = true;
 
 		Assert.Empty(BattleStatusDisplay.Capture(Capture(player)));
 		Assert.Equal("Overheat", Assert.Single(BattleStatusDisplay.Capture(Capture(enemy))).Tooltip.Title);
@@ -178,12 +178,7 @@ public sealed class BattleStatusDisplayTests
 	public void UnknownStatusesFailExplicitly()
 	{
 		var state = CreateState();
-		state.Statuses.Add(new BattleStatus
-		{
-			InstanceId = BattleStatuses.BuffInstanceId("Unknown", state.Id),
-			Priority = 0,
-			ActionTags = [],
-		});
+		state.Statuses.Add(new UnknownStatus());
 
 		Assert.Throws<InvalidDataException>(() => BattleStatusDisplay.Capture(Capture(state)));
 	}
@@ -191,4 +186,9 @@ public sealed class BattleStatusDisplayTests
 	private static State CreateState() => BattleTestFixture.Player(new Coord(5, 5, 5)).State;
 
 	private static UnitDisplayState Capture(State state) => UnitDisplayState.Capture(state, new ActorRuntime());
+
+	private sealed class UnknownStatus : BattleStatus
+	{
+		public override EStatusPolarity Polarity => EStatusPolarity.Buff;
+	}
 }

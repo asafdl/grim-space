@@ -8,6 +8,7 @@ using GrimSpace.Units;
 using GrimSpace.World.StarSystem.Agents;
 using GrimSpace.World.StarSystem.Generation;
 using GrimSpace.World.StarSystem.Pathfinding;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Presentation.Diagnostics;
 using GrimSpace.World.StarSystem.Runtime;
 using GrimSpace.World.StarSystem.Contact;
@@ -221,7 +222,10 @@ public sealed class StarSystemOrchestrator : IDisposable
 		actorRuntimes.For(StarSystemActorIds.SalaryPayroll);
 		actorRuntimes.For(StarSystemActorIds.WorldEvents);
 
-		var engine = new Engine<StarMap, ActorRuntime>(map, actorRuntimes);
+		var engine = new Engine<StarMap, ActorRuntime>(
+			map,
+			actorRuntimes,
+			rules: StarMapPilotCapabilities.Rules);
 		var contactMonitor = new ContactMonitor(engine, pathfinder);
 		StarMapPlayerExecutionAgent? playerAgent = null;
 		if (playerId is not null)

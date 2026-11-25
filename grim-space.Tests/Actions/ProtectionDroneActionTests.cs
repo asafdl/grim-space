@@ -53,14 +53,8 @@ public sealed class ProtectionDroneActionTests
 			battle.Engine.ActorRuntimes.For(PlayerId),
 			PlayerId);
 
-		Assert.Contains(
-			ally.State.Statuses,
-			status => status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), AllyId));
-		Assert.DoesNotContain(
-			player.State.Statuses,
-			status => status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), PlayerId));
+		Assert.True(ally.State.Has<ProtectionDroneBuff>());
+		Assert.False(player.State.Has<ProtectionDroneBuff>());
 		Assert.Equal(spec.CooldownTurns, player.State.CooldownRemaining(installed.Mount));
 		Assert.Contains(
 			battle.Engine.World.ActivationRoundLists.EntriesFor(AllyId),
@@ -73,10 +67,7 @@ public sealed class ProtectionDroneActionTests
 			AllyId,
 			spec.BuffDurationEndPasses);
 
-		Assert.DoesNotContain(
-			ally.State.Statuses,
-			status => status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), AllyId));
+		Assert.False(ally.State.Has<ProtectionDroneBuff>());
 	}
 
 	[Fact]
@@ -92,16 +83,14 @@ public sealed class ProtectionDroneActionTests
 
 		Assert.Equal(PlayerId, activated.SourceId);
 		Assert.Equal(AllyId, activated.TargetId);
-		Assert.NotNull(activated.Status);
+		Assert.IsType<ProtectionDroneBuff>(activated.Status);
 		grant.Undo(world, runtime, PlayerId);
-		Assert.DoesNotContain(ally.State.Statuses, status => status.InstanceId == activated.Status.InstanceId);
+		Assert.False(ally.State.Has<ProtectionDroneBuff>());
 
 		replay.ApplyProtectionDrone(activated);
-		var replayed = Assert.Single(replay.StateOf(AllyId).Statuses,
-			status => status.InstanceId == activated.Status.InstanceId);
-		Assert.NotSame(activated.Status, replayed);
+		Assert.True(replay.StateOf(AllyId).Has<ProtectionDroneBuff>());
 		replay.ApplyProtectionDrone(activated);
-		Assert.Single(replay.StateOf(AllyId).Statuses, status => status.InstanceId == replayed.InstanceId);
+		Assert.Single(replay.StateOf(AllyId).Statuses.OfType<ProtectionDroneBuff>());
 
 		grant.Apply(world, runtime, PlayerId);
 		var expiry = new SetProtectionDroneBuffActiveEffect(AllyId, active: false);
@@ -110,8 +99,8 @@ public sealed class ProtectionDroneActionTests
 		Assert.Null(expired.Status);
 		expiry.Undo(world, runtime, AllyId);
 		replay.ApplyProtectionDrone(expired);
-		Assert.DoesNotContain(replay.StateOf(AllyId).Statuses, status => status.InstanceId == replayed.InstanceId);
-		Assert.Contains(ally.State.Statuses, status => status.InstanceId == replayed.InstanceId);
+		Assert.False(replay.StateOf(AllyId).Has<ProtectionDroneBuff>());
+		Assert.True(ally.State.Has<ProtectionDroneBuff>());
 	}
 
 	[Fact]
@@ -139,9 +128,7 @@ public sealed class ProtectionDroneActionTests
 		player.State.MountRuntimeFor(installed.Mount).CooldownRemaining = 0;
 		Assert.False(ProtectionDroneDef.Instance.IsLegal(action, world, runtime));
 
-		BattleStatuses.RemoveInstance(
-			ally.State.Statuses,
-			BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), AllyId));
+		ally.State.RemoveStatus<ProtectionDroneBuff>();
 		Assert.True(ProtectionDroneDef.Instance.IsLegal(action, world, runtime));
 	}
 

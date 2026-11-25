@@ -19,11 +19,18 @@ public class Simulation<TWorld, TRuntime>
 	private int _nextUndoGroup;
 	private InvariantStatus _invariantStatus = InvariantStatus.Ok;
 
-	public Simulation(TWorld anchorWorld, ActorRuntimes<TRuntime> anchorActorRuntimes)
+	public Simulation(
+		TWorld anchorWorld,
+		ActorRuntimes<TRuntime> anchorActorRuntimes,
+		EffectRules<TWorld, TRuntime> rules)
 	{
+		ArgumentNullException.ThrowIfNull(rules);
 		_anchorWorld = anchorWorld;
 		_anchorActorRuntimes = anchorActorRuntimes;
+		Rules = rules;
 	}
+
+	public EffectRules<TWorld, TRuntime> Rules { get; }
 
 	public TRuntime RuntimeFor(string actorId) => Runtimes.For(actorId);
 
@@ -93,7 +100,7 @@ public class Simulation<TWorld, TRuntime>
 			_actions.Add(action);
 			_undoGroups.Add(undoGroup);
 			List<IRecord>? recordSink = keepRecords ? [] : null;
-			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime, recordSink);
+			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime, Rules, recordSink);
 			_appliedEffects.Add(effects);
 			_appliedRecords.Add(recordSink ?? []);
 
@@ -139,7 +146,7 @@ public class Simulation<TWorld, TRuntime>
 
 		var world = World.Fork();
 		var runtimes = Runtimes.Fork();
-		var records = ExecutionHelper.Apply(action, world, runtimes.For(action));
+		var records = ExecutionHelper.Apply(action, world, runtimes.For(action), Rules);
 		return new PeekFrame<TWorld, TRuntime>(world, runtimes, records);
 	}
 
@@ -174,7 +181,7 @@ public class Simulation<TWorld, TRuntime>
 		var runtimes = _anchorActorRuntimes.Fork();
 		var limit = System.Math.Min(throughExclusive, _actions.Count);
 		for (var i = 0; i < limit; i++)
-			ExecutionHelper.Apply(_actions[i], world, runtimes.For(_actions[i]));
+			ExecutionHelper.Apply(_actions[i], world, runtimes.For(_actions[i]), Rules);
 
 		return world;
 	}
@@ -189,7 +196,7 @@ public class Simulation<TWorld, TRuntime>
 		foreach (var action in _actions)
 		{
 			var runtime = Runtimes.For(action);
-			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime);
+			var effects = ExecutionHelper.ApplyAndResolve(action, World, runtime, Rules);
 			_appliedEffects.Add(effects);
 			_appliedRecords.Add([]);
 		}
@@ -221,7 +228,7 @@ public class Simulation<TWorld, TRuntime>
 	/// <summary>Fork preserving the current queued actions and preview state.</summary>
 	public Simulation<TWorld, TRuntime> Fork()
 	{
-		var fork = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes)
+		var fork = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes, Rules)
 		{
 			_anchorTick = _anchorTick,
 			WorldVersion = WorldVersion,
@@ -236,7 +243,7 @@ public class Simulation<TWorld, TRuntime>
 	/// <summary>Fresh fork from the anchor with no queued actions.</summary>
 	public Simulation<TWorld, TRuntime> ForkFromAnchor()
 	{
-		var fork = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes)
+		var fork = new Simulation<TWorld, TRuntime>(_anchorWorld, _anchorActorRuntimes, Rules)
 		{
 			_anchorTick = _anchorTick,
 			WorldVersion = WorldVersion,

@@ -4,7 +4,6 @@ using GrimSpace.Battle.ActivationRound;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Ids;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
@@ -46,23 +45,20 @@ public sealed class ActorRuntimeAssemblyTests
 		};
 		var battle = BattleTestFixture.BeginSimulation(player, enemy, pilotsByActorId: pilots);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
-		var action = new LightningCannonAction(player.State.Id);
-		var effects = BattleStatuses.RewriteOutgoing(
-			action,
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			new LightningCannonAction(player.State.Id),
 			battle.Engine.World,
-			LightningCannonDef.Instance.Resolve(action, battle.Engine.World, runtime));
+			runtime,
+			new DamageUnitEffect(
+				EImpactCause.LightningCannonBurst,
+				enemy.State.Id,
+				player.State.Position,
+				100));
 
-		var damage = Assert.IsType<GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect>(
-			effects.First(effect => effect is GrimSpace.Battle.Effects.ApplyChainLightningDamageEffect));
 		Assert.Equal(
 			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
-			damage.ShieldDamageBonusPercent);
-		Assert.Contains(
-			battle.Engine.World.StateOf(player.State.Id).Statuses,
-			status => status.InstanceId
-				== BattleStatuses.PassiveInstanceId(
-					nameof(EPilotCapabilityId.LightningShieldDamageBonus),
-					player.State.Id));
+			prepared.ShieldDamageBonusPercent);
+		Assert.True(battle.Engine.World.StateOf(player.State.Id).Has<LightningShieldDamageBonus>());
 	}
 
 	[Fact]
@@ -83,7 +79,7 @@ public sealed class ActorRuntimeAssemblyTests
 					Ship = ShipInstance.FromCatalog("player", EType.Fighter),
 					Pilot = snapshot,
 					Team = ETeam.Player,
-			Faction = EFaction.Player,
+					Faction = EFaction.Player,
 					Position = new Coord(5, 5, 5),
 					ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
 				},
@@ -91,7 +87,7 @@ public sealed class ActorRuntimeAssemblyTests
 				{
 					Ship = ShipInstance.FromCatalog("enemy", EType.Fighter),
 					Team = ETeam.Enemy,
-			Faction = EFaction.TheOptimality,
+					Faction = EFaction.TheOptimality,
 					Position = new Coord(0, 0, 0),
 					ExecutionAgent = BattleAgentFactory.Create(EBattleAgentKind.Ai),
 				},
@@ -140,6 +136,8 @@ public sealed class ActorRuntimeAssemblyTests
 		var player = original.Engine.World.StateOf(original.PlayerId);
 		player.DefensiveManeuversMpUsed = 2;
 		player.ShieldDynamoGrantedPerFace = 10;
+		player.StatusOf<ThirstForScrap>()!.Stacks = 4;
+		player.StatusOf<ReactiveShields>()!.Stacks = 3;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			player.CurrentShieldPoints[face] = 40;
 		var registry = PersistenceRegistry.CreateDefault();
@@ -152,8 +150,8 @@ public sealed class ActorRuntimeAssemblyTests
 
 		foreach (var unit in restoredWorld.UnitRegistry.All)
 		{
-			Assert.True(BattleStatuses.HasDefensiveManeuvers(unit.State));
-			Assert.True(BattleStatuses.HasShieldDynamo(unit.State));
+			Assert.True(unit.State.Has<StationaryDamageDeflection>());
+			Assert.True(unit.State.Has<ShieldDynamo>());
 			Assert.Empty(restoredWorld.ActivationRoundLists.EntriesFor(unit.State.Id));
 		}
 
@@ -170,6 +168,8 @@ public sealed class ActorRuntimeAssemblyTests
 		var restoredPlayer = restoredWorld.StateOf(original.PlayerId);
 		Assert.Equal(2, restoredPlayer.DefensiveManeuversMpUsed);
 		Assert.Equal(10, restoredPlayer.ShieldDynamoGrantedPerFace);
+		Assert.Equal(4, Assert.Single(restoredPlayer.Statuses.OfType<ThirstForScrap>()).Stacks);
+		Assert.Equal(3, Assert.Single(restoredPlayer.Statuses.OfType<ReactiveShields>()).Stacks);
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())
 			Assert.Equal(40, restoredPlayer.CurrentShieldPoints[face]);
 	}
@@ -191,7 +191,7 @@ public sealed class ActorRuntimeAssemblyTests
 		var scheduledRow = world.ActivationRoundLists.EntriesFor(unitId).Last();
 
 		for (var i = 0; i < repetitions; i++)
-			BattlePassiveStatusInstaller.InstallFromCapabilities(world, unitId, runtime);
+			BattleStatusMaterializer.Materialize(world, unitId, runtime);
 
 		var rows = world.ActivationRoundLists.EntriesFor(unitId);
 		Assert.Equal(3, rows.Count);
@@ -201,10 +201,7 @@ public sealed class ActorRuntimeAssemblyTests
 			Assert.DoesNotContain(rows, row => ReferenceEquals(previous, row));
 		Assert.Equal(otherUnitRows, world.ActivationRoundLists.EntriesFor("enemy"));
 		Assert.Equal(2, world.StateOf(unitId).Statuses.Count(status =>
-			status.InstanceId == BattleStatuses.PassiveInstanceId(
-				nameof(EPilotCapabilityId.StationaryDamageDeflection), unitId)
-			|| status.InstanceId == BattleStatuses.PassiveInstanceId(
-				nameof(EPilotCapabilityId.ShieldDynamo), unitId)));
+			status is StationaryDamageDeflection or ShieldDynamo));
 	}
 
 	[Fact]
@@ -214,20 +211,20 @@ public sealed class ActorRuntimeAssemblyTests
 		var world = battle.Engine.World;
 		var unitId = battle.PlayerId;
 
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
+		BattleStatusMaterializer.Materialize(
 			world,
 			unitId,
 			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DefensiveManeuvers])));
 
-		Assert.True(BattleStatuses.HasDefensiveManeuvers(world.StateOf(unitId)));
-		Assert.False(BattleStatuses.HasShieldDynamo(world.StateOf(unitId)));
+		Assert.True(world.StateOf(unitId).Has<StationaryDamageDeflection>());
+		Assert.False(world.StateOf(unitId).Has<ShieldDynamo>());
 		Assert.IsType<SyncDefensiveManeuversMpUsedAction>(
 			Assert.Single(world.ActivationRoundLists.EntriesFor(unitId)).Action);
 
-		BattlePassiveStatusInstaller.InstallFromCapabilities(world, unitId, ActorRuntime.From(null));
+		BattleStatusMaterializer.Materialize(world, unitId, ActorRuntime.From(null));
 
-		Assert.False(BattleStatuses.HasDefensiveManeuvers(world.StateOf(unitId)));
-		Assert.False(BattleStatuses.HasShieldDynamo(world.StateOf(unitId)));
+		Assert.False(world.StateOf(unitId).Has<StationaryDamageDeflection>());
+		Assert.False(world.StateOf(unitId).Has<ShieldDynamo>());
 		Assert.Empty(world.ActivationRoundLists.EntriesFor(unitId));
 		AssertPassiveActivationRows(world, "enemy");
 	}
@@ -242,7 +239,7 @@ public sealed class ActorRuntimeAssemblyTests
 		foreach (var unit in fork.UnitRegistry.All)
 			AssertPassiveActivationRows(fork, unit.State.Id);
 
-		BattlePassiveStatusInstaller.InstallFromCapabilities(fork, battle.PlayerId, ActorRuntime.From(null));
+		BattleStatusMaterializer.Materialize(fork, battle.PlayerId, ActorRuntime.From(null));
 
 		Assert.Empty(fork.ActivationRoundLists.EntriesFor(battle.PlayerId));
 		AssertPassiveActivationRows(fork, "enemy");
@@ -255,7 +252,7 @@ public sealed class ActorRuntimeAssemblyTests
 		using var battle = BattleOrchestrator.FromEncounter(PassiveEncounter(), gridSize: 12);
 
 		Assert.Throws<KeyNotFoundException>(() =>
-			BattlePassiveStatusInstaller.InstallFromCapabilities(
+			BattleStatusMaterializer.Materialize(
 				battle.Engine.World,
 				"missing",
 				battle.Engine.ActorRuntimes.For(battle.PlayerId)));
@@ -275,8 +272,8 @@ public sealed class ActorRuntimeAssemblyTests
 			Assert.Null(row.RoundsRemaining);
 			Assert.True(row.Sticky);
 		}
-		Assert.True(BattleStatuses.HasDefensiveManeuvers(world.StateOf(unitId)));
-		Assert.True(BattleStatuses.HasShieldDynamo(world.StateOf(unitId)));
+		Assert.True(world.StateOf(unitId).Has<StationaryDamageDeflection>());
+		Assert.True(world.StateOf(unitId).Has<ShieldDynamo>());
 	}
 
 	private static BattleEncounter PassiveEncounter() => new()
@@ -290,9 +287,15 @@ public sealed class ActorRuntimeAssemblyTests
 			{
 				Ship = ShipInstance.FromCatalog("player", EType.Fighter),
 				Pilot = PilotBattleSnapshot.FromSkills(
-					"player-pilot", [EPilotSkillId.DefensiveManeuvers, EPilotSkillId.ShieldDynamo]),
+					"player-pilot",
+					[
+						EPilotSkillId.DefensiveManeuvers,
+						EPilotSkillId.ShieldDynamo,
+						EPilotSkillId.ThirstForScrap,
+						EPilotSkillId.ReactiveShields,
+					]),
 				Team = ETeam.Player,
-			Faction = EFaction.Player,
+				Faction = EFaction.Player,
 				Position = new Coord(5, 5, 5),
 				ExecutionAgent = new GrimSpace.Battle.Player.UserExecutionAgent(),
 			},
@@ -302,7 +305,7 @@ public sealed class ActorRuntimeAssemblyTests
 				Pilot = PilotBattleSnapshot.FromSkills(
 					"enemy-pilot", [EPilotSkillId.DefensiveManeuvers, EPilotSkillId.ShieldDynamo]),
 				Team = ETeam.Enemy,
-			Faction = EFaction.TheOptimality,
+				Faction = EFaction.TheOptimality,
 				Position = Coord.Zero,
 				ExecutionAgent = BattleAgentFactory.Create(EBattleAgentKind.Ai),
 			},

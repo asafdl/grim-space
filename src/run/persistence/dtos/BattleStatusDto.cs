@@ -4,11 +4,11 @@ using GrimSpace.Math.Grid;
 namespace GrimSpace.Run.Persistence;
 
 public sealed record BattleStatusDto(
-	string InstanceId,
-	int Priority,
-	IReadOnlyList<string> ActionTags,
+	string TypeName,
 	EStatusPolarity Polarity,
-	ESpatialOrientation? Face,
-	FaceShieldDto? Snapshot,
-	int DamagePending,
-	FaceShieldDto? Remaining);
+	ESpatialOrientation? Face = null,
+	FaceShieldDto? Snapshot = null,
+	int DamagePending = 0,
+	FaceShieldDto? Remaining = null,
+	string? GrantId = null,
+	int Stacks = 0);

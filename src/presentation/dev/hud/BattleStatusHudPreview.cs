@@ -43,7 +43,6 @@ public sealed partial class BattleStatusHudPreview : Control
 			Refresh();
 		};
 		_player = State.FromShipInstance(ShipInstance.FromCatalog("preview_player", EType.Fighter), Coord.Zero);
-		_player.ReactiveShieldsStacks = 3;
 		EPilotCapabilityId[] passives =
 		[
 			EPilotCapabilityId.ScrapDroneSwarmDamageBonus,
@@ -58,15 +57,16 @@ public sealed partial class BattleStatusHudPreview : Control
 			EPilotCapabilityId.OneWithTheVoid,
 		];
 		foreach (var capability in passives)
-			_player.Statuses.Add(BattlePassiveStatusInstaller.Create(capability, _player.Id));
-		_player.Statuses.Add(BattleStatuses.CreateOverdrive(_player.Id));
-		_player.Statuses.Add(BattleStatuses.CreateProtectionDrone(_player.Id));
+			_player.Statuses.Add(BattleStatusMaterializer.Create(capability));
+		_player.StatusOf<ReactiveShields>()!.Stacks = 3;
+		_player.Overdrive = true;
+		_player.Statuses.Add(new ProtectionDroneBuff());
 		_player.Statuses.Add(ShieldBrace.CreateStatus(
 			_player.Id, ESpatialOrientation.Forward, new FaceShieldPoints(), 42));
 		TemporaryShields.GrantPerFace(_player, "first", 10);
 		TemporaryShields.GrantPerFace(_player, "second", 20);
 		_enemy = State.FromShipInstance(ShipInstance.FromCatalog("preview_enemy", EType.Fighter), Coord.Zero);
-		_enemy.Statuses.Add(BattleStatuses.CreateOverheat(_enemy.Id));
+		_enemy.Overheat = true;
 		Refresh();
 	}
 
@@ -80,7 +80,7 @@ public sealed partial class BattleStatusHudPreview : Control
 				_inspecting = !_inspecting;
 				break;
 			case Key.R:
-				_player.ReactiveShieldsStacks++;
+				_player.StatusOf<ReactiveShields>()!.Stacks++;
 				break;
 			default:
 				return;

@@ -264,8 +264,6 @@ public static class SaveDtoMapper
 			CryoPlumesCooledThisTurn = state.CryoPlumesCooledThisTurn.ToArray(),
 			state.DefensiveManeuversMpUsed,
 			state.ShieldDynamoGrantedPerFace,
-			state.ThirstForScrapStacks,
-			state.ReactiveShieldsStacks,
 			state.Heat,
 			state.Overdrive,
 			state.Overheat,
@@ -314,8 +312,6 @@ public static class SaveDtoMapper
 		state.CryoPlumesCooledThisTurn.UnionWith(dto.CryoPlumesCooledThisTurn ?? []);
 		state.DefensiveManeuversMpUsed = dto.DefensiveManeuversMpUsed;
 		state.ShieldDynamoGrantedPerFace = dto.ShieldDynamoGrantedPerFace;
-		state.ThirstForScrapStacks = dto.ThirstForScrapStacks;
-		state.ReactiveShieldsStacks = dto.ReactiveShieldsStacks;
 		RestoreHeat(state, dto.Heat, dto.HeatCapacity, dto.HeatClearPerTurn, dto.HeatGainMultiplier, dto.Overdrive, dto.Overheat);
 		state.HullHandoffBasePoints = dto.HullHandoffBasePoints;
 		state.ShieldHandoffBasePoints = dto.ShieldHandoffBasePoints is null
@@ -399,8 +395,6 @@ public static class SaveDtoMapper
 				CryoPlumesCooledThisTurn = state.CryoPlumesCooledThisTurn.ToArray(),
 				state.DefensiveManeuversMpUsed,
 				state.ShieldDynamoGrantedPerFace,
-				state.ThirstForScrapStacks,
-				state.ReactiveShieldsStacks,
 				state.Heat,
 				state.Overdrive,
 				state.Overheat,
@@ -966,8 +960,6 @@ public static class SaveDtoMapper
 			state.CryoPlumesCooledThisTurn.UnionWith(unitDto.CryoPlumesCooledThisTurn ?? []);
 			state.DefensiveManeuversMpUsed = unitDto.DefensiveManeuversMpUsed;
 			state.ShieldDynamoGrantedPerFace = unitDto.ShieldDynamoGrantedPerFace;
-			state.ThirstForScrapStacks = unitDto.ThirstForScrapStacks;
-			state.ReactiveShieldsStacks = unitDto.ReactiveShieldsStacks;
 			RestoreHeat(
 				state,
 				unitDto.Heat,
@@ -1065,10 +1057,7 @@ public static class SaveDtoMapper
 			throw new InvalidDataException("Saved battle statuses are missing.");
 		state.Statuses.Clear();
 		foreach (var dto in dtos)
-		{
-			state.Statuses.Add(
-				BattleStatusRehydrator.Rehydrate(BattleStatusJsonConverter.ShellFromDto(dto)));
-		}
+			state.Statuses.Add(BattleStatusJsonConverter.FromDto(dto));
 	}
 
 	private static void RestoreHeat(
@@ -1084,9 +1073,6 @@ public static class SaveDtoMapper
 		state.Overdrive = overdrive;
 		state.Overheat = overheat;
 		state.HeatProfile = new HeatSpec(heatCapacity, heatClearPerTurn, heatGainMultiplier);
-
-		BattleStatuses.SyncOverdrive(state);
-		BattleStatuses.SyncOverheat(state);
 	}
 
 	private static FaceShieldDto CaptureFaces(FaceShieldPoints points) =>

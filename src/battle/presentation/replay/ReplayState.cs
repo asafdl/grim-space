@@ -71,7 +71,7 @@ public sealed class ReplayState
 
 		state.CurrentShieldPoints = shields.CurrentShieldPoints.Clone();
 		TemporaryShields.ReplaceGrants(state, shields.TemporaryShieldGrants);
-		ShieldBrace.Restore(state, shields.BraceStatus?.DeepCopy());
+		ShieldBrace.Restore(state, shields.BraceStatus?.DeepCopy() as ShieldBraceStatus);
 	}
 
 	public void ApplyHeat(HeatChangedFacts heat)
@@ -87,16 +87,26 @@ public sealed class ReplayState
 	public void ApplyCooldownResetOnKill(CooldownResetOnKillFacts reset) =>
 		_states[reset.ActorId].MountRuntimeFor(reset.Mount).CooldownRemaining = 0;
 
-	public void ApplyThirstForScrap(ThirstForScrapChangedFacts changed) =>
-		_states[changed.ActorId].ThirstForScrapStacks = changed.Stacks;
+	public void ApplyThirstForScrap(ThirstForScrapChangedFacts changed)
+	{
+		var status = _states[changed.ActorId].StatusOf<ThirstForScrap>()
+			?? throw new InvalidOperationException($"Actor '{changed.ActorId}' has no ThirstForScrap status.");
+		status.Stacks = changed.Stacks;
+	}
+
+	public void ApplyReactiveShields(ReactiveShieldsChangedFacts changed)
+	{
+		var status = _states[changed.ActorId].StatusOf<ReactiveShields>()
+			?? throw new InvalidOperationException($"Actor '{changed.ActorId}' has no ReactiveShields status.");
+		status.Stacks = changed.Stacks;
+	}
 
 	public void ApplyProtectionDrone(ProtectionDroneChangedFacts drone)
 	{
 		if (!_states.TryGetValue(drone.TargetId, out var state))
 			return;
 
-		BattleStatuses.RemoveInstance(state.Statuses,
-			BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), drone.TargetId));
+		state.RemoveStatus<ProtectionDroneBuff>();
 		if (drone.Status is { } status)
 			state.Statuses.Add(status.DeepCopy());
 	}

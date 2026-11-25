@@ -215,8 +215,8 @@ internal static class ActionLegalityDiagnostics
 		if (world.ItemInventory?.Matches(purchase.Before.Id, purchase.Before) != true)
 			return "ship_snapshot_stale";
 
-		if (!PurchaseActionDef.TryResolveQuotedOffer(purchase, world, runtime, out var offer))
-			return "quote_stale";
+		if (!PurchaseActionDef.IsOffered(purchase, world))
+			return "offering_unavailable";
 
 		if (!MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,
@@ -225,8 +225,8 @@ internal static class ActionLegalityDiagnostics
 				out _))
 			return $"ship_change_invalid offering={purchase.Offering}";
 
-		if (!world.PlayerResources.CanApply(offer.Cost.Negate()))
-			return $"insufficient_resources cost={FormatResources(offer.Cost)}";
+		if (!world.PlayerResources.CanApply(purchase.QuotedCost.Negate()))
+			return $"insufficient_resources cost={FormatResources(purchase.QuotedCost)}";
 
 		return "illegal";
 	}

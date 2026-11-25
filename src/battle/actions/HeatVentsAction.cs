@@ -55,7 +55,7 @@ public sealed class HeatVentsDef
 			return false;
 
 		var state = world.StateOf(action.ActorId);
-		return !BattleStatuses.HasOverheat(state)
+		return !state.Overheat
 			&& !state.HeatVentsUsedThisTurn
 			&& state.Heat > 0
 			&& state.CurrentActionPoints >= PilotSkillPercents.HeatVents.ApCost;

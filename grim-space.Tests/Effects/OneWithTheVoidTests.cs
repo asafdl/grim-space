@@ -30,15 +30,11 @@ public sealed class OneWithTheVoidTests
 		var battle = LaunchTorpedo(withSkill: true, out _);
 
 		var player = battle.Engine.World.StateOf(PlayerId);
-		Assert.True(BattleStatuses.HasOneWithTheVoid(player));
+		Assert.True(player.Has<OneWithTheVoid>());
 		var torpedo = Assert.Single(
 			UnitRegistry.For(battle.Engine.World).All,
 			unit => unit.State.Type == EType.VoidBomb);
-		Assert.True(BattleStatuses.HasOneWithTheVoid(torpedo.State));
-		Assert.DoesNotContain(
-			torpedo.State.Statuses,
-			status => status.InstanceId
-				== BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.OneWithTheVoid), PlayerId));
+		Assert.True(torpedo.State.Has<OneWithTheVoid>());
 	}
 
 	[Fact]
@@ -57,9 +53,9 @@ public sealed class OneWithTheVoidTests
 		var sim = battle.Engine.CreateSimulation();
 		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
 
-		Assert.Equal(playerBefore, TotalDurability(sim.StateOf<ActorState>(PlayerId)));
-		Assert.True(TotalDurability(sim.StateOf<ActorState>(enemy.State.Id)) < enemyBefore);
-		Assert.False(sim.StateOf<ActorState>(torpedoId).IsAlive);
+		Assert.Equal(playerBefore, TotalDurability(sim.StateOf<State>(PlayerId)));
+		Assert.True(TotalDurability(sim.StateOf<State>(enemy.State.Id)) < enemyBefore);
+		Assert.False(sim.StateOf<State>(torpedoId).IsAlive);
 	}
 
 	[Fact]
@@ -77,53 +73,39 @@ public sealed class OneWithTheVoidTests
 		var sim = battle.Engine.CreateSimulation();
 		Assert.True(sim.TryEnqueue(new DetonateAction(torpedoId)));
 
-		Assert.True(TotalDurability(sim.StateOf<ActorState>(PlayerId)) < playerBefore);
+		Assert.True(TotalDurability(sim.StateOf<State>(PlayerId)) < playerBefore);
 	}
 
 	[Fact]
 	public void BattleUnitStateDto_PreservesOneWithTheVoidStatus()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.OneWithTheVoid, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.OneWithTheVoid));
 
 		var dto = SaveDtoMapper.CaptureBattleUnitState(state);
 		var restored = SaveDtoMapper.RestoreBattleUnitState(dto);
 
-		Assert.True(BattleStatuses.HasOneWithTheVoid(restored));
-		Assert.True(BattleStatuses.HasOneWithTheVoid(state.Clone()));
+		Assert.True(restored.Has<OneWithTheVoid>());
+		Assert.True(state.Clone().Has<OneWithTheVoid>());
 	}
 
 	[Fact]
-	public void Detonate_StaysUntagged_SoAttackRewriteOutgoingDoesNotApply()
+	public void Detonate_StaysUntagged_SoAttackRulesDoNotApply()
 	{
 		var battle = LaunchTorpedo(withSkill: false, out var torpedoId);
-		var torpedo = battle.Engine.World.StateOf(torpedoId);
-		torpedo.Statuses.Add(
-			new BattleStatus
-			{
-				InstanceId = "test:attack-bonus",
-				Priority = 1,
-				ActionTags = [BattleActionTags.Attack],
-				Polarity = EStatusPolarity.Buff,
-				RewriteOutgoing = (_, _, effect) =>
-					effect is ApplyAreaDamageEffect area
-						? area.WithDamageBonusPercent(50)
-						: effect,
-			});
-
 		IAction detonate = new DetonateAction(torpedoId);
 		Assert.Empty(detonate.Tags);
 
-		var effects = DetonateDef.Instance.Resolve(
+		var prepared = BattleEffectTestKit.PrepareDamage(
 			detonate,
 			battle.Engine.World,
-			battle.Engine.ActorRuntimes.For(torpedoId));
-		var rewritten = BattleStatuses.RewriteOutgoing(
-			detonate,
-			battle.Engine.World,
-			effects);
-		var area = Assert.IsType<ApplyAreaDamageEffect>(Assert.Single(rewritten));
-		Assert.Equal(0, area.DamageBonusPercent);
+			battle.Engine.ActorRuntimes.For(torpedoId),
+			new DamageUnitEffect(
+				EImpactCause.VoidBombBlast,
+				PlayerId,
+				Coord.Zero,
+				100));
+		Assert.Equal(0, prepared.BonusPercent);
 	}
 
 	private static BattleOrchestrator LaunchTorpedo(bool withSkill, out string torpedoId)
@@ -180,7 +162,7 @@ public sealed class OneWithTheVoidTests
 		return battle;
 	}
 
-	private static int TotalDurability(GrimSpace.Battle.Units.State state)
+	private static int TotalDurability(State state)
 	{
 		var shields = 0;
 		foreach (var face in Enum.GetValues<ESpatialOrientation>())

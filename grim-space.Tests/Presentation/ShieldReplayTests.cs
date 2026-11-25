@@ -1,15 +1,59 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Presentation.Replay;
 using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Run.Persistence;
 
 namespace GrimSpace.Tests.Presentation;
 
 [BattleTestSuite]
 public sealed class ShieldReplayTests
 {
+	[Theory]
+	[InlineData(0)]
+	[InlineData(10)]
+	public void ReactiveShieldsReplaysStackGainAndResetWithoutShieldChangeFacts(int heat)
+	{
+		var player = BattleTestFixture.Player(new Coord(5, 5, 5));
+		using var battle = BattleTestFixture.BeginSimulation(player, BattleTestFixture.Enemy(Coord.Zero));
+		var state = player.State;
+		state.Statuses.Add(new ReactiveShields { Stacks = 2 });
+		state.Heat = heat;
+		var replay = ReplayFrom(state);
+		var runtime = battle.Engine.ActorRuntimes.For(state.Id);
+		var world = battle.Engine.World;
+		var gain = new GainReactiveShieldsStackEffect(state.Id);
+		var records = gain.Apply(world, runtime, state.Id);
+		var changed = Assert.IsType<Record<ReactiveShieldsChangedFacts>>(Assert.Single(records));
+		var registry = PersistenceRegistry.CreateDefault();
+		changed = Assert.IsType<Record<ReactiveShieldsChangedFacts>>(registry.Read(registry.Write(changed)));
+
+		gain.Undo(world, runtime, state.Id);
+		replay.ApplyReactiveShields(changed.Value);
+
+		Assert.Equal(2, state.StatusOf<ReactiveShields>()!.Stacks);
+		Assert.Equal(3, replay.StateOf(state.Id).StatusOf<ReactiveShields>()!.Stacks);
+		AssertShieldsMatch(state, replay.StateOf(state.Id));
+
+		var upkeep = new TurnUpkeepEffect();
+		var resetRecords = upkeep.Apply(world, runtime, state.Id);
+		var reset = Assert.Single(resetRecords.OfType<Record<ReactiveShieldsChangedFacts>>());
+		replay.ApplyReactiveShields(reset.Value);
+
+		Assert.Equal(0, state.StatusOf<ReactiveShields>()!.Stacks);
+		Assert.Equal(0, replay.StateOf(state.Id).StatusOf<ReactiveShields>()!.Stacks);
+		Assert.DoesNotContain(resetRecords, record => record is Record<ShieldsChangedFacts>);
+		Assert.Equal(heat > 0, resetRecords.Any(record => record is Record<HeatChangedFacts>));
+		AssertShieldsMatch(state, replay.StateOf(state.Id));
+
+		upkeep.Undo(world, runtime, state.Id);
+		Assert.Equal(2, state.StatusOf<ReactiveShields>()!.Stacks);
+		Assert.Equal(heat, state.Heat);
+	}
+
 	[Theory]
 	[InlineData(false)]
 	[InlineData(true)]
@@ -59,19 +103,19 @@ public sealed class ShieldReplayTests
 		AssertShieldsMatch(state, replay.StateOf(state.Id));
 		Assert.True(replay.StateOf(state.Id).CurrentShieldPoints[ESpatialOrientation.Forward]
 			> state.Loadout.BaseShieldPoints[ESpatialOrientation.Forward]);
-		Assert.NotNull(ShieldBrace.TryPayload(replay.StateOf(state.Id)));
+		Assert.NotNull(ShieldBrace.TryStatus(replay.StateOf(state.Id)));
 		var impact = new ImpactFacts(
 			"enemy", state.Id, EImpactCause.RamImpact, ESpatialOrientation.Forward, 40, 0,
 			Defense.EffectiveShield(state, ESpatialOrientation.Forward), state.CurrentHullPoints);
 		Defense.AbsorbWithShields(state, impact.Face, impact.ShieldDamage);
 		replay.ApplyImpact(impact);
-		Assert.Equal(40, ShieldBrace.TryPayload(replay.StateOf(state.Id))!.DamagePending);
+		Assert.Equal(40, ShieldBrace.TryStatus(replay.StateOf(state.Id))!.DamagePending);
 
 		var release = new ReleaseShieldBraceEffect().Apply(world, runtime, state.Id);
 		replay.ApplyShields(Assert.IsType<Record<ShieldsChangedFacts>>(Assert.Single(release)).Value);
 
 		AssertShieldsMatch(state, replay.StateOf(state.Id));
-		Assert.Null(ShieldBrace.TryPayload(replay.StateOf(state.Id)));
+		Assert.Null(ShieldBrace.TryStatus(replay.StateOf(state.Id)));
 	}
 
 	[Fact]
@@ -140,13 +184,13 @@ public sealed class ShieldReplayTests
 		var restored = replay.StateOf(state.Id);
 		restored.CurrentShieldPoints.Fill(0);
 		TemporaryShields.AbsorbOnFace(restored, ESpatialOrientation.Port, 10);
-		ShieldBrace.TryPayload(restored)!.DamagePending = 99;
+		ShieldBrace.TryStatus(restored)!.DamagePending = 99;
 
 		replay.ApplyShields(brace);
 
 		Assert.Equal(brace.CurrentShieldPoints[ESpatialOrientation.Forward], restored.CurrentShieldPoints[ESpatialOrientation.Forward]);
 		Assert.Equal(20, TemporaryShields.TotalOnFace(restored, ESpatialOrientation.Port));
-		Assert.Equal(0, ShieldBrace.TryPayload(restored)!.DamagePending);
+		Assert.Equal(0, ShieldBrace.TryStatus(restored)!.DamagePending);
 	}
 
 	private static ReplayState ReplayFrom(State state) =>

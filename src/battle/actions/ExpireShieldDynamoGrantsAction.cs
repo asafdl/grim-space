@@ -24,7 +24,7 @@ public sealed class ExpireShieldDynamoGrantsDef
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => true;
 
 	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
-		BattleStatuses.HasShieldDynamo(world.StateOf(Cast(action).ActorId));
+		world.StateOf(Cast(action).ActorId).Has<ShieldDynamo>();
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,

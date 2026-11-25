@@ -69,7 +69,7 @@ public sealed class BraceDef
 			return false;
 
 		var state = world.StateOf(action.ActorId);
-		return !BattleStatuses.HasOverheat(state)
+		return !state.Overheat
 			&& !ShieldBrace.IsActive(state)
 			&& !state.ShieldBraceUsedThisTurn
 			&& ShieldBrace.TotalPermanentShields(state) > 0;

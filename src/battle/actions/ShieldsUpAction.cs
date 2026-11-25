@@ -59,7 +59,7 @@ public sealed class ShieldsUpDef
 			return false;
 
 		var state = world.StateOf(action.ActorId);
-		return !BattleStatuses.HasOverheat(state) && !state.ShieldsUpUsedThisTurn;
+		return !state.Overheat && !state.ShieldsUpUsedThisTurn;
 	}
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(

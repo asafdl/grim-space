@@ -87,7 +87,7 @@ public sealed class GoopGunDef
 	public bool IsLegal(GoopGunAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(state))
+		if (state.Overheat)
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.GoopGun, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).CooldownRemaining > 0)

@@ -4,60 +4,70 @@ namespace GrimSpace.Core.Engine;
 
 public static class ExecutionHelper
 {
+	public const int MaxReactionDepth = 8;
+
 	public static IReadOnlyList<IEffect<TWorld, TRuntime>> ApplyAndResolve<TWorld, TRuntime>(
 		IAction action,
 		TWorld world,
 		TRuntime runtime,
+		EffectRules<TWorld, TRuntime> rules,
 		List<IRecord>? recordSink = null)
 		where TWorld : IWorld<TWorld>
 		where TRuntime : IRuntimeContext<TRuntime>
 	{
+		ArgumentNullException.ThrowIfNull(rules);
 		if (action is not IAction<TWorld, TRuntime> typed)
 			return [];
 
-		var effects = RewriteResolved(
-			action,
-			world,
-			runtime,
-			typed.Definition.Resolve(action, world, runtime));
-		foreach (var effect in effects)
+		var applied = new List<IEffect<TWorld, TRuntime>>();
+		foreach (var intent in typed.Definition.Resolve(action, world, runtime))
 		{
-			var records = effect.Apply(world, runtime, action.ActorId);
-			if (recordSink is not null)
-				recordSink.AddRange(records);
+			var prepared = rules.Prepare(action, world, runtime, intent);
+			ApplyPrepared(action, world, runtime, rules, prepared, 0, applied, recordSink);
 		}
 
-		return effects;
+		return applied;
 	}
 
-	public static IReadOnlyList<IRecord> Apply<TWorld, TRuntime>(IAction action, TWorld world, TRuntime runtime)
-		where TWorld : IWorld<TWorld>
-		where TRuntime : IRuntimeContext<TRuntime>
-	{
-		if (action is not IAction<TWorld, TRuntime> typed)
-			return [];
-
-		var records = new List<IRecord>();
-		foreach (var effect in RewriteResolved(
-			action,
-			world,
-			runtime,
-			typed.Definition.Resolve(action, world, runtime)))
-			records.AddRange(effect.Apply(world, runtime, action.ActorId));
-
-		return records;
-	}
-
-	private static IReadOnlyList<IEffect<TWorld, TRuntime>> RewriteResolved<TWorld, TRuntime>(
+	private static void ApplyPrepared<TWorld, TRuntime>(
 		IAction action,
 		TWorld world,
 		TRuntime runtime,
-		IReadOnlyList<IEffect<TWorld, TRuntime>> effects)
+		EffectRules<TWorld, TRuntime> rules,
+		IEffect<TWorld, TRuntime> effect,
+		int depth,
+		List<IEffect<TWorld, TRuntime>> applied,
+		List<IRecord>? recordSink)
 		where TWorld : IWorld<TWorld>
-		where TRuntime : IRuntimeContext<TRuntime> =>
-		world is IResolvedEffectPass<TWorld, TRuntime> pass
-			? pass.RewriteResolvedEffects(action, world, runtime, effects)
-			: effects;
+		where TRuntime : IRuntimeContext<TRuntime>
+	{
+		var records = effect.Apply(world, runtime, action.ActorId);
+		applied.Add(effect);
+		recordSink?.AddRange(records);
+
+		var followUps = rules.React(action, world, runtime, effect, records);
+		if (followUps.Count > 0 && depth == MaxReactionDepth)
+			throw new InvalidOperationException($"Effect reactions exceeded the maximum depth of {MaxReactionDepth}.");
+
+		foreach (var followUp in followUps)
+		{
+			var prepared = rules.Prepare(action, world, runtime, followUp);
+			ApplyPrepared(action, world, runtime, rules, prepared, depth + 1, applied, recordSink);
+		}
+	}
+
+	public static IReadOnlyList<IRecord> Apply<TWorld, TRuntime>(
+		IAction action,
+		TWorld world,
+		TRuntime runtime,
+		EffectRules<TWorld, TRuntime> rules)
+		where TWorld : IWorld<TWorld>
+		where TRuntime : IRuntimeContext<TRuntime>
+	{
+		var records = new List<IRecord>();
+		ApplyAndResolve(action, world, runtime, rules, records);
+		return records;
+	}
 
 	public static void UndoEffects<TWorld, TRuntime>(
 		IReadOnlyList<IEffect<TWorld, TRuntime>> effects,

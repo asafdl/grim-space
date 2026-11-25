@@ -61,7 +61,7 @@ public sealed class MarkWeakspotTests
 		}
 
 		Assert.True(MarkWeakspot.IsActive(enemy.State));
-		Assert.Equal(ESpatialOrientation.Forward, MarkWeakspot.TryPayload(enemy.State)!.Face);
+		Assert.Equal(ESpatialOrientation.Forward, MarkWeakspot.TryStatus(enemy.State)!.Face);
 		Assert.Equal(
 			PilotSkillPercents.MarkWeakspot.CooldownTurns,
 			player.State.MarkWeakspotCooldownRemaining);
@@ -79,18 +79,21 @@ public sealed class MarkWeakspotTests
 	{
 		var (player, enemy, battle) = Battle();
 		var hitFace = BodyFrame.From(enemy.State).HitFaceFrom(player.State.Position);
-		enemy.State.Statuses.Add(BattleStatuses.CreateMarkWeakspot(enemy.State.Id, hitFace));
+		enemy.State.Statuses.Add(new MarkWeakspotDebuff { Face = hitFace });
 		enemy.State.CurrentShieldPoints[hitFace] = 200;
 
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { enemy.State.Position },
-			100,
-			player.State.Position);
-		effect.Apply(
+		var action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(player.State.Id),
-			player.State.Id);
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					enemy.State.Id,
+					player.State.Position,
+					100),
+			]);
 
 		Assert.Equal(80, enemy.State.CurrentShieldPoints[hitFace]);
 	}

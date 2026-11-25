@@ -22,8 +22,7 @@ namespace GrimSpace.Battle.World;
 /// </summary>
 public sealed class BattleWorld
 	: IWorld<BattleWorld>,
-		IActorStateWorld<State, BattleWorld>,
-		IResolvedEffectPass<BattleWorld, ActorRuntime>
+		IActorStateWorld<State, BattleWorld>
 {
 	private readonly Dictionary<string, NonUnit> _nonUnits;
 	private FrozenDictionary<Coord, ImmutableArray<NonUnit>> _nonUnitsByCell;
@@ -38,43 +37,6 @@ public sealed class BattleWorld
 	public Timeline Timeline { get; }
 
 	public State StateOf(string unitId) => UnitRegistry.UnitOf(unitId).State;
-
-   // TODO: What is this? why would the world be in charge of rewriting effects? this is shit
-	IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> IResolvedEffectPass<BattleWorld, ActorRuntime>.RewriteResolvedEffects(
-		IAction action,
-		BattleWorld world,
-		ActorRuntime runtime,
-		IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> effects)
-	{
-		var rewritten = BattleStatuses.RewriteOutgoing(action, world, effects);
-		var hitCells = new HashSet<Coord>();
-		foreach (var effect in rewritten)
-		{
-			switch (effect)
-			{
-				case ApplyAreaDamageEffect area when area.Damage > 0 || area.ShieldDamageBonus > 0:
-					hitCells.UnionWith(area.Cells.Where(cell => cell != area.Origin));
-					break;
-				case ApplyChainLightningDamageEffect chain
-					when chain.BaseDamage > 0 || chain.ShieldDamageBonus > 0:
-					hitCells.UnionWith(chain.BeamCells.Where(cell => cell != chain.Origin));
-					hitCells.UnionWith(chain.Hops
-						.Select(hop => hop.Position)
-						.Where(cell => cell != chain.Origin));
-					break;
-			}
-		}
-
-		var resolved = rewritten
-			.Select(effect => effect is ApplyAreaDamageEffect or ApplyChainLightningDamageEffect
-				? new ApplyKillTriggersEffect(effect)
-				: effect)
-			.ToList();
-		if (hitCells.Any(cell => world.AsteroidBeltAt(cell) is not null))
-			resolved.Add(new ErodeAsteroidBeltCoverEffect(hitCells));
-
-		return resolved;
-	}
 
 	public string BattleId { get; }
 	public EObjective Objective { get; }

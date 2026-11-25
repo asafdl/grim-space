@@ -7,6 +7,7 @@ using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
+using GrimSpace.Pilots;
 using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Battle.Actions;
@@ -75,7 +76,7 @@ public sealed class ScrapDroneSwarmDef
 	public bool IsLegal(ScrapDroneSwarmAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(state))
+		if (state.Overheat)
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
@@ -97,10 +98,12 @@ public sealed class ScrapDroneSwarmDef
 		var swarm = installed.Spec as ScrapDroneSwarmSpec
 			?? throw new InvalidOperationException("Scrap drone swarm spec missing.");
 		var damage = ((IAreaDamage)swarm).Damage;
-		IEffect<BattleWorld, ActorRuntime>[] effects =
+		return
 		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
-			new ApplyAreaDamageEffect(
+			.. AttackEffects.Area(
+				world,
+				action.ActorId,
 				EImpactCause.ScrapDroneSwarmBurst,
 				cells,
 				damage,
@@ -108,8 +111,8 @@ public sealed class ScrapDroneSwarmDef
 				alliesTakeDamage: false),
 			new ApplyAreaAllyHealEffect(EImpactCause.ScrapDroneSwarmBurst, cells, swarm.Heal),
 			new MountUsesChangeEffect(installed.Mount, -1),
+			.. AttackEffects.Erosion(world, cells, state.Position),
 		];
-		return runtime.ActionEffects.Apply(action, world, runtime, effects);
 	}
 
 	public IReadOnlySet<Coord> AffectedCells(ScrapDroneSwarmAction action, BattleWorld world)
@@ -119,9 +122,18 @@ public sealed class ScrapDroneSwarmDef
 		if (installed?.Spec is not IAreaDamage baseArea)
 			return FrozenSet<Coord>.Empty;
 
-		var areaDamage = BattleStatuses.RewriteArea(baseArea, state.Statuses, action.Tags);
+		IAreaDamage area = baseArea;
+		if (state.Has<HealingSkillRangeBonus>()
+			&& area is ScrapDroneSwarmSpec swarm
+			&& action.Tags.Contains(BattleActionTags.Heal))
+		{
+			area = swarm with
+			{
+				BurstRange = swarm.BurstRange + PilotSkillPercents.HelpABotterOut.HealingRangeBonusCells,
+			};
+		}
 		var frame = BodyFrame.From(state);
-		var geometric = AbilityArea.CellsInBounds(areaDamage, frame, action.MountedOn, world.Grid);
+		var geometric = AbilityArea.CellsInBounds(area, frame, action.MountedOn, world.Grid);
 		return AbilityArea.ApplyBlocking(state.Position, geometric, IsBlockable, world.AbilityBlockingCells);
 	}
 

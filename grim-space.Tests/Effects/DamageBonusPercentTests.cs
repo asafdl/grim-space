@@ -1,8 +1,6 @@
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
@@ -39,17 +37,18 @@ public sealed class DamageBonusPercentTests
 			enemy.State.CurrentShieldPoints[face] = 0;
 		var hullBefore = enemy.State.CurrentHullPoints;
 		var battle = BattleTestFixture.BeginSimulation(player, enemy);
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord> { enemy.State.Position },
-			10,
-			player.State.Position)
-			.WithDamageBonusPercent(80);
-
-		effect.Apply(
+		var action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(player.State.Id),
-			player.State.Id);
+			[
+				new DamageUnitEffect(
+					EImpactCause.ScrapDroneSwarmBurst,
+					enemy.State.Id,
+					player.State.Position,
+					10) { BonusPercent = 80 },
+			]);
 
 		Assert.Equal(hullBefore - 18, enemy.State.CurrentHullPoints);
 	}
@@ -71,44 +70,22 @@ public sealed class DamageBonusPercentTests
 					[EPilotSkillId.NotFullyFormed]),
 			});
 		var world = battle.Engine.World;
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 		foreach (var target in new[] { regular.State, spawned.State })
 		{
 			target.CurrentHullPoints = 1000;
 			target.CurrentShieldPoints.Fill(0);
 		}
 
-		var area = Assert.IsType<ApplyAreaDamageEffect>(Assert.Single(BattleStatuses.RewriteOutgoing(
-			new LightningCannonAction(player.State.Id),
+		var action = new LightningCannonAction(player.State.Id);
+		var effects = AttackEffects.Area(
 			world,
-			[
-				new ApplyAreaDamageEffect(
-					EImpactCause.LightningCannonBurst,
-					new HashSet<Coord> { regular.State.Position, spawned.State.Position },
-					100,
-					player.State.Position),
-			])));
-		area.Apply(world, battle.Engine.ActorRuntimes.For(player.State.Id), player.State.Id);
-
-		Assert.Equal(900, regular.State.CurrentHullPoints);
-		Assert.Equal(870, spawned.State.CurrentHullPoints);
-		area.Undo(world, battle.Engine.ActorRuntimes.For(player.State.Id), player.State.Id);
-
-		var chain = Assert.IsType<ApplyChainLightningDamageEffect>(Assert.Single(BattleStatuses.RewriteOutgoing(
-			new LightningCannonAction(player.State.Id),
-			world,
-			[
-				new ApplyChainLightningDamageEffect(
-					EImpactCause.LightningCannonBurst,
-					new HashSet<Coord>(),
-					[
-						new ChainLightningHop(regular.State.Id, regular.State.Position),
-						new ChainLightningHop(spawned.State.Id, spawned.State.Position),
-					],
-					100,
-					0,
-					player.State.Position),
-			])));
-		chain.Apply(world, battle.Engine.ActorRuntimes.For(player.State.Id), player.State.Id);
+			player.State.Id,
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord> { regular.State.Position, spawned.State.Position },
+			100,
+			player.State.Position).ToArray();
+		BattleEffectTestKit.ApplyEffects(action, world, runtime, effects);
 
 		Assert.Equal(900, regular.State.CurrentHullPoints);
 		Assert.Equal(870, spawned.State.CurrentHullPoints);

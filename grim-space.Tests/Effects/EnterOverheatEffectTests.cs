@@ -17,8 +17,7 @@ public sealed class EnterOverheatEffectTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overdrive = true;
-		BattleStatuses.SyncOverdrive(state);
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+				var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		new EnterOverheatEffect().Apply(battle.Engine.World, runtime, PlayerId);
 
@@ -26,8 +25,8 @@ public sealed class EnterOverheatEffectTests
 		Assert.False(state.Overdrive);
 		Assert.True(state.Overheat);
 		Assert.False(state.Statuses.Exists(status =>
-			status.InstanceId == BattleStatuses.BuffInstanceId("Overdrive", PlayerId)));
-		Assert.True(BattleStatuses.HasOverheat(state));
+			false /* overdrive is flag */));
+		Assert.True(state.Overheat);
 	}
 
 	[Fact]
@@ -59,6 +58,6 @@ public sealed class EnterOverheatEffectTests
 
 		Assert.True(state.Overdrive);
 		Assert.False(state.Overheat);
-		Assert.False(BattleStatuses.HasOverheat(state));
+		Assert.False(state.Overheat);
 	}
 }

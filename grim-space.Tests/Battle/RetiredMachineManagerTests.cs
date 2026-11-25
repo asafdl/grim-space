@@ -22,21 +22,23 @@ public sealed class RetiredMachineManagerTests
 	public void Parent_InstallsMarkerPassiveWithoutDamageRewrite()
 	{
 		var parent = BattleTestFixture.Player(Coord.Zero);
-		var world = BattleWorldFor(parent);
+		var enemy = BattleTestFixture.Enemy(new Coord(1, 0, 0));
+		var world = BattleWorldFor(parent, enemy);
 		InstallManager(world, parent);
 
-		Assert.True(BattleStatuses.HasSpawnedAllyDamageBonus(parent.State));
-		IAction action = new ScrapDroneSwarmAction(parent.State.Id, ESpatialOrientation.Port);
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord> { new(1, 0, 0) },
-			10 * 100,
-			Coord.Zero);
+		Assert.True(parent.State.Has<SpawnedAllyDamageBonus>());
+		IAction action = new HighVelocityRodAction(parent.State.Id, ESpatialOrientation.Forward);
+		var modified = BattleEffectTestKit.PrepareDamage(
+			action,
+			world,
+			new ActorRuntime(),
+			new DamageUnitEffect(
+				EImpactCause.HighVelocityRod,
+				enemy.State.Id,
+				Coord.Zero,
+				100));
 
-		var modified = Assert.IsType<ApplyAreaDamageEffect>(
-			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
-
-		Assert.Equal(0, modified.DamageBonusPercent);
+		Assert.Equal(0, modified.BonusPercent);
 	}
 
 	[Fact]
@@ -44,34 +46,29 @@ public sealed class RetiredMachineManagerTests
 	{
 		var parent = BattleTestFixture.Player(Coord.Zero);
 		var child = BattleTestFixture.Enemy(new Coord(1, 0, 0));
+		var enemy = BattleTestFixture.RepurposedMiner(new Coord(2, 0, 0), "target");
 		child.State.ParentId = parent.State.Id;
-		var world = BattleWorldFor(parent, child);
+		var world = BattleWorldFor(parent, child, enemy);
 		InstallManager(world, parent);
-		BattleStatuses.GrantSpawnedAllyDamageBuff(parent.State, child.State);
+		SpawnedAllyDamageBuff.GrantFrom(parent.State, child.State);
 
-		var buffId = BattleStatuses.BuffInstanceId(
-			nameof(EPilotCapabilityId.SpawnedAllyDamageBonus),
-			child.State.Id);
-		Assert.Contains(child.State.Statuses, status => status.InstanceId == buffId);
-		Assert.DoesNotContain(
-			child.State.Statuses,
-			status => status.InstanceId == BattleStatuses.PassiveInstanceId(
-				nameof(EPilotCapabilityId.SpawnedAllyDamageBonus),
-				child.State.Id));
+		Assert.True(child.State.Has<SpawnedAllyDamageBuff>());
+		Assert.False(child.State.Has<SpawnedAllyDamageBonus>());
 
-		IAction action = new ScrapDroneSwarmAction(child.State.Id, ESpatialOrientation.Port);
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord> { new(2, 0, 0) },
-			10 * 100,
-			new Coord(1, 0, 0));
-
-		var modified = Assert.IsType<ApplyAreaDamageEffect>(
-			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
+		IAction action = new HighVelocityRodAction(child.State.Id, ESpatialOrientation.Forward);
+		var modified = BattleEffectTestKit.PrepareDamage(
+			action,
+			world,
+			new ActorRuntime(),
+			new DamageUnitEffect(
+				EImpactCause.HighVelocityRod,
+				enemy.State.Id,
+				child.State.Position,
+				100));
 
 		Assert.Equal(
 			PilotSkillPercents.RetiredMachineManager.SpawnedAllyDamageBonusPercent,
-			modified.DamageBonusPercent);
+			modified.BonusPercent);
 	}
 
 	[Fact]
@@ -79,26 +76,28 @@ public sealed class RetiredMachineManagerTests
 	{
 		var parent = BattleTestFixture.Player(Coord.Zero);
 		var child = BattleTestFixture.Enemy(new Coord(1, 0, 0));
+		var enemy = BattleTestFixture.RepurposedMiner(new Coord(2, 0, 0), "target");
 		child.State.ParentId = parent.State.Id;
-		var world = BattleWorldFor(parent, child);
-		BattleStatuses.GrantSpawnedAllyDamageBuff(parent.State, child.State);
+		var world = BattleWorldFor(parent, child, enemy);
+		SpawnedAllyDamageBuff.GrantFrom(parent.State, child.State);
 
 		Assert.Empty(child.State.Statuses);
-		IAction action = new ScrapDroneSwarmAction(child.State.Id, ESpatialOrientation.Port);
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord> { new(2, 0, 0) },
-			10 * 100,
-			new Coord(1, 0, 0));
+		IAction action = new HighVelocityRodAction(child.State.Id, ESpatialOrientation.Forward);
+		var modified = BattleEffectTestKit.PrepareDamage(
+			action,
+			world,
+			new ActorRuntime(),
+			new DamageUnitEffect(
+				EImpactCause.HighVelocityRod,
+				enemy.State.Id,
+				child.State.Position,
+				100));
 
-		var modified = Assert.IsType<ApplyAreaDamageEffect>(
-			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
-
-		Assert.Equal(0, modified.DamageBonusPercent);
+		Assert.Equal(0, modified.BonusPercent);
 	}
 
 	private static void InstallManager(BattleWorld world, Unit parent) =>
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
+		BattleStatusMaterializer.Materialize(
 			world,
 			parent.State.Id,
 			ActorRuntime.From(new PilotBattleSnapshot(
@@ -106,7 +105,7 @@ public sealed class RetiredMachineManagerTests
 				PilotCapabilityGrant.FromBackground(
 					"pilot",
 					EPilotBackgroundId.RetiredMachineManager,
-					BattlePilotCapabilityPipelineFactory.Supports))));
+					BattlePilotCapabilities.Supports))));
 
 	private static BattleWorld BattleWorldFor(params Unit[] units) =>
 		BattleWorld.FromLive(

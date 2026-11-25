@@ -27,7 +27,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 			.LearnPilotSkill(EPilotSkillId.ShieldsUp);
 		registry.Register(pilot);
 
-		var grants = registry.QueryCapabilities(BattlePilotCapabilityPipelineFactory.Supports);
+		var grants = registry.QueryCapabilities(BattlePilotCapabilities.Supports);
 
 		var grant = Assert.Single(grants);
 		Assert.Equal(EPilotCapabilitySourceKind.Skill, grant.Source.Kind);
@@ -103,7 +103,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 			});
 		registry.Register(pilot);
 
-		var battleGrants = registry.QueryCapabilities(BattlePilotCapabilityPipelineFactory.Supports);
+		var battleGrants = registry.QueryCapabilities(BattlePilotCapabilities.Supports);
 
 		var grant = Assert.Single(battleGrants);
 		Assert.Equal(EPilotCapabilityId.LightningShieldDamageBonus, grant.CapabilityId);
@@ -137,7 +137,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 		registry.Register(assignedPilot);
 		registry.Register(unassignedPilot);
 
-		var grants = registry.QueryCapabilitiesForAssigned(BattlePilotCapabilityPipelineFactory.Supports);
+		var grants = registry.QueryCapabilitiesForAssigned(BattlePilotCapabilities.Supports);
 
 		Assert.Single(grants);
 		Assert.Equal(assignedPilot.Id, grants[0].PilotId);
@@ -176,7 +176,7 @@ public sealed class PilotRegistryCapabilityQueryTests
 
 		var grants = registry.QueryCapabilitiesForShip(
 			"fighter-b",
-			BattlePilotCapabilityPipelineFactory.Supports);
+			BattlePilotCapabilities.Supports);
 
 		var grant = Assert.Single(grants);
 		Assert.Equal(pilotB.Id, grant.PilotId);

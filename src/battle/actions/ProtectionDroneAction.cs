@@ -73,7 +73,7 @@ public sealed class ProtectionDroneDef
 
 		var actor = world.StateOf(action.ActorId);
 		var installed = actor.FindInstalled(EAbilityKind.ProtectionDrone);
-		if (BattleStatuses.HasOverheat(actor)
+		if (actor.Overheat
 			|| installed is null
 			|| actor.CooldownRemaining(installed.Mount) > 0)
 			return false;
@@ -82,9 +82,7 @@ public sealed class ProtectionDroneDef
 			return false;
 
 		var target = world.StateOf(action.TargetId);
-		if (target.Statuses.Any(status =>
-			status.InstanceId
-				== BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), target.Id)))
+		if (target.Has<ProtectionDroneBuff>())
 			return false;
 
 		return TargetPick.Filters.All(filter =>

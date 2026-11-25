@@ -51,6 +51,5 @@ public sealed class OverheatAbilityGateTests
 	private static void EnterOverheat(GrimSpace.Battle.Units.State state)
 	{
 		state.Overheat = true;
-		BattleStatuses.SyncOverheat(state);
-	}
+			}
 }

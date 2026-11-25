@@ -12,37 +12,16 @@ namespace GrimSpace.Tests.World.StarSystem.PilotSkills;
 
 public sealed class OptimalityContractCreditBonusTests
 {
-	private static readonly IReadOnlyList<PilotCapabilityGrant> Grants =
-	[
-		new(
-			EPilotCapabilityId.OptimalityContractCreditBonus,
-			"pilot-a",
-			new PilotCapabilitySource(
-				EPilotCapabilitySourceKind.Background,
-				EPilotBackgroundId.OptimalityEnforcer.ToString())),
-	];
-
 	[Fact]
-	public void Pipeline_IncreasesOptimalityContractCreditsOnly()
+	public void IncreasesOptimalityContractCreditsOnly()
 	{
-		var pipeline = StarMapPilotCapabilityPipelineFactory.Build(Grants);
-		IAction action = new CompleteContractAction(
-			"player",
-			"contract-a",
-			EFaction.TheOptimality,
-			ResourceBundle.Empty);
 		var effect = new ChangeResourceEffect(
 			TransactionSource.ContractPayment,
 			ResourceBundle.Create(
 				(ResourceId.Credits, 100),
 				(ResourceId.IndustrialCore, 1)));
 
-		var modified = Assert.IsType<ChangeResourceEffect>(
-			Assert.Single(pipeline.Apply(
-				action,
-				StarMap.Create(1),
-				new ActorRuntime(),
-				[effect])));
+		var modified = Assert.IsType<ChangeResourceEffect>(Prepare(EFaction.TheOptimality, effect));
 
 		Assert.True(modified.Change.TryGet(ResourceId.Credits, out var credits));
 		Assert.Equal(105, credits);
@@ -51,24 +30,31 @@ public sealed class OptimalityContractCreditBonusTests
 	}
 
 	[Fact]
-	public void Pipeline_DoesNotModifyOtherFactionContract()
+	public void DoesNotModifyOtherFactionContract()
 	{
-		var pipeline = StarMapPilotCapabilityPipelineFactory.Build(Grants);
-		IAction action = new CompleteContractAction(
-			"player",
-			"contract-a",
-			EFaction.Pirates,
-			ResourceBundle.Empty);
 		var effect = new ChangeResourceEffect(
 			TransactionSource.ContractPayment,
 			ResourceBundle.Of(ResourceId.Credits, 100));
 
-		var result = Assert.Single(pipeline.Apply(
-			action,
-			StarMap.Create(1),
-			new ActorRuntime(),
-			[effect]));
+		Assert.Same(effect, Prepare(EFaction.Pirates, effect));
+	}
 
-		Assert.Same(effect, result);
+	private static IEffect<StarMap, ActorRuntime> Prepare(EFaction issuer, IEffect<StarMap, ActorRuntime> effect)
+	{
+		var runtime = new ActorRuntime();
+		runtime.ReplaceStrategicCapabilities(
+		[
+			new PilotCapabilityGrant(
+				EPilotCapabilityId.OptimalityContractCreditBonus,
+				"pilot-a",
+				new PilotCapabilitySource(
+					EPilotCapabilitySourceKind.Background,
+					EPilotBackgroundId.OptimalityEnforcer.ToString())),
+		]);
+		return StarMapPilotCapabilities.Rules.Prepare(
+			new CompleteContractAction("player", "contract-a", issuer, ResourceBundle.Empty),
+			StarMap.Create(1),
+			runtime,
+			effect);
 	}
 }

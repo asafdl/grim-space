@@ -1,8 +1,9 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -84,7 +85,18 @@ public sealed class InTheFrayTests
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(shooter.State.Position);
 		target.State.CurrentShieldPoints[hitFace] = 6;
 
-		ApplyDamage(shooter, target, battle, damage: 3, shieldDamageBonus: 1);
+		var action = new HighVelocityRodAction(shooter.State.Id, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(shooter.State.Id),
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					target.State.Id,
+					shooter.State.Position,
+					3) { ShieldDamageBonusPercent = 33 },
+			]);
 
 		Assert.Equal(3, target.State.CurrentShieldPoints[hitFace]);
 	}
@@ -113,15 +125,9 @@ public sealed class InTheFrayTests
 		var hitFace = BodyFrame.From(target.State).HitFaceFrom(source.State.Position);
 		target.State.CurrentShieldPoints[hitFace] = 6;
 
-		ApplyDamage(
-			source,
-			target,
-			battle,
-			damage: 2,
-			adjacentHitDamagePercent: 200,
-			adjacentHitDamageRangeCells: 2);
+		ApplyDamage(source, target, battle, damage: 2);
 
-		Assert.Equal(3, target.State.CurrentShieldPoints[hitFace]);
+		Assert.Equal(4, target.State.CurrentShieldPoints[hitFace]);
 	}
 
 	[Fact]
@@ -155,12 +161,11 @@ public sealed class InTheFrayTests
 	public void StateClone_PreservesPublishedCondition()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.InTheFray, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.InTheFray));
 
 		Assert.Contains(
 			state.Clone().Statuses,
-			status => status.InstanceId
-				== BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.InTheFray), state.Id));
+			status => status is InTheFray);
 	}
 
 	private static BattleOrchestrator BeginBattle(
@@ -182,24 +187,19 @@ public sealed class InTheFrayTests
 		Unit source,
 		Unit target,
 		BattleOrchestrator battle,
-		int damage,
-		int shieldDamageBonus = 0,
-		int shieldDamageBonusPercent = 0,
-		int adjacentHitDamagePercent = 100,
-		int adjacentHitDamageRangeCells = 1)
+		int damage)
 	{
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { target.State.Position },
-			damage,
-			source.State.Position,
-			shieldDamageBonus,
-			shieldDamageBonusPercent,
-			adjacentHitDamagePercent,
-			adjacentHitDamageRangeCells);
-		effect.Apply(
+		var action = new HighVelocityRodAction(source.State.Id, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(source.State.Id),
-			source.State.Id);
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					target.State.Id,
+					source.State.Position,
+					damage),
+			]);
 	}
 }

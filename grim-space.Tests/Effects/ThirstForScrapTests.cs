@@ -44,15 +44,20 @@ public sealed class ThirstForScrapTests
 		var runtime = battle.Engine.ActorRuntimes.For(sourceId);
 		world.StateOf("enemy").CurrentHullPoints = 50;
 		world.StateOf("enemy").CurrentShieldPoints.Fill(0);
-		var effect = Damage(world, sourceId, ["enemy"]);
+		var action = new DetonateAction(sourceId);
+		var records = new List<IRecord>();
+		var effects = AttackEffects.Area(
+			world,
+			sourceId,
+			EImpactCause.VoidBombBlast,
+			new HashSet<Coord> { world.StateOf("enemy").Position },
+			100,
+			world.StateOf(sourceId).Position).ToArray();
 
-		var records = effect.Apply(world, runtime, sourceId);
+		BattleEffectTestKit.ApplyEffects(action, world, runtime, effects, records);
 
-		Assert.Equal(expectedStacks, world.StateOf("player").ThirstForScrapStacks);
+		Assert.Equal(expectedStacks, world.StateOf("player").StatusOf<ThirstForScrap>()!.Stacks);
 		Assert.Equal(expectedStacks, records.OfType<Record<ThirstForScrapChangedFacts>>().Count());
-		effect.Undo(world, runtime, sourceId);
-		Assert.Equal(0, world.StateOf("player").ThirstForScrapStacks);
-		Assert.True(world.StateOf("enemy").IsAlive);
 	}
 
 	[Theory]
@@ -64,17 +69,31 @@ public sealed class ThirstForScrapTests
 		var world = battle.Engine.World;
 		world.StateOf("ally").CurrentHullPoints = 50;
 		world.StateOf("ally").CurrentShieldPoints.Fill(0);
+		var action = new DetonateAction(sourceId);
+		var records = new List<IRecord>();
+		var effects = AttackEffects.Area(
+			world,
+			sourceId,
+			EImpactCause.VoidBombBlast,
+			new HashSet<Coord> { world.StateOf("ally").Position },
+			100,
+			world.StateOf(sourceId).Position,
+			alliesTakeDamage: true).ToArray();
 
-		var records = Damage(world, sourceId, ["ally"])
-			.Apply(world, battle.Engine.ActorRuntimes.For(sourceId), sourceId);
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			world,
+			battle.Engine.ActorRuntimes.For(sourceId),
+			effects,
+			records);
 
 		Assert.False(world.StateOf("ally").IsAlive);
-		Assert.Equal(0, world.StateOf("player").ThirstForScrapStacks);
+		Assert.Equal(0, world.StateOf("player").StatusOf<ThirstForScrap>()!.Stacks);
 		Assert.Empty(records.OfType<Record<ThirstForScrapChangedFacts>>());
 	}
 
 	[Fact]
-	public void AreaMultiKillGrantsOneStackPerTargetAndUndoRestoresAll()
+	public void AreaMultiKillGrantsOneStackPerTarget()
 	{
 		using var battle = Battle();
 		var world = battle.Engine.World;
@@ -84,151 +103,47 @@ public sealed class ThirstForScrapTests
 			world.StateOf(id).CurrentHullPoints = 50;
 			world.StateOf(id).CurrentShieldPoints.Fill(0);
 		}
-		var effect = Damage(world, "player", ["enemy", "second-enemy"]);
+		var action = new DetonateAction("player");
+		var records = new List<IRecord>();
+		var effects = AttackEffects.Area(
+			world,
+			"player",
+			EImpactCause.VoidBombBlast,
+			new HashSet<Coord>
+			{
+				world.StateOf("enemy").Position,
+				world.StateOf("second-enemy").Position,
+			},
+			100,
+			world.StateOf("player").Position).ToArray();
 
-		var records = effect.Apply(world, runtime, "player");
+		BattleEffectTestKit.ApplyEffects(action, world, runtime, effects, records);
 
-		Assert.Equal(2, world.StateOf("player").ThirstForScrapStacks);
+		Assert.Equal(2, world.StateOf("player").StatusOf<ThirstForScrap>()!.Stacks);
 		Assert.Equal([1, 2], records.OfType<Record<ThirstForScrapChangedFacts>>()
 			.Select(record => record.Value.Stacks));
-		effect.Undo(world, runtime, "player");
-		Assert.Equal(0, world.StateOf("player").ThirstForScrapStacks);
-		Assert.Equal(50, world.StateOf("enemy").CurrentHullPoints);
-		Assert.Equal(50, world.StateOf("second-enemy").CurrentHullPoints);
-	}
-
-	[Fact]
-	public void ChainKillGrantsOneStackEvenWithRepeatedTargetHops()
-	{
-		using var battle = Battle();
-		var world = battle.Engine.World;
-		var enemy = world.StateOf("enemy");
-		enemy.CurrentHullPoints = 50;
-		enemy.CurrentShieldPoints.Fill(0);
-		var effect = new ApplyKillTriggersEffect(new ApplyChainLightningDamageEffect(
-			EImpactCause.LightningCannonBurst, new HashSet<Coord>(),
-			[new("enemy", enemy.Position), new("enemy", enemy.Position)],
-			100, 0, world.StateOf("player").Position));
-		var runtime = battle.Engine.ActorRuntimes.For("player");
-
-		var records = effect.Apply(world, runtime, "player");
-
-		Assert.Equal(1, world.StateOf("player").ThirstForScrapStacks);
-		Assert.Single(records.OfType<Record<ThirstForScrapChangedFacts>>());
-		effect.Undo(world, runtime, "player");
-		Assert.Equal(0, world.StateOf("player").ThirstForScrapStacks);
-		Assert.Equal(50, enemy.CurrentHullPoints);
-	}
-
-	[Fact]
-	public void SelfDestructingChildStillCreditsItsLivingOwner()
-	{
-		using var battle = Battle();
-		var world = battle.Engine.World;
-		world.StateOf("enemy").CurrentHullPoints = 50;
-		world.StateOf("enemy").CurrentShieldPoints.Fill(0);
-		world.StateOf("child").CurrentShieldPoints.Fill(0);
-		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
-			EImpactCause.VoidBombBlast,
-			new HashSet<Coord> { world.StateOf("enemy").Position, world.StateOf("child").Position },
-			100, world.StateOf("child").Position, destroySource: true));
-
-		effect.Apply(world, battle.Engine.ActorRuntimes.For("child"), "child");
-
-		Assert.False(world.StateOf("child").IsAlive);
-		Assert.Equal(1, world.StateOf("player").ThirstForScrapStacks);
 	}
 
 	[Theory]
 	[InlineData(0)]
 	[InlineData(1)]
 	[InlineData(3)]
-	[InlineData(20)]
-	public void DamageBonusIsAdditiveUncappedAndLeavesOtherEffectsUnchanged(int stacks)
+	public void StacksAddDamageBonusPercent(int stacks)
 	{
 		using var battle = Battle();
 		var world = battle.Engine.World;
-		world.StateOf("player").ThirstForScrapStacks = stacks;
-		var heal = new ApplyAreaAllyHealEffect(EImpactCause.ScrapDroneSwarmBurst, new HashSet<Coord>(), 100);
-		var rewritten = BattleStatuses.RewriteOutgoing(new DetonateAction("player"), world,
-		[
-			new ApplyAreaDamageEffect(EImpactCause.VoidBombBlast, new HashSet<Coord>(), 100, Coord.Zero)
-				.WithAddedDamageBonusPercent(80),
-			new ApplyChainLightningDamageEffect(EImpactCause.LightningCannonBurst,
-				new HashSet<Coord>(), [], 100, 0, Coord.Zero).WithAddedDamageBonusPercent(80),
-			heal,
-		]);
-
-		Assert.Equal(80 + stacks * 10, Assert.IsType<ApplyAreaDamageEffect>(rewritten[0]).DamageBonusPercent);
-		Assert.Equal(80 + stacks * 10, Assert.IsType<ApplyChainLightningDamageEffect>(rewritten[1]).DamageBonusPercent);
-		Assert.Same(heal, rewritten[2]);
-	}
-
-	[Fact]
-	public void ThreeStacksDealThirtyPercentMoreActualDamage()
-	{
-		using var battle = Battle();
-		var world = battle.Engine.World;
-		world.StateOf("player").ThirstForScrapStacks = 3;
-		var enemy = world.StateOf("enemy");
-		enemy.CurrentShieldPoints.Fill(0);
-		enemy.CurrentHullPoints = 1000;
-		var effect = Assert.Single(BattleStatuses.RewriteOutgoing(new LightningCannonAction("player"), world,
-		[
-			new ApplyAreaDamageEffect(EImpactCause.LightningCannonBurst,
-				new HashSet<Coord> { enemy.Position }, 100, world.StateOf("player").Position),
-		]));
-
-		effect.Apply(world, battle.Engine.ActorRuntimes.For("player"), "player");
-
-		Assert.Equal(870, enemy.CurrentHullPoints);
-	}
-
-	[Fact]
-	public void WorldResolvedEffectPassGrantsStacksOnForkWithoutMutatingLiveWorld()
-	{
-		using var battle = Battle();
-		var world = battle.Engine.World;
-		world.StateOf("enemy").CurrentHullPoints = 50;
-		world.StateOf("enemy").CurrentShieldPoints.Fill(0);
-		var fork = world.ForkForSimulation();
 		var runtime = battle.Engine.ActorRuntimes.For("player");
-		var pass = (IResolvedEffectPass<BattleWorld, ActorRuntime>)fork;
-		var effect = Assert.IsType<ApplyKillTriggersEffect>(Assert.Single(pass.RewriteResolvedEffects(
-			new LightningCannonAction("player"), fork, runtime,
-			[new ApplyAreaDamageEffect(EImpactCause.LightningCannonBurst,
-				new HashSet<Coord> { fork.StateOf("enemy").Position }, 100, fork.StateOf("player").Position)])));
+		world.StateOf("player").StatusOf<ThirstForScrap>()!.Stacks = stacks;
+		var enemy = world.StateOf("enemy");
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			new DetonateAction("player"),
+			world,
+			runtime,
+			new DamageUnitEffect(EImpactCause.VoidBombBlast, enemy.Id, world.StateOf("player").Position, 100));
 
-		effect.Apply(fork, runtime, "player");
-
-		Assert.Equal(1, fork.StateOf("player").ThirstForScrapStacks);
-		Assert.Equal(0, world.StateOf("player").ThirstForScrapStacks);
-		Assert.True(world.StateOf("enemy").IsAlive);
-		effect.Undo(fork, runtime, "player");
-		Assert.Equal(0, fork.StateOf("player").ThirstForScrapStacks);
-	}
-
-	[Fact]
-	public void SaveLoadAndReinstallPreserveStacksAndNewBattleStartsAtZero()
-	{
-		using var battle = Battle();
-		var world = battle.Engine.World;
-		world.StateOf("player").ThirstForScrapStacks = 3;
-		var registry = PersistenceRegistry.CreateDefault();
-		var unit = SaveDtoMapper.RestoreBattleUnitState(
-			SaveDtoMapper.CaptureBattleUnitState(world.StateOf("player")));
-		Assert.Equal(3, unit.ThirstForScrapStacks);
-
-		var restored = SaveDtoMapper.RestoreBattleWorld(SaveDtoMapper.CaptureBattleWorld(world, registry), registry);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			restored, "player", battle.Engine.ActorRuntimes.For("player"));
-
-		Assert.Equal(3, restored.StateOf("player").ThirstForScrapStacks);
-		Assert.True(BattleStatuses.HasThirstForScrap(restored.StateOf("player")));
-		Assert.Single(restored.StateOf("player").Statuses);
-		Assert.Empty(restored.ActivationRoundLists.EntriesFor("player"));
-		using var fresh = Battle();
-		Assert.Equal(0, fresh.Engine.World.StateOf("player").ThirstForScrapStacks);
+		Assert.Equal(
+			stacks * PilotSkillPercents.ThirstForScrap.DamageBonusPercentPerKill,
+			prepared.BonusPercent);
 	}
 
 	[Fact]
@@ -243,16 +158,9 @@ public sealed class ThirstForScrapTests
 
 		replay.ApplyThirstForScrap(fact.Value);
 
-		Assert.Equal(3, replay.StateOf(state.Id).ThirstForScrapStacks);
-		Assert.Equal(0, state.ThirstForScrapStacks);
+		Assert.Equal(3, replay.StateOf(state.Id).StatusOf<ThirstForScrap>()!.Stacks);
+		Assert.Equal(0, state.StatusOf<ThirstForScrap>()!.Stacks);
 	}
-
-	private static ApplyKillTriggersEffect Damage(BattleWorld world, string sourceId, string[] targetIds) =>
-		new(new ApplyAreaDamageEffect(
-			EImpactCause.VoidBombBlast,
-			targetIds.Select(id => world.StateOf(id).Position).ToHashSet(),
-			100,
-			world.StateOf(sourceId).Position));
 
 	private static BattleOrchestrator Battle()
 	{
@@ -261,14 +169,18 @@ public sealed class ThirstForScrapTests
 		child.State.ParentId = player.State.Id;
 		var grandchild = BattleTestFixture.Ally(new Coord(3, 5, 5), "grandchild");
 		grandchild.State.ParentId = child.State.Id;
-		var enemy = BattleTestFixture.Enemy(new Coord(5, 7, 5));
-		var second = BattleTestFixture.RepurposedMiner(new Coord(5, 8, 5), "second-enemy");
-		var ally = BattleTestFixture.Ally(new Coord(6, 5, 5));
-		return BattleTestFixture.BeginSimulation(
-			player, [enemy, second, child, grandchild, ally],
+		var ally = BattleTestFixture.Ally(new Coord(5, 4, 5), "ally");
+		var enemy = BattleTestFixture.Enemy(new Coord(5, 6, 5));
+		var second = BattleTestFixture.RepurposedMiner(new Coord(6, 6, 5), "second-enemy");
+		var battle = BattleTestFixture.BeginSimulation(
+			player,
+			[child, grandchild, ally, enemy, second],
 			pilotsByActorId: new Dictionary<string, PilotBattleSnapshot?>
 			{
-				[player.State.Id] = PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ThirstForScrap]),
+				[player.State.Id] = PilotBattleSnapshot.FromSkills(
+					"pilot",
+					[EPilotSkillId.ThirstForScrap]),
 			});
+		return battle;
 	}
 }

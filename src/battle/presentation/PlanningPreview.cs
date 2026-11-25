@@ -427,7 +427,7 @@ public sealed class PlanningPreview
 			|| !UnitRegistry.For(peek.Value.World).TryGet(PreviewVoidBombId, out var spawned))
 			return CacheEnvelope(sim, request, []);
 
-		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes);
+		var session = new BattleSimulation(peek.Value.World, peek.Value.Runtimes, sim.Rules);
 		session.Begin(sim.AnchorTick, sim.WorldVersion);
 		return CacheEnvelope(sim, request, VoidBombReachEnvelope.Build(session, spawned.State.Id).Layers);
 	}

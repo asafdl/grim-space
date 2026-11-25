@@ -44,11 +44,9 @@ internal static class MerchantPurchaseTestHarness
 		map = map.Fork();
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
-		var runtime = runtimes.For(unitId);
 		if (strategicGrants is not null)
-			runtime.ReplaceActionEffects(
-				StarMapPilotCapabilityPipelineFactory.Build(strategicGrants));
-		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
+			runtimes.For(unitId).ReplaceStrategicCapabilities(strategicGrants);
+		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes, rules: StarMapPilotCapabilities.Rules);
 		return (engine, unitId, ship, registry);
 	}
 
@@ -60,58 +58,18 @@ internal static class MerchantPurchaseTestHarness
 		MerchantCatalog.Offering offering,
 		MerchantCatalog.Target target,
 		ShipInstance before) =>
-		CreateQuotedPurchase(
-			engine.World,
-			engine.ActorRuntimes.For(unitId),
-			unitId,
-			endpoint,
-			catalog,
-			offering,
-			target,
-			before);
+		CreateQuotedPurchase(engine.World, unitId, endpoint, catalog, offering, target, before);
 
 	public static PurchaseAction CreateQuotedPurchase(
 		StarMap map,
-		ActorRuntime runtime,
 		string unitId,
 		MerchantEndpoint endpoint,
 		EMerchantCatalog catalog,
 		MerchantCatalog.Offering offering,
 		MerchantCatalog.Target target,
-		ShipInstance before) =>
-		CreateQuotedPurchase(
-			map,
-			runtime,
-			unitId,
-			endpoint,
-			catalog,
-			offering,
-			target,
-			before,
-			runtime);
-
-	public static PurchaseAction CreateQuotedPurchase(
-		StarMap map,
-		ActorRuntime runtime,
-		string unitId,
-		MerchantEndpoint endpoint,
-		EMerchantCatalog catalog,
-		MerchantCatalog.Offering offering,
-		MerchantCatalog.Target target,
-		ShipInstance before,
-		ActorRuntime pricingRuntime)
+		ShipInstance before)
 	{
-		var pricing = FetchMerchantCatalogActionDef.CreatePricingProbe(
-			unitId,
-			endpoint,
-			catalog,
-			before);
-		var offer = FetchMerchantCatalogActionDef.PriceCatalog(
-				pricing,
-				map,
-				pricingRuntime)
-			.Quote
-			.Offers
+		var offer = MerchantCatalog.ListFor(catalog, before, map)
 			.FirstOrDefault(candidate =>
 				candidate.Offering == offering && candidate.Target == target);
 		if (offer is null)

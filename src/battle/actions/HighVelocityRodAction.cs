@@ -58,7 +58,7 @@ public sealed class HighVelocityRodDef
 		var state = world.StateOf(rod.ActorId);
 		var installed = state.FindInstalled(EAbilityKind.HighVelocityRod, rod.MountedOn);
 		return state.IsAlive
-			&& !BattleStatuses.HasOverheat(state)
+			&& !state.Overheat
 			&& installed is not null
 			&& state.UsesRemaining(installed.Mount) > 0;
 	}
@@ -72,16 +72,20 @@ public sealed class HighVelocityRodDef
 			?? throw new InvalidOperationException("High Velocity Rod is not installed on this mount.");
 		if (installed.Spec is not HighVelocityRodSpec spec)
 			throw new InvalidOperationException("High Velocity Rod spec missing.");
+		var cells = AffectedCells(rod, world);
 		return
 		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
-			new ApplyAreaDamageEffect(
+			.. AttackEffects.Area(
+				world,
+				rod.ActorId,
 				EImpactCause.HighVelocityRod,
-				AffectedCells(rod, world),
+				cells,
 				spec.Damage,
 				state.Position,
 				hullBreachDamagePercent: spec.HullBreachDamagePercent),
 			new MountUsesChangeEffect(installed.Mount, -1),
+			.. AttackEffects.Erosion(world, cells, state.Position),
 		];
 	}
 

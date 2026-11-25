@@ -18,7 +18,7 @@ public sealed class ApChangeEffect(int delta) : IEffect<BattleWorld, ActorRuntim
 	{
 		var actor = world.StateOf(actorId);
 		actor.CurrentActionPoints += delta;
-		if (delta >= 0 || !BattleStatuses.HasShieldDynamo(actor))
+		if (delta >= 0 || !actor.Has<ShieldDynamo>())
 			return [];
 
 		_previousShields = actor.CurrentShieldPoints.Clone();

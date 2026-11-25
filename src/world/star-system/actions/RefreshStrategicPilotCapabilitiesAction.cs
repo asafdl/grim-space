@@ -33,6 +33,6 @@ public sealed class RefreshStrategicPilotCapabilitiesDef
 		ActorRuntime runtime)
 	{
 		var refresh = (RefreshStrategicPilotCapabilitiesAction)action;
-		return [new ReplaceStrategicActionEffectPipelineEffect(refresh.StrategicGrants)];
+		return [new ReplaceStrategicPilotCapabilitiesEffect(refresh.StrategicGrants)];
 	}
 }

@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
@@ -7,7 +8,6 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
-using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.Effects;
 
@@ -19,7 +19,7 @@ public sealed class ProtectionDroneResistanceTests
 	{
 		var (player, enemy, battle, hitFace) = DamageBattle();
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
+		BattleStatusMaterializer.Materialize(
 			battle.Engine.World,
 			enemy.State.Id,
 			ActorRuntime.From(PilotBattleSnapshot.FromSkills(
@@ -28,16 +28,8 @@ public sealed class ProtectionDroneResistanceTests
 		enemy.State.DefensiveManeuversMpUsed = 0;
 		GrantProtectionDroneBuff(enemy.State, battle);
 		var hullBefore = enemy.State.CurrentHullPoints;
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { enemy.State.Position },
-			200,
-			player.State.Position);
 
-		effect.Apply(
-			battle.Engine.World,
-			battle.Engine.ActorRuntimes.For(player.State.Id),
-			player.State.Id);
+		ApplyDamage(player, enemy, battle, 200);
 
 		Assert.Equal(hullBefore - 162, enemy.State.CurrentHullPoints);
 	}
@@ -49,16 +41,8 @@ public sealed class ProtectionDroneResistanceTests
 		enemy.State.CurrentShieldPoints[hitFace] = 0;
 		GrantProtectionDroneBuff(enemy.State, battle);
 		var hullBefore = enemy.State.CurrentHullPoints;
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { enemy.State.Position },
-			200,
-			player.State.Position);
 
-		effect.Apply(
-			battle.Engine.World,
-			battle.Engine.ActorRuntimes.For(player.State.Id),
-			player.State.Id);
+		ApplyDamage(player, enemy, battle, 200);
 
 		Assert.Equal(hullBefore - 180, enemy.State.CurrentHullPoints);
 	}
@@ -68,6 +52,22 @@ public sealed class ProtectionDroneResistanceTests
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(target.Id),
 			target.Id);
+
+	private static void ApplyDamage(Unit source, Unit target, BattleOrchestrator battle, int damage)
+	{
+		var action = new HighVelocityRodAction(source.State.Id, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(source.State.Id),
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					target.State.Id,
+					source.State.Position,
+					damage),
+			]);
+	}
 
 	private static (Unit Player, Unit Enemy, BattleOrchestrator Battle, ESpatialOrientation HitFace) DamageBattle()
 	{

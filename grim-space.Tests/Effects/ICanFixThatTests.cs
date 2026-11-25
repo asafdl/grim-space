@@ -27,15 +27,20 @@ public sealed class ICanFixThatTests
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
 		var world = BattleWorldFor(player);
-		InstallICanFixThat(world, player);
+		var runtime = ActorRuntime.From(new PilotBattleSnapshot(
+			"pilot",
+			PilotCapabilityGrant.FromQuirks(
+				"pilot",
+				[EPilotQuirkId.ICanFixThat],
+				BattlePilotCapabilities.Supports)));
+		BattleStatusMaterializer.Materialize(world, player.State.Id, runtime);
 		IAction action = new ScrapDroneSwarmAction(player.State.Id, ESpatialOrientation.Port);
 		var effect = new ApplyAreaAllyHealEffect(
 			EImpactCause.ScrapDroneSwarmBurst,
 			new HashSet<Coord> { Coord.Zero },
 			ScrapDroneSwarmSpec.Baseline.Heal);
 
-		var modified = Assert.IsType<ApplyAreaAllyHealEffect>(
-			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
+		var modified = BattleEffectTestKit.PrepareHeal(action, world, runtime, effect);
 
 		Assert.Equal(
 			PilotSkillPercents.ICanFixThat.HealBonusPercent,
@@ -73,17 +78,6 @@ public sealed class ICanFixThatTests
 			ally.State.Loadout.BaseHullPoints - 150 + expected,
 			ally.State.CurrentHullPoints);
 	}
-
-	private static void InstallICanFixThat(BattleWorld world, Unit player) =>
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			world,
-			player.State.Id,
-			ActorRuntime.From(new PilotBattleSnapshot(
-				"pilot",
-				PilotCapabilityGrant.FromQuirks(
-					"pilot",
-					[EPilotQuirkId.ICanFixThat],
-					BattlePilotCapabilityPipelineFactory.Supports))));
 
 	private static BattleWorld BattleWorldFor(params Unit[] units) =>
 		BattleWorld.FromLive(

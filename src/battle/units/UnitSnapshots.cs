@@ -6,22 +6,19 @@ namespace GrimSpace.Battle.Units;
 public readonly record struct UnitCombatSnapshot(
 	int CurrentHullPoints,
 	FaceShieldPoints CurrentShieldPoints,
-	IReadOnlyList<TemporaryShieldGrant> TemporaryShieldGrants,
-	int ReactiveShieldsStacks = 0)
+	IReadOnlyList<TemporaryShieldGrant> TemporaryShieldGrants)
 {
 	public static UnitCombatSnapshot Capture(State unit) =>
 		new(
 			unit.CurrentHullPoints,
 			unit.CurrentShieldPoints.Clone(),
-			TemporaryShields.ExtractGrants(unit),
-			unit.ReactiveShieldsStacks);
+			TemporaryShields.ExtractGrants(unit));
 
 	public void Restore(State unit)
 	{
 		unit.CurrentHullPoints = CurrentHullPoints;
 		unit.CurrentShieldPoints = CurrentShieldPoints.Clone();
 		TemporaryShields.ReplaceGrants(unit, TemporaryShieldGrants);
-		unit.ReactiveShieldsStacks = ReactiveShieldsStacks;
 	}
 }
 

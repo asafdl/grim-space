@@ -76,6 +76,44 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
+	public void OptimalityContractPayment_AppliesCreditBonusButNotToSalvage()
+	{
+		var (engine, unitId, contractId) = CreateEngine(
+			new WreckageOutcome.Salvage(
+				ResourceBundle.Of(ResourceId.ScrapAlloy, SalvageScrap)),
+			strategicGrants: StackGrants(EPilotCapabilityId.OptimalityContractCreditBonus, 1),
+			issuer: EFaction.TheOptimality);
+		OpenWreckDecision(engine, unitId, contractId);
+
+		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
+		ContractActionTestContext.ReevaluateAndComplete(engine, unitId);
+
+		Assert.True(engine.World.ContractRegistry.IsCompleted(contractId));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingCredits + 79,
+			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			StrategicEconomyConfig.StartingScrapAlloy + SalvageScrap,
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+	}
+
+	[Fact]
+	public void ScrapBonusDoesNotApplyToContractPayment()
+	{
+		var (engine, unitId, contractId) = CreateEngine(
+			new WreckageOutcome.Salvage(ResourceBundle.Empty),
+			strategicGrants: StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1));
+		OpenWreckDecision(engine, unitId, contractId);
+
+		engine.Commit(new InvestigateWreckageAction(unitId, contractId));
+		ContractActionTestContext.ReevaluateAndComplete(engine, unitId);
+
+		Assert.Equal(
+			StrategicEconomyConfig.StartingCredits + RewardCredits,
+			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+	}
+
+	[Fact]
 	public void InvestigateSalvage_PreservesUnrelatedResources()
 	{
 		var (engine, unitId, contractId) = CreateEngine(
@@ -207,18 +245,21 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 	private (Engine<StarMap, ActorRuntime> Engine, string UnitId, string ContractId) CreateEngine(
 		WreckageOutcome outcome,
 		IReadOnlyList<PilotCapabilityGrant>? strategicGrants = null,
+		EFaction? issuer = null,
 		int seed = 42)
 	{
 		var map = maps.Fresh(seed);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
-		var contract = RegisterWreckageContract(map, "contract-wreckage-test", outcome);
+		var contract = RegisterWreckageContract(
+			map,
+			"contract-wreckage-test",
+			outcome,
+			issuer ?? map.ControllingFaction);
 
 		var runtimes = new ActorRuntimes<ActorRuntime>();
-		var runtime = runtimes.For(RunState.PlayerFleetUnitId);
 		if (strategicGrants is not null)
-			runtime.ReplaceActionEffects(
-				StarMapPilotCapabilityPipelineFactory.Build(strategicGrants));
-		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
+			runtimes.For(RunState.PlayerFleetUnitId).ReplaceStrategicCapabilities(strategicGrants);
+		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes, rules: StarMapPilotCapabilities.Rules);
 		return (engine, RunState.PlayerFleetUnitId, contract.Id);
 	}
 
@@ -251,7 +292,11 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 					fleet.State.Id == ambushUnitId ? 0 : 1)))]);
 	}
 
-	private static Contract RegisterWreckageContract(StarMap map, string contractId, WreckageOutcome outcome)
+	private static Contract RegisterWreckageContract(
+		StarMap map,
+		string contractId,
+		WreckageOutcome outcome,
+		EFaction issuer)
 	{
 		var center = new Coord(map.Width / 2, 0, map.Height / 2);
 		var searchArea = new AreaPick(
@@ -265,7 +310,7 @@ public sealed class InvestigateWreckageActionTests(StarMapFixture maps)
 			contractId,
 			new WreckageObjective($"{contractId}.wreckage", searchArea, outcome),
 			EDangerLevel.VeryLow,
-			map.ControllingFaction,
+			issuer,
 			new ContractTerms(ResourceBundle.Of(ResourceId.Credits, RewardCredits)),
 			new ContractNarrative("Test Wreck", "Investigate the debris."));
 		Assert.True(map.ContractRegistry.TryAdd(contract));

@@ -100,12 +100,12 @@ public sealed class ShieldDynamoTests
 	public void StateClone_PreservesShieldDynamoFields()
 	{
 		var state = BattleTestFixture.Player(new Coord(5, 5, 5)).State;
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ShieldDynamo, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.ShieldDynamo));
 		state.ShieldDynamoGrantedPerFace = 15;
 
 		var clone = state.Clone();
 
-		Assert.True(BattleStatuses.HasShieldDynamo(clone));
+		Assert.True(clone.Has<ShieldDynamo>());
 		Assert.Equal(15, clone.ShieldDynamoGrantedPerFace);
 	}
 

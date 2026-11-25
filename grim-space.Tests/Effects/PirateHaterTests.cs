@@ -38,27 +38,25 @@ public sealed class PirateHaterTests
 					PilotCapabilityGrant.FromQuirks(
 						"pilot",
 						[EPilotQuirkId.PirateHater],
-						BattlePilotCapabilityPipelineFactory.Supports)),
+						BattlePilotCapabilities.Supports)),
 			});
 		var world = battle.Engine.World;
+		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 		foreach (var target in new[] { pirate.State, other.State })
 		{
 			target.CurrentHullPoints = 1000;
 			target.CurrentShieldPoints.Fill(0);
 		}
 
-		var area = Assert.IsType<ApplyAreaDamageEffect>(Assert.Single(BattleStatuses.RewriteOutgoing(
-			new LightningCannonAction(player.State.Id),
+		var action = new LightningCannonAction(player.State.Id);
+		var effects = AttackEffects.Area(
 			world,
-			[
-				new ApplyAreaDamageEffect(
-					EImpactCause.LightningCannonBurst,
-					new HashSet<Coord> { pirate.State.Position, other.State.Position },
-					100,
-					player.State.Position),
-			])));
-		Assert.Equal(PilotSkillPercents.PirateHater.DamageBonusPercent, area.PirateDamageBonusPercent);
-		area.Apply(world, battle.Engine.ActorRuntimes.For(player.State.Id), player.State.Id);
+			player.State.Id,
+			EImpactCause.LightningCannonBurst,
+			new HashSet<Coord> { pirate.State.Position, other.State.Position },
+			100,
+			player.State.Position).ToArray();
+		BattleEffectTestKit.ApplyEffects(action, world, runtime, effects);
 
 		Assert.Equal(890, pirate.State.CurrentHullPoints);
 		Assert.Equal(900, other.State.CurrentHullPoints);

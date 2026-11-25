@@ -1,10 +1,9 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Abilities;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
-using GrimSpace.Core.Actions;
+using GrimSpace.Battle.Units;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
@@ -41,22 +40,18 @@ public sealed class YouLittleRatTests
 		source.Position = target.Position + new Coord(x, y, z);
 		target.CurrentShieldPoints.Fill(0);
 		target.CurrentHullPoints = 1000;
-		var runtime = battle.Engine.ActorRuntimes.For(source.Id);
-		IEffect<GrimSpace.Battle.World.BattleWorld, ActorRuntime>[] effects =
-		[
-			new ApplyAreaDamageEffect(EImpactCause.LightningCannonBurst,
-				new HashSet<Coord> { target.Position }, 100, source.Position),
-			new ApplyChainLightningDamageEffect(EImpactCause.LightningCannonBurst,
-				new HashSet<Coord>(), [new ChainLightningHop(target.Id, target.Position)],
-				100, 0, source.Position),
-		];
-		foreach (var effect in effects)
-		{
-			effect.Apply(world, runtime, source.Id);
-			Assert.Equal(1000 - damage, target.CurrentHullPoints);
-			effect.Undo(world, runtime, source.Id);
-			Assert.Equal(1000, target.CurrentHullPoints);
-		}
+		var action = new HighVelocityRodAction(source.Id, ESpatialOrientation.Forward);
+		var effect = new DamageUnitEffect(
+			EImpactCause.HighVelocityRod,
+			target.Id,
+			source.Position,
+			100);
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			world,
+			battle.Engine.ActorRuntimes.For(source.Id),
+			[effect]);
+		Assert.Equal(1000 - damage, target.CurrentHullPoints);
 	}
 
 	[Theory]
@@ -73,20 +68,19 @@ public sealed class YouLittleRatTests
 		target.CurrentHullPoints = 1000;
 		target.CurrentShieldPoints.Fill(0);
 		var origin = target.Position + new Coord(originDistance, 0, 0);
-		IEffect<GrimSpace.Battle.World.BattleWorld, ActorRuntime>[] effects =
-		[
-			new ApplyAreaDamageEffect(EImpactCause.VoidBombBlast,
-				new HashSet<Coord> { target.Position }, 100, origin),
-			new ApplyChainLightningDamageEffect(EImpactCause.LightningCannonBurst,
-				new HashSet<Coord>(), [new ChainLightningHop(target.Id, target.Position)], 100, 0, origin),
-		];
-		foreach (var effect in effects)
-		{
-			effect.Apply(world, battle.Engine.ActorRuntimes.For(source.Id), source.Id);
-			Assert.Equal(1000 - damage, target.CurrentHullPoints);
-			effect.Undo(world, battle.Engine.ActorRuntimes.For(source.Id), source.Id);
-			Assert.Equal(1000, target.CurrentHullPoints);
-		}
+		var action = new HighVelocityRodAction(source.Id, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			world,
+			battle.Engine.ActorRuntimes.For(source.Id),
+			[
+				new DamageUnitEffect(
+					EImpactCause.VoidBombBlast,
+					target.Id,
+					origin,
+					100),
+			]);
+		Assert.Equal(1000 - damage, target.CurrentHullPoints);
 	}
 
 	[Fact]
@@ -98,19 +92,34 @@ public sealed class YouLittleRatTests
 		world.StateOf("enemy").Position = target.Position + new Coord(6, 0, 0);
 		var runtime = battle.Engine.ActorRuntimes.For("enemy");
 		target.CurrentShieldPoints.Fill(200);
-		var shieldEffect = new ApplyAreaDamageEffect(EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { target.Position }, 100, world.StateOf("enemy").Position, shieldDamageBonus: 50);
-
-		shieldEffect.Apply(world, runtime, "enemy");
+		var action = new HighVelocityRodAction("enemy", ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			world,
+			runtime,
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					target.Id,
+					world.StateOf("enemy").Position,
+					100) { ShieldDamageBonusPercent = 50 },
+			]);
 
 		Assert.Equal(80, Enum.GetValues<ESpatialOrientation>().Min(face => target.CurrentShieldPoints[face]));
-		shieldEffect.Undo(world, runtime, "enemy");
 		target.CurrentShieldPoints.Fill(0);
 		target.CurrentHullPoints = 1000;
-		target.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, target.Id));
-		new ApplyAreaDamageEffect(EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { target.Position }, 100, world.StateOf("enemy").Position)
-			.Apply(world, runtime, "enemy");
+		target.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.ReinforcedHull));
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			world,
+			runtime,
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					target.Id,
+					world.StateOf("enemy").Position,
+					100),
+			]);
 		Assert.Equal(946, target.CurrentHullPoints);
 	}
 
@@ -120,18 +129,27 @@ public sealed class YouLittleRatTests
 		using var battle = Battle();
 		var runtime = battle.Engine.ActorRuntimes.For("player");
 		var world = battle.Engine.World;
-		BattlePassiveStatusInstaller.InstallFromCapabilities(world, "player", runtime);
+		BattleStatusMaterializer.Materialize(world, "player", runtime);
 		Assert.Single(world.StateOf("player").Statuses);
 		Assert.Empty(world.ActivationRoundLists.EntriesFor("player"));
 		var registry = PersistenceRegistry.CreateDefault();
 		var restored = SaveDtoMapper.RestoreBattleWorld(SaveDtoMapper.CaptureBattleWorld(world, registry), registry);
 		var unit = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(world.StateOf("player")));
 		foreach (var state in new[] { restored.StateOf("player"), world.Fork().StateOf("player"), unit })
-			Assert.NotNull(Assert.Single(state.Statuses).RewriteIncomingHit);
-		var hit = BattleStatuses.RewriteIncomingHit(restored.StateOf("player").Statuses, restored,
-			restored.UnitRegistry.UnitOf("player"), restored.StateOf("enemy").Position, EImpactCause.LightningCannonBurst,
-			ESpatialOrientation.Forward, new IncomingHit(100, 50));
-		Assert.Equal(new IncomingHit(80, 40), hit);
+			Assert.Contains(state.Statuses, status => status is YouLittleRat);
+
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			new HighVelocityRodAction("enemy", ESpatialOrientation.Forward),
+			restored,
+			battle.Engine.ActorRuntimes.For("enemy"),
+			new DamageUnitEffect(
+				EImpactCause.HighVelocityRod,
+				"player",
+				restored.StateOf("enemy").Position,
+				100) { ShieldDamageBonusPercent = 50 });
+		Assert.Equal(
+			[new HitStep(PilotSkillPercents.YouLittleRat.DamageTakenPercent)],
+			prepared.HitSteps);
 	}
 
 	private static BattleOrchestrator Battle() =>

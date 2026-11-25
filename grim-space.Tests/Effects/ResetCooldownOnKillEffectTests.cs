@@ -1,13 +1,14 @@
 using GrimSpace.Battle;
-using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Actions;
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Player;
 using GrimSpace.Battle.Presentation.Replay;
+using GrimSpace.Battle.Runtime;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
+using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
@@ -29,27 +30,42 @@ public sealed class ResetCooldownOnKillEffectTests
 		using var cleanup = battle;
 		var world = battle.Engine.World;
 		var runtime = ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.ThirstForScrap]));
-		BattlePassiveStatusInstaller.InstallFromCapabilities(world, player.State.Id, runtime);
-		player.State.ThirstForScrapStacks = 2;
+		BattleStatusMaterializer.Materialize(world, player.State.Id, runtime);
+		player.State.StatusOf<ThirstForScrap>()!.Stacks = 2;
 		enemy.State.CurrentHullPoints = hull;
 		enemy.State.CurrentShieldPoints.Fill(0);
-		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
-			EImpactCause.HighVelocityRod, new HashSet<Coord> { enemy.State.Position }, 100, player.State.Position));
-
-		var records = effect.Apply(world, runtime, player.State.Id);
-
-		Assert.Equal(2 + addedStacks, player.State.ThirstForScrapStacks);
-		Assert.Equal(addedStacks, records.OfType<Record<ThirstForScrapChangedFacts>>().Count());
-		var boosted = Assert.IsType<ApplyAreaDamageEffect>(Assert.Single(BattleStatuses.RewriteOutgoing(
-			new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward),
+		var action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward);
+		var records = new List<IRecord>();
+		var applied = BattleEffectTestKit.ApplyEffects(
+			action,
 			world,
-			[new ApplyAreaDamageEffect(EImpactCause.HighVelocityRod, new HashSet<Coord>(), 100, player.State.Position)])));
-		Assert.Equal((2 + addedStacks) * 10, boosted.DamageBonusPercent);
+			runtime,
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					enemy.State.Id,
+					player.State.Position,
+					100),
+			],
+			records);
+
+		Assert.Equal(2 + addedStacks, player.State.StatusOf<ThirstForScrap>()!.Stacks);
+		Assert.Equal(addedStacks, records.OfType<Record<ThirstForScrapChangedFacts>>().Count());
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			action,
+			world,
+			runtime,
+			new DamageUnitEffect(
+				EImpactCause.HighVelocityRod,
+				enemy.State.Id,
+				player.State.Position,
+				100));
+		Assert.Equal((2 + addedStacks) * 10, prepared.BonusPercent);
 		Assert.Empty(world.ActivationRoundLists.EntriesFor(player.State.Id));
 
-		effect.Undo(world, runtime, player.State.Id);
+		ExecutionHelper.UndoEffects(applied, action, world, runtime);
 
-		Assert.Equal(2, player.State.ThirstForScrapStacks);
+		Assert.Equal(2, player.State.StatusOf<ThirstForScrap>()!.Stacks);
 		Assert.Equal(hull, enemy.State.CurrentHullPoints);
 	}
 
@@ -64,14 +80,21 @@ public sealed class ResetCooldownOnKillEffectTests
 		enemy.State.CurrentShieldPoints.Fill(0);
 		var mount = player.State.FindInstalled(EAbilityKind.RoadsWeDontNeedRoads)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 3;
-		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
-			EImpactCause.HighVelocityRod,
-			new HashSet<Coord> { enemy.State.Position },
-			100,
-			player.State.Position));
+		var action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
-
-		var records = effect.Apply(battle.Engine.World, runtime, player.State.Id);
+		var records = new List<IRecord>();
+		var applied = BattleEffectTestKit.ApplyEffects(
+			action,
+			battle.Engine.World,
+			runtime,
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					enemy.State.Id,
+					player.State.Position,
+					100),
+			],
+			records);
 
 		Assert.Equal(resets ? 0 : 3, player.State.CooldownRemaining(mount));
 		Assert.Equal(resets ? 1 : 0, records.OfType<Record<CooldownResetOnKillFacts>>().Count());
@@ -83,7 +106,7 @@ public sealed class ResetCooldownOnKillEffectTests
 			Assert.Equal(player.State.Id, lethalImpacts[0].Value.SourceId);
 			Assert.Equal(enemy.State.Id, lethalImpacts[0].Value.TargetId);
 		}
-		effect.Undo(battle.Engine.World, runtime, player.State.Id);
+		ExecutionHelper.UndoEffects(applied, action, battle.Engine.World, runtime);
 		Assert.Equal(3, player.State.CooldownRemaining(mount));
 		Assert.Equal(hull, enemy.State.CurrentHullPoints);
 	}
@@ -96,14 +119,19 @@ public sealed class ResetCooldownOnKillEffectTests
 		enemy.State.CurrentShieldPoints.Fill(0);
 		var mount = player.State.FindInstalled(EAbilityKind.VoidBombLauncher)!.Mount;
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 3;
-		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { enemy.State.Position },
-			100,
-			player.State.Position));
-
-		var records = effect.Apply(
-			battle.Engine.World, battle.Engine.ActorRuntimes.For(player.State.Id), player.State.Id);
+		var records = new List<IRecord>();
+		BattleEffectTestKit.ApplyEffects(
+			new LightningCannonAction(player.State.Id),
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(player.State.Id),
+			[
+				new DamageUnitEffect(
+					EImpactCause.LightningCannonBurst,
+					enemy.State.Id,
+					player.State.Position,
+					100),
+			],
+			records);
 
 		Assert.False(enemy.State.IsAlive);
 		Assert.Equal(3, player.State.CooldownRemaining(mount));
@@ -119,14 +147,19 @@ public sealed class ResetCooldownOnKillEffectTests
 		player.State.MountRuntimeFor(mount).CooldownRemaining = 2;
 		enemy.State.ParentId = player.State.Id;
 		enemy.State.CurrentShieldPoints.Fill(0);
-		var effect = new ApplyKillTriggersEffect(new ApplyAreaDamageEffect(
-			EImpactCause.VoidBombBlast,
-			new HashSet<Coord> { enemy.State.Position },
-			1000,
-			enemy.State.Position));
-
-		var records = effect.Apply(
-			battle.Engine.World, battle.Engine.ActorRuntimes.For(enemy.State.Id), enemy.State.Id);
+		var records = new List<IRecord>();
+		BattleEffectTestKit.ApplyEffects(
+			new DetonateAction(enemy.State.Id),
+			battle.Engine.World,
+			battle.Engine.ActorRuntimes.For(enemy.State.Id),
+			[
+				new DamageUnitEffect(
+					EImpactCause.VoidBombBlast,
+					enemy.State.Id,
+					enemy.State.Position,
+					1000),
+			],
+			records);
 
 		Assert.Equal(0, player.State.CooldownRemaining(mount));
 		Assert.Equal(player.State.Id, Assert.Single(records.OfType<Record<CooldownResetOnKillFacts>>()).Value.ActorId);

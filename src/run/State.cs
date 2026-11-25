@@ -442,7 +442,7 @@ public sealed class State : IDisposable
 
 		PilotRegistry.Update(pilot.LearnPilotSkill(skillId));
 		if (PilotSkillCatalog.Get(skillId).CapabilityIds.Any(capabilityId =>
-			StarMapPilotCapabilityPipelineFactory.Supports(capabilityId)))
+			StarMapPilotCapabilities.Supports(capabilityId)))
 			RefreshStrategicPilotCapabilities();
 		return true;
 	}
@@ -1445,10 +1445,10 @@ public sealed class State : IDisposable
 		StarSystem.CommitSetup(new RefreshStrategicPilotCapabilitiesAction(
 			PlayerFleetUnitId,
 			PilotRegistry.QueryCapabilitiesForAssigned(
-				StarMapPilotCapabilityPipelineFactory.Supports)));
+				StarMapPilotCapabilities.Supports)));
 
 	private void SyncStarPlayerPipeline() =>
-		StarMapPilotCapabilityPipelineFactory.InstallPlayerPipeline(StarSystem, PilotRegistry);
+		StarMapPilotCapabilities.InstallPlayerCapabilities(StarSystem, PilotRegistry);
 
 	private IReadOnlyDictionary<string, PilotBattleSnapshot> BuildPilotBattleSnapshots(
 		IReadOnlySet<string>? playerDeployShipIds = null)
@@ -1462,7 +1462,7 @@ public sealed class State : IDisposable
 
 			var battleGrants = PilotRegistry.QueryCapabilitiesForShip(
 				shipId,
-				BattlePilotCapabilityPipelineFactory.Supports);
+				BattlePilotCapabilities.Supports);
 			map[shipId] = new PilotBattleSnapshot(
 				pilot.Id,
 				battleGrants,

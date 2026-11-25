@@ -570,7 +570,7 @@ public sealed class SearchBridgeTests(ITestOutputHelper output)
 
 	private static SearchVisitState VisitOf(SearchFrame<BattleWorld, ActorRuntime> frame, bool capabilities)
 	{
-		var simulation = new Simulation<BattleWorld, ActorRuntime>(frame.World, frame.Runtimes);
+		var simulation = new Simulation<BattleWorld, ActorRuntime>(frame.World, frame.Runtimes, EffectRules<BattleWorld, ActorRuntime>.Empty);
 		simulation.Begin(frame.World.Timeline.Clock.Current, 0);
 		var visit = capabilities
 			? BattleSearchVisit.ForCapabilities(simulation, "player")

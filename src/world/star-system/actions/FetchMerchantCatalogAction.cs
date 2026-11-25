@@ -57,40 +57,15 @@ public sealed class FetchMerchantCatalogActionDef
 		if (!IsLegal(fetch, world, runtime))
 			return [];
 
-		return [PriceCatalog(fetch, world, runtime)];
+		return
+		[
+			new PublishMerchantCatalogEffect(new MerchantCatalogQuote(
+				fetch.Endpoint,
+				fetch.Catalog,
+				fetch.ShipSnapshot.Id,
+				MerchantCatalog.ListFor(fetch.Catalog, fetch.ShipSnapshot, world))),
+		];
 	}
-
-	internal static PublishMerchantCatalogEffect PriceCatalog(
-		FetchMerchantCatalogAction action,
-		StarMap world,
-		ActorRuntime runtime)
-	{
-		ArgumentNullException.ThrowIfNull(action);
-		ArgumentNullException.ThrowIfNull(world);
-		ArgumentNullException.ThrowIfNull(runtime);
-
-		var quote = new MerchantCatalogQuote(
-			action.Endpoint,
-			action.Catalog,
-			action.ShipSnapshot.Id,
-			MerchantCatalog.ListFor(action.Catalog, action.ShipSnapshot, world));
-		var priced = runtime.ActionEffects.Apply(
-			action,
-			world,
-			runtime,
-			[new PublishMerchantCatalogEffect(quote)]).Single();
-		return priced as PublishMerchantCatalogEffect
-			?? throw new InvalidOperationException(
-				$"Merchant pricing replaced {nameof(PublishMerchantCatalogEffect)} with "
-				+ $"'{priced.GetType().Name}'.");
-	}
-
-	internal static FetchMerchantCatalogAction CreatePricingProbe(
-		string actorId,
-		MerchantEndpoint endpoint,
-		EMerchantCatalog catalog,
-		ShipInstance ship) =>
-		new(actorId, endpoint, catalog, ship);
 
 	internal static bool EndpointServesCatalog(
 		MerchantEndpoint endpoint,

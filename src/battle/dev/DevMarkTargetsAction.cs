@@ -74,7 +74,7 @@ public sealed class DevMarkTargetsDef
 	{
 		if (!IsPossible(action, world, runtime))
 			return false;
-		if (BattleStatuses.HasOverheat(world.StateOf(action.ActorId)))
+		if (world.StateOf(action.ActorId).Overheat)
 			return false;
 		if (!TargetPick.CanLockIn(action.TargetIds.Count))
 			return false;

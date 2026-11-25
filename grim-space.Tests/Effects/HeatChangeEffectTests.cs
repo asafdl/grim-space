@@ -57,8 +57,7 @@ public sealed class HeatChangeEffectTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
-		BattleStatuses.SyncOverheat(state);
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+				var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		new HeatChangeEffect(20).Apply(battle.Engine.World, runtime, PlayerId);
 

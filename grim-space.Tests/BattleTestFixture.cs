@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Effects;
 using GrimSpace.Battle;
 using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Player;
@@ -62,12 +63,6 @@ internal static class BattleTestFixture
 		var units = new List<Unit> { player };
 		units.AddRange(enemies);
 		var engagedShipIds = units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal);
-		foreach (var unit in units)
-		{
-			GrimSpace.Battle.Statuses.BattleStatuses.SyncOverdrive(unit.State);
-			GrimSpace.Battle.Statuses.BattleStatuses.SyncOverheat(unit.State);
-		}
-
 		var world = BattleWorld.FromLive(
 			units,
 			nonUnits,
@@ -86,7 +81,7 @@ internal static class BattleTestFixture
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
 			if (pilotsByActorId is not null)
-				GrimSpace.Battle.Statuses.BattlePassiveStatusInstaller.InstallFromCapabilities(
+				GrimSpace.Battle.Statuses.BattleStatusMaterializer.Materialize(
 					world,
 					unit.State.Id,
 					runtime);
@@ -95,7 +90,7 @@ internal static class BattleTestFixture
 
 		actorRuntimes.Register(BattleActorIds.Rules, ActorRuntime.From(null));
 
-		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
+		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes, rules: BattleEffectRules.Rules);
 		var battle = new BattleOrchestrator(engine, layout, player.State.Id);
 		foreach (var unit in units)
 		{

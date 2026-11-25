@@ -311,6 +311,9 @@ public partial class TurnReplayPlayer : Node3D
 				case Record<ThirstForScrapChangedFacts> { Value: var changed }:
 					_clipContext.ReplayState.ApplyThirstForScrap(changed);
 					break;
+				case Record<ReactiveShieldsChangedFacts> { Value: var changed }:
+					_clipContext.ReplayState.ApplyReactiveShields(changed);
+					break;
 				case Record<ShieldsChangedFacts> { Value: var shields }:
 					if (PlayShieldChange(shields))
 						return;

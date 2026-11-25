@@ -61,7 +61,7 @@ public sealed class BattleSearchVisitTests
 				bomb.Projectile = bomb.RequireProjectile() with { BlastRadius = 9 };
 				break;
 			case "status":
-				bomb.Statuses.Add(BattleStatuses.CreateSpawnedAllyDamageBuff(bomb.Id));
+				bomb.Statuses.Add(new SpawnedAllyDamageBuff());
 				break;
 			case "temporary-shield":
 				TemporaryShields.GrantPerFace(actor, "extra", 10);
@@ -95,31 +95,22 @@ public sealed class BattleSearchVisitTests
 		Assert.Equal(visit(first, "player").State, visit(second, "player").State);
 		var firstStatuses = first.World.StateOf("player").Statuses;
 		var secondStatuses = second.World.StateOf("player").Statuses;
-		BattleStatuses.CopyInto(firstStatuses.ToArray(), firstStatuses);
-		BattleStatuses.CopyInto(secondStatuses.ToArray(), secondStatuses);
+		firstStatuses.AddRange(firstStatuses.ToArray().Select(s => s.DeepCopy()));
+		secondStatuses.AddRange(secondStatuses.ToArray().Select(s => s.DeepCopy()));
 		Assert.Equal(visit(first, "player").State, visit(second, "player").State);
 	}
 
 	[Fact]
-	public void CallbacksWithoutAnExplicitRuleKeyRemainDistinct()
+	public void DistinctTypedStatusesRemainDistinct()
 	{
 		var anchor = CreateSource();
 		var visit = BattleSearchVisit.ForCapabilitySearch(anchor);
 		var first = Launch(anchor, "first");
 		var second = Launch(anchor, "second");
-		AddDamageRule(first, 1);
-		AddDamageRule(second, 2);
+		first.World.StateOf("player").Statuses.Add(new ReinforcedHull());
+		second.World.StateOf("player").Statuses.Add(new YouLittleRat());
 
 		Assert.NotEqual(visit(first, "player").State, visit(second, "player").State);
-
-		static void AddDamageRule(BattleSimulation simulation, int bonus) =>
-			simulation.World.StateOf("player").Statuses.Add(new BattleStatus
-			{
-				InstanceId = "custom-rule",
-				Priority = 0,
-				ActionTags = [],
-				RewriteIncomingDamage = damage => damage + bonus,
-			});
 	}
 
 	[Fact]

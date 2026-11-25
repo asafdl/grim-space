@@ -25,7 +25,7 @@ public sealed class SynthSingerHeatTests
 				PilotCapabilityGrant.FromBackground(
 					pilotId,
 					EPilotBackgroundId.SynthSinger,
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,
@@ -59,7 +59,7 @@ public sealed class SynthSingerHeatTests
 		var grants = PilotCapabilityGrant.FromBackground(
 			pilotId,
 			EPilotBackgroundId.SynthSinger,
-			BattlePilotCapabilityPipelineFactory.Supports);
+			BattlePilotCapabilities.Supports);
 		var spawn = new BattleSpawn
 		{
 			Ship = ShipInstance.FromCatalog("fighter-a", EType.Fighter),

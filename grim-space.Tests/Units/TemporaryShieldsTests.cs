@@ -17,7 +17,7 @@ public sealed class TemporaryShieldsTests
 		TemporaryShields.GrantPerFace(unit, "b", 1);
 
 		Assert.Equal(2, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
-		Assert.Equal(2, unit.Statuses.Count(status => status.Payload is TemporaryShieldPayload));
+		Assert.Equal(2, unit.Statuses.Count(status => status is TemporaryShieldGrantStatus));
 
 		Assert.Equal(1, Defense.AbsorbWithShields(unit, ESpatialOrientation.Forward, 1));
 		Assert.Equal(1, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
@@ -26,7 +26,7 @@ public sealed class TemporaryShieldsTests
 		Assert.Equal(1, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));
 		Assert.DoesNotContain(
 			unit.Statuses,
-			status => status.InstanceId == BattleStatuses.BuffInstanceId("TemporaryShield:a", unit.Id));
+			status => status is TemporaryShieldGrantStatus { GrantId: "a" });
 
 		Assert.True(TemporaryShields.TryRevokeGrant(unit, "b", out _));
 		Assert.Equal(0, TemporaryShields.TotalOnFace(unit, ESpatialOrientation.Forward));

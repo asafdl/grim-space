@@ -129,7 +129,7 @@ public sealed class BadTechnicianBaseShieldTests
 				PilotCapabilityGrant.FromQuirks(
 					pilotId,
 					[EPilotQuirkId.BadTechnician],
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

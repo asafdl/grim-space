@@ -80,13 +80,13 @@ public sealed class BraceActionTests
 			ESpatialOrientation.Forward,
 			40);
 
-		Assert.Equal(40, ShieldBrace.TryPayload(player.State)!.DamagePending);
+		Assert.Equal(40, ShieldBrace.TryStatus(player.State)!.DamagePending);
 		Assert.True(ShieldBrace.IsActive(player.State));
 
 		BattleTestApply.CommitActivationRoundEndPasses(battle, PlayerId, BraceDef.ExpiryEndPasses);
 
 		Assert.False(ShieldBrace.IsActive(player.State));
-		Assert.Null(ShieldBrace.TryPayload(player.State));
+		Assert.Null(ShieldBrace.TryStatus(player.State));
 		Assert.True(player.State.CurrentShieldPoints[ESpatialOrientation.Port] < 100);
 	}
 

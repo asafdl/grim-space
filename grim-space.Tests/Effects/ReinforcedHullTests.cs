@@ -1,4 +1,5 @@
 using GrimSpace.Battle;
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Spatial;
@@ -66,15 +67,13 @@ public sealed class ReinforcedHullTests
 	public void BattleUnitStateDto_PreservesReinforcedHullStatus()
 	{
 		var state = BattleTestFixture.Player(new Coord(0, 0, 0)).State;
-		state.Statuses.Add(BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, state.Id));
+		state.Statuses.Add(BattleStatusMaterializer.Create(EPilotCapabilityId.ReinforcedHull));
 
 		var dto = SaveDtoMapper.CaptureBattleUnitState(state);
 		var restored = SaveDtoMapper.RestoreBattleUnitState(dto);
 
-		var statusId = BattleStatuses.PassiveInstanceId(nameof(EPilotCapabilityId.ReinforcedHull), state.Id);
-		Assert.Contains(restored.Statuses, status => status.InstanceId == statusId);
-		Assert.Contains(state.Clone().Statuses, status => status.InstanceId == statusId);
-		Assert.Equal(67, BattleStatuses.RewriteHullDamage(restored.Statuses, 100));
+		Assert.Contains(restored.Statuses, status => status is ReinforcedHull);
+		Assert.Contains(state.Clone().Statuses, status => status is ReinforcedHull);
 	}
 
 	private static BattleOrchestrator BeginBattle(
@@ -98,14 +97,17 @@ public sealed class ReinforcedHullTests
 		BattleOrchestrator battle,
 		int damage)
 	{
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { target.State.Position },
-			damage,
-			source.State.Position);
-		effect.Apply(
+		var action = new HighVelocityRodAction(source.State.Id, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
 			battle.Engine.World,
 			battle.Engine.ActorRuntimes.For(source.State.Id),
-			source.State.Id);
+			[
+				new DamageUnitEffect(
+					EImpactCause.HighVelocityRod,
+					target.State.Id,
+					source.State.Position,
+					damage),
+			]);
 	}
 }

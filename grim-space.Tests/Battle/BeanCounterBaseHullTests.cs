@@ -86,7 +86,7 @@ public sealed class BeanCounterBaseHullTests
 				PilotCapabilityGrant.FromBackground(
 					pilotId,
 					EPilotBackgroundId.BeanCounter,
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

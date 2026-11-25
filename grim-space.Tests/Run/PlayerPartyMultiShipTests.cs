@@ -100,7 +100,6 @@ public sealed class PlayerPartyMultiShipTests
 		var runtime = run.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
 		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
 			run.StarSystem.Map,
-			runtime,
 			RunState.PlayerFleetUnitId,
 			new FacilityMerchantEndpoint(
 				SupplySystemPlan.Copper.TradeHubPoiId,
@@ -136,7 +135,6 @@ public sealed class PlayerPartyMultiShipTests
 		var runtime = restored.StarSystem.RuntimeFor(RunState.PlayerFleetUnitId);
 		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
 			restored.StarSystem.Map,
-			runtime,
 			RunState.PlayerFleetUnitId,
 			new FacilityMerchantEndpoint(
 				SupplySystemPlan.Copper.TradeHubPoiId,

@@ -16,7 +16,7 @@ public sealed class MpChangeEffect(int delta) : IEffect<BattleWorld, ActorRuntim
 		_previousManeuverPoints = actor.CurrentManeuverPoints;
 		_previousMpUsed = actor.DefensiveManeuversMpUsed;
 		actor.CurrentManeuverPoints += delta;
-		if (BattleStatuses.HasDefensiveManeuvers(actor))
+		if (actor.Has<StationaryDamageDeflection>())
 			actor.DefensiveManeuversMpUsed = SyncDefensiveManeuversMpUsedFromPoolEffect.MpUsedFromPool(actor);
 		return [];
 	}

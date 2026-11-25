@@ -46,8 +46,8 @@ public sealed class PilotSkillTreeTests
 			Assert.All(
 				skill.CapabilityIds,
 				capabilityId => Assert.True(
-					BattlePilotCapabilityPipelineFactory.Supports(capabilityId)
-					|| StarMapPilotCapabilityPipelineFactory.Supports(capabilityId)));
+					BattlePilotCapabilities.Supports(capabilityId)
+					|| StarMapPilotCapabilities.Supports(capabilityId)));
 		}
 	}
 

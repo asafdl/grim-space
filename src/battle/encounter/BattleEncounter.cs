@@ -135,7 +135,7 @@ public sealed class BattleEncounter
 					pilot.Id,
 					pilots.QueryCapabilitiesForShip(
 						ship.Id,
-						BattlePilotCapabilityPipelineFactory.Supports),
+						BattlePilotCapabilities.Supports),
 					pilot.PortraitId);
 			}
 

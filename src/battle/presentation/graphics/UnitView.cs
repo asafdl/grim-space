@@ -1200,9 +1200,7 @@ public partial class UnitView : Node3D
 		return ProtectionDroneView.FadeSeconds;
 	}
 
-	private static bool HasProtectionDrone(State state) =>
-		state.Statuses.Exists(status => status.InstanceId ==
-			BattleStatuses.BuffInstanceId(nameof(EAbilityKind.ProtectionDrone), state.Id));
+	private static bool HasProtectionDrone(State state) => state.Has<ProtectionDroneBuff>();
 
 	private ProtectionDroneView EnsureProtectionDrone()
 	{

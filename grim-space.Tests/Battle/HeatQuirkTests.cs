@@ -108,7 +108,7 @@ public sealed class HeatQuirkTests
 				PilotCapabilityGrant.FromQuirks(
 					pilotId,
 					[quirkId],
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

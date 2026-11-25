@@ -63,6 +63,6 @@ public sealed class InvestigateWreckageDef
 			effects.Add(new ChangeResourceEffect(TransactionSource.WreckageSalvage, salvage.Loot));
 		effects.Add(new PlayerInputEffect(false));
 
-		return runtime.ActionEffects.Apply(investigate, world, runtime, effects);
+		return effects;
 	}
 }

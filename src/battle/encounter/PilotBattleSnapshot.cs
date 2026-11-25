@@ -17,6 +17,6 @@ public sealed record PilotBattleSnapshot(
 			PilotCapabilityGrant.FromSkills(
 				pilotId,
 				skillIds,
-				BattlePilotCapabilityPipelineFactory.Supports),
+				BattlePilotCapabilities.Supports),
 			portraitId);
 }

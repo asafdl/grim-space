@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Effects;
 using System.Diagnostics;
 using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.World;
@@ -204,16 +205,14 @@ public sealed class BattleOrchestrator : IDisposable
 			pilotsByActorId?.TryGetValue(unit.State.Id, out pilot);
 			var runtime = ActorRuntime.From(pilot);
 			if (pilotsByActorId is not null)
-				BattlePassiveStatusInstaller.InstallFromCapabilities(world, unit.State.Id, runtime);
+				BattleStatusMaterializer.Materialize(world, unit.State.Id, runtime);
 
-			BattleStatuses.SyncOverdrive(unit.State);
-			BattleStatuses.SyncOverheat(unit.State);
 			actorRuntimes.Register(unit.State.Id, runtime);
 		}
 
 		actorRuntimes.Register(BattleActorIds.Rules, ActorRuntime.From(null));
 
-		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes);
+		var engine = new Engine<BattleWorld, ActorRuntime>(world, actorRuntimes, rules: BattleEffectRules.Rules);
 		var orchestrator = new BattleOrchestrator(engine, layout, playerId);
 
 		foreach (var unit in world.UnitRegistry.All)

@@ -25,7 +25,6 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 
 		actor.Overheat = false;
 		actor.Heat = 0;
-		BattleStatuses.SyncOverheat(actor);
 		_applied = true;
 		List<IRecord> records =
 		[
@@ -53,6 +52,5 @@ public sealed class ClearOverheatEffect : IEffect<BattleWorld, ActorRuntime>
 		var actor = world.StateOf(actorId);
 		actor.Heat = _previousHeat;
 		actor.Overheat = _previousOverheat;
-		BattleStatuses.SyncOverheat(actor);
 	}
 }

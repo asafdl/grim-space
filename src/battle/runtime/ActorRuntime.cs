@@ -1,8 +1,5 @@
 using System.Collections.Frozen;
 using GrimSpace.Battle.Encounter;
-using GrimSpace.Battle.PilotCapabilities;
-using GrimSpace.Battle.World;
-using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Pilots;
 
@@ -15,25 +12,18 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 	private static readonly IReadOnlyList<PilotCapabilityGrant> EmptyGrants =
 		Array.Empty<PilotCapabilityGrant>();
 
-	public ActorRuntime() : this(
-		null,
-		null,
-		EmptyGrants,
-		EmptyCapabilities,
-		BattlePilotCapabilityPipelineFactory.Build(EmptyCapabilities)) { }
+	public ActorRuntime() : this(null, null, EmptyGrants, EmptyCapabilities) { }
 
 	private ActorRuntime(
 		string? pilotId,
 		string? portraitId,
 		IReadOnlyList<PilotCapabilityGrant> pilotCapabilityGrants,
-		IReadOnlySet<EPilotCapabilityId> pilotCapabilities,
-		ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> actionEffects)
+		IReadOnlySet<EPilotCapabilityId> pilotCapabilities)
 	{
 		PilotId = pilotId;
 		PortraitId = portraitId;
 		PilotCapabilityGrants = pilotCapabilityGrants;
 		PilotCapabilities = pilotCapabilities;
-		ActionEffects = actionEffects;
 	}
 
 	public string? PilotId { get; }
@@ -44,17 +34,10 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 
 	public IReadOnlySet<EPilotCapabilityId> PilotCapabilities { get; }
 
-	public ActionEffectPipeline<BattleWorld, ActorRuntime, IEffect<BattleWorld, ActorRuntime>> ActionEffects { get; }
-
 	public static ActorRuntime From(PilotBattleSnapshot? snapshot)
 	{
 		if (snapshot is null)
-			return new ActorRuntime(
-				null,
-				null,
-				EmptyGrants,
-				EmptyCapabilities,
-				BattlePilotCapabilityPipelineFactory.Build(EmptyCapabilities));
+			return new ActorRuntime();
 
 		var grants = snapshot.CapabilityGrants.Count == 0
 			? EmptyGrants
@@ -68,8 +51,7 @@ public sealed class ActorRuntime : IRuntimeContext<ActorRuntime>
 			snapshot.PilotId,
 			snapshot.PortraitId,
 			grants,
-			capabilities,
-			BattlePilotCapabilityPipelineFactory.Build(capabilities));
+			capabilities);
 	}
 
 	public void Reset() { }

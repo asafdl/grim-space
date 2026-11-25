@@ -2,7 +2,6 @@ using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.Runtime;
-using GrimSpace.Battle.Abilities;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Core.Actions;
@@ -10,7 +9,6 @@ using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Units;
 using GrimSpace.Units.Enums;
-using GrimSpace.Units.Loadouts.Abilities;
 
 namespace GrimSpace.Tests.BattleRuntime;
 
@@ -33,36 +31,20 @@ public sealed class ActorRuntimeModifierTests
 	}
 
 	[Fact]
-	public void NoModifiers_PassThroughEffects()
-	{
-		var runtime = ActorRuntime.From(null);
-		var battle = CreateBattle(runtime);
-		var effects = SampleEffects();
-
-		var modified = runtime.ActionEffects.Apply(
-			new LightningCannonAction("player"),
-			battle.Engine.World,
-			runtime,
-			effects);
-
-		Assert.Equal(effects, modified);
-	}
-
-	[Fact]
 	public void LightningTag_AppliesIonizedShieldBonus()
 	{
 		var runtime = ActorRuntime.From(
 			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
-		var action = new LightningCannonAction("player");
-		var effects = SampleEffects();
-
-		var modified = RewriteOutgoing(action, battle, effects);
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			new LightningCannonAction("player"),
+			battle.Engine.World,
+			runtime,
+			SampleDamage(battle));
 
 		Assert.Equal(
 			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
-			((ApplyAreaDamageEffect)modified[0]).ShieldDamageBonusPercent);
-		Assert.IsType<MountUsesChangeEffect>(modified[1]);
+			prepared.ShieldDamageBonusPercent);
 	}
 
 	[Fact]
@@ -71,19 +53,22 @@ public sealed class ActorRuntimeModifierTests
 		var runtime = ActorRuntime.From(
 			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis]));
 		var battle = CreateBattle(runtime);
-
-		var modified = RewriteOutgoing(
-			new LightningCannonAction("player"),
-			battle,
-			SampleEffects());
+		var enemy = battle.Engine.World.UnitRegistry.All.First(unit => unit.State.Id != "player");
+		enemy.State.Position = battle.Engine.World.StateOf("player").Position
+			+ new Coord(0, PilotSkillPercents.DodgeThis.BonusRangeCells, 0);
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			new HighVelocityRodAction("player", ESpatialOrientation.Forward),
+			battle.Engine.World,
+			runtime,
+			new DamageUnitEffect(
+				EImpactCause.HighVelocityRod,
+				enemy.State.Id,
+				battle.Engine.World.StateOf("player").Position,
+				100));
 
 		Assert.Equal(
-			PilotSkillPercents.DodgeThis.BonusHitDamagePercent,
-			((ApplyAreaDamageEffect)modified[0]).AdjacentHitDamagePercent);
-		Assert.Equal(
-			PilotSkillPercents.DodgeThis.BonusRangeCells,
-			((ApplyAreaDamageEffect)modified[0]).AdjacentHitDamageRangeCells);
-		Assert.IsType<MountUsesChangeEffect>(modified[1]);
+			[PilotSkillPercents.DodgeThis.BonusHitDamagePercent],
+			prepared.DamagePercents);
 	}
 
 	[Fact]
@@ -93,16 +78,16 @@ public sealed class ActorRuntimeModifierTests
 			"pilot",
 			[EPilotSkillId.DodgeThis, EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
-
-		var modified = RewriteOutgoing(
+		var prepared = BattleEffectTestKit.PrepareDamage(
 			new LightningCannonAction("player"),
-			battle,
-			SampleEffects());
+			battle.Engine.World,
+			runtime,
+			SampleDamage(battle));
 
-		var damage = Assert.IsType<ApplyAreaDamageEffect>(modified[0]);
-		Assert.Equal(PilotSkillPercents.DodgeThis.BonusHitDamagePercent, damage.AdjacentHitDamagePercent);
-		Assert.Equal(PilotSkillPercents.DodgeThis.BonusRangeCells, damage.AdjacentHitDamageRangeCells);
-		Assert.Equal(PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent, damage.ShieldDamageBonusPercent);
+		Assert.Equal(
+			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
+			prepared.ShieldDamageBonusPercent);
+		Assert.Empty(prepared.DamagePercents);
 	}
 
 	[Fact]
@@ -111,11 +96,13 @@ public sealed class ActorRuntimeModifierTests
 		var runtime = ActorRuntime.From(
 			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
-		var effects = SampleEffects();
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			new MoveStepAction("player"),
+			battle.Engine.World,
+			runtime,
+			SampleDamage(battle));
 
-		var modified = RewriteOutgoing(new MoveStepAction("player"), battle, effects);
-
-		Assert.Equal(0, ((ApplyAreaDamageEffect)modified[0]).ShieldDamageBonusPercent);
+		Assert.Equal(0, prepared.ShieldDamageBonusPercent);
 	}
 
 	[Fact]
@@ -124,20 +111,15 @@ public sealed class ActorRuntimeModifierTests
 		var runtime = ActorRuntime.From(
 			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
-		var areaDamage = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord>(),
-			2,
-			Coord.Zero);
-
-		var modified = RewriteOutgoing(
+		var prepared = BattleEffectTestKit.PrepareDamage(
 			new TaggedLightningAttackAction("player"),
-			battle,
-			[areaDamage]);
+			battle.Engine.World,
+			runtime,
+			SampleDamage(battle));
 
 		Assert.Equal(
 			PilotSkillPercents.IonizedPayload.ShieldDamageBonusPercent,
-			Assert.IsType<ApplyAreaDamageEffect>(modified[0]).ShieldDamageBonusPercent);
+			prepared.ShieldDamageBonusPercent);
 	}
 
 	[Fact]
@@ -146,44 +128,14 @@ public sealed class ActorRuntimeModifierTests
 		var runtime = ActorRuntime.From(
 			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
 		var battle = CreateBattle(runtime);
-		var areaDamage = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord>(),
-			2,
-			Coord.Zero);
-
-		var modified = RewriteOutgoing(
+		var prepared = BattleEffectTestKit.PrepareDamage(
 			new AttackOnlyTaggedAction("player"),
-			battle,
-			[areaDamage]);
+			battle.Engine.World,
+			runtime,
+			SampleDamage(battle));
 
-		Assert.Equal(0, Assert.IsType<ApplyAreaDamageEffect>(modified[0]).ShieldDamageBonusPercent);
+		Assert.Equal(0, prepared.ShieldDamageBonusPercent);
 	}
-
-	[Fact]
-	public void NonAreaEffect_UnchangedByIonizedModifier()
-	{
-		var runtime = ActorRuntime.From(
-			PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.IonizedPayload]));
-		var battle = CreateBattle(runtime);
-		var mount = new GrimSpace.Units.Loadouts.Abilities.AbilityMount(
-			EAbilityKind.LightningCannon,
-			ESpatialOrientation.Forward);
-		var effects = new GrimSpace.Core.Actions.IEffect<GrimSpace.Battle.World.BattleWorld, ActorRuntime>[]
-		{
-			new MountUsesChangeEffect(mount, -1),
-		};
-
-		var modified = RewriteOutgoing(new LightningCannonAction("player"), battle, effects);
-
-		Assert.IsType<MountUsesChangeEffect>(modified[0]);
-	}
-
-	private static IReadOnlyList<IEffect<GrimSpace.Battle.World.BattleWorld, ActorRuntime>> RewriteOutgoing(
-		IAction action,
-		GrimSpace.Battle.BattleOrchestrator battle,
-		IReadOnlyList<IEffect<GrimSpace.Battle.World.BattleWorld, ActorRuntime>> effects) =>
-		BattleStatuses.RewriteOutgoing(action, battle.Engine.World, effects);
 
 	private static GrimSpace.Battle.BattleOrchestrator CreateBattle(ActorRuntime playerRuntime)
 	{
@@ -202,13 +154,13 @@ public sealed class ActorRuntimeModifierTests
 		return BattleTestFixture.BeginSimulation(player, enemy, pilotsByActorId: pilots);
 	}
 
-	private static GrimSpace.Core.Actions.IEffect<GrimSpace.Battle.World.BattleWorld, ActorRuntime>[] SampleEffects() =>
-	[
-		new ApplyAreaDamageEffect(EImpactCause.LightningCannonBurst, new HashSet<Coord>(), 2, Coord.Zero),
-		new MountUsesChangeEffect(
-			new GrimSpace.Units.Loadouts.Abilities.AbilityMount(
-				EAbilityKind.LightningCannon,
-				ESpatialOrientation.Forward),
-			-1),
-	];
+	private static DamageUnitEffect SampleDamage(GrimSpace.Battle.BattleOrchestrator battle)
+	{
+		var enemy = battle.Engine.World.UnitRegistry.All.First(unit => unit.State.Id != "player");
+		return new DamageUnitEffect(
+			EImpactCause.LightningCannonBurst,
+			enemy.State.Id,
+			Coord.Zero,
+			2);
+	}
 }

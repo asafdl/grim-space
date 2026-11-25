@@ -25,7 +25,7 @@ public sealed class CorporateSlaveInitiativeTests
 				PilotCapabilityGrant.FromBackground(
 					pilotId,
 					EPilotBackgroundId.CorporateSlave,
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

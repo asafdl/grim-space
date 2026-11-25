@@ -1,6 +1,5 @@
 using GrimSpace.Battle;
 using GrimSpace.Battle.Actions;
-using GrimSpace.Battle.Ai;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.PilotCapabilities;
@@ -9,8 +8,6 @@ using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
-using GrimSpace.Battle.World;
-using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
@@ -40,18 +37,6 @@ public sealed class BattleStatusPhase1Tests
 			pilotsByActorId: pilots);
 		var action = new ScrapDroneSwarmAction(PlayerId, ESpatialOrientation.Starboard);
 		var world = battle.PlayerAgent.Sim.World;
-		var state = world.StateOf(PlayerId);
-		var installed = state.FindInstalled(EAbilityKind.ScrapDroneSwarm, action.MountedOn);
-		Assert.NotNull(installed);
-		var baseArea = Assert.IsAssignableFrom<IAreaDamage>(installed.Spec);
-
-		var viaQuery = BattleStatuses.RewriteArea(baseArea, state.Statuses, action.Tags);
-		var frame = BodyFrame.From(state);
-		var expected = AbilityArea.ApplyBlocking(
-			state.Position,
-			AbilityArea.CellsInBounds(viaQuery, frame, action.MountedOn, world.Grid),
-			ScrapDroneSwarmDef.Instance.IsBlockable,
-			world.AbilityBlockingCells);
 
 		var targeting = ScrapDroneSwarmDef.Instance.AffectedCells(action, world);
 		var preview = ((IAreaActionDef)ScrapDroneSwarmDef.Instance).AffectedCells(action, world);
@@ -62,13 +47,12 @@ public sealed class BattleStatusPhase1Tests
 			action,
 			world,
 			battle.Engine.ActorRuntimes.For(PlayerId));
-		var damage = Assert.IsType<ApplyAreaDamageEffect>(
-			resolved.Single(effect => effect is ApplyAreaDamageEffect));
+		var announce = Assert.IsType<AnnounceAreaDamageEffect>(
+			resolved.First(effect => effect is AnnounceAreaDamageEffect));
 
-		Assert.Equal(expected, targeting);
-		Assert.Equal(expected, preview);
-		Assert.Equal(expected, aiProbe);
-		Assert.Equal(expected, damage.Cells);
+		Assert.Equal(targeting, preview);
+		Assert.Equal(targeting, aiProbe);
+		Assert.Equal(targeting, announce.Facts.Cells);
 	}
 
 	[Fact]
@@ -76,9 +60,9 @@ public sealed class BattleStatusPhase1Tests
 	{
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
-		var protectedEnemy = CreateEnemy("protected", origin + Coord.Forward);
-		protectedEnemy.State.Statuses.Add(IncomingFlatReduction("protected", 100));
-		var plainEnemy = CreateEnemy("plain", origin + Coord.Forward * 2);
+		var protectedEnemy = BattleTestFixture.RepurposedMiner(origin + Coord.Forward, "protected");
+		protectedEnemy.State.Statuses.Add(new DamageResistance());
+		var plainEnemy = BattleTestFixture.RepurposedMiner(origin + Coord.Forward * 2, "plain");
 		EnsureHitFaceShields(protectedEnemy.State, player.State.Position, 300);
 		EnsureHitFaceShields(plainEnemy.State, player.State.Position, 300);
 		var battle = BattleTestFixture.BeginSimulation(player, [protectedEnemy, plainEnemy]);
@@ -88,21 +72,26 @@ public sealed class BattleStatusPhase1Tests
 		var plainHullBefore = world.StateOf("plain").CurrentHullPoints;
 		var protectedShieldsBefore = FaceTotal(world.StateOf("protected").CurrentShieldPoints);
 		var plainShieldsBefore = FaceTotal(world.StateOf("plain").CurrentShieldPoints);
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord>
-			{
-				world.StateOf("protected").Position,
-				world.StateOf("plain").Position,
-			},
-			200,
-			origin,
-			alliesTakeDamage: false);
-
-		_ = effect.Apply(world, runtime, PlayerId);
+		var action = new HighVelocityRodAction(PlayerId, ESpatialOrientation.Forward);
+		BattleEffectTestKit.ApplyEffects(
+			action,
+			world,
+			runtime,
+			AttackEffects.Area(
+				world,
+				PlayerId,
+				EImpactCause.ScrapDroneSwarmBurst,
+				new HashSet<Coord>
+				{
+					world.StateOf("protected").Position,
+					world.StateOf("plain").Position,
+				},
+				200,
+				origin,
+				alliesTakeDamage: false));
 
 		Assert.Equal(
-			100,
+			190,
 			CombatLost(
 				protectedHullBefore,
 				protectedShieldsBefore,
@@ -126,7 +115,7 @@ public sealed class BattleStatusPhase1Tests
 				PilotCapabilityGrant.FromBackground(
 					"pilot",
 					EPilotBackgroundId.ScrapDrone,
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 		};
 		var player = BattleTestFixture.ScrapPlayer(origin);
 		var ally = Factory.Create(
@@ -140,12 +129,7 @@ public sealed class BattleStatusPhase1Tests
 			[ally, distantEnemy],
 			pilotsByActorId: pilots);
 		var world = battle.PlayerAgent.Sim.World;
-		Assert.Contains(
-			world.StateOf(PlayerId).Statuses,
-			status => status.InstanceId
-				== BattleStatuses.PassiveInstanceId(
-					nameof(EPilotCapabilityId.ScrapDroneSwarmDamageBonus),
-					PlayerId));
+		Assert.True(world.StateOf(PlayerId).Has<ScrapDroneSwarmDamageBonus>());
 
 		var allyUnit = UnitRegistry.For(world).All.First(unit => unit.State.Id == "ally");
 		var burstCell = BodyFrame.From(world.StateOf(PlayerId)).ToWorld(0, -1, 0);
@@ -165,25 +149,30 @@ public sealed class BattleStatusPhase1Tests
 		var origin = new Coord(5, 5, 5);
 		var player = BattleTestFixture.Player(origin);
 		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward);
-		enemy.State.Statuses.Add(IncomingFlatReduction(enemy.State.Id, 50));
+		enemy.State.Statuses.Add(new DamageResistance());
 		EnsureHitFaceShields(enemy.State, player.State.Position, 300);
 		var battle = BattleTestFixture.BeginSimulation(player, [enemy]);
 		var world = battle.PlayerAgent.Sim.World;
 		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 		var before = world.StateOf(enemy.State.Id).Clone();
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord> { enemy.State.Position },
-			150,
-			origin,
-			alliesTakeDamage: false);
+		var action = new HighVelocityRodAction(PlayerId, ESpatialOrientation.Forward);
+		var applied = BattleEffectTestKit.ApplyEffects(
+			action,
+			world,
+			runtime,
+			[
+				new DamageUnitEffect(
+					EImpactCause.ScrapDroneSwarmBurst,
+					enemy.State.Id,
+					origin,
+					150),
+			]);
 
-		_ = effect.Apply(world, runtime, PlayerId);
 		Assert.Equal(
-			100,
+			143,
 			CombatLost(before.CurrentHullPoints, FaceTotal(before.CurrentShieldPoints), world.StateOf(enemy.State.Id)));
 
-		effect.Undo(world, runtime, PlayerId);
+		ExecutionHelper.UndoEffects(applied, action, world, runtime);
 
 		Assert.Equal(before.CurrentHullPoints, world.StateOf(enemy.State.Id).CurrentHullPoints);
 		Assert.Equal(FaceTotal(before.CurrentShieldPoints), FaceTotal(world.StateOf(enemy.State.Id).CurrentShieldPoints));
@@ -193,12 +182,15 @@ public sealed class BattleStatusPhase1Tests
 	public void StateClone_CopiesStatuses()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		player.State.Statuses.Add(IncomingFlatReduction(player.State.Id, 25));
+		player.State.Statuses.Add(new ReinforcedHull());
+		player.State.Statuses.Add(new ThirstForScrap { Stacks = 2 });
 		var clone = player.State.Clone();
 
-		Assert.Single(clone.Statuses);
-		Assert.NotSame(player.State.Statuses[0], clone.Statuses[0]);
-		Assert.Equal(75, clone.Statuses[0].RewriteIncomingDamage!(100));
+		Assert.Equal(2, clone.Statuses.Count);
+		Assert.IsType<ReinforcedHull>(clone.Statuses[0]);
+		var thirst = Assert.IsType<ThirstForScrap>(clone.Statuses[1]);
+		Assert.Equal(2, thirst.Stacks);
+		Assert.NotSame(player.State.Statuses[1], thirst);
 	}
 
 	[Fact]
@@ -212,7 +204,7 @@ public sealed class BattleStatusPhase1Tests
 				PilotCapabilityGrant.FromBackground(
 					"pilot",
 					EPilotBackgroundId.ScrapDrone,
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 		};
 		var player = BattleTestFixture.ScrapPlayer(origin);
 		var enemy = BattleTestFixture.Enemy(origin + Coord.Forward);
@@ -228,7 +220,8 @@ public sealed class BattleStatusPhase1Tests
 		var records = ExecutionHelper.Apply(
 			action,
 			world,
-			battle.Engine.ActorRuntimes.For(PlayerId));
+			battle.Engine.ActorRuntimes.For(PlayerId),
+			battle.Engine.Rules);
 
 		Assert.NotEmpty(records);
 		Assert.Equal(
@@ -239,23 +232,6 @@ public sealed class BattleStatusPhase1Tests
 				MidpointRounding.AwayFromZero),
 			CombatLost(hullBefore, shieldsBefore, enemyState));
 	}
-
-	private static BattleStatus IncomingFlatReduction(string actorId, int reduction) =>
-		new()
-		{
-			InstanceId = BattleStatuses.PassiveInstanceId("test-flat-incoming", actorId),
-			Priority = 100,
-			ActionTags = [],
-			Polarity = EStatusPolarity.Buff,
-			RewriteIncomingDamage = damage => System.Math.Max(0, damage - reduction),
-		};
-
-	private static Unit CreateEnemy(string id, Coord position) =>
-		Factory.Create(
-			ShipInstance.FromSpec(id, GrimSpace.Units.Specs.FighterSpec.Instance, ShipCatalog.FullFighterLoadout()),
-			ETeam.Enemy,
-			position,
-			new AiController());
 
 	private static void EnsureHitFaceShields(State unit, Coord origin, int amount)
 	{

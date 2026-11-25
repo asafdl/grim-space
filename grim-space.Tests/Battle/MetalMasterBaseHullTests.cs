@@ -107,7 +107,7 @@ public sealed class MetalMasterBaseHullTests
 				PilotCapabilityGrant.FromQuirks(
 					pilotId,
 					[EPilotQuirkId.MetalMaster],
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

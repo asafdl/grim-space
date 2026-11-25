@@ -1,5 +1,3 @@
-using GrimSpace.Battle.Effects;
-using GrimSpace.Battle.Statuses;
 using GrimSpace.Math.Grid;
 
 namespace GrimSpace.Battle.Units;
@@ -76,27 +74,20 @@ public static class Defense
 		State unit,
 		int damage,
 		ESpatialOrientation face,
-		int shieldDamageBonus = 0)
+		int shieldDamageBonus,
+		IReadOnlyList<int> hullDamagePercents)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(shieldDamageBonus);
 		if (damage <= 0)
 			return;
 
 		var shieldBefore = EffectiveShield(unit, face);
-		var shieldDamage = damage + shieldDamageBonus;
 		var hullDamage = System.Math.Max(damage - shieldBefore, 0);
-		shieldDamage = BattleStatuses.RewriteShieldDamage(unit.Statuses, shieldDamage);
-		hullDamage = BattleStatuses.RewriteHullDamage(unit.Statuses, hullDamage);
+		foreach (var percent in hullDamagePercents)
+			hullDamage = ScalePercent(hullDamage, percent);
 
-		AbsorbWithShields(unit, face, shieldDamage);
+		AbsorbWithShields(unit, face, damage + shieldDamageBonus);
 		unit.CurrentHullPoints = System.Math.Max(unit.CurrentHullPoints - hullDamage, 0);
-	}
-
-	public static IncomingHit ScaleHitDamageTaken(IncomingHit hit, int retainedPercent)
-	{
-		var reducedTotal = ScalePercent(hit.Damage + hit.ShieldDamageBonus, retainedPercent);
-		var damage = ScalePercent(hit.Damage, retainedPercent);
-		return new IncomingHit(damage, reducedTotal - damage);
 	}
 
 	public static int ScalePercent(int amount, int percent) =>

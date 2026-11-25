@@ -1,7 +1,5 @@
-using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
-using GrimSpace.Core.Actions;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
 using GrimSpace.Run.Persistence;
@@ -12,25 +10,30 @@ namespace GrimSpace.Tests.StatusModel;
 public sealed class BattleStatusPersistenceTests
 {
 	[Fact]
-	public void FormatVersion_IsThirteen()
+	public void Load_RejectsPreviousStatusFormat()
 	{
-		Assert.Equal(13, SaveGameDocument.CurrentFormatVersion);
+		var document = SaveGameDocument.Create("0.1.0", "battle", new { })
+			with { FormatVersion = 13 };
+
+		Assert.Equal(
+			LoadResult.UnsupportedFormat,
+			SaveLoadResult.Classify(SaveStorageResult.Success, document));
 	}
 
 	[Fact]
-	public void RoundTrip_RebuildsPassiveCallbacksFromInstanceId()
+	public void RoundTrip_RebuildsPassiveTypedStatus()
 	{
 		var state = BattleTestFixture.Player(Coord.Zero).State;
 		state.Statuses.Add(
-			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.ReinforcedHull, state.Id));
+			BattleStatusMaterializer.Create(EPilotCapabilityId.ReinforcedHull));
 
 		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
 
-		Assert.Equal(67, BattleStatuses.RewriteHullDamage(restored.Statuses, 100));
+		Assert.Contains(restored.Statuses, status => status is ReinforcedHull);
 	}
 
 	[Fact]
-	public void RoundTrip_RestoresHeatFlagsAsStatuses()
+	public void RoundTrip_RestoresHeatFlagsWithoutStatuses()
 	{
 		var state = BattleTestFixture.Player(Coord.Zero).State;
 		state.Overdrive = true;
@@ -38,10 +41,9 @@ public sealed class BattleStatusPersistenceTests
 
 		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
 
-		Assert.True(BattleStatuses.HasOverheat(restored));
-		Assert.Single(
-			restored.Statuses,
-			status => status.InstanceId == BattleStatuses.BuffInstanceId("Overdrive", state.Id));
+		Assert.True(restored.Overdrive);
+		Assert.True(restored.Overheat);
+		Assert.Empty(restored.Statuses);
 	}
 
 	[Fact]
@@ -63,40 +65,38 @@ public sealed class BattleStatusPersistenceTests
 	public void RoundTrip_RestoresProtectionDroneBuff()
 	{
 		var state = BattleTestFixture.Player(Coord.Zero).State;
-		state.Statuses.Add(BattleStatuses.CreateProtectionDrone(state.Id));
+		state.Statuses.Add(new ProtectionDroneBuff());
 
 		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
 
-		var status = Assert.Single(restored.Statuses);
-		Assert.NotNull(status.RewriteIncomingHit);
+		Assert.IsType<ProtectionDroneBuff>(Assert.Single(restored.Statuses));
 	}
 
 	[Fact]
 	public void TimelineRoundTrip_RehydratesProtectionDroneFactStatus()
 	{
 		var registry = PersistenceRegistry.CreateDefault();
-		var status = BattleStatuses.CreateProtectionDrone("ally");
+		var status = new ProtectionDroneBuff();
 		var written = registry.Write(
-			new Record<ProtectionDroneChangedFacts>(new("player", "ally", status)));
+			new GrimSpace.Core.Actions.Record<GrimSpace.Battle.Effects.ProtectionDroneChangedFacts>(
+				new("player", "ally", status)));
 
-		var restored = Assert.IsType<Record<ProtectionDroneChangedFacts>>(registry.Read(written));
-		Assert.NotNull(restored.Value.Status);
-		Assert.NotNull(restored.Value.Status.RewriteIncomingHit);
-		Assert.Equal(status.InstanceId, restored.Value.Status.InstanceId);
+		var restored = Assert.IsType<GrimSpace.Core.Actions.Record<GrimSpace.Battle.Effects.ProtectionDroneChangedFacts>>(
+			registry.Read(written));
+		Assert.IsType<ProtectionDroneBuff>(restored.Value.Status);
 	}
 
 	[Fact]
 	public void RoundTrip_RestoresMarkWeakspotFace()
 	{
 		var state = BattleTestFixture.Player(Coord.Zero).State;
-		state.Statuses.Add(BattleStatuses.CreateMarkWeakspot(state.Id, ESpatialOrientation.Port));
+		state.Statuses.Add(new MarkWeakspotDebuff { Face = ESpatialOrientation.Port });
 
 		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
 
-		var payload = MarkWeakspot.TryPayload(restored);
+		var payload = MarkWeakspot.TryStatus(restored);
 		Assert.NotNull(payload);
 		Assert.Equal(ESpatialOrientation.Port, payload.Face);
-		Assert.NotNull(Assert.Single(restored.Statuses).RewriteIncomingHit);
 	}
 
 	[Fact]
@@ -105,11 +105,11 @@ public sealed class BattleStatusPersistenceTests
 		var state = BattleTestFixture.Player(Coord.Zero).State;
 		state.CurrentShieldPoints[ESpatialOrientation.Forward] = 50;
 		ShieldBrace.Activate(state, ESpatialOrientation.Forward);
-		ShieldBrace.TryPayload(state)!.DamagePending = 12;
+		ShieldBrace.TryStatus(state)!.DamagePending = 12;
 
 		var restored = SaveDtoMapper.RestoreBattleUnitState(SaveDtoMapper.CaptureBattleUnitState(state));
 
-		var payload = ShieldBrace.TryPayload(restored);
+		var payload = ShieldBrace.TryStatus(restored);
 		Assert.NotNull(payload);
 		Assert.Equal(ESpatialOrientation.Forward, payload.Face);
 		Assert.Equal(12, payload.DamagePending);
@@ -132,28 +132,9 @@ public sealed class BattleStatusPersistenceTests
 	}
 
 	[Fact]
-	public void Rehydrate_UnknownKindThrows()
+	public void FromDto_UnknownTypeThrows()
 	{
-		var unknown = new BattleStatus
-		{
-			InstanceId = "buff:Mystery:player",
-			Priority = 0,
-			ActionTags = [],
-		};
-
-		Assert.Throws<InvalidDataException>(() => BattleStatusRehydrator.Rehydrate(unknown));
-	}
-
-	[Fact]
-	public void Rehydrate_PayloadKindWithoutPayloadThrows()
-	{
-		var bare = new BattleStatus
-		{
-			InstanceId = "buff:ShieldBrace:player",
-			Priority = 50,
-			ActionTags = [],
-		};
-
-		Assert.Throws<InvalidDataException>(() => BattleStatusRehydrator.Rehydrate(bare));
+		Assert.Throws<NotSupportedException>(() =>
+			BattleStatusJsonConverter.FromDto(new BattleStatusDto("Mystery", EStatusPolarity.Buff)));
 	}
 }

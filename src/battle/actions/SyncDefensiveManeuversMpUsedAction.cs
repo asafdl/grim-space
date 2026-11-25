@@ -24,7 +24,7 @@ public sealed class SyncDefensiveManeuversMpUsedDef
 	public bool IsPossible(IAction action, BattleWorld world, ActorRuntime runtime) => true;
 
 	public bool IsLegal(IAction action, BattleWorld world, ActorRuntime runtime) =>
-		BattleStatuses.HasDefensiveManeuvers(world.StateOf(Cast(action).ActorId));
+		world.StateOf(Cast(action).ActorId).Has<StationaryDamageDeflection>();
 
 	public IReadOnlyList<IEffect<BattleWorld, ActorRuntime>> Resolve(
 		IAction action,

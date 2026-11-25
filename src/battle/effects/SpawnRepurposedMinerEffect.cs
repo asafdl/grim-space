@@ -28,7 +28,7 @@ public sealed class SpawnRepurposedMinerEffect(AbilityMount mount, string unitId
 			fore,
 			dorsal,
 			parentId: actorId);
-		BattleStatuses.GrantSpawnedAllyDamageBuff(parent.State, repurposedMiner.State);
+		SpawnedAllyDamageBuff.GrantFrom(parent.State, repurposedMiner.State);
 		units.Add(repurposedMiner);
 		_spawned = repurposedMiner;
 

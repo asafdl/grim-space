@@ -86,7 +86,7 @@ public sealed class VoidBombReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> lay
 
 			foreach (var (world, runtimes) in frontiers)
 			{
-				var sim = new BattleSimulation(world, runtimes);
+				var sim = new BattleSimulation(world, runtimes, session.Rules);
 				sim.Begin(session.AnchorTick, session.WorldVersion);
 
 				var search = SearchBridge.Run(
@@ -105,7 +105,11 @@ public sealed class VoidBombReachEnvelope(IReadOnlyList<IReadOnlySet<Coord>> lay
 
 					var nextWorld = frame.World.Fork();
 					var nextRuntimes = frame.Runtimes.Fork();
-					ExecutionHelper.Apply(new TurnUpkeepAction(actorId), nextWorld, nextRuntimes.For(actorId));
+					ExecutionHelper.Apply(
+						new TurnUpkeepAction(actorId),
+						nextWorld,
+						nextRuntimes.For(actorId),
+						session.Rules);
 
 					nextFrontiers[nextWorld.StateOf(actorId).Position] = (nextWorld, nextRuntimes);
 				}

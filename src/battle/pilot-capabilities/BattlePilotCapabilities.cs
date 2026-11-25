@@ -1,0 +1,45 @@
+using GrimSpace.Pilots;
+
+namespace GrimSpace.Battle.PilotCapabilities;
+
+public static class BattlePilotCapabilities
+{
+	public static bool Supports(EPilotCapabilityId capabilityId) =>
+		capabilityId is EPilotCapabilityId.ShieldBoost
+			or EPilotCapabilityId.OverchargeEngines
+			or EPilotCapabilityId.HeatVents
+			or EPilotCapabilityId.AdjacentDamageBonus
+			or EPilotCapabilityId.LightningShieldDamageBonus
+			or EPilotCapabilityId.ScrapDroneSwarmDamageBonus
+			or EPilotCapabilityId.ShieldBrace
+			or EPilotCapabilityId.StationaryDamageDeflection
+			or EPilotCapabilityId.ShieldDynamo
+			or EPilotCapabilityId.MarkWeakspot
+			or EPilotCapabilityId.ThirstForScrap
+			or EPilotCapabilityId.YouLittleRat
+			or EPilotCapabilityId.NothingButMetal
+			or EPilotCapabilityId.SpawnedUnitDamageBonus
+			or EPilotCapabilityId.InTheFray
+			or EPilotCapabilityId.ReactiveShields
+			or EPilotCapabilityId.ReinforcedHull
+			or EPilotCapabilityId.HealingSkillRangeBonus
+			or EPilotCapabilityId.OneWithTheVoid
+			or EPilotCapabilityId.InitiativePenalty
+			or EPilotCapabilityId.HeatGainReduction
+			or EPilotCapabilityId.HeatGainBonus
+			or EPilotCapabilityId.HeatCapacityBonus
+			or EPilotCapabilityId.HeatClearBonus
+			or EPilotCapabilityId.HeatClearPenalty
+			or EPilotCapabilityId.OutgoingDamageBonus
+			or EPilotCapabilityId.IncreasedHullDamageTaken
+			or EPilotCapabilityId.SpawnedAllyDamageBonus
+			or EPilotCapabilityId.DamageResistance
+			or EPilotCapabilityId.BaseHullPenalty
+			or EPilotCapabilityId.BaseHullBonus
+			or EPilotCapabilityId.BaseHullFlatPenalty
+			or EPilotCapabilityId.BaseShieldPenalty
+			or EPilotCapabilityId.BaseShieldBonus
+			or EPilotCapabilityId.PirateDamageBonus
+			or EPilotCapabilityId.HealBonus
+			or EPilotCapabilityId.HealPenalty;
+}

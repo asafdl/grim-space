@@ -341,15 +341,14 @@ public sealed class ResolveEngagementActionTests(StarMapFixture maps)
 					(ResourceId.IndustrialCore, 1))),
 		};
 		var runtimes = new ActorRuntimes<ActorRuntime>();
-		runtimes.For(RunState.PlayerFleetUnitId).ReplaceActionEffects(
-			StarMapPilotCapabilityPipelineFactory.Build(
-				[new PilotCapabilityGrant(
-					EPilotCapabilityId.ScrapRewardBonus,
-					"pilot-1",
-					new PilotCapabilitySource(
-						EPilotCapabilitySourceKind.Skill,
-						EPilotSkillId.DronesYearnForMines.ToString()))]));
-		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes);
+		runtimes.For(RunState.PlayerFleetUnitId).ReplaceStrategicCapabilities(
+			[new PilotCapabilityGrant(
+				EPilotCapabilityId.ScrapRewardBonus,
+				"pilot-1",
+				new PilotCapabilitySource(
+					EPilotCapabilitySourceKind.Skill,
+					EPilotSkillId.DronesYearnForMines.ToString()))]);
+		var engine = new Engine<StarMap, ActorRuntime>(map, runtimes, rules: StarMapPilotCapabilities.Rules);
 
 		engine.Commit(new ResolveEngagementAction(
 			RunState.PlayerFleetUnitId,

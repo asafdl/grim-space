@@ -10,14 +10,14 @@ namespace GrimSpace.Battle.Effects;
 
 public sealed class ActivateShieldBraceEffect(ESpatialOrientation face) : IEffect<BattleWorld, ActorRuntime>
 {
-	private BattleStatus? _previousStatus;
+	private ShieldBraceStatus? _previousStatus;
 	private bool _previousUsedThisTurn;
 	private FaceShieldPoints? _previousShieldPoints;
 
 	public IReadOnlyList<IRecord> Apply(BattleWorld world, ActorRuntime runtime, string actorId)
 	{
 		var actor = world.StateOf(actorId);
-		_previousStatus = ShieldBrace.TryStatus(actor)?.DeepCopy();
+		_previousStatus = ShieldBrace.TryStatus(actor)?.DeepCopy() as ShieldBraceStatus;
 		_previousUsedThisTurn = actor.ShieldBraceUsedThisTurn;
 		_previousShieldPoints = actor.CurrentShieldPoints.Clone();
 		ShieldBrace.Activate(actor, face);
@@ -29,6 +29,6 @@ public sealed class ActivateShieldBraceEffect(ESpatialOrientation face) : IEffec
 		var actor = world.StateOf(actorId);
 		actor.ShieldBraceUsedThisTurn = _previousUsedThisTurn;
 		actor.CurrentShieldPoints = _previousShieldPoints!.Clone();
-		ShieldBrace.Restore(actor, _previousStatus?.DeepCopy());
+		ShieldBrace.Restore(actor, _previousStatus?.DeepCopy() as ShieldBraceStatus);
 	}
 }

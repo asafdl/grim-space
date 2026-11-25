@@ -33,6 +33,21 @@ public sealed class State
 	public VoidBombProjectile? Projectile { get; set; }
 	public string ParentId { get; set; } = BattleActorIds.Rules;
 	public List<BattleStatus> Statuses { get; } = [];
+
+	public bool Has<T>() where T : BattleStatus => StatusOf<T>() is not null;
+
+	public T? StatusOf<T>() where T : BattleStatus
+	{
+		foreach (var status in Statuses)
+		{
+			if (status is T typed)
+				return typed;
+		}
+
+		return null;
+	}
+
+	public void RemoveStatus<T>() where T : BattleStatus => Statuses.RemoveAll(status => status is T);
 	public bool ShieldsUpUsedThisTurn { get; set; }
 	public bool HeatVentsUsedThisTurn { get; set; }
 	public bool ShieldBraceUsedThisTurn { get; set; }
@@ -41,8 +56,6 @@ public sealed class State
 	public int MarkWeakspotCooldownRemaining { get; set; }
 	public int DefensiveManeuversMpUsed { get; set; }
 	public int ShieldDynamoGrantedPerFace { get; set; }
-	public int ThirstForScrapStacks { get; set; }
-	public int ReactiveShieldsStacks { get; set; }
 	public required ManeuverabilitySpec Maneuverability { get; set; }
 	public required HeatSpec HeatProfile { get; set; }
 	public int Heat { get; set; }
@@ -148,8 +161,6 @@ public sealed class State
 			MarkWeakspotCooldownRemaining = MarkWeakspotCooldownRemaining,
 			DefensiveManeuversMpUsed = DefensiveManeuversMpUsed,
 			ShieldDynamoGrantedPerFace = ShieldDynamoGrantedPerFace,
-			ThirstForScrapStacks = ThirstForScrapStacks,
-			ReactiveShieldsStacks = ReactiveShieldsStacks,
 			Maneuverability = Maneuverability,
 			HeatProfile = HeatProfile,
 			Heat = Heat,
@@ -159,7 +170,7 @@ public sealed class State
 		foreach (var (mount, runtime) in MountRuntime)
 			copy.MountRuntime[mount] = runtime.Clone();
 		copy.CryoPlumesCooledThisTurn.UnionWith(CryoPlumesCooledThisTurn);
-		BattleStatuses.CopyInto(Statuses, copy.Statuses);
+		copy.Statuses.AddRange(Statuses.Select(status => status.DeepCopy()));
 		return copy;
 	}
 

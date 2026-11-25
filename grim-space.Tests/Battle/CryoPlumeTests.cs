@@ -103,8 +103,7 @@ public sealed class CryoPlumeTests
 		AddPlume(battle, "cryoplume-a", Origin);
 		state.Heat = 100;
 		state.Overheat = true;
-		BattleStatuses.SyncOverheat(state);
-
+		
 		new TurnUpkeepEffect().Apply(world, battle.Engine.ActorRuntimes.For(PlayerId), PlayerId);
 
 		Assert.Equal(100, state.Heat);

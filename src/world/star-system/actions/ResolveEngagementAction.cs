@@ -62,6 +62,6 @@ public sealed class ResolveEngagementDef
 				resolve.LootRolls,
 				resolve.LootTotal));
 
-		return runtime.ActionEffects.Apply(resolve, world, runtime, effects);
+		return effects;
 	}
 }

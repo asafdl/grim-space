@@ -8,6 +8,7 @@ using GrimSpace.World.StarSystem.Actions;
 using GrimSpace.Pilots;
 using GrimSpace.World.StarSystem.Effects;
 using GrimSpace.World.StarSystem.Merchants;
+using GrimSpace.World.StarSystem.PilotCapabilities;
 using GrimSpace.World.StarSystem.Resources;
 using GrimSpace.World.StarSystem.Runtime;
 using BattleUnitType = GrimSpace.Units.Enums.EType;
@@ -390,7 +391,7 @@ public sealed class PilotRegistryTests
 	}
 
 	[Fact]
-	public void Snapshot_RestoresPlayerStrategicActionPipeline()
+	public void Snapshot_RestoresPlayerStrategicCapabilities()
 	{
 		using var run = RunTestKit.CreateFighterSupportRun();
 		var pilot = RunTestKit.StarterRangerPilot(run);
@@ -413,16 +414,16 @@ public sealed class PilotRegistryTests
 			[],
 			ResourceBundle.Empty);
 		var modified = Assert.IsType<AwardEngagementLootEffect>(
-			Assert.Single(runtime.ActionEffects.Apply(
+			StarMapPilotCapabilities.Rules.Prepare(
 				action,
 				restored.StarSystem.Map,
 				runtime,
-				[new AwardEngagementLootEffect(
+				new AwardEngagementLootEffect(
 					[new LootRoll(
 						"miner",
 						BattleUnitType.RepurposedMiner,
 						ResourceBundle.Of(ResourceId.ScrapAlloy, 100))],
-					ResourceBundle.Of(ResourceId.ScrapAlloy, 100))])));
+					ResourceBundle.Of(ResourceId.ScrapAlloy, 100))));
 
 		Assert.True(modified.Total.TryGet(ResourceId.ScrapAlloy, out var scrap));
 		Assert.Equal(120, scrap);

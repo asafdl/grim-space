@@ -93,7 +93,7 @@ public sealed class VoidBombDef
 	public bool IsLegal(VoidBombAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(state))
+		if (state.Overheat)
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.VoidBombLauncher, action.MountedOn);
 		if (installed is null)

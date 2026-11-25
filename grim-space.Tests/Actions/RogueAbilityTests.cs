@@ -90,8 +90,7 @@ public sealed class RogueAbilityTests
 		var sim = battle.PlayerAgent.Sim;
 		var actor = sim.World.StateOf("player");
 		actor.Overheat = true;
-		BattleStatuses.SyncOverheat(actor);
-
+		
 		Assert.False(sim.TryEnqueue(new HighVelocityRodAction("player", ESpatialOrientation.Dorsal)));
 		Assert.False(sim.TryEnqueue(new RoadsWeDontNeedRoadsAction("player", Origin + Coord.Up * 4)));
 	}

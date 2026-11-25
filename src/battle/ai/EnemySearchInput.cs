@@ -687,7 +687,7 @@ internal static class EnemySearchInput
 		var world = anchor.ReplayWorld(searchStartDepth);
 		var runtimes = anchor.Runtimes.Fork();
 		for (var i = searchStartDepth; i < actionIndex; i++)
-			ExecutionHelper.Apply(actions[i], world, runtimes.For(actions[i]));
+			ExecutionHelper.Apply(actions[i], world, runtimes.For(actions[i]), anchor.Rules);
 
 		return world;
 	}

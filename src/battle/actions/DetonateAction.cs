@@ -1,6 +1,7 @@
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Spatial;
+using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
 using GrimSpace.Battle.World;
 using GrimSpace.Core.Actions;
@@ -72,12 +73,16 @@ public sealed class DetonateDef
 
 		return
 		[
-			new ApplyAreaDamageEffect(
+			.. AttackEffects.Area(
+				world,
+				action.ActorId,
 				EImpactCause.VoidBombBlast,
 				cells,
 				body.BlastDamage,
 				actor.Position,
-				destroySource: true),
+				alliesTakeDamage: !actor.Has<OneWithTheVoid>()),
+			new DestroyUnitEffect(action.ActorId),
+			.. AttackEffects.Erosion(world, cells, actor.Position),
 		];
 	}
 

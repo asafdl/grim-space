@@ -96,8 +96,7 @@ public sealed class HeatVentsActionTests
 		player.State.Heat = 100;
 		player.State.CurrentActionPoints = PilotSkillPercents.HeatVents.ApCost;
 		player.State.Overheat = true;
-		BattleStatuses.SyncOverheat(player.State);
-
+		
 		Assert.False(HeatVentsDef.Instance.IsLegal(
 			HeatVentsDef.Instance.Bind(PlayerId),
 			battle.Engine.World,

@@ -56,7 +56,7 @@ public sealed class OverchargeEnginesDef
 			return false;
 
 		var state = world.StateOf(action.ActorId);
-		return !BattleStatuses.HasOverheat(state)
+		return !state.Overheat
 			&& state.OverchargeEnginesCooldownRemaining == 0;
 	}
 

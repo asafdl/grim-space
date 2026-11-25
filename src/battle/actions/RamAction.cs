@@ -73,7 +73,7 @@ public sealed class RamDef
 	public bool IsLegal(RamAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(state))
+		if (state.Overheat)
 			return false;
 
 		var installed = state.FindInstalled(EAbilityKind.Ram, action.MountedOn);
@@ -100,13 +100,16 @@ public sealed class RamDef
 		return
 		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
-			new ApplyAreaDamageEffect(
+			.. AttackEffects.Area(
+				world,
+				action.ActorId,
 				EImpactCause.RamImpact,
 				impactCells,
 				ram.Damage,
 				state.Position),
 			new MoveEffect(destination),
 			new MountUsesChangeEffect(installed.Mount, -1),
+			.. AttackEffects.Erosion(world, impactCells, state.Position),
 		];
 	}
 

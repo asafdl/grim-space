@@ -43,7 +43,7 @@ public sealed class HeatChangeEffect : IEffect<BattleWorld, ActorRuntime>
 		_applied = false;
 		_scheduledOverheat = null;
 
-		if (!actor.HeatProfile.Participates || BattleStatuses.HasOverheat(actor) || (!_forceToCapacity && _delta == 0))
+		if (!actor.HeatProfile.Participates || actor.Overheat || (!_forceToCapacity && _delta == 0))
 			return [];
 
 		var appliedDelta = _delta > 0
@@ -64,7 +64,6 @@ public sealed class HeatChangeEffect : IEffect<BattleWorld, ActorRuntime>
 			&& (_forceToCapacity || appliedDelta > 0 && _previousHeat < capacity && next >= capacity))
 		{
 			actor.Overdrive = true;
-			BattleStatuses.SyncOverdrive(actor);
 			_scheduledOverheat = new EnterOverheatAction(actorId);
 			_scheduledTick = world.Timeline.Clock.Current + OverheatDelayTicks;
 			world.Timeline.Schedule(OverheatDelayTicks, _scheduledOverheat);
@@ -95,6 +94,5 @@ public sealed class HeatChangeEffect : IEffect<BattleWorld, ActorRuntime>
 		var actor = world.StateOf(actorId);
 		actor.Heat = _previousHeat;
 		actor.Overdrive = _previousOverdrive;
-		BattleStatuses.SyncOverdrive(actor);
 	}
 }

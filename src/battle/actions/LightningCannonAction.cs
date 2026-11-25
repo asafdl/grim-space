@@ -76,7 +76,7 @@ public sealed class LightningCannonDef
 	public bool IsLegal(LightningCannonAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var state = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(state))
+		if (state.Overheat)
 			return false;
 		var installed = state.FindInstalled(EAbilityKind.LightningCannon, action.MountedOn);
 		if (installed is null || state.MountRuntimeFor(installed.Mount).UsesRemaining <= 0)
@@ -97,19 +97,23 @@ public sealed class LightningCannonDef
 			throw new InvalidOperationException("Lightning cannon spec missing.");
 
 		var chain = ChainLightning.Resolve(world, action.ActorId, lightningCannon, action.MountedOn);
-		var effects = new IEffect<BattleWorld, ActorRuntime>[]
-		{
+		return
+		[
 			new HeatChangeEffect(HeatChangeEffect.PerAbilityUse),
-			new ApplyChainLightningDamageEffect(
+			.. AttackEffects.Chain(
+				world,
+				action.ActorId,
 				EImpactCause.LightningCannonBurst,
-				chain.BeamCells,
-				chain.Hops,
+				chain,
 				lightningCannon.Damage,
 				lightningCannon.ChainFalloffPercentPerHop,
 				state.Position),
 			new MountUsesChangeEffect(installed.Mount, -1),
-		};
-		return runtime.ActionEffects.Apply(action, world, runtime, effects);
+			.. AttackEffects.Erosion(
+				world,
+				chain.BeamCells.Concat(chain.Hops.Select(hop => hop.Position)),
+				state.Position),
+		];
 	}
 
 	public IReadOnlySet<Coord> AffectedCells(LightningCannonAction action, BattleWorld world)

@@ -15,67 +15,62 @@ namespace GrimSpace.Tests.World.StarSystem.Runtime;
 public sealed class StrategicActorRuntimeTests(StarMapFixture maps)
 {
 	[Fact]
-	public void NpcRuntime_KeepsEmptyPipeline()
+	public void NpcRuntime_HasNoStrategicCapabilities()
 	{
 		var map = maps.Fresh(2);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		var npcId = map.FleetRegistry.Ids.First(id => id != RunState.PlayerFleetUnitId);
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, RunState.PlayerFleetUnitId);
-		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).ReplaceActionEffects(
-			StarMapPilotCapabilityPipelineFactory.Build(
-				StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1)));
+		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).ReplaceStrategicCapabilities(
+			StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1));
 
-		var npcRuntime = orchestrator.RuntimeFor(npcId);
-		Assert.True(npcRuntime.ActionEffects.IsEmpty);
+		Assert.Empty(orchestrator.RuntimeFor(npcId).StrategicCapabilities);
 	}
 
 	[Fact]
-	public void Fork_SharesPipelineReference()
+	public void Simulation_KeepsStrategicCapabilities()
 	{
 		var map = maps.Fresh(3);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, RunState.PlayerFleetUnitId);
-		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).ReplaceActionEffects(
-			StarMapPilotCapabilityPipelineFactory.Build(
-				StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1)));
+		orchestrator.RuntimeFor(RunState.PlayerFleetUnitId).ReplaceStrategicCapabilities(
+			StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1));
 		var live = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
 		var sim = orchestrator.CreateSimulation();
 		var preview = sim.RuntimeFor(RunState.PlayerFleetUnitId);
 
-		Assert.Same(live.ActionEffects, preview.ActionEffects);
+		Assert.Same(live.StrategicCapabilities, preview.StrategicCapabilities);
 	}
 
 	[Fact]
-	public void RefreshStrategicPilotCapabilities_ReplacesPipelineAndUndoes()
+	public void RefreshStrategicPilotCapabilities_ReplacesCapabilitiesAndUndoes()
 	{
 		var map = maps.Fresh(4);
 		StarSystemTestHarness.AddPlayerFleet(map, RunState.PlayerFleetUnitId);
 		using var orchestrator = StarSystemOrchestrator.FromMap(map, RunState.PlayerFleetUnitId);
 		var runtime = orchestrator.RuntimeFor(RunState.PlayerFleetUnitId);
-		var before = runtime.ActionEffects;
+		var before = runtime.StrategicCapabilities;
 		var grants = StackGrants(EPilotCapabilityId.ScrapRewardBonus, 2);
 
-		var effect = new ReplaceStrategicActionEffectPipelineEffect(grants);
+		var effect = new ReplaceStrategicPilotCapabilitiesEffect(grants);
 		effect.Apply(orchestrator.Map, runtime, RunState.PlayerFleetUnitId);
-		var after = runtime.ActionEffects;
-		Assert.NotSame(before, after);
+		Assert.Same(grants, runtime.StrategicCapabilities);
 
 		effect.Undo(orchestrator.Map, runtime, RunState.PlayerFleetUnitId);
-		Assert.Same(before, runtime.ActionEffects);
+		Assert.Same(before, runtime.StrategicCapabilities);
 	}
 
 	[Fact]
-	public void Reset_PreservesActionEffects()
+	public void Reset_PreservesStrategicCapabilities()
 	{
 		var runtime = new ActorRuntime();
-		var pipeline = StarMapPilotCapabilityPipelineFactory.Build(
-			StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1));
-		runtime.ReplaceActionEffects(pipeline);
+		var grants = StackGrants(EPilotCapabilityId.ScrapRewardBonus, 1);
+		runtime.ReplaceStrategicCapabilities(grants);
 		runtime.CachedPath = new GrimSpace.World.StarSystem.Pathfinding.TransitPath(
 			System.Collections.Immutable.ImmutableArray<GrimSpace.World.StarSystem.Pathfinding.TransitLeg>.Empty);
 		runtime.Reset();
 
-		Assert.Same(pipeline, runtime.ActionEffects);
+		Assert.Same(grants, runtime.StrategicCapabilities);
 		Assert.Null(runtime.CachedPath);
 	}
 

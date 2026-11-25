@@ -36,7 +36,7 @@ public sealed class PurchaseActionDef
 	{
 		if (action is not PurchaseAction purchase)
 			return false;
-		if (!TryResolveQuotedOffer(purchase, world, runtime, out var offer))
+		if (!IsOffered(purchase, world))
 			return false;
 		if (!MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,
@@ -45,7 +45,7 @@ public sealed class PurchaseActionDef
 				out _))
 			return false;
 
-		return world.PlayerResources.CanApply(offer.Cost.Negate());
+		return world.PlayerResources.CanApply(purchase.QuotedCost.Negate());
 	}
 
 	internal static bool EndpointServesPurchaseProvider(PurchaseAction purchase, StarMap world) =>
@@ -60,7 +60,7 @@ public sealed class PurchaseActionDef
 		ActorRuntime runtime)
 	{
 		var purchase = (PurchaseAction)action;
-		if (!TryResolveQuotedOffer(purchase, world, runtime, out var offer)
+		if (!IsOffered(purchase, world)
 			|| !MerchantShipChanges.TryPrepareAfter(
 				purchase.Offering,
 				purchase.Target,
@@ -71,7 +71,7 @@ public sealed class PurchaseActionDef
 		if (purchase.Offering.Kind == MerchantCatalog.Kind.BuyFuel)
 		{
 			var change = new Dictionary<ResourceId, int>();
-			foreach (var (id, amount) in offer.Cost.Negate())
+			foreach (var (id, amount) in purchase.QuotedCost.Negate())
 				change[id] = amount;
 			change[ResourceId.Fuel] = change.GetValueOrDefault(ResourceId.Fuel)
 				+ StrategicEconomyConfig.FuelPurchaseAmount;
@@ -87,45 +87,19 @@ public sealed class PurchaseActionDef
 			purchase.Before.Id,
 			purchase.Before.Clone(),
 			after.Clone(),
-			offer.Cost);
+			purchase.QuotedCost);
 
 		return
 		[
-			new ChangeResourceEffect(TransactionSource.MerchantPurchase, offer.Cost.Negate()),
+			new ChangeResourceEffect(TransactionSource.MerchantPurchase, purchase.QuotedCost.Negate()),
 			new RecordMerchantShipPurchaseEffect(fact),
 		];
 	}
 
-	internal static bool TryResolveQuotedOffer(
-		PurchaseAction purchase,
-		StarMap world,
-		ActorRuntime runtime,
-		out MerchantCatalog.Offer offer)
-	{
-		offer = default!;
-		if (world.ItemInventory?.IsOwnedBy(purchase.Before.Id, purchase.ActorId) != true)
-			return false;
-		if (!EndpointServesPurchaseProvider(purchase, world))
-			return false;
-		if (world.ItemInventory?.Matches(purchase.Before.Id, purchase.Before) != true)
-			return false;
-		var pricingAction = FetchMerchantCatalogActionDef.CreatePricingProbe(
-			purchase.ActorId,
-			purchase.Endpoint,
-			purchase.Catalog,
-			purchase.Before);
-		offer = FetchMerchantCatalogActionDef.PriceCatalog(
-				pricingAction,
-				world,
-				runtime)
-			.Quote
-			.Offers
-			.FirstOrDefault(candidate =>
-				candidate.Offering == purchase.Offering
-				&& candidate.Target == purchase.Target)!;
-		if (offer is null)
-			return false;
-
-		return offer.Cost.Equals(purchase.QuotedCost);
-	}
+	internal static bool IsOffered(PurchaseAction purchase, StarMap world) =>
+		world.ItemInventory?.IsOwnedBy(purchase.Before.Id, purchase.ActorId) == true
+		&& EndpointServesPurchaseProvider(purchase, world)
+		&& world.ItemInventory.Matches(purchase.Before.Id, purchase.Before)
+		&& MerchantCatalog.ListFor(purchase.Catalog, purchase.Before, world).Any(offer =>
+			offer.Offering == purchase.Offering && offer.Target == purchase.Target);
 }

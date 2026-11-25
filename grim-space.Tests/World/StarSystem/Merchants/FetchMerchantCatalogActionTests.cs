@@ -93,27 +93,51 @@ public sealed class FetchMerchantCatalogActionTests(StarMapFixture maps)
 	}
 
 	[Fact]
-	public void TryEnqueue_Purchase_RejectsStaleQuotedCost()
+	public void RewardCapabilities_DoNotChangeQuoteOrPurchaseCharge()
 	{
-		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps);
+		var grants = new[] { EPilotCapabilityId.ScrapRewardBonus, EPilotCapabilityId.OptimalityContractCreditBonus }
+			.Select(id => new PilotCapabilityGrant(
+				id,
+				"pilot",
+				new PilotCapabilitySource(EPilotCapabilitySourceKind.Skill, "test-skill")))
+			.ToArray();
+		var (engine, unitId, ship, _) = MerchantPurchaseTestHarness.CreateEngine(maps, strategicGrants: grants);
 		SeedResources(engine.World, credits: 5_000, scrap: 5_000, cores: 5);
 		ship.CurrentHullPoints = 100;
 		var before = ship.Clone();
-		var action = MerchantPurchaseTestHarness.CreateQuotedPurchase(
-			engine,
-			unitId,
-			CreateEndpoint(engine.World, EMerchantCatalog.Healing),
-			EMerchantCatalog.Healing,
-			MerchantPurchaseTestHarness.RepairHull,
-			default,
-			before);
-		var stale = action with
-		{
-			QuotedCost = ResourceBundle.Of(ResourceId.Credits, 1),
-		};
+		var endpoint = CreateEndpoint(engine.World, EMerchantCatalog.Healing);
+		var credits = engine.World.PlayerResources.GetBalance(ResourceId.Credits);
+		var scrap = engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy);
 
-		Assert.False(engine.CreateSimulation().TryEnqueue(stale));
+		var records = engine.Commit(new FetchMerchantCatalogAction(unitId, endpoint, EMerchantCatalog.Healing, before));
+		var quote = Assert.Single(records.OfType<Record<MerchantCatalogQuote>>()).Value;
+
+		Assert.Equal(
+			MerchantCatalog.ListFor(EMerchantCatalog.Healing, before, engine.World).Select(offer => offer.Cost),
+			quote.Offers.Select(offer => offer.Cost));
+		Assert.Equal(credits, engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(scrap, engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
+
+		var offer = quote.Offers.First(candidate => candidate.Offering == MerchantPurchaseTestHarness.RepairHull);
+		engine.Commit(new PurchaseAction(
+			unitId,
+			endpoint,
+			EMerchantCatalog.Healing,
+			offer.Offering,
+			offer.Target,
+			before,
+			offer.Cost));
+
+		Assert.Equal(
+			credits - CostOf(offer, ResourceId.Credits),
+			engine.World.PlayerResources.GetBalance(ResourceId.Credits));
+		Assert.Equal(
+			scrap - CostOf(offer, ResourceId.ScrapAlloy),
+			engine.World.PlayerResources.GetBalance(ResourceId.ScrapAlloy));
 	}
+
+	private static int CostOf(MerchantCatalog.Offer offer, ResourceId resource) =>
+		offer.Cost.TryGet(resource, out var amount) ? amount : 0;
 
 	private static string AddPirate(StarMap map, Coord coord, string id = "pirate-a")
 	{

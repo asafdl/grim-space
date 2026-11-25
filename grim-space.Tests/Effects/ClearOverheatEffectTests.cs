@@ -17,14 +17,13 @@ public sealed class ClearOverheatEffectTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
-		BattleStatuses.SyncOverheat(state);
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+				var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 
 		new ClearOverheatEffect().Apply(battle.Engine.World, runtime, PlayerId);
 
 		Assert.Equal(0, state.Heat);
 		Assert.False(state.Overheat);
-		Assert.False(BattleStatuses.HasOverheat(state));
+		Assert.False(state.Overheat);
 	}
 
 	[Fact]
@@ -50,8 +49,7 @@ public sealed class ClearOverheatEffectTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
-		BattleStatuses.SyncOverheat(state);
-		var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
+				var runtime = battle.Engine.ActorRuntimes.For(PlayerId);
 		var effect = new ClearOverheatEffect();
 
 		effect.Apply(battle.Engine.World, runtime, PlayerId);
@@ -59,6 +57,6 @@ public sealed class ClearOverheatEffectTests
 
 		Assert.Equal(100, state.Heat);
 		Assert.True(state.Overheat);
-		Assert.True(BattleStatuses.HasOverheat(state));
+		Assert.True(state.Overheat);
 	}
 }

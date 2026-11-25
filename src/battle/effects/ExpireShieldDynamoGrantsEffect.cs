@@ -18,7 +18,7 @@ public sealed class ExpireShieldDynamoGrantsEffect : IEffect<BattleWorld, ActorR
 		var actor = world.StateOf(actorId);
 		_previousShields = actor.CurrentShieldPoints.Clone();
 		_previousGrantedPerFace = actor.ShieldDynamoGrantedPerFace;
-		if (_previousGrantedPerFace <= 0 || !BattleStatuses.HasShieldDynamo(actor))
+		if (_previousGrantedPerFace <= 0 || !actor.Has<ShieldDynamo>())
 		{
 			actor.ShieldDynamoGrantedPerFace = 0;
 			return [];

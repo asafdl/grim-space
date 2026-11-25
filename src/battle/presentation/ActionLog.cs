@@ -74,7 +74,8 @@ public static class ActionLog
 			if (TryWeapon(entry, out var actorIdWeapon, out var weapon, out var mount))
 			{
 				i++;
-				var impacts = TakeFollowingImpacts(history, ref i, actorIdWeapon);
+				var killCredits = new List<ITimelineEntry>();
+				var impacts = TakeFollowingImpacts(history, ref i, actorIdWeapon, killCredits);
 				var heals = TakeFollowingHeals(history, ref i, actorIdWeapon);
 				if (impacts.Count == 0 && heals.Count == 0)
 				{
@@ -102,6 +103,12 @@ public static class ActionLog
 							$"{displayName(actorIdWeapon)} → {displayName(heal.TargetId)}",
 							mount),
 							FormatHealDetail(heal)]);
+				}
+
+				foreach (var credit in killCredits)
+				{
+					if (FormatOne(credit, displayName) is { } formattedCredit)
+						entries.Add(formattedCredit);
 				}
 				continue;
 			}
@@ -187,7 +194,8 @@ public static class ActionLog
 	private static List<ImpactFacts> TakeFollowingImpacts(
 		IReadOnlyList<ITimelineEntry> history,
 		ref int i,
-		string sourceId)
+		string sourceId,
+		List<ITimelineEntry> killCredits)
 	{
 		var impacts = new List<ImpactFacts>();
 		while (i < history.Count
@@ -201,11 +209,14 @@ public static class ActionLog
 			i++;
 		}
 
-		while (i < history.Count
-			&& history[i] is Record<ImpactFacts> { Value: var impact }
-			&& impact.SourceId == sourceId)
+		while (i < history.Count)
 		{
-			impacts.Add(impact);
+			if (history[i] is Record<ImpactFacts> { Value: var impact } && impact.SourceId == sourceId)
+				impacts.Add(impact);
+			else if (history[i] is Record<ThirstForScrapChangedFacts> or Record<CooldownResetOnKillFacts>)
+				killCredits.Add(history[i]);
+			else
+				break;
 			i++;
 		}
 

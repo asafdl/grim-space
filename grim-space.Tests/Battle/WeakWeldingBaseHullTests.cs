@@ -120,7 +120,7 @@ public sealed class WeakWeldingBaseHullTests
 				PilotCapabilityGrant.FromQuirks(
 					pilotId,
 					[EPilotQuirkId.WeakWelding],
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

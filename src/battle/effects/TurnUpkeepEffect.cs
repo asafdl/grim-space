@@ -22,7 +22,7 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		_previousActionPoints = actor.CurrentActionPoints;
 		_previousManeuverPoints = actor.CurrentManeuverPoints;
 		_previousHeat = actor.Heat;
-		_previousReactiveShieldsStacks = actor.ReactiveShieldsStacks;
+		_previousReactiveShieldsStacks = actor.StatusOf<ReactiveShields>()?.Stacks ?? 0;
 		_previousCooledPlumes = [.. actor.CryoPlumesCooledThisTurn];
 		_previousMountRuntime = actor.MountRuntime.ToDictionary(
 			entry => entry.Key,
@@ -31,7 +31,12 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.CryoPlumesCooledThisTurn.Clear();
 		actor.CurrentActionPoints = actor.Maneuverability.BaseActionPoints;
 		actor.CurrentManeuverPoints = actor.Maneuverability.BaseManeuverPoints;
-		actor.ReactiveShieldsStacks = 0;
+		var records = new List<IRecord>();
+		if (actor.StatusOf<ReactiveShields>() is { Stacks: > 0 } reactive)
+		{
+			reactive.Stacks = 0;
+			records.Add(new Record<ReactiveShieldsChangedFacts>(new(actorId, reactive.Stacks)));
+		}
 		foreach (var installed in actor.Loadout.InstalledAbilities)
 			installed.Spec.AdvanceRound(actor.MountRuntime[installed.Mount]);
 
@@ -43,7 +48,7 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 
 		if (actor.HeatProfile.Participates
 			&& !actor.Overdrive
-			&& !BattleStatuses.HasOverheat(actor))
+			&& !actor.Overheat)
 		{
 			var clearPerTurn = actor.HeatProfile.ClearPerTurn
 				+ (world.CryoPlumeAt(actor.Position) is null ? 0 : CryoPlume.HeatCleared);
@@ -51,18 +56,15 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 			if (cleared != actor.Heat)
 			{
 				actor.Heat = cleared;
-				return
-				[
-					new Record<HeatChangedFacts>(new HeatChangedFacts(
-						actorId,
-						actor.Heat,
-						actor.Overdrive,
-						actor.Overheat)),
-				];
+				records.Add(new Record<HeatChangedFacts>(new HeatChangedFacts(
+					actorId,
+					actor.Heat,
+					actor.Overdrive,
+					actor.Overheat)));
 			}
 		}
 
-		return [];
+		return records;
 	}
 
 	public void Undo(BattleWorld world, ActorRuntime runtime, string actorId)
@@ -71,7 +73,8 @@ public sealed class TurnUpkeepEffect : IEffect<BattleWorld, ActorRuntime>
 		actor.CurrentActionPoints = _previousActionPoints;
 		actor.CurrentManeuverPoints = _previousManeuverPoints;
 		actor.Heat = _previousHeat;
-		actor.ReactiveShieldsStacks = _previousReactiveShieldsStacks;
+		if (actor.StatusOf<ReactiveShields>() is { } reactive)
+			reactive.Stacks = _previousReactiveShieldsStacks;
 		actor.CryoPlumesCooledThisTurn.Clear();
 		actor.CryoPlumesCooledThisTurn.UnionWith(_previousCooledPlumes);
 		if (_previousMountRuntime is null)

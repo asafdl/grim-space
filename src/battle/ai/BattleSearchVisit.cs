@@ -190,8 +190,7 @@ internal static class BattleSearchVisit
 			+ $":{state.Heat}:{state.Overdrive}:{state.Overheat}"
 			+ $":{state.ShieldsUpUsedThisTurn}:{state.HeatVentsUsedThisTurn}:{state.ShieldBraceUsedThisTurn}"
 			+ $":{state.OverchargeEnginesCooldownRemaining}:{state.MarkWeakspotCooldownRemaining}"
-			+ $":{state.DefensiveManeuversMpUsed}:{state.ShieldDynamoGrantedPerFace}"
-			+ $":{state.ThirstForScrapStacks}:{state.ReactiveShieldsStacks}");
+			+ $":{state.DefensiveManeuversMpUsed}:{state.ShieldDynamoGrantedPerFace}");
 		if (state.Id != actorId)
 			fingerprint.Append(CultureInfo.InvariantCulture, $":{state.CurrentActionPoints}:{state.CurrentManeuverPoints}");
 		AppendText(fingerprint, MountFingerprint(state));
@@ -202,44 +201,37 @@ internal static class BattleSearchVisit
 		foreach (var plume in state.CryoPlumesCooledThisTurn.Order(StringComparer.Ordinal))
 			AppendText(fingerprint, plume);
 		fingerprint.Append(';');
+		_ = rules;
 		foreach (var status in state.Statuses)
-			AppendStatus(fingerprint, rules, status, state.Id);
+			AppendStatus(fingerprint, status);
 		fingerprint.Append(']');
 	}
 
-	private static void AppendStatus(
-		StringBuilder fingerprint, List<object?> rules, BattleStatus status, string unitId)
+	private static void AppendStatus(StringBuilder fingerprint, BattleStatus status)
 	{
-		var name = status.InstanceId.EndsWith($":{unitId}", StringComparison.Ordinal)
-			? status.InstanceId[..^unitId.Length]
-			: status.InstanceId;
-		// Expiry runs outside this activation search; grant order and amounts, not opaque IDs, affect its rules.
-		AppendText(fingerprint, status.Payload is TemporaryShieldPayload ? nameof(TemporaryShieldPayload) : name);
-		fingerprint.Append(CultureInfo.InvariantCulture, $":{status.Priority}:{status.Polarity}");
-		foreach (var tag in status.ActionTags)
-			AppendText(fingerprint, tag);
-		fingerprint.Append(';');
-		AppendText(fingerprint, status.RuleKey ?? "");
-		if (status.RuleKey is null)
-			rules.AddRange([
-				status.RewriteOutgoing, status.RewriteArea, status.RewriteIncomingDamage,
-				status.RewriteIncomingHit, status.RewriteShieldDamage, status.RewriteHullDamage,
-			]);
-		switch (status.Payload)
+		AppendText(fingerprint, status is TemporaryShieldGrantStatus
+			? nameof(TemporaryShieldGrantStatus)
+			: status.GetType().Name);
+		fingerprint.Append(CultureInfo.InvariantCulture, $":{status.Polarity}");
+		switch (status)
 		{
-			case EmptyStatusPayload:
-				break;
-			case TemporaryShieldPayload temporary:
+			case TemporaryShieldGrantStatus temporary:
 				foreach (var face in Faces)
 					fingerprint.Append(CultureInfo.InvariantCulture, $":{temporary.Remaining[face]}");
 				break;
-			case ShieldBracePayload brace:
+			case ShieldBraceStatus brace:
 				fingerprint.Append(CultureInfo.InvariantCulture, $":{brace.Face}:{brace.DamagePending}");
 				foreach (var face in Faces)
 					fingerprint.Append(CultureInfo.InvariantCulture, $":{brace.Snapshot[face]}");
 				break;
-			default:
-				rules.Add(status.Payload.DeepCopy());
+			case MarkWeakspotDebuff mark:
+				fingerprint.Append(CultureInfo.InvariantCulture, $":{mark.Face}");
+				break;
+			case ThirstForScrap thirst:
+				fingerprint.Append(CultureInfo.InvariantCulture, $":{thirst.Stacks}");
+				break;
+			case ReactiveShields reactive:
+				fingerprint.Append(CultureInfo.InvariantCulture, $":{reactive.Stacks}");
 				break;
 		}
 		fingerprint.Append('|');

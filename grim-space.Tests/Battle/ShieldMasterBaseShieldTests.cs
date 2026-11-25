@@ -127,7 +127,7 @@ public sealed class ShieldMasterBaseShieldTests
 				PilotCapabilityGrant.FromQuirks(
 					pilotId,
 					[EPilotQuirkId.ShieldMaster],
-					BattlePilotCapabilityPipelineFactory.Supports)),
+					BattlePilotCapabilities.Supports)),
 			Team = ETeam.Player,
 			Faction = EFaction.Player,
 			Position = Coord.Zero,

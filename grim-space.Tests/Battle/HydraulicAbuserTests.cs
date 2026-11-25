@@ -1,3 +1,4 @@
+using GrimSpace.Battle.Actions;
 using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.NonUnits;
@@ -21,46 +22,60 @@ public sealed class HydraulicAbuserTests
 	public void StatusPass_ReducesIncomingHitDamageMultiplicatively()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		var world = BattleWorldFor(player);
+		var enemy = BattleTestFixture.Enemy(new Coord(1, 0, 0));
+		var world = BattleWorldFor(player, enemy);
 		InstallHydraulicAbuser(world, player);
+		IAction action = new HighVelocityRodAction(enemy.State.Id, ESpatialOrientation.Forward);
+		var effect = new DamageUnitEffect(
+			EImpactCause.HighVelocityRod,
+			player.State.Id,
+			enemy.State.Position,
+			100);
 
-		var hit = BattleStatuses.RewriteIncomingHit(
-			player.State.Statuses,
+		var modified = BattleEffectTestKit.PrepareDamage(
+			action,
 			world,
-			player,
-			Coord.Zero,
-			EImpactCause.LightningCannonBurst,
-			ESpatialOrientation.Forward,
-			new IncomingHit(100, 0));
+			new ActorRuntime(),
+			effect);
 
-		Assert.Equal(95, hit.Damage);
-		Assert.Equal(0, hit.ShieldDamageBonus);
+		Assert.Equal(
+			[new HitStep(PilotSkillPercents.HydraulicAbuser.DamageTakenPercent)],
+			modified.HitSteps);
 	}
 
 	[Fact]
 	public void StatusPass_StacksDamageResistanceMultiplicatively()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		var world = BattleWorldFor(player);
+		var enemy = BattleTestFixture.Enemy(new Coord(1, 0, 0));
+		var world = BattleWorldFor(player, enemy);
 		player.State.Statuses.Add(
-			BattlePassiveStatusInstaller.Create(EPilotCapabilityId.DamageResistance, player.State.Id));
-		var second = BattlePassiveStatusInstaller.Create(EPilotCapabilityId.DamageResistance, "stack-2");
-		player.State.Statuses.Add(second);
+			BattleStatusMaterializer.Create(EPilotCapabilityId.DamageResistance));
+		player.State.Statuses.Add(
+			BattleStatusMaterializer.Create(EPilotCapabilityId.DamageResistance));
+		IAction action = new HighVelocityRodAction(enemy.State.Id, ESpatialOrientation.Forward);
+		var effect = new DamageUnitEffect(
+			EImpactCause.HighVelocityRod,
+			player.State.Id,
+			enemy.State.Position,
+			100);
 
-		var hit = BattleStatuses.RewriteIncomingHit(
-			player.State.Statuses,
+		var modified = BattleEffectTestKit.PrepareDamage(
+			action,
 			world,
-			player,
-			Coord.Zero,
-			EImpactCause.LightningCannonBurst,
-			ESpatialOrientation.Forward,
-			new IncomingHit(100, 0));
+			new ActorRuntime(),
+			effect);
 
-		Assert.Equal(90, hit.Damage);
+		Assert.Equal(
+			[
+				new HitStep(PilotSkillPercents.HydraulicAbuser.DamageTakenPercent),
+				new HitStep(PilotSkillPercents.HydraulicAbuser.DamageTakenPercent),
+			],
+			modified.HitSteps);
 	}
 
 	private static void InstallHydraulicAbuser(BattleWorld world, Unit player) =>
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
+		BattleStatusMaterializer.Materialize(
 			world,
 			player.State.Id,
 			ActorRuntime.From(new PilotBattleSnapshot(
@@ -68,16 +83,16 @@ public sealed class HydraulicAbuserTests
 				PilotCapabilityGrant.FromBackground(
 					"pilot",
 					EPilotBackgroundId.HydraulicAbuser,
-					BattlePilotCapabilityPipelineFactory.Supports))));
+					BattlePilotCapabilities.Supports))));
 
-	private static BattleWorld BattleWorldFor(Unit player) =>
+	private static BattleWorld BattleWorldFor(params Unit[] units) =>
 		BattleWorld.FromLive(
-			[player],
+			units,
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>(),
 			"hydraulic-abuser-test",
 			EObjective.EliminateOpponents,
-			new HashSet<string> { player.State.Id },
+			units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal),
 			new Timeline());
 }

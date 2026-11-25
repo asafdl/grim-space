@@ -16,10 +16,12 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 	public Engine(
 		TWorld world,
 		ActorRuntimes<TRuntime> actorRuntimes,
-		TimelineGcOptions? gcOptions = null)
+		TimelineGcOptions? gcOptions = null,
+		EffectRules<TWorld, TRuntime>? rules = null)
 	{
 		World = world;
 		ActorRuntimes = actorRuntimes;
+		Rules = rules ?? EffectRules<TWorld, TRuntime>.Empty;
 		_gcOptions = gcOptions ?? TimelineGcOptions.Default;
 		if (World.Timeline.Clock.Current == 0)
 			World.Timeline.Clock.Set(1);
@@ -32,6 +34,8 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 	public TWorld World { get; }
 
 	public ActorRuntimes<TRuntime> ActorRuntimes { get; }
+
+	public EffectRules<TWorld, TRuntime> Rules { get; }
 
 	public int WorldVersion { get; private set; }
 
@@ -62,7 +66,7 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 	public Simulation<TWorld, TRuntime> CreateSimulation()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		var sim = new Simulation<TWorld, TRuntime>(World.ForkForSimulation(), ActorRuntimes.Fork());
+		var sim = new Simulation<TWorld, TRuntime>(World.ForkForSimulation(), ActorRuntimes.Fork(), Rules);
 		sim.Begin(Tick, WorldVersion);
 		return sim;
 	}
@@ -86,7 +90,7 @@ internal sealed class Engine<TWorld, TRuntime> : IDisposable
 			var actorIdsBefore = World is IActorWorld actorWorld
 				? actorWorld.ActorIds.ToHashSet(StringComparer.Ordinal)
 				: null;
-			var records = ExecutionHelper.Apply(action, World, runtime);
+			var records = ExecutionHelper.Apply(action, World, runtime, Rules);
 			if (actorIdsBefore is not null)
 				RemoveMissingActors(actorIdsBefore, (IActorWorld)World);
 			ITimelineEntry[] entries = [action, ..records];

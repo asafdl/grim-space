@@ -355,7 +355,7 @@ public sealed class DeploymentPlacementTests
 					PilotCapabilityGrant.FromBackground(
 						pilot.Id,
 						pilot.BackgroundId,
-						BattlePilotCapabilityPipelineFactory.Supports),
+						BattlePilotCapabilities.Supports),
 					spawn.Pilot.CapabilityGrants
 						.Where(grant => grant.Source.Kind == EPilotCapabilitySourceKind.Background));
 			}

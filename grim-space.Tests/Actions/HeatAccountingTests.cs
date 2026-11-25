@@ -116,8 +116,7 @@ public sealed class HeatAccountingTests
 		var state = battle.Engine.World.StateOf(PlayerId);
 		state.Heat = 100;
 		state.Overheat = true;
-		BattleStatuses.SyncOverheat(state);
-
+		
 		Assert.True(BattleTestApply.TryApplyOne(
 			MoveDef.Instance.Bind(PlayerId, ESpatialOrientation.Forward),
 			battle.Engine.World,

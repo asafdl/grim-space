@@ -22,57 +22,65 @@ public sealed class AsteroidSurferTests
 	public void StatusPass_AddsOutgoingDamageBonusPercent()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		var world = BattleWorldFor(player);
-		InstallAsteroidSurfer(world, player);
-		IAction action = new ScrapDroneSwarmAction(player.State.Id, ESpatialOrientation.Port);
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord> { new(1, 1, 0) },
-			10 * 100,
-			Coord.Zero);
+		var enemy = BattleTestFixture.Enemy(new Coord(1, 0, 0));
+		var world = BattleWorldFor(player, enemy);
+		var runtime = ActorRuntime.From(new PilotBattleSnapshot(
+			"pilot",
+			PilotCapabilityGrant.FromBackground(
+				"pilot",
+				EPilotBackgroundId.AsteroidSurfer,
+				BattlePilotCapabilities.Supports)));
+		BattleStatusMaterializer.Materialize(world, player.State.Id, runtime);
+		IAction action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward);
+		var effect = new DamageUnitEffect(
+			EImpactCause.HighVelocityRod,
+			enemy.State.Id,
+			Coord.Zero,
+			100);
 
-		var modified = Assert.IsType<ApplyAreaDamageEffect>(
-			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
+		var modified = BattleEffectTestKit.PrepareDamage(action, world, runtime, effect);
 
 		Assert.Equal(
 			PilotSkillPercents.AsteroidSurfer.OutgoingDamageBonusPercent,
-			modified.DamageBonusPercent);
+			modified.BonusPercent);
 	}
 
 	[Fact]
 	public void StatusPass_IncreasesHullDamageTakenOnly()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		var world = BattleWorldFor(player);
-		InstallAsteroidSurfer(world, player);
+		var enemy = BattleTestFixture.Enemy(new Coord(1, 0, 0));
+		var world = BattleWorldFor(player, enemy);
+		var runtime = ActorRuntime.From(new PilotBattleSnapshot(
+			"pilot",
+			PilotCapabilityGrant.FromBackground(
+				"pilot",
+				EPilotBackgroundId.AsteroidSurfer,
+				BattlePilotCapabilities.Supports)));
+		BattleStatusMaterializer.Materialize(world, player.State.Id, runtime);
+		IAction action = new HighVelocityRodAction(enemy.State.Id, ESpatialOrientation.Forward);
+		var effect = new DamageUnitEffect(
+			EImpactCause.HighVelocityRod,
+			player.State.Id,
+			enemy.State.Position,
+			100);
+
+		var modified = BattleEffectTestKit.PrepareDamage(action, world, runtime, effect);
 
 		Assert.Equal(
-			115,
-			BattleStatuses.RewriteHullDamage(player.State.Statuses, 100));
-		Assert.Equal(
-			100,
-			BattleStatuses.RewriteShieldDamage(player.State.Statuses, 100));
+			[PilotSkillPercents.AsteroidSurfer.HullDamageTakenPercent],
+			modified.HullDamagePercents);
+		Assert.Empty(modified.HitSteps);
 	}
 
-	private static void InstallAsteroidSurfer(BattleWorld world, Unit player) =>
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			world,
-			player.State.Id,
-			ActorRuntime.From(new PilotBattleSnapshot(
-				"pilot",
-				PilotCapabilityGrant.FromBackground(
-					"pilot",
-					EPilotBackgroundId.AsteroidSurfer,
-					BattlePilotCapabilityPipelineFactory.Supports))));
-
-	private static BattleWorld BattleWorldFor(Unit player) =>
+	private static BattleWorld BattleWorldFor(params Unit[] units) =>
 		BattleWorld.FromLive(
-			[player],
+			units,
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>(),
 			"asteroid-surfer-test",
 			EObjective.EliminateOpponents,
-			new HashSet<string> { player.State.Id },
+			units.Select(unit => unit.State.Id).ToHashSet(StringComparer.Ordinal),
 			new Timeline());
 }

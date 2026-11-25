@@ -79,7 +79,7 @@ public sealed class SpawnRepurposedMinerDef
 	public bool IsLegal(SpawnRepurposedMinerAction action, BattleWorld world, ActorRuntime runtime)
 	{
 		var actor = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(actor))
+		if (actor.Overheat)
 			return false;
 		var installed = actor.FindInstalled(EAbilityKind.MinerBay, action.MountedOn);
 		if (installed is null)

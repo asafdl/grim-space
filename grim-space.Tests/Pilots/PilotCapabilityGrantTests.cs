@@ -29,11 +29,11 @@ public sealed class PilotCapabilityGrantTests
 		var battle = PilotCapabilityGrant.FromBackground(
 			"pilot-a",
 			EPilotBackgroundId.ScrapDrone,
-			BattlePilotCapabilityPipelineFactory.Supports);
+			BattlePilotCapabilities.Supports);
 		var strategic = PilotCapabilityGrant.FromBackground(
 			"pilot-a",
 			EPilotBackgroundId.ScrapDrone,
-			StarMapPilotCapabilityPipelineFactory.Supports);
+			StarMapPilotCapabilities.Supports);
 
 		Assert.Equal(EPilotCapabilityId.ScrapDroneSwarmDamageBonus, Assert.Single(battle).CapabilityId);
 		Assert.Equal(EPilotCapabilityId.MinorScrapRewardBonus, Assert.Single(strategic).CapabilityId);
@@ -59,10 +59,10 @@ public sealed class PilotCapabilityGrantTests
 		Assert.Empty(PilotCapabilityGrant.FromQuirks(
 			"pilot-a",
 			[EPilotQuirkId.Charismatic],
-			BattlePilotCapabilityPipelineFactory.Supports));
+			BattlePilotCapabilities.Supports));
 		Assert.Empty(PilotCapabilityGrant.FromQuirks(
 			"pilot-a",
 			[EPilotQuirkId.NeuroDrugAddict],
-			BattlePilotCapabilityPipelineFactory.Supports));
+			BattlePilotCapabilities.Supports));
 	}
 }

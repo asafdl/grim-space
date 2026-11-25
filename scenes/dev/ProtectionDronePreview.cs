@@ -137,7 +137,7 @@ public partial class ProtectionDronePreview : Node3D
 		{
 			case 0:
 			case 4:
-				var status = BattleStatuses.CreateProtectionDrone(target.Id);
+				var status = new ProtectionDroneBuff();
 				target.Statuses.Add(status);
 				history = [new Record<ProtectionDroneChangedFacts>(
 					new("drone-caster", target.Id, status.DeepCopy()))];

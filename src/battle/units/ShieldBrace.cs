@@ -5,52 +5,25 @@ using GrimSpace.Units.Loadouts.Defenses;
 
 namespace GrimSpace.Battle.Units;
 
-public sealed class ShieldBracePayload : IBattleStatusPayload
-{
-	public required ESpatialOrientation Face { get; init; }
-	public required FaceShieldPoints Snapshot { get; init; }
-	public int DamagePending { get; set; }
-
-	public IBattleStatusPayload DeepCopy() =>
-		new ShieldBracePayload
-		{
-			Face = Face,
-			Snapshot = Snapshot.Clone(),
-			DamagePending = DamagePending,
-		};
-}
-
 public static class ShieldBrace
 {
-	public static bool IsActive(State unit) => TryPayload(unit) is not null;
+	public static bool IsActive(State unit) => TryStatus(unit) is not null;
 
-	public static BattleStatus CreateStatus(
+	public static ShieldBraceStatus CreateStatus(
 		string actorId,
 		ESpatialOrientation face,
 		FaceShieldPoints snapshot,
 		int damagePending) =>
 		new()
 		{
-			InstanceId = BattleStatuses.BuffInstanceId("ShieldBrace", actorId),
-			Priority = 50,
-			ActionTags = [],
-			Polarity = EStatusPolarity.Buff,
-			Payload = new ShieldBracePayload
-			{
-				Face = face,
-				Snapshot = snapshot.Clone(),
-				DamagePending = damagePending,
-			},
+			Face = face,
+			Snapshot = snapshot.Clone(),
+			DamagePending = damagePending,
 		};
 
-	public static BattleStatus? TryStatus(State unit)
-	{
-		var instanceId = BattleStatuses.BuffInstanceId("ShieldBrace", unit.Id);
-		return unit.Statuses.Find(status =>
-			status.InstanceId == instanceId && status.Payload is ShieldBracePayload);
-	}
+	public static ShieldBraceStatus? TryStatus(State unit) => unit.StatusOf<ShieldBraceStatus>();
 
-	public static void Restore(State unit, BattleStatus? previous)
+	public static void Restore(State unit, ShieldBraceStatus? previous)
 	{
 		Clear(unit);
 		if (previous is not null)
@@ -79,30 +52,27 @@ public static class ShieldBrace
 
 	public static void RecordShieldDamage(State unit, ESpatialOrientation face, int absorbed)
 	{
-		var payload = TryPayload(unit);
-		if (payload is null || payload.Face != face || absorbed <= 0)
+		var status = TryStatus(unit);
+		if (status is null || status.Face != face || absorbed <= 0)
 			return;
 
-		payload.DamagePending += absorbed;
+		status.DamagePending += absorbed;
 	}
 
 	public static void Release(State unit)
 	{
-		var payload = TryPayload(unit);
-		if (payload is null)
+		var status = TryStatus(unit);
+		if (status is null)
 			return;
 
-		if (payload.DamagePending > 0)
-			ApplyPendingDamageToOtherFaces(unit, payload.Face, payload.DamagePending);
+		if (status.DamagePending > 0)
+			ApplyPendingDamageToOtherFaces(unit, status.Face, status.DamagePending);
 
-		RestoreProportionalShields(unit, payload.Snapshot);
+		RestoreProportionalShields(unit, status.Snapshot);
 		Clear(unit);
 	}
 
-	public static void Clear(State unit) =>
-		BattleStatuses.RemoveInstance(
-			unit.Statuses,
-			BattleStatuses.BuffInstanceId("ShieldBrace", unit.Id));
+	public static void Clear(State unit) => unit.RemoveStatus<ShieldBraceStatus>();
 
 	public static int TotalPermanentShields(State unit)
 	{
@@ -111,9 +81,6 @@ public static class ShieldBrace
 			total += unit.CurrentShieldPoints[face];
 		return total;
 	}
-
-	public static ShieldBracePayload? TryPayload(State unit) =>
-		TryStatus(unit)?.Payload as ShieldBracePayload;
 
 	private static int TotalPermanentShields(FaceShieldPoints shields)
 	{

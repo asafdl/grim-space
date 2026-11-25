@@ -97,6 +97,7 @@ public sealed class AsteroidBeltTests
 		var origin = new Coord(5, 5, 5);
 		var battle = BattleTestFixture.BeginSimulation(origin);
 		var world = battle.Engine.World;
+		var runtime = battle.Engine.ActorRuntimes.For("player");
 		var target = world.UnitRegistry.UnitOf("enemy");
 		var attackOrigin = world.StateOf("player").Position;
 		world.AddNonUnit(AsteroidBelt.Create(
@@ -105,42 +106,17 @@ public sealed class AsteroidBeltTests
 			world.Grid,
 			40));
 
-		var hit = BattleStatuses.RewriteIncomingHit(
-			target.State.Statuses,
-			world,
-			target,
-			attackOrigin,
-			EImpactCause.HighVelocityRod,
-			ESpatialOrientation.Forward,
-			new IncomingHit(100, 0));
-		Assert.Equal(new IncomingHit(100, 0), hit);
+		Assert.Equal(100, EffectiveDamage(target, world, runtime, attackOrigin, 100));
 
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-source", attackOrigin, world.Grid, 40));
-		hit = BattleStatuses.RewriteIncomingHit(
-			target.State.Statuses,
-			world,
-			target,
-			attackOrigin,
-			EImpactCause.HighVelocityRod,
-			ESpatialOrientation.Forward,
-			new IncomingHit(100, 0));
-		Assert.Equal(new IncomingHit(30, 0), hit);
+		Assert.Equal(30, EffectiveDamage(target, world, runtime, attackOrigin, 100));
 
 		world.AddNonUnit(AsteroidBelt.Create(
 			"asteroidbelt-target",
 			target.State.Position,
 			world.Grid,
 			AsteroidBelt.HighResistancePercent));
-		hit = BattleStatuses.RewriteIncomingHit(
-			target.State.Statuses,
-			world,
-			target,
-			attackOrigin,
-			EImpactCause.HighVelocityRod,
-			ESpatialOrientation.Forward,
-			new IncomingHit(100, 0));
-
-		Assert.Equal(new IncomingHit(6, 0), hit);
+		Assert.Equal(6, EffectiveDamage(target, world, runtime, attackOrigin, 100));
 	}
 
 	[Fact]
@@ -158,14 +134,14 @@ public sealed class AsteroidBeltTests
 			world.Grid,
 			AsteroidBelt.HighResistancePercent));
 
-		Assert.Equal(new IncomingHit(20, 0), RewriteHit(target, world, origin, 100, 0));
+		Assert.Equal(20, EffectiveDamage(target, world, runtime, origin, 100));
 		_ = new ErodeAsteroidBeltCoverEffect(new HashSet<Coord> { cell })
 			.Apply(world, runtime, "player");
-		Assert.Equal(new IncomingHit(60, 0), RewriteHit(target, world, origin, 100, 0));
+		Assert.Equal(60, EffectiveDamage(target, world, runtime, origin, 100));
 		_ = new ErodeAsteroidBeltCoverEffect(new HashSet<Coord> { cell })
 			.Apply(world, runtime, "player");
 		Assert.Null(world.AsteroidBeltAt(cell));
-		Assert.Equal(new IncomingHit(100, 0), RewriteHit(target, world, origin, 100, 0));
+		Assert.Equal(100, EffectiveDamage(target, world, runtime, origin, 100));
 	}
 
 	[Fact]
@@ -173,30 +149,16 @@ public sealed class AsteroidBeltTests
 	{
 		var battle = BattleTestFixture.BeginSimulation(new Coord(5, 5, 5));
 		var world = battle.Engine.World;
+		var runtime = battle.Engine.ActorRuntimes.For("player");
 		var target = world.UnitRegistry.UnitOf("enemy");
 		world.AddNonUnit(AsteroidBelt.Create(
 			"asteroidbelt-target",
 			target.State.Position,
 			world.Grid,
 			AsteroidBelt.HighResistancePercent));
-		target.State.Statuses.Add(BattleStatuses.CreateProtectionDrone(target.State.Id));
+		target.State.Statuses.Add(new ProtectionDroneBuff());
 
-		var hit = BattleStatuses.RewriteIncomingHit(
-			target.State.Statuses,
-			world,
-			target,
-			world.StateOf("player").Position,
-			EImpactCause.HighVelocityRod,
-			ESpatialOrientation.Forward,
-			new IncomingHit(100, 25));
-
-		Assert.Equal(new IncomingHit(18, 5), hit);
-		Assert.Equal(new IncomingHit(0, 20), RewriteHit(
-			target,
-			world,
-			world.StateOf("player").Position,
-			0,
-			100));
+		Assert.Equal(18, EffectiveDamage(target, world, runtime, world.StateOf("player").Position, 100));
 	}
 
 	[Fact]
@@ -207,15 +169,15 @@ public sealed class AsteroidBeltTests
 		const string actorId = "enemy";
 		var action = new LightningCannonAction(actorId);
 		var runtime = sim.RuntimeFor(actorId);
-		var chain = Assert.Single(
+		var announce = Assert.Single(
 			LightningCannonDef.Instance.Resolve(action, world, runtime)
-				.OfType<ApplyChainLightningDamageEffect>());
-		var emptyCell = chain.BeamCells.First(cell =>
-			cell != chain.Origin
+				.OfType<AnnounceAreaDamageEffect>());
+		var emptyCell = announce.Facts.Cells.First(cell =>
+			cell != announce.Facts.Origin
 			&& world.UnitRegistry.All.All(unit => !unit.State.IsAlive || unit.State.Position != cell));
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-empty", emptyCell, world.Grid, 80));
 
-		var effects = ExecutionHelper.ApplyAndResolve(action, world, runtime);
+		var effects = ExecutionHelper.ApplyAndResolve(action, world, runtime, sim.Rules);
 
 		Assert.Equal(40, world.AsteroidBeltAt(emptyCell)!.DamageResistancePercent);
 		ExecutionHelper.UndoEffects(effects, action, world, runtime);
@@ -230,27 +192,27 @@ public sealed class AsteroidBeltTests
 		const string actorId = "enemy";
 		var action = new LightningCannonAction(actorId);
 		var runtime = sim.RuntimeFor(actorId);
-		var chain = Assert.Single(
+		var announce = Assert.Single(
 			LightningCannonDef.Instance.Resolve(action, world, runtime)
-				.OfType<ApplyChainLightningDamageEffect>());
-		var targetCell = Assert.Single(chain.Hops).Position;
-		Assert.Contains(targetCell, chain.BeamCells);
-		var emptyCells = chain.BeamCells
-			.Where(cell => cell != chain.Origin && cell != targetCell)
+				.OfType<AnnounceAreaDamageEffect>());
+		var targetCell = Assert.Single(announce.Facts.ChainHops!);
+		Assert.Contains(targetCell, announce.Facts.Cells);
+		var emptyCells = announce.Facts.Cells
+			.Where(cell => cell != announce.Facts.Origin && cell != targetCell)
 			.Where(cell => world.UnitRegistry.All.All(unit =>
 				!unit.State.IsAlive || unit.State.Position != cell))
 			.Take(2)
 			.ToArray();
 		Assert.Equal(2, emptyCells.Length);
 
-		var sourceCell = chain.Origin;
+		var sourceCell = announce.Facts.Origin;
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-source", sourceCell, world.Grid, 80));
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-empty-a", emptyCells[0], world.Grid, 80));
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-empty-b", emptyCells[1], world.Grid, 80));
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-target", targetCell, world.Grid, 80));
 
 		var firstRecords = new List<IRecord>();
-		var firstEffects = ExecutionHelper.ApplyAndResolve(action, world, runtime, firstRecords);
+		var firstEffects = ExecutionHelper.ApplyAndResolve(action, world, runtime, sim.Rules, firstRecords);
 		var firstFacts = firstRecords.OfType<Record<AsteroidBeltChangedFacts>>().ToArray();
 		Assert.Equal(
 			new[] { 40, 40, 40 },
@@ -272,7 +234,7 @@ public sealed class AsteroidBeltTests
 		Assert.True(coverChangeIndex > lastImpactIndex);
 
 		var secondRecords = new List<IRecord>();
-		var secondEffects = ExecutionHelper.ApplyAndResolve(action, world, runtime, secondRecords);
+		var secondEffects = ExecutionHelper.ApplyAndResolve(action, world, runtime, sim.Rules, secondRecords);
 		var secondFacts = secondRecords.OfType<Record<AsteroidBeltChangedFacts>>().ToArray();
 		Assert.All(
 			new[] { emptyCells[0], emptyCells[1], targetCell },
@@ -343,7 +305,7 @@ public sealed class AsteroidBeltTests
 		var action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Dorsal);
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 
-		var effects = ExecutionHelper.ApplyAndResolve(action, world, runtime);
+		var effects = ExecutionHelper.ApplyAndResolve(action, world, runtime, battle.Engine.Rules);
 
 		Assert.Equal(40, world.AsteroidBeltAt(coverCell)!.DamageResistancePercent);
 		ExecutionHelper.UndoEffects(effects, action, world, runtime);
@@ -364,18 +326,19 @@ public sealed class AsteroidBeltTests
 		var runtime = battle.Engine.ActorRuntimes.For(player.State.Id);
 		var cell = ally.State.Position;
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-friendly", cell, world.Grid, 80));
-		var damage = new ApplyAreaDamageEffect(
-			EImpactCause.ScrapDroneSwarmBurst,
-			new HashSet<Coord> { cell },
-			100,
-			origin,
-			alliesTakeDamage: false);
-		var action = new LightningCannonAction(player.State.Id);
-		var resolved = ((IResolvedEffectPass<BattleWorld, ActorRuntime>)world)
-			.RewriteResolvedEffects(action, world, runtime, [damage]);
 		var allyHull = world.StateOf(ally.State.Id).CurrentHullPoints;
+		var effects = AttackEffects.Area(
+				world,
+				player.State.Id,
+				EImpactCause.ScrapDroneSwarmBurst,
+				new HashSet<Coord> { cell },
+				100,
+				origin,
+				alliesTakeDamage: false)
+			.Concat(AttackEffects.Erosion(world, [cell], origin))
+			.ToArray();
 
-		foreach (var effect in resolved)
+		foreach (var effect in effects)
 			_ = effect.Apply(world, runtime, player.State.Id);
 
 		Assert.Equal(allyHull, world.StateOf(ally.State.Id).CurrentHullPoints);
@@ -392,40 +355,21 @@ public sealed class AsteroidBeltTests
 		var moveCell = origin + Coord.Forward;
 		world.AddNonUnit(AsteroidBelt.Create("asteroidbelt-safe", moveCell, world.Grid, 80));
 
-		_ = ExecutionHelper.ApplyAndResolve(new MoveStepAction("player"), world, runtime);
+		_ = ExecutionHelper.ApplyAndResolve(new MoveStepAction("player"), world, runtime, battle.Engine.Rules);
 
 		Assert.Equal(80, world.AsteroidBeltAt(moveCell)!.DamageResistancePercent);
 
 		var targetCell = world.StateOf("enemy").Position;
-		var noDamage = new ApplyAreaDamageEffect(
-			EImpactCause.HighVelocityRod,
-			new HashSet<Coord> { moveCell },
-			0,
-			origin);
-		var noShieldDamageChain = new ApplyChainLightningDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { moveCell },
-			[],
-			0,
-			0,
-			origin);
 		var nonDamageEffects = new IEffect<BattleWorld, ActorRuntime>[]
 		{
-			noDamage,
 			new ApplyAreaAllyHealEffect(
 				EImpactCause.ScrapDroneSwarmBurst,
 				new HashSet<Coord> { targetCell },
 				20),
 			new SetProtectionDroneBuffActiveEffect("enemy", true),
-			noShieldDamageChain,
 		};
-		var action = new MoveStepAction("player");
-		var resolved = ((IResolvedEffectPass<BattleWorld, ActorRuntime>)world)
-			.RewriteResolvedEffects(action, world, runtime, nonDamageEffects);
-
-		Assert.DoesNotContain(resolved, effect => effect is ErodeAsteroidBeltCoverEffect);
-		foreach (var effect in resolved)
-			_ = effect.Apply(world, runtime, action.ActorId);
+		foreach (var effect in nonDamageEffects)
+			_ = effect.Apply(world, runtime, "player");
 		Assert.Equal(80, world.AsteroidBeltAt(moveCell)!.DamageResistancePercent);
 	}
 
@@ -447,18 +391,27 @@ public sealed class AsteroidBeltTests
 		Assert.Equal(40, sim.AsteroidBeltAt(cell)!.DamageResistancePercent);
 	}
 
-	private static IncomingHit RewriteHit(
+	private static int EffectiveDamage(
 		Unit target,
 		BattleWorld world,
+		ActorRuntime runtime,
 		Coord origin,
-		int damage,
-		int shieldDamageBonus) =>
-		BattleStatuses.RewriteIncomingHit(
-			target.State.Statuses,
+		int damage)
+	{
+		var prepared = BattleEffectTestKit.PrepareDamage(
+			new HighVelocityRodAction("player", ESpatialOrientation.Forward),
 			world,
-			target,
-			origin,
-			EImpactCause.HighVelocityRod,
-			ESpatialOrientation.Forward,
-			new IncomingHit(damage, shieldDamageBonus));
+			runtime,
+			new DamageUnitEffect(EImpactCause.HighVelocityRod, target.State.Id, origin, damage));
+		var result = Defense.ScalePercent(prepared.Damage, 100 + prepared.BonusPercent);
+		foreach (var percent in prepared.DamagePercents)
+			result = Defense.ScalePercent(result, percent);
+		foreach (var step in prepared.HitSteps)
+		{
+			if (step.AddedShieldDamagePercent != 0)
+				continue;
+			result = Defense.ScalePercent(result, step.RetainPercent);
+		}
+		return result;
+	}
 }

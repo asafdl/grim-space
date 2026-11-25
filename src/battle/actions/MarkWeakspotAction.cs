@@ -83,7 +83,7 @@ public sealed class MarkWeakspotDef
 			return false;
 
 		var actor = world.StateOf(action.ActorId);
-		if (BattleStatuses.HasOverheat(actor) || actor.MarkWeakspotCooldownRemaining > 0)
+		if (actor.Overheat || actor.MarkWeakspotCooldownRemaining > 0)
 			return false;
 		if (!TargetPickSpec.IsLiving(world, action.TargetId))
 			return false;

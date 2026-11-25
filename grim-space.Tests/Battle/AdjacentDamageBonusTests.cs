@@ -3,7 +3,6 @@ using GrimSpace.Battle.Effects;
 using GrimSpace.Battle.Encounter;
 using GrimSpace.Battle.NonUnits;
 using GrimSpace.Battle.Objectives;
-using GrimSpace.Battle.PilotCapabilities;
 using GrimSpace.Battle.Runtime;
 using GrimSpace.Battle.Statuses;
 using GrimSpace.Battle.Units;
@@ -12,93 +11,61 @@ using GrimSpace.Core.Actions;
 using GrimSpace.Core.Engine;
 using GrimSpace.Math.Grid;
 using GrimSpace.Pilots;
-using GrimSpace.Units.Enums;
 
 namespace GrimSpace.Tests.StatusModel;
 
 public sealed class AdjacentDamageBonusTests
 {
 	[Fact]
-	public void StatusPass_StampsAdjacentBonusOnTaggedAttack()
+	public void StatusPass_ScalesDamageAtBonusRange()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		var world = BattleWorldFor(player);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			world,
-			player.State.Id,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis])));
-		IAction action = new LightningCannonAction(player.State.Id);
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord> { new(1, 0, 0) },
-			2,
-			Coord.Zero);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 2, 0));
+		var world = BattleWorldFor(player, enemy);
+		var runtime = ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis]));
+		BattleStatusMaterializer.Materialize(world, player.State.Id, runtime);
+		IAction action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward);
+		var effect = new DamageUnitEffect(
+			EImpactCause.HighVelocityRod,
+			enemy.State.Id,
+			Coord.Zero,
+			100);
 
-		var modified = Assert.IsType<ApplyAreaDamageEffect>(
-			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
+		var modified = BattleEffectTestKit.PrepareDamage(action, world, runtime, effect);
 
 		Assert.Equal(
-			PilotSkillPercents.DodgeThis.BonusHitDamagePercent,
-			modified.AdjacentHitDamagePercent);
-		Assert.Equal(
-			PilotSkillPercents.DodgeThis.BonusRangeCells,
-			modified.AdjacentHitDamageRangeCells);
+			[PilotSkillPercents.DodgeThis.BonusHitDamagePercent],
+			modified.DamagePercents);
 	}
 
 	[Fact]
-	public void StatusPass_LeavesNonAreaEffectsUnchanged()
+	public void StatusPass_DoesNotScaleWhenOutOfBonusRange()
 	{
 		var player = BattleTestFixture.Player(Coord.Zero);
-		var world = BattleWorldFor(player);
-		BattlePassiveStatusInstaller.InstallFromCapabilities(
-			world,
-			player.State.Id,
-			ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis])));
-		IAction action = new LightningCannonAction(player.State.Id);
-		var effect = new ApplyChainLightningDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord>(),
-			[],
-			2,
-			0,
-			Coord.Zero);
+		var enemy = BattleTestFixture.Enemy(new Coord(0, 3, 0));
+		var world = BattleWorldFor(player, enemy);
+		var runtime = ActorRuntime.From(PilotBattleSnapshot.FromSkills("pilot", [EPilotSkillId.DodgeThis]));
+		BattleStatusMaterializer.Materialize(world, player.State.Id, runtime);
+		IAction action = new HighVelocityRodAction(player.State.Id, ESpatialOrientation.Forward);
+		var effect = new DamageUnitEffect(
+			EImpactCause.HighVelocityRod,
+			enemy.State.Id,
+			Coord.Zero,
+			100);
 
-		var modified = Assert.IsType<ApplyChainLightningDamageEffect>(
-			Assert.Single(BattleStatuses.RewriteOutgoing(action, world, [effect])));
+		var modified = BattleEffectTestKit.PrepareDamage(action, world, runtime, effect);
 
-		Assert.Equal(0, modified.DamageBonusPercent);
+		Assert.Empty(modified.DamagePercents);
 	}
 
-	[Fact]
-	public void Pipeline_NoLongerRegistersAdjacentDamageBonus()
-	{
-		var pipeline = BattlePilotCapabilityPipelineFactory.Build(
-			new HashSet<EPilotCapabilityId>
-			{
-				EPilotCapabilityId.AdjacentDamageBonus,
-			});
-		IAction action = new LightningCannonAction("pilot-ship");
-		var effect = new ApplyAreaDamageEffect(
-			EImpactCause.LightningCannonBurst,
-			new HashSet<Coord>(),
-			2,
-			Coord.Zero);
-
-		var modified = Assert.IsType<ApplyAreaDamageEffect>(
-			Assert.Single(pipeline.Apply(action, null!, ActorRuntime.From(null), [effect])));
-
-		Assert.Equal(100, modified.AdjacentHitDamagePercent);
-		Assert.Equal(1, modified.AdjacentHitDamageRangeCells);
-	}
-
-	private static BattleWorld BattleWorldFor(Unit player) =>
+	private static BattleWorld BattleWorldFor(Unit player, Unit enemy) =>
 		BattleWorld.FromLive(
-			[player],
+			[player, enemy],
 			new Dictionary<string, NonUnit>(),
 			BattleTestFixture.Grid(),
 			new HashSet<Coord>(),
 			"status-test",
 			EObjective.EliminateOpponents,
-			new HashSet<string> { player.State.Id },
+			new HashSet<string> { player.State.Id, enemy.State.Id },
 			new Timeline());
 }
